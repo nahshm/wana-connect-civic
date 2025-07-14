@@ -1,11 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Search, Bell, User, Plus } from 'lucide-react';
 
 export const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-14 flex items-center">
+        <SidebarTrigger className="mr-4" />
         <div className="flex items-center space-x-6">
           <h1 className="text-xl font-bold text-primary">WanaIQ</h1>
           
