@@ -5,13 +5,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowUp, ArrowDown, MessageCircle, Share, Verified } from 'lucide-react';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 interface PostCardProps {
   post: Post;
   onVote: (postId: string, vote: 'up' | 'down') => void;
+  isDetailView?: boolean;
 }
 
-export const PostCard = ({ post, onVote }: PostCardProps) => {
+export const PostCard = ({ post, onVote, isDetailView = false }: PostCardProps) => {
   const getVoteScore = () => post.upvotes - post.downvotes;
   
   const getRoleColor = (role?: string) => {
@@ -53,8 +55,21 @@ export const PostCard = ({ post, onVote }: PostCardProps) => {
       </CardHeader>
       
       <CardContent>
-        <h3 className="font-semibold text-lg mb-2 leading-tight">{post.title}</h3>
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-3">{post.content}</p>
+        {isDetailView ? (
+          <div>
+            <h3 className="font-semibold text-lg mb-2 leading-tight">{post.title}</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              {post.content}
+            </p>
+          </div>
+        ) : (
+          <Link to={`/post/${post.id}`} className="block hover:bg-accent/5 -m-4 p-4 rounded-lg transition-colors">
+            <h3 className="font-semibold text-lg mb-2 leading-tight">{post.title}</h3>
+            <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+              {post.content}
+            </p>
+          </Link>
+        )}
         
         {post.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
@@ -89,9 +104,11 @@ export const PostCard = ({ post, onVote }: PostCardProps) => {
             </Button>
           </div>
           
-          <Button variant="ghost" size="sm" className="h-8">
-            <MessageCircle className="w-4 h-4 mr-1" />
-            {post.commentCount}
+          <Button variant="ghost" size="sm" className="h-8" asChild>
+            <Link to={`/post/${post.id}`}>
+              <MessageCircle className="w-4 h-4 mr-1" />
+              {post.commentCount}
+            </Link>
           </Button>
           
           <Button variant="ghost" size="sm" className="h-8">

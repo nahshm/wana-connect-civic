@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Search, Bell, User, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Header = () => {
   return (
@@ -21,9 +22,11 @@ export const Header = () => {
         </div>
         
         <div className="ml-auto flex items-center space-x-2">
-          <Button variant="ghost" size="sm">
-            <Plus className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Create</span>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/create">
+              <Plus className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Create</span>
+            </Link>
           </Button>
           
           <Button variant="ghost" size="icon">

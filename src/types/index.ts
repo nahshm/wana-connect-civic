@@ -33,6 +33,9 @@ export interface Comment {
   downvotes: number;
   userVote?: 'up' | 'down' | null;
   replies?: Comment[];
+  depth: number;
+  isCollapsed: boolean;
+  moderationStatus: 'pending' | 'approved' | 'removed';
 }
 
 export interface User {

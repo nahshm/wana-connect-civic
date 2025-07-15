@@ -7,9 +7,10 @@ import { Community } from '@/types';
 interface CommunityCardProps {
   community: Community;
   onToggleFollow: (communityId: string) => void;
+  showDescription?: boolean;
 }
 
-export const CommunityCard = ({ community, onToggleFollow }: CommunityCardProps) => {
+export const CommunityCard = ({ community, onToggleFollow, showDescription = true }: CommunityCardProps) => {
   const getCategoryColor = (category: Community['category']) => {
     switch (category) {
       case 'governance': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
@@ -51,9 +52,11 @@ export const CommunityCard = ({ community, onToggleFollow }: CommunityCardProps)
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-          {community.description}
-        </p>
+        {showDescription && (
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+            {community.description}
+          </p>
+        )}
         <div className="flex items-center text-xs text-muted-foreground">
           <Users className="w-4 h-4 mr-1" />
           {community.memberCount.toLocaleString()} members

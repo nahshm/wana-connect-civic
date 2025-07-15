@@ -138,11 +138,16 @@ export const useCommunityData = () => {
     );
   };
 
+  const addPost = (newPost: Post) => {
+    setPosts(prev => [newPost, ...prev]);
+  };
+
   return {
     communities,
     posts,
     loading,
     toggleCommunityFollow,
-    voteOnPost
+    voteOnPost,
+    addPost
   };
 };
