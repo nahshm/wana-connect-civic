@@ -7,18 +7,18 @@ import { Link } from 'react-router-dom';
 
 export const Header = () => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
       <div className="container mx-auto px-4 h-16 flex items-center">
-        <SidebarTrigger className="mr-4 hover:bg-accent" />
+        <SidebarTrigger className="mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
         <div className="flex items-center space-x-6 flex-1">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-civic-green bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-sidebar-primary">
             WanaIQ
           </h1>
           
           <div className="hidden md:flex flex-1 max-w-2xl">
             <SearchBar 
               placeholder="Search discussions, communities, users..."
-              className="w-full border-border/50 focus-within:border-primary/50"
+              className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring"
               onSearch={(query, filters) => {
                 console.log('Search:', query, filters);
                 // TODO: Implement search functionality
@@ -32,18 +32,18 @@ export const Header = () => {
             variant="ghost" 
             size="sm" 
             asChild
-            className="hover:bg-primary/10 hover:text-primary transition-colors"
+            className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium"
           >
             <Link to="/create">
               <Plus className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline font-medium">Create</span>
+              <span className="hidden sm:inline">Create</span>
             </Link>
           </Button>
           
           <Button 
             variant="ghost" 
             size="icon"
-            className="hover:bg-primary/10 hover:text-primary transition-colors"
+            className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
           >
             <Bell className="w-4 h-4" />
           </Button>
@@ -53,7 +53,7 @@ export const Header = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            className="hover:bg-primary/10 hover:text-primary transition-colors"
+            className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
           >
             <User className="w-4 h-4" />
           </Button>
