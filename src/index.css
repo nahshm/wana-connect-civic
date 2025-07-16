@@ -17,8 +17,15 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Civic-themed primary colors - Kenya flag inspired */
+    --primary: 147 51% 19%;
+    --primary-foreground: 0 0% 98%;
+    
+    /* Civic accent colors */
+    --civic-green: 147 51% 19%;
+    --civic-red: 355 67% 42%;
+    --civic-blue: 217 71% 53%;
+    --civic-orange: 25 95% 53%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -65,8 +72,14 @@ All colors MUST be HSL.
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 147 51% 25%;
+    --primary-foreground: 0 0% 98%;
+    
+    /* Dark mode civic colors */
+    --civic-green: 147 51% 25%;
+    --civic-red: 355 67% 45%;
+    --civic-blue: 217 71% 60%;
+    --civic-orange: 25 95% 60%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;

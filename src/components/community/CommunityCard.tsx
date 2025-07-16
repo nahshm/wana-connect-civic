@@ -13,11 +13,11 @@ interface CommunityCardProps {
 export const CommunityCard = ({ community, onToggleFollow, showDescription = true }: CommunityCardProps) => {
   const getCategoryColor = (category: Community['category']) => {
     switch (category) {
-      case 'governance': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'accountability': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'civic-education': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'discussion': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      case 'governance': return 'bg-civic-blue/10 text-civic-blue border-civic-blue/20';
+      case 'accountability': return 'bg-civic-red/10 text-civic-red border-civic-red/20';
+      case 'civic-education': return 'bg-civic-green/10 text-civic-green border-civic-green/20';
+      case 'discussion': return 'bg-civic-orange/10 text-civic-orange border-civic-orange/20';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -27,7 +27,7 @@ export const CommunityCard = ({ community, onToggleFollow, showDescription = tru
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="text-lg font-semibold">{community.displayName}</CardTitle>
-            <Badge className={`mt-1 ${getCategoryColor(community.category)}`}>
+            <Badge variant="outline" className={`mt-1 ${getCategoryColor(community.category)}`}>
               {community.category.replace('-', ' ')}
             </Badge>
           </div>

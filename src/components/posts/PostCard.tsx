@@ -18,10 +18,10 @@ export const PostCard = ({ post, onVote, isDetailView = false }: PostCardProps) 
   
   const getRoleColor = (role?: string) => {
     switch (role) {
-      case 'official': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'expert': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      case 'journalist': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      case 'official': return 'bg-civic-blue/10 text-civic-blue border-civic-blue/20';
+      case 'expert': return 'bg-civic-green/10 text-civic-green border-civic-green/20';
+      case 'journalist': return 'bg-civic-orange/10 text-civic-orange border-civic-orange/20';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -40,7 +40,7 @@ export const PostCard = ({ post, onVote, isDetailView = false }: PostCardProps) 
                 <Verified className="w-4 h-4 text-blue-500" />
               )}
               {post.author.role && (
-                <Badge className={`text-xs ${getRoleColor(post.author.role)}`}>
+                <Badge variant="outline" className={`text-xs ${getRoleColor(post.author.role)}`}>
                   {post.author.role}
                 </Badge>
               )}
@@ -87,7 +87,7 @@ export const PostCard = ({ post, onVote, isDetailView = false }: PostCardProps) 
               variant="ghost"
               size="sm"
               onClick={() => onVote(post.id, 'up')}
-              className={`h-8 px-2 ${post.userVote === 'up' ? 'text-orange-500 bg-orange-50 dark:bg-orange-950' : ''}`}
+              className={`h-8 px-2 ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : ''}`}
             >
               <ArrowUp className="w-4 h-4" />
             </Button>
@@ -98,7 +98,7 @@ export const PostCard = ({ post, onVote, isDetailView = false }: PostCardProps) 
               variant="ghost"
               size="sm"
               onClick={() => onVote(post.id, 'down')}
-              className={`h-8 px-2 ${post.userVote === 'down' ? 'text-blue-500 bg-blue-50 dark:bg-blue-950' : ''}`}
+              className={`h-8 px-2 ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : ''}`}
             >
               <ArrowDown className="w-4 h-4" />
             </Button>
