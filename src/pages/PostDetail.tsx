@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
 import { CommentSection } from '@/components/posts/CommentSection';
-import { CommunityCard } from '@/components/community/CommunityCard';
 import { useCommunityData } from '@/hooks/useCommunityData';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Users, Shield, Calendar, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Comment } from '@/types';
 
@@ -206,19 +207,21 @@ const PostDetail = () => {
   if (!post) {
     return (
       <SidebarProvider>
-        <div className="min-h-screen flex w-full">
+        <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
           <SidebarInset className="flex-1">
             <Header />
-            <div className="container mx-auto px-4 py-6">
-              <div className="text-center py-8">
-                <h1 className="text-2xl font-bold mb-2">Post Not Found</h1>
-                <p className="text-muted-foreground mb-4">
-                  The post you're looking for doesn't exist or has been removed.
-                </p>
-                <Button asChild>
-                  <Link to="/">Return to Feed</Link>
-                </Button>
+            <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
+              <div className="flex-1 max-w-4xl">
+                <div className="text-center py-8">
+                  <h1 className="text-2xl font-bold mb-2 text-sidebar-foreground">Post Not Found</h1>
+                  <p className="text-sidebar-muted-foreground mb-4">
+                    The post you're looking for doesn't exist or has been removed.
+                  </p>
+                  <Button asChild>
+                    <Link to="/">Return to Feed</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </SidebarInset>
@@ -229,76 +232,112 @@ const PostDetail = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <SidebarInset className="flex-1">
           <Header />
           
-          <div className="container mx-auto px-4 py-6">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Main Content */}
-              <div className="lg:col-span-3">
-                {/* Back Navigation */}
-                <Button variant="ghost" asChild className="mb-4">
-                  <Link to="/" className="flex items-center gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Feed
-                  </Link>
-                </Button>
+          <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
+            {/* Main Content */}
+            <div className="flex-1 max-w-2xl">
+              {/* Back Navigation */}
+              <Button variant="ghost" asChild className="mb-4 text-sidebar-muted-foreground hover:text-sidebar-foreground">
+                <Link to="/" className="flex items-center gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Feed
+                </Link>
+              </Button>
 
-                {/* Post */}
-                <div className="mb-6">
-                  <PostCard
-                    post={post}
-                    onVote={voteOnPost}
-                    isDetailView={true}
-                  />
-                </div>
-
-                {/* Comments */}
-                {loading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-20 w-full ml-6" />
-                    <Skeleton className="h-24 w-full" />
-                  </div>
-                ) : (
-                  <CommentSection
-                    postId={post.id}
-                    comments={comments}
-                    onAddComment={handleAddComment}
-                    onVoteComment={handleVoteComment}
-                  />
-                )}
+              {/* Post */}
+              <div className="mb-6">
+                <PostCard
+                  post={post}
+                  onVote={voteOnPost}
+                  isDetailView={true}
+                />
               </div>
-              
-              {/* Right Sidebar */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-4">Community Info</h3>
-                  <CommunityCard
-                    community={post.community}
-                    onToggleFollow={toggleCommunityFollow}
-                    showDescription={true}
-                  />
-                </div>
 
-                <div>
-                  <h3 className="font-semibold mb-4">Related Communities</h3>
-                  <div className="space-y-4">
-                    {communities
-                      .filter(c => c.id !== post.community.id)
-                      .slice(0, 3)
-                      .map(community => (
-                        <CommunityCard
-                          key={community.id}
-                          community={community}
-                          onToggleFollow={toggleCommunityFollow}
-                        />
-                      ))}
-                  </div>
+              {/* Comments */}
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-20 w-full ml-6" />
+                  <Skeleton className="h-24 w-full" />
                 </div>
+              ) : (
+                <CommentSection
+                  postId={post.id}
+                  comments={comments}
+                  onAddComment={handleAddComment}
+                  onVoteComment={handleVoteComment}
+                />
+              )}
+            </div>
+            
+            {/* Right Sidebar */}
+            <div className="hidden lg:block w-80">
+              <div className="sticky top-24 space-y-4">
+                {/* Community Info Card */}
+                <Card className="bg-sidebar-background border-sidebar-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-sidebar-foreground flex items-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      About Community
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-sidebar-foreground">r/{post.community.name}</h3>
+                      <p className="text-sm text-sidebar-muted-foreground mt-1">
+                        {post.community.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-sidebar-muted-foreground">
+                      <div className="flex items-center space-x-1">
+                        <Users className="w-3 h-3" />
+                        <span>{post.community.memberCount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>Created 2y ago</span>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => toggleCommunityFollow(post.community.id)}
+                      className="w-full"
+                      variant={post.community.isFollowing ? "outline" : "default"}
+                    >
+                      {post.community.isFollowing ? 'Following' : 'Join Community'}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Community Rules */}
+                <Card className="bg-sidebar-background border-sidebar-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-sidebar-foreground flex items-center">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Community Rules
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {[
+                      'Be respectful and civil',
+                      'No harassment or hate speech',
+                      'Stay on topic',
+                      'No spam or self-promotion',
+                      'Follow factual reporting standards'
+                    ].map((rule, index) => (
+                      <div key={index} className="text-sm text-sidebar-muted-foreground p-2 bg-sidebar-accent/20 rounded">
+                        {index + 1}. {rule}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Other Sidebar Content */}
+                <RightSidebar />
               </div>
             </div>
           </div>
