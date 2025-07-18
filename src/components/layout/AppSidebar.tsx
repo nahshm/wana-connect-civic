@@ -1,5 +1,19 @@
 import { useState } from 'react';
-import { Home, TrendingUp, Users, Globe, Bookmark, MessageSquare, HelpCircle, Settings } from 'lucide-react';
+import { 
+  Home, 
+  TrendingUp, 
+  Users, 
+  Globe, 
+  MessageSquare, 
+  Bookmark,
+  Plus,
+  Settings,
+  HelpCircle,
+  FileText,
+  Shield,
+  Briefcase,
+  Star
+} from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 import {
@@ -17,18 +31,30 @@ import {
 const mainItems = [
   { title: 'Home', url: '/', icon: Home },
   { title: 'Popular', url: '/popular', icon: TrendingUp },
-  { title: 'All', url: '/all', icon: Globe },
+  { title: 'Explore', url: '/explore', icon: Globe },
+  { title: 'All', url: '/all', icon: MessageSquare },
+];
+
+const feedItems = [
+  { title: 'Create a custom feed', url: '/create-feed', icon: Plus },
+];
+
+const recentItems = [
+  { title: 'r/communities', url: '/communities', icon: Users },
 ];
 
 const communityItems = [
-  { title: 'My Communities', url: '/communities', icon: Users },
-  { title: 'Saved Posts', url: '/saved', icon: Bookmark },
-  { title: 'Messages', url: '/messages', icon: MessageSquare },
+  { title: 'Create a community', url: '/create-community', icon: Plus },
+  { title: 'Manage communities', url: '/manage-communities', icon: Settings },
+  { title: 'r/Kenya', url: '/r/kenya', icon: Star },
 ];
 
-const otherItems = [
-  { title: 'Help & FAQ', url: '/help', icon: HelpCircle },
-  { title: 'Settings', url: '/settings', icon: Settings },
+const resourceItems = [
+  { title: 'About WanaIQ', url: '/about', icon: HelpCircle },
+  { title: 'Help', url: '/help', icon: HelpCircle },
+  { title: 'Blog', url: '/blog', icon: FileText },
+  { title: 'Careers', url: '/careers', icon: Briefcase },
+  { title: 'Privacy Policy', url: '/privacy', icon: Shield },
 ];
 
 export function AppSidebar() {
@@ -45,7 +71,9 @@ export function AppSidebar() {
   };
 
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/50';
+    isActive 
+      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' 
+      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground';
 
   return (
     <Sidebar
@@ -55,9 +83,6 @@ export function AppSidebar() {
       <SidebarContent className="gap-0">
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : ''}>
-            Navigation
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
@@ -74,9 +99,51 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Custom Feeds */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
+            Custom Feeds
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {feedItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavCls}>
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Recent */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
+            Recent
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {recentItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavCls}>
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* Communities */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : ''}>
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
             Communities
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -95,14 +162,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Other */}
+        {/* Resources */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : ''}>
-            Other
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
+            Resources
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {otherItems.map((item) => (
+              {resourceItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavCls}>
