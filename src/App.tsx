@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import CreatePost from "./pages/CreatePost";
 import PostDetail from "./pages/PostDetail";
@@ -24,14 +25,19 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/create" element={<CreatePost />} />
-              <Route path="/post/:id" element={<PostDetail />} />
-              <Route path="/communities" element={<Communities />} />
-              <Route path="/officials" element={<Officials />} />
               <Route path="/auth" element={<Auth />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="/*" element={
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/create" element={<CreatePost />} />
+                    <Route path="/post/:id" element={<PostDetail />} />
+                    <Route path="/communities" element={<Communities />} />
+                    <Route path="/officials" element={<Officials />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </AppLayout>
+              } />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>

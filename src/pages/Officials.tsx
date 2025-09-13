@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, MapPin, Calendar, DollarSign, Users, Building } from 'lucide-react';
-import { Header } from '@/components/layout/Header';
 
 interface Official {
   id: string;
@@ -135,226 +134,219 @@ const Officials = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Loading government officials data...</div>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading government officials data...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-primary">
-              Kenya Government Officials Tracker
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Track development promises and progress from elected officials across all levels of government. 
-              Promoting transparency and accountability in public service delivery.
-            </p>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-primary">
+            Kenya Government Officials Tracker
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Track development promises and progress from elected officials across all levels of government. 
+            Promoting transparency and accountability in public service delivery.
+          </p>
+        </div>
 
-          {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {levelHierarchy.map(level => {
-              const stats = getStatsByLevel(level.value);
-              return (
-                <Card key={level.value} className="text-center">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center justify-center gap-2">
-                      <span>{level.icon}</span>
-                      {level.label}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary">{stats.total}</div>
-                    <div className="text-sm text-muted-foreground">Promises</div>
-                    <div className="mt-2 space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>✅ {stats.completed}</span>
-                        <span>🔄 {stats.ongoing}</span>
-                      </div>
+        {/* Overview Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {levelHierarchy.map(level => {
+            const stats = getStatsByLevel(level.value);
+            return (
+              <Card key={level.value} className="text-center">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center justify-center gap-2">
+                    <span>{level.icon}</span>
+                    {level.label}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-primary">{stats.total}</div>
+                  <div className="text-sm text-muted-foreground">Promises</div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>✅ {stats.completed}</span>
+                      <span>🔄 {stats.ongoing}</span>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Search & Filter</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search promises, officials, or locations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                
-                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Levels</SelectItem>
-                    {levelHierarchy.map(level => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.icon} {level.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="completed">✅ Completed</SelectItem>
-                    <SelectItem value="ongoing">🔄 Ongoing</SelectItem>
-                    <SelectItem value="not_started">⏳ Not Started</SelectItem>
-                    <SelectItem value="cancelled">❌ Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Promises List */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Development Promises</h2>
-              <div className="text-sm text-muted-foreground">
-                Showing {filteredPromises.length} of {promises.length} promises
-              </div>
-            </div>
-
-            {filteredPromises.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <div className="text-muted-foreground">
-                    No promises found matching your criteria.
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid gap-6">
-                {filteredPromises.map(promise => (
-                  <Card key={promise.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2">
-                            <CardTitle className="text-xl">{promise.title}</CardTitle>
-                            <Badge 
-                              variant="outline" 
-                              className={`${statusColors[promise.status]} text-white border-0`}
-                            >
-                              {statusLabels[promise.status]}
-                            </Badge>
-                          </div>
-                          <CardDescription>{promise.description}</CardDescription>
-                          
-                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Building className="h-4 w-4" />
-                              <span>{promise.official.name} ({promise.official.position})</span>
-                            </div>
-                            {promise.location && (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-4 w-4" />
-                                <span>{promise.location}</span>
-                              </div>
-                            )}
-                            {promise.beneficiaries_count && (
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                <span>{promise.beneficiaries_count.toLocaleString()} beneficiaries</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent>
-                      <div className="space-y-4">
-                        {/* Progress */}
-                        <div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Progress</span>
-                            <span>{promise.progress_percentage}%</span>
-                          </div>
-                          <Progress value={promise.progress_percentage} className="h-2" />
-                        </div>
+            );
+          })}
+        </div>
 
-                        {/* Budget Information */}
-                        {promise.budget_allocated && (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                            <div>
-                              <div className="text-sm text-muted-foreground">Budget Allocated</div>
-                              <div className="font-semibold text-primary">
-                                {formatCurrency(promise.budget_allocated)}
-                              </div>
-                            </div>
-                            {promise.budget_used && (
-                              <div>
-                                <div className="text-sm text-muted-foreground">Budget Used</div>
-                                <div className="font-semibold">
-                                  {formatCurrency(promise.budget_used)}
-                                </div>
-                              </div>
-                            )}
-                            {promise.funding_source && (
-                              <div>
-                                <div className="text-sm text-muted-foreground">Funding Source</div>
-                                <div className="font-semibold">{promise.funding_source}</div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Additional Details */}
-                        {(promise.contractor || promise.category) && (
-                          <div className="flex flex-wrap gap-4 text-sm">
-                            {promise.contractor && (
-                              <div>
-                                <span className="text-muted-foreground">Contractor: </span>
-                                <span className="font-medium">{promise.contractor}</span>
-                              </div>
-                            )}
-                            {promise.category && (
-                              <div>
-                                <span className="text-muted-foreground">Category: </span>
-                                <Badge variant="secondary">{promise.category}</Badge>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Search & Filter</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search promises, officials, or locations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            )}
+              
+              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Levels</SelectItem>
+                  {levelHierarchy.map(level => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.icon} {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="completed">✅ Completed</SelectItem>
+                  <SelectItem value="ongoing">🔄 Ongoing</SelectItem>
+                  <SelectItem value="not_started">⏳ Not Started</SelectItem>
+                  <SelectItem value="cancelled">❌ Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Promises List */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Development Promises</h2>
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredPromises.length} of {promises.length} promises
+            </div>
           </div>
+
+          {filteredPromises.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <div className="text-muted-foreground">
+                  No promises found matching your criteria.
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6">
+              {filteredPromises.map(promise => (
+                <Card key={promise.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-xl">{promise.title}</CardTitle>
+                          <Badge 
+                            variant="outline" 
+                            className={`${statusColors[promise.status]} text-white border-0`}
+                          >
+                            {statusLabels[promise.status]}
+                          </Badge>
+                        </div>
+                        <CardDescription>{promise.description}</CardDescription>
+                        
+                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Building className="h-4 w-4" />
+                            <span>{promise.official.name} ({promise.official.position})</span>
+                          </div>
+                          {promise.location && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              <span>{promise.location}</span>
+                            </div>
+                          )}
+                          {promise.beneficiaries_count && (
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4" />
+                              <span>{promise.beneficiaries_count.toLocaleString()} beneficiaries</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Progress */}
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span>Progress</span>
+                          <span>{promise.progress_percentage}%</span>
+                        </div>
+                        <Progress value={promise.progress_percentage} className="h-2" />
+                      </div>
+
+                      {/* Budget Information */}
+                      {promise.budget_allocated && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+                          <div>
+                            <div className="text-sm text-muted-foreground">Budget Allocated</div>
+                            <div className="font-semibold text-primary">
+                              {formatCurrency(promise.budget_allocated)}
+                            </div>
+                          </div>
+                          {promise.budget_used && (
+                            <div>
+                              <div className="text-sm text-muted-foreground">Budget Used</div>
+                              <div className="font-semibold">
+                                {formatCurrency(promise.budget_used)}
+                              </div>
+                            </div>
+                          )}
+                          {promise.funding_source && (
+                            <div>
+                              <div className="text-sm text-muted-foreground">Funding Source</div>
+                              <div className="font-semibold">{promise.funding_source}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Additional Details */}
+                      {(promise.contractor || promise.category) && (
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          {promise.contractor && (
+                            <div>
+                              <span className="text-muted-foreground">Contractor: </span>
+                              <span className="font-medium">{promise.contractor}</span>
+                            </div>
+                          )}
+                          {promise.category && (
+                            <div>
+                              <span className="text-muted-foreground">Category: </span>
+                              <Badge variant="secondary">{promise.category}</Badge>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

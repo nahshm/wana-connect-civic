@@ -1,12 +1,9 @@
 import { useState } from 'react';
-import { Header } from '@/components/layout/Header';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { RightSidebar } from '@/components/layout/RightSidebar';
 import { FeedHeader } from '@/components/feed/FeedHeader';
 import { PostCard } from '@/components/posts/PostCard';
+import { RightSidebar } from '@/components/layout/RightSidebar';
 import { useCommunityData } from '@/hooks/useCommunityData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 const Index = () => {
   const { posts, loading, voteOnPost } = useCommunityData();
@@ -15,55 +12,49 @@ const Index = () => {
 
   if (loading) {
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
-          <SidebarInset className="flex-1">
-            <Header />
-            <FeedHeader 
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            <div className="flex gap-6 max-w-screen-xl mx-auto px-4">
-              {/* Main Feed */}
-              <div className="flex-1 max-w-2xl">
-                <div className="space-y-4 py-4">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="bg-sidebar-background border border-sidebar-border rounded-lg p-4">
-                      <div className="flex space-x-3">
-                        <Skeleton className="h-12 w-12 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-1/2" />
-                          <Skeleton className="h-16 w-full" />
-                          <div className="flex space-x-2">
-                            <Skeleton className="h-8 w-20" />
-                            <Skeleton className="h-8 w-20" />
-                            <Skeleton className="h-8 w-20" />
-                          </div>
-                        </div>
+      <div>
+        <FeedHeader 
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+        <div className="flex gap-6 max-w-screen-xl mx-auto px-4">
+          {/* Main Feed */}
+          <div className="flex-1 max-w-2xl">
+            <div className="space-y-4 py-4">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="bg-sidebar-background border border-sidebar-border rounded-lg p-4">
+                  <div className="flex space-x-3">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                      <Skeleton className="h-16 w-full" />
+                      <div className="flex space-x-2">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-8 w-20" />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Right Sidebar */}
-              <div className="hidden lg:block w-80">
-                <div className="sticky top-32 py-4">
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <Skeleton key={i} className="h-48 w-full" />
-                    ))}
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Right Sidebar */}
+          <div className="hidden lg:block w-80">
+            <div className="sticky top-32 py-4">
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-48 w-full" />
+                ))}
               </div>
             </div>
-          </SidebarInset>
+          </div>
         </div>
-      </SidebarProvider>
+      </div>
     );
   }
 
@@ -90,43 +81,37 @@ const Index = () => {
   });
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <Header />
-          <FeedHeader 
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-          
-          <div className="flex gap-6 max-w-screen-xl mx-auto px-4">
-            {/* Main Feed */}
-            <div className="flex-1 max-w-2xl">
-              <div className={viewMode === 'card' ? 'space-y-2 py-4' : 'py-4'}>
-                {sortedPosts.map(post => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onVote={voteOnPost}
-                    viewMode={viewMode}
-                  />
-                ))}
-              </div>
-            </div>
-            
-            {/* Right Sidebar */}
-            <div className="hidden lg:block w-80">
-              <div className="sticky top-32 py-4">
-                <RightSidebar />
-              </div>
-            </div>
+    <div>
+      <FeedHeader 
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
+      
+      <div className="flex gap-6 max-w-screen-xl mx-auto px-4">
+        {/* Main Feed */}
+        <div className="flex-1 max-w-2xl">
+          <div className={viewMode === 'card' ? 'space-y-2 py-4' : 'py-4'}>
+            {sortedPosts.map(post => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onVote={voteOnPost}
+                viewMode={viewMode}
+              />
+            ))}
           </div>
-        </SidebarInset>
+        </div>
+        
+        {/* Right Sidebar */}
+        <div className="hidden lg:block w-80">
+          <div className="sticky top-32 py-4">
+            <RightSidebar />
+          </div>
+        </div>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 
