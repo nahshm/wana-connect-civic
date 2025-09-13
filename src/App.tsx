@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import Index from "./pages/Index";
 import CreatePost from "./pages/CreatePost";
 import PostDetail from "./pages/PostDetail";
@@ -23,23 +24,25 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/*" element={
-                <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/create" element={<CreatePost />} />
-                    <Route path="/post/:id" element={<PostDetail />} />
-                    <Route path="/communities" element={<Communities />} />
-                    <Route path="/officials" element={<Officials />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </AppLayout>
-              } />
-            </Routes>
-          </BrowserRouter>
+          <SidebarProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/*" element={
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/create" element={<CreatePost />} />
+                      <Route path="/post/:id" element={<PostDetail />} />
+                      <Route path="/communities" element={<Communities />} />
+                      <Route path="/officials" element={<Officials />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </AppLayout>
+                } />
+              </Routes>
+            </BrowserRouter>
+          </SidebarProvider>
         </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>
