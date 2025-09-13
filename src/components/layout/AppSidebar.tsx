@@ -12,7 +12,8 @@ import {
   FileText,
   Shield,
   Briefcase,
-  Star
+  Star,
+  Building2
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
@@ -31,6 +32,7 @@ import {
 const mainItems = [
   { title: 'Home', url: '/', icon: Home },
   { title: 'Popular', url: '/popular', icon: TrendingUp },
+  { title: 'Officials Tracker', url: '/officials', icon: Building2 },
   { title: 'Explore', url: '/explore', icon: Globe },
   { title: 'All', url: '/all', icon: MessageSquare },
 ];

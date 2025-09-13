@@ -14,6 +14,122 @@ export type Database = {
   }
   public: {
     Tables: {
+      development_promises: {
+        Row: {
+          actual_completion_date: string | null
+          beneficiaries_count: number | null
+          budget_allocated: number | null
+          budget_used: number | null
+          category: string | null
+          contractor: string | null
+          created_at: string
+          description: string | null
+          expected_completion_date: string | null
+          funding_source: string | null
+          id: string
+          location: string | null
+          official_id: string
+          progress_percentage: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["promise_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_completion_date?: string | null
+          beneficiaries_count?: number | null
+          budget_allocated?: number | null
+          budget_used?: number | null
+          category?: string | null
+          contractor?: string | null
+          created_at?: string
+          description?: string | null
+          expected_completion_date?: string | null
+          funding_source?: string | null
+          id?: string
+          location?: string | null
+          official_id: string
+          progress_percentage?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["promise_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_completion_date?: string | null
+          beneficiaries_count?: number | null
+          budget_allocated?: number | null
+          budget_used?: number | null
+          category?: string | null
+          contractor?: string | null
+          created_at?: string
+          description?: string | null
+          expected_completion_date?: string | null
+          funding_source?: string | null
+          id?: string
+          location?: string | null
+          official_id?: string
+          progress_percentage?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["promise_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "development_promises_official_id_fkey"
+            columns: ["official_id"]
+            isOneToOne: false
+            referencedRelation: "officials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      officials: {
+        Row: {
+          constituency: string | null
+          contact_info: Json | null
+          county: string | null
+          created_at: string
+          id: string
+          level: Database["public"]["Enums"]["official_level"]
+          manifesto_url: string | null
+          name: string
+          party: string | null
+          photo_url: string | null
+          position: string
+          updated_at: string
+        }
+        Insert: {
+          constituency?: string | null
+          contact_info?: Json | null
+          county?: string | null
+          created_at?: string
+          id?: string
+          level: Database["public"]["Enums"]["official_level"]
+          manifesto_url?: string | null
+          name: string
+          party?: string | null
+          photo_url?: string | null
+          position: string
+          updated_at?: string
+        }
+        Update: {
+          constituency?: string | null
+          contact_info?: Json | null
+          county?: string | null
+          created_at?: string
+          id?: string
+          level?: Database["public"]["Enums"]["official_level"]
+          manifesto_url?: string | null
+          name?: string
+          party?: string | null
+          photo_url?: string | null
+          position?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -50,6 +166,63 @@ export type Database = {
         }
         Relationships: []
       }
+      promise_updates: {
+        Row: {
+          amount_spent: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          documents: Json | null
+          id: string
+          photos: Json | null
+          progress_percentage: number | null
+          promise_id: string
+          title: string
+          update_date: string
+        }
+        Insert: {
+          amount_spent?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          documents?: Json | null
+          id?: string
+          photos?: Json | null
+          progress_percentage?: number | null
+          promise_id: string
+          title: string
+          update_date?: string
+        }
+        Update: {
+          amount_spent?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          documents?: Json | null
+          id?: string
+          photos?: Json | null
+          progress_percentage?: number | null
+          promise_id?: string
+          title?: string
+          update_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promise_updates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promise_updates_promise_id_fkey"
+            columns: ["promise_id"]
+            isOneToOne: false
+            referencedRelation: "development_promises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -58,7 +231,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      official_level:
+        | "executive"
+        | "governor"
+        | "senator"
+        | "mp"
+        | "women_rep"
+        | "mca"
+      promise_status: "completed" | "ongoing" | "not_started" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -185,6 +365,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      official_level: [
+        "executive",
+        "governor",
+        "senator",
+        "mp",
+        "women_rep",
+        "mca",
+      ],
+      promise_status: ["completed", "ongoing", "not_started", "cancelled"],
+    },
   },
 } as const

@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import CreatePost from "./pages/CreatePost";
 import PostDetail from "./pages/PostDetail";
 import Communities from "./pages/Communities";
+import Officials from "./pages/Officials";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/create" element={<CreatePost />} />
               <Route path="/post/:id" element={<PostDetail />} />
               <Route path="/communities" element={<Communities />} />
+              <Route path="/officials" element={<Officials />} />
               <Route path="/auth" element={<Auth />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
