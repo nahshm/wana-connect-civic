@@ -1,18 +1,20 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/contexts/AuthContext';
+import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
-const Auth = () => {
+export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -47,34 +49,44 @@ const Auth = () => {
     const password = formData.get('password') as string;
     const username = formData.get('username') as string;
 
-    await signUp(email, password, username);
+    const { error } = await signUp(email, password, username);
+    
+    if (!error) {
+      toast({
+        title: "Account created successfully!",
+        description: "Please check your email to verify your account.",
+      });
+    }
+    
     setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-civic-green/10 via-background to-civic-blue/10 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to WanaIQ
-        </Button>
-
+        {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-primary">WanaIQ</h1>
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to WanaIQ
+          </Link>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-civic-green to-civic-blue bg-clip-text text-transparent">
+            WanaIQ
+          </h1>
           <p className="text-muted-foreground">
-            Join Kenya's civic engagement platform
+            Empowering Kenyan civic engagement
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome</CardTitle>
-            <CardDescription>
-              Sign in to your account or create a new one to get started
+        {/* Auth Forms */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">Welcome</CardTitle>
+            <CardDescription className="text-center">
+              Join the conversation about Kenya's future
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -92,9 +104,10 @@ const Auth = () => {
                       id="signin-email"
                       name="email"
                       type="email"
-                      placeholder="your.email@example.com"
+                      placeholder="Enter your email"
                       required
                       disabled={isLoading}
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -104,9 +117,10 @@ const Auth = () => {
                         id="signin-password"
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Your password"
+                        placeholder="Enter your password"
                         required
                         disabled={isLoading}
+                        className="bg-background pr-10"
                       />
                       <Button
                         type="button"
@@ -124,8 +138,12 @@ const Auth = () => {
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Signing in...' : 'Sign In'}
+                  <Button
+                    type="submit"
+                    className="w-full bg-civic-green hover:bg-civic-green/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
               </TabsContent>
@@ -137,10 +155,10 @@ const Auth = () => {
                     <Input
                       id="signup-username"
                       name="username"
-                      type="text"
                       placeholder="Choose a username"
                       required
                       disabled={isLoading}
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -149,9 +167,10 @@ const Auth = () => {
                       id="signup-email"
                       name="email"
                       type="email"
-                      placeholder="your.email@example.com"
+                      placeholder="Enter your email"
                       required
                       disabled={isLoading}
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -163,8 +182,8 @@ const Auth = () => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a password"
                         required
-                        minLength={6}
                         disabled={isLoading}
+                        className="bg-background pr-10"
                       />
                       <Button
                         type="button"
@@ -182,8 +201,12 @@ const Auth = () => {
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating account...' : 'Create Account'}
+                  <Button
+                    type="submit"
+                    className="w-full bg-civic-blue hover:bg-civic-blue/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
               </TabsContent>
@@ -191,12 +214,10 @@ const Auth = () => {
           </CardContent>
         </Card>
         
-        <div className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground">
           By continuing, you agree to our Terms of Service and Privacy Policy
-        </div>
+        </p>
       </div>
     </div>
   );
-};
-
-export default Auth;
+}

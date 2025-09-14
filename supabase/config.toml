@@ -1,1 +1,7 @@
 project_id = "zcnjpczplkbdmmovlrtv"
+
+[functions.content-moderation]
+verify_jwt = false
+
+[functions.send-notifications]
+verify_jwt = false
