@@ -23,7 +23,7 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
-      <div className="container mx-auto px-4 h-16 flex items-center">
+      <div className="w-full px-4 h-16 flex items-center">
         <SidebarTrigger className="mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
         <div className="flex items-center space-x-6 flex-1">
           <h1 className="text-2xl font-bold text-sidebar-primary">

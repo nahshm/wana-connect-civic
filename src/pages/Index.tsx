@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from '@/components/layout/Header';
-import { AppSidebar } from '@/components/layout/AppSidebar';
 import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -203,43 +200,29 @@ export default function Index() {
 
   if (loading) {
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full">
-          <AppSidebar />
-          <SidebarInset className="flex-1">
-            <Header />
-            <div className="container mx-auto px-4 py-8">
-              <div className="space-y-6">
-                {[...Array(5)].map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardHeader>
-                      <div className="h-6 bg-muted rounded w-3/4"></div>
-                      <div className="h-4 bg-muted rounded w-1/2"></div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="h-4 bg-muted rounded"></div>
-                        <div className="h-4 bg-muted rounded w-2/3"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </SidebarInset>
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-6 bg-muted rounded w-3/4"></div>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </SidebarProvider>
+      </div>
     );
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <Header />
-          
-          <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
+    <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
             {/* Main Content */}
             <div className="flex-1 max-w-4xl space-y-6">
               {/* Welcome Section */}
@@ -515,9 +498,6 @@ export default function Index() {
                 </Card>
               </div>
             </div>
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+    </div>
   );
 }
