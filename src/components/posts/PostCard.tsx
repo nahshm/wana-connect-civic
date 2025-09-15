@@ -68,8 +68,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
         {/* Content */}
         <div className="flex-1 p-3">
           <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-1">
-            <Link to={`/r/${post.community.name}`} className="hover:underline font-medium">
-              r/{post.community.name}
+            <Link to={`/c/${post.community.name}`} className="hover:underline font-medium">
+              c/{post.community.name}
             </Link>
             <span>•</span>
             <span>Posted by</span>
@@ -141,8 +141,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               <AvatarImage src={post.author.avatar} />
               <AvatarFallback className="text-xs">{post.author.displayName.charAt(0)}</AvatarFallback>
             </Avatar>
-            <Link to={`/r/${post.community.name}`} className="hover:underline font-medium">
-              r/{post.community.name}
+            <Link to={`/c/${post.community.name}`} className="hover:underline font-medium">
+              c/{post.community.name}
             </Link>
             <span>•</span>
             <span>Posted by</span>

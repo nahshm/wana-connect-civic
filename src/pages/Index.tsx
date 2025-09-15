@@ -293,18 +293,74 @@ export default function Index() {
 
                 <TabsContent value="trending" className="space-y-4">
                   {posts.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-12 text-center">
-                        <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Be the first to start a conversation in your community
-                        </p>
-                        {user && (
-                          <Button asChild>
-                            <Link to="/create">Create First Post</Link>
+                    <Card className="bg-gradient-to-br from-civic-green/5 to-civic-blue/5 border-civic-green/20">
+                      <CardContent className="py-12 px-8">
+                        <div className="text-center mb-8">
+                          <MessageSquare className="h-16 w-16 text-civic-blue mx-auto mb-6" />
+                          <h2 className="text-2xl font-bold mb-4 text-civic-blue">Welcome to WanaIQ!</h2>
+                          <p className="text-lg text-muted-foreground mb-6">
+                            Kenya's premier civic engagement platform. Here's what you can do:
+                          </p>
+                        </div>
+                        
+                        <div className="grid md:grid-cols-2 gap-6 mb-8">
+                          <div className="space-y-4">
+                            <h3 className="font-semibold text-civic-green flex items-center gap-2">
+                              <MessageSquare className="h-5 w-5" />
+                              Start Your First Civic Conversation
+                            </h3>
+                            <div className="space-y-2 text-sm">
+                              <div className="p-3 bg-background rounded-lg border border-civic-green/20 hover:border-civic-green/40 transition-colors cursor-pointer">
+                                "What should every Kenyan know about county budgets?"
+                              </div>
+                              <div className="p-3 bg-background rounded-lg border border-civic-blue/20 hover:border-civic-blue/40 transition-colors cursor-pointer">
+                                "How can we track our MP's promises effectively?"
+                              </div>
+                              <div className="p-3 bg-background rounded-lg border border-civic-orange/20 hover:border-civic-orange/40 transition-colors cursor-pointer">
+                                "What civic issue affects your neighborhood most?"
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <h3 className="font-semibold text-civic-blue flex items-center gap-2">
+                              <TrendingUp className="h-5 w-5" />
+                              Featured Educational Content
+                            </h3>
+                            <div className="space-y-2 text-sm">
+                              <Link to="/communities" className="block p-3 bg-background rounded-lg border border-civic-green/20 hover:border-civic-green/40 transition-colors">
+                                📚 Understanding Public Participation
+                              </Link>
+                              <Link to="/officials" className="block p-3 bg-background rounded-lg border border-civic-blue/20 hover:border-civic-blue/40 transition-colors">
+                                🏛️ Your Elected Officials Guide
+                              </Link>
+                              <Link to="/communities" className="block p-3 bg-background rounded-lg border border-civic-orange/20 hover:border-civic-orange/40 transition-colors">
+                                💰 Budget Transparency 101
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                          {user ? (
+                            <Button asChild className="bg-civic-green hover:bg-civic-green/90">
+                              <Link to="/create" className="flex items-center gap-2">
+                                <Plus className="h-4 w-4" />
+                                Create Your First Post
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button asChild className="bg-civic-green hover:bg-civic-green/90">
+                              <Link to="/auth" className="flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                Join WanaIQ Community
+                              </Link>
+                            </Button>
+                          )}
+                          <Button variant="outline" asChild>
+                            <Link to="/communities">Explore Communities</Link>
                           </Button>
-                        )}
+                        </div>
                       </CardContent>
                     </Card>
                   ) : (

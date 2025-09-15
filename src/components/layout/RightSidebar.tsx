@@ -30,22 +30,22 @@ interface Community {
 const trendingPosts: TrendingPost[] = [
   {
     id: '1',
-    title: 'Kenya Budget 2024: Key Highlights and Analysis',
-    community: 'r/KenyaPolitics',
+    title: '📊 Kenya Budget 2024: Analysis & Impact',
+    community: 'c/BudgetWatch',
     upvotes: 1245,
     comments: 89
   },
   {
     id: '2', 
-    title: 'Nairobi County Assembly Passes New Development Bill',
-    community: 'r/NairobiCity',
+    title: '🏛️ Nairobi County Assembly News',
+    community: 'c/NairobiCounty',
     upvotes: 892,
     comments: 67
   },
   {
     id: '3',
-    title: 'Public Participation Forums: How to Get Involved',
-    community: 'r/CivicEducation',
+    title: '📚 Public Participation Guide',
+    community: 'c/CivicEducation',
     upvotes: 678,
     comments: 45
   }
@@ -54,21 +54,27 @@ const trendingPosts: TrendingPost[] = [
 const suggestedCommunities: Community[] = [
   {
     id: '1',
-    name: 'r/KenyaPolitics',
+    name: 'c/BudgetWatch',
     members: 45200,
-    description: 'Discussions about Kenyan politics and governance'
+    description: 'Track and analyze government spending and budgets'
   },
   {
     id: '2',
-    name: 'r/PublicPolicy',
+    name: 'c/PromiseTracker',
     members: 28400,
-    description: 'Analysis and discussion of public policy matters'
+    description: 'Monitor campaign promises and their implementation'
   },
   {
     id: '3',
-    name: 'r/CivicEducation',
+    name: 'c/CivicEducation',
     members: 19800,
     description: 'Learn about civic duties and democratic processes'
+  },
+  {
+    id: '4',
+    name: 'c/YouthCivics',
+    members: 15600,
+    description: 'Civic engagement for young Kenyans'
   }
 ];
 
@@ -125,10 +131,10 @@ export const RightSidebar = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {suggestedCommunities.map((community, index) => (
+          {suggestedCommunities.slice(0, 3).map((community, index) => (
             <Link 
               key={community.id}
-              to={`/r/${community.name.slice(2)}`}
+              to={`/c/${community.name.slice(2)}`}
               className="block p-3 rounded-lg hover:bg-sidebar-accent transition-colors"
             >
               <div className="flex items-start space-x-2">

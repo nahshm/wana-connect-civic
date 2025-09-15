@@ -13,7 +13,16 @@ import {
   Shield,
   Briefcase,
   Star,
-  Building2
+  Building2,
+  Target,
+  Calculator,
+  BarChart3,
+  GraduationCap,
+  Vote,
+  MapPin,
+  Eye,
+  Megaphone,
+  Phone
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
@@ -32,30 +41,41 @@ import {
 const mainItems = [
   { title: 'Home', url: '/', icon: Home },
   { title: 'Popular', url: '/popular', icon: TrendingUp },
-  { title: 'Officials Tracker', url: '/officials', icon: Building2 },
+  { title: 'Government Tracker', url: '/officials', icon: Building2 },
   { title: 'Explore', url: '/explore', icon: Globe },
-  { title: 'All', url: '/all', icon: MessageSquare },
+];
+
+const civicItems = [
+  { title: 'Promise Monitor', url: '/promises', icon: Target },
+  { title: 'Active Projects', url: '/projects', icon: MessageSquare },
+  { title: 'Budget Watch', url: '/c/BudgetWatch', icon: Calculator },
+  { title: 'Elections Center', url: '/elections', icon: Vote },
 ];
 
 const feedItems = [
-  { title: 'Create a custom feed', url: '/create-feed', icon: Plus },
+  { title: 'Budget Analysis', url: '/feed/budget', icon: BarChart3 },
+  { title: 'Policy Updates', url: '/feed/policy', icon: FileText },
+  { title: 'Civic Education', url: '/c/CivicEducation', icon: GraduationCap },
 ];
 
 const recentItems = [
-  { title: 'r/communities', url: '/communities', icon: Users },
+  { title: 'c/NairobiCounty', url: '/c/NairobiCounty', icon: MapPin },
+  { title: 'c/MombasaCounty', url: '/c/MombasaCounty', icon: MapPin },
+  { title: 'c/BudgetWatch', url: '/c/BudgetWatch', icon: Eye },
+  { title: 'c/YouthCivics', url: '/c/YouthCivics', icon: Users },
 ];
 
 const communityItems = [
-  { title: 'Create a community', url: '/create-community', icon: Plus },
-  { title: 'Manage communities', url: '/manage-communities', icon: Settings },
-  { title: 'r/Kenya', url: '/r/kenya', icon: Star },
+  { title: 'Create Community', url: '/create-community', icon: Plus },
+  { title: 'Manage Communities', url: '/manage-communities', icon: Settings },
+  { title: 'Browse All', url: '/communities', icon: Star },
 ];
 
 const resourceItems = [
-  { title: 'About WanaIQ', url: '/about', icon: HelpCircle },
+  { title: 'Public Participation', url: '/participation', icon: Megaphone },
+  { title: 'Government Contacts', url: '/contacts', icon: Phone },
+  { title: 'Civic Education Hub', url: '/education', icon: HelpCircle },
   { title: 'Help', url: '/help', icon: HelpCircle },
-  { title: 'Blog', url: '/blog', icon: FileText },
-  { title: 'Careers', url: '/careers', icon: Briefcase },
   { title: 'Privacy Policy', url: '/privacy', icon: Shield },
 ];
 
@@ -101,10 +121,31 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Custom Feeds */}
+        {/* Civic Features */}
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            Custom Feeds
+            🏛️ Civic Features
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {civicItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavCls}>
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Analysis & Updates */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
+            📊 Analysis & Updates
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -122,10 +163,10 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Recent */}
+        {/* Your Counties */}
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            Recent
+            📍 Your Counties
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -146,7 +187,7 @@ export function AppSidebar() {
         {/* Communities */}
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            Communities
+            🏘️ Communities
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -167,7 +208,7 @@ export function AppSidebar() {
         {/* Resources */}
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            Resources
+            📚 Resources
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
