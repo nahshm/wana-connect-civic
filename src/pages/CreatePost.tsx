@@ -98,7 +98,6 @@ const CreatePost = () => {
           <CreatePostForm
             communities={communities}
             onSubmit={handleCreatePost}
-            loading={loading}
           />
         </div>
       </div>
