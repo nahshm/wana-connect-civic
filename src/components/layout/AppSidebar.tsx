@@ -45,24 +45,10 @@ const mainItems = [
   { title: 'Explore', url: '/explore', icon: Globe },
 ];
 
-const civicItems = [
-  { title: 'Promise Monitor', url: '/promises', icon: Target },
-  { title: 'Active Projects', url: '/projects', icon: MessageSquare },
-  { title: 'Budget Watch', url: '/c/BudgetWatch', icon: Calculator },
-  { title: 'Elections Center', url: '/elections', icon: Vote },
-];
-
 const feedItems = [
   { title: 'Budget Analysis', url: '/feed/budget', icon: BarChart3 },
   { title: 'Policy Updates', url: '/feed/policy', icon: FileText },
   { title: 'Civic Education', url: '/c/CivicEducation', icon: GraduationCap },
-];
-
-const recentItems = [
-  { title: 'c/NairobiCounty', url: '/c/NairobiCounty', icon: MapPin },
-  { title: 'c/MombasaCounty', url: '/c/MombasaCounty', icon: MapPin },
-  { title: 'c/BudgetWatch', url: '/c/BudgetWatch', icon: Eye },
-  { title: 'c/YouthCivics', url: '/c/YouthCivics', icon: Users },
 ];
 
 const communityItems = [
@@ -121,27 +107,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Civic Features */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            🏛️ Civic Features
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {civicItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         {/* Analysis & Updates */}
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
@@ -150,27 +115,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {feedItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Your Counties */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            📍 Your Counties
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {recentItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavCls}>

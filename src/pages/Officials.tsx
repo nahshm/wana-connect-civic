@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Eye, FileText, Share2, MapPin, Users } from 'lucide-react';
+import { Search, Eye, FileText, Share2, MapPin, Users, Target, MessageSquare, Calculator, Vote } from 'lucide-react';
 
 interface Official {
   id: string;
@@ -42,6 +42,14 @@ interface OfficialWithPromises extends Official {
   totalPromises: number;
 }
 
+const mainTabs = [
+  { value: 'officials', label: 'Officials', icon: Users },
+  { value: 'promises', label: 'Promise Monitor', icon: Target },
+  { value: 'projects', label: 'Active Projects', icon: MessageSquare },
+  { value: 'budget', label: 'Budget Watch', icon: Calculator },
+  { value: 'elections', label: 'Elections Center', icon: Vote }
+];
+
 const levelTabs = [
   { value: 'all', label: 'All Officials' },
   { value: 'executive', label: 'President' },
@@ -56,6 +64,7 @@ const Officials = () => {
   const [officials, setOfficials] = useState<OfficialWithPromises[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedTab, setSelectedTab] = useState('officials');
   const [loading, setLoading] = useState(true);
   const [selectedOfficial, setSelectedOfficial] = useState<OfficialWithPromises | null>(null);
 
@@ -298,109 +307,167 @@ const Officials = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-primary">Government Officials</h1>
-          <div className="max-w-md mx-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or region..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
+          <h1 className="text-4xl font-bold text-primary">Government Tracker</h1>
         </div>
 
-        {/* Level Tabs */}
-        <Tabs value={selectedLevel} onValueChange={setSelectedLevel} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
-            {levelTabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="text-xs lg:text-sm">
+        {/* Main Tabs */}
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+            {mainTabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value} className="text-xs lg:text-sm flex items-center gap-1">
+                <tab.icon className="w-4 h-4" />
                 {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <TabsContent value={selectedLevel} className="mt-6">
-            {filteredOfficials.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <div className="text-muted-foreground">
-                    No officials found matching your criteria.
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredOfficials.map((official) => (
-                  <Card key={official.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={official.photo_url} />
-                          <AvatarFallback className="text-lg">
-                            {getInitials(official.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="min-w-0 flex-1">
-                              <h3 className="font-bold text-lg leading-tight truncate group-hover:text-primary transition-colors">
-                                {official.name}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">{official.position}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {formatLocation(official)}
-                              </p>
-                            </div>
-                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Share2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="pt-0">
-                      <div className="space-y-4">
-                        {/* Promises Stats */}
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-muted-foreground">Promises Completed</span>
-                            <span className="font-bold text-lg">
-                              {official.completedPromises} / {official.totalPromises}
-                            </span>
-                          </div>
-                          <Progress 
-                            value={getCompletionPercentage(official.completedPromises, official.totalPromises)} 
-                            className="h-2"
-                          />
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1"
-                            onClick={() => setSelectedOfficial(official)}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Progress
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <FileText className="w-4 h-4 mr-1" />
-                            Manifesto
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+          <TabsContent value="officials" className="mt-6">
+            <div className="space-y-6">
+              {/* Search */}
+              <div className="max-w-md mx-auto">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or region..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            )}
+
+              {/* Level Tabs */}
+              <Tabs value={selectedLevel} onValueChange={setSelectedLevel} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+                  {levelTabs.map((tab) => (
+                    <TabsTrigger key={tab.value} value={tab.value} className="text-xs lg:text-sm">
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                <TabsContent value={selectedLevel} className="mt-6">
+                  {filteredOfficials.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <div className="text-muted-foreground">
+                          No officials found matching your criteria.
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredOfficials.map((official) => (
+                        <Card key={official.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-start gap-4">
+                              <Avatar className="w-16 h-16">
+                                <AvatarImage src={official.photo_url} />
+                                <AvatarFallback className="text-lg">
+                                  {getInitials(official.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between">
+                                  <div className="min-w-0 flex-1">
+                                    <h3 className="font-bold text-lg leading-tight truncate group-hover:text-primary transition-colors">
+                                      {official.name}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">{official.position}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {formatLocation(official)}
+                                    </p>
+                                  </div>
+                                  <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Share2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="pt-0">
+                            <div className="space-y-4">
+                              {/* Promises Stats */}
+                              <div>
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="text-sm text-muted-foreground">Promises Completed</span>
+                                  <span className="font-bold text-lg">
+                                    {official.completedPromises} / {official.totalPromises}
+                                  </span>
+                                </div>
+                                <Progress 
+                                  value={getCompletionPercentage(official.completedPromises, official.totalPromises)} 
+                                  className="h-2"
+                                />
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex-1"
+                                  onClick={() => setSelectedOfficial(official)}
+                                >
+                                  <Eye className="w-4 w-4 mr-1" />
+                                  View Progress
+                                </Button>
+                                <Button variant="outline" size="sm" className="flex-1">
+                                  <FileText className="w-4 h-4 mr-1" />
+                                  Manifesto
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="promises" className="mt-6">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Target className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Promise Monitor</h3>
+                <p className="text-muted-foreground">Track government promises and their progress</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="projects" className="mt-6">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Active Projects</h3>
+                <p className="text-muted-foreground">Monitor ongoing government projects</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="budget" className="mt-6">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Calculator className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Budget Watch</h3>
+                <p className="text-muted-foreground">Track government budget allocation and spending</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="elections" className="mt-6">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Vote className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Elections Center</h3>
+                <p className="text-muted-foreground">Information and resources for elections</p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
