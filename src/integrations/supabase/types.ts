@@ -262,7 +262,6 @@ export type Database = {
       officials: {
         Row: {
           constituency: string | null
-          contact_info: Json | null
           county: string | null
           created_at: string
           id: string
@@ -276,7 +275,6 @@ export type Database = {
         }
         Insert: {
           constituency?: string | null
-          contact_info?: Json | null
           county?: string | null
           created_at?: string
           id?: string
@@ -290,7 +288,6 @@ export type Database = {
         }
         Update: {
           constituency?: string | null
-          contact_info?: Json | null
           county?: string | null
           created_at?: string
           id?: string
@@ -379,6 +376,7 @@ export type Database = {
           display_name: string | null
           id: string
           is_verified: boolean | null
+          privacy_settings: Json | null
           role: string | null
           updated_at: string
           username: string | null
@@ -390,6 +388,7 @@ export type Database = {
           display_name?: string | null
           id: string
           is_verified?: boolean | null
+          privacy_settings?: Json | null
           role?: string | null
           updated_at?: string
           username?: string | null
@@ -401,6 +400,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_verified?: boolean | null
+          privacy_settings?: Json | null
           role?: string | null
           updated_at?: string
           username?: string | null
@@ -521,6 +521,21 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_profile_with_privacy: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          is_verified: boolean
+          privacy_settings: Json
+          role: string
+          updated_at: string
+          username: string
+        }[]
       }
     }
     Enums: {
