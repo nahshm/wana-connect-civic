@@ -74,7 +74,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      setProfile(data);
+      // Convert snake_case to camelCase
+      const profileData: Profile = {
+        id: data.id,
+        username: data.username,
+        displayName: data.display_name,
+        avatar: data.avatar_url,
+        bio: data.bio,
+        role: data.role as any,
+        isVerified: data.is_verified,
+        createdAt: new Date(data.created_at),
+        karma: data.karma,
+        postKarma: data.post_karma,
+        commentKarma: data.comment_karma,
+        badges: data.badges || [],
+        location: data.location,
+        website: data.website,
+        socialLinks: data.social_links as any,
+        expertise: data.expertise || [],
+        isPrivate: data.is_private,
+        privacySettings: data.privacy_settings as any,
+        activityStats: data.activity_stats as any,
+        lastActivity: data.last_activity ? new Date(data.last_activity) : undefined
+      };
+
+      setProfile(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, ThumbsUp, Laugh, Angry, Sad, Surprised } from 'lucide-react';
+import { Heart, ThumbsUp, Laugh, Angry, Frown, AlertCircle } from 'lucide-react';
 
 interface ReactionButtonsProps {
   onReaction: (reaction: string) => void;
@@ -12,8 +12,8 @@ const ReactionButtons: React.FC<ReactionButtonsProps> = ({ onReaction }) => {
     { emoji: '👍', icon: ThumbsUp, name: 'thumbs_up', color: 'text-blue-500' },
     { emoji: '😂', icon: Laugh, name: 'laugh', color: 'text-yellow-500' },
     { emoji: '😠', icon: Angry, name: 'angry', color: 'text-red-600' },
-    { emoji: '😢', icon: Sad, name: 'sad', color: 'text-blue-400' },
-    { emoji: '😮', icon: Surprised, name: 'surprised', color: 'text-purple-500' },
+    { emoji: '😢', icon: Frown, name: 'sad', color: 'text-blue-400' },
+    { emoji: '😮', icon: AlertCircle, name: 'surprised', color: 'text-purple-500' },
   ];
 
   return (

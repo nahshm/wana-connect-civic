@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { toast as toastSonner } from 'sonner';
 import { UserProfile, Post, Comment } from '@/types/index';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -90,6 +91,7 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
 const Profile = () => {
   const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);

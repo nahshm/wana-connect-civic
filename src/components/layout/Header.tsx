@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export const Header = () => {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -81,7 +81,7 @@ export const Header = () => {
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to={`/profile/${user.username || user.id}`}>Profile</Link>
+                    <Link to={`/profile/${profile?.username || user.id}`}>Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings">Settings</Link>

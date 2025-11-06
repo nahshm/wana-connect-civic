@@ -56,7 +56,7 @@ const PromiseDetail = () => {
         .order('created_at', { ascending: false });
 
       if (!verificationsError) {
-        setVerifications(verificationsData || []);
+        setVerifications((verificationsData as any) || []);
       }
     } catch (error) {
       console.error('Error fetching promise data:', error);

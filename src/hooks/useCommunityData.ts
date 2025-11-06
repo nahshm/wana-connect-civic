@@ -59,7 +59,8 @@ const mockPosts: Post[] = [
     downvotes: 12,
     commentCount: 34,
     userVote: null,
-    tags: ['education', 'budget', 'analysis']
+    tags: ['education', 'budget', 'analysis'],
+    contentSensitivity: 'public'
   },
   {
     id: '2',
@@ -77,7 +78,8 @@ const mockPosts: Post[] = [
     downvotes: 3,
     commentCount: 18,
     userVote: 'up',
-    tags: ['county', 'development', 'tracking']
+    tags: ['county', 'development', 'tracking'],
+    contentSensitivity: 'public'
   }
 ];
 

@@ -17,9 +17,9 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: profile?.username || '',
-    display_name: profile?.display_name || '',
+    display_name: profile?.displayName || '',
     bio: profile?.bio || '',
-    avatar_url: profile?.avatar_url || ''
+    avatar_url: profile?.avatar || ''
   });
 
   const handleProfileUpdate = async (e: React.FormEvent) => {

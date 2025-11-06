@@ -94,7 +94,7 @@ export default function Index() {
         tags: post.tags || [],
         createdAt: new Date(post.created_at),
         userVote: userVotes[post.id] || null,
-        contentSensitivity: post.content_sensitivity || 'public',
+        contentSensitivity: (post.content_sensitivity as any) || 'public',
         isNgoVerified: post.is_ngo_verified || false,
         media: post.post_media?.map(m => ({
           id: m.id.toString(),

@@ -115,7 +115,7 @@ const Projects = () => {
         ];
         setProjects(mockProjects);
       } else {
-        setProjects(data || []);
+        setProjects((data as any) || []);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);

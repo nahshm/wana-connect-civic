@@ -158,7 +158,7 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
                 </Button>
                 <CommentAwardButton
                   commentId={comment.id}
-                  userRole={user?.role}
+                  userRole={user?.role as any}
                   size="sm"
                 />
               </div>

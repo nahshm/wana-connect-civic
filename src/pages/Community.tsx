@@ -204,7 +204,7 @@ const Community = () => {
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
               <Avatar className="w-16 h-16">
-                <AvatarImage src={community.avatarUrl || undefined} />
+                <AvatarImage src={(community as any).avatar_url || undefined} />
                 <AvatarFallback className="text-xl">
                   {community.name?.charAt(0) || 'C'}
                 </AvatarFallback>
@@ -220,7 +220,7 @@ const Community = () => {
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm">
-                      Created {new Date(community.createdAt).toLocaleDateString()}
+                      Created {new Date((community as any).created_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -394,20 +394,20 @@ const Community = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {moderators.map((mod) => (
-                          <div key={mod.id} className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage src={mod.profiles?.avatarUrl || undefined} />
-                                <AvatarFallback>
-                                  {mod.profiles?.displayName?.charAt(0) || mod.profiles?.username?.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{mod.profiles?.displayName || mod.profiles?.username}</p>
-                                <p className="text-sm text-gray-600">@{mod.profiles?.username}</p>
-                              </div>
-                            </div>
+                         {moderators.map((mod: any) => (
+                           <div key={mod.id} className="flex items-center justify-between">
+                             <div className="flex items-center space-x-3">
+                               <Avatar className="w-8 h-8">
+                                 <AvatarImage src={mod.profiles?.avatar_url || undefined} />
+                                 <AvatarFallback>
+                                   {mod.profiles?.display_name?.charAt(0) || mod.profiles?.username?.charAt(0)}
+                                 </AvatarFallback>
+                               </Avatar>
+                               <div>
+                                 <p className="font-medium">{mod.profiles?.display_name || mod.profiles?.username}</p>
+                                 <p className="text-sm text-gray-600">@{mod.profiles?.username}</p>
+                               </div>
+                             </div>
                             <Badge variant={mod.role === 'admin' ? 'default' : 'secondary'}>
                               {mod.role === 'admin' ? <Crown className="w-3 h-3 mr-1" /> : <Shield className="w-3 h-3 mr-1" />}
                               {mod.role}
@@ -433,17 +433,17 @@ const Community = () => {
               <div>
                 <h4 className="font-medium mb-2">Moderators</h4>
                 <div className="space-y-2">
-                  {moderators.slice(0, 5).map((mod) => (
-                    <div key={mod.id} className="flex items-center space-x-2">
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={mod.profiles?.avatarUrl || undefined} />
-                        <AvatarFallback className="text-xs">
-                          {mod.profiles?.displayName?.charAt(0) || mod.profiles?.username?.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{mod.profiles?.displayName || mod.profiles?.username}</span>
-                    </div>
-                  ))}
+                   {moderators.slice(0, 5).map((mod: any) => (
+                     <div key={mod.id} className="flex items-center space-x-2">
+                       <Avatar className="w-6 h-6">
+                         <AvatarImage src={mod.profiles?.avatar_url || undefined} />
+                         <AvatarFallback className="text-xs">
+                           {mod.profiles?.display_name?.charAt(0) || mod.profiles?.username?.charAt(0)}
+                         </AvatarFallback>
+                       </Avatar>
+                       <span className="text-sm">{mod.profiles?.display_name || mod.profiles?.username}</span>
+                     </div>
+                   ))}
                 </div>
               </div>
 
