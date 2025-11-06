@@ -899,7 +899,21 @@ export type Database = {
             foreignKeyName: "contractor_ratings_contractor_id_fkey"
             columns: ["contractor_id"]
             isOneToOne: false
+            referencedRelation: "contractor_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_ratings_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
             referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_ratings_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "public_contractors"
             referencedColumns: ["id"]
           },
           {
@@ -1144,7 +1158,21 @@ export type Database = {
             foreignKeyName: "fk_lead_contractor"
             columns: ["lead_contractor_id"]
             isOneToOne: false
+            referencedRelation: "contractor_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_lead_contractor"
+            columns: ["lead_contractor_id"]
+            isOneToOne: false
             referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_lead_contractor"
+            columns: ["lead_contractor_id"]
+            isOneToOne: false
+            referencedRelation: "public_contractors"
             referencedColumns: ["id"]
           },
           {
@@ -1493,7 +1521,21 @@ export type Database = {
             foreignKeyName: "project_contractors_contractor_id_fkey"
             columns: ["contractor_id"]
             isOneToOne: false
+            referencedRelation: "contractor_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_contractors_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
             referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_contractors_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "public_contractors"
             referencedColumns: ["id"]
           },
           {
@@ -1937,7 +1979,111 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      contractor_contacts: {
+        Row: {
+          company_type: string | null
+          contact_person: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          registration_number: string | null
+          specialization: string[] | null
+          website: string | null
+        }
+        Insert: {
+          company_type?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          name?: string | null
+          phone?: string | null
+          registration_number?: string | null
+          specialization?: string[] | null
+          website?: string | null
+        }
+        Update: {
+          company_type?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          name?: string | null
+          phone?: string | null
+          registration_number?: string | null
+          specialization?: string[] | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      public_contractors: {
+        Row: {
+          average_rating: number | null
+          blacklist_reason: string | null
+          blacklisted: boolean | null
+          company_type: string | null
+          contact_person: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_verified: boolean | null
+          name: string | null
+          phone: string | null
+          registration_number: string | null
+          specialization: string[] | null
+          total_projects_completed: number | null
+          total_ratings: number | null
+          updated_at: string | null
+          verification_date: string | null
+          website: string | null
+          years_experience: number | null
+        }
+        Insert: {
+          average_rating?: number | null
+          blacklist_reason?: string | null
+          blacklisted?: boolean | null
+          company_type?: string | null
+          contact_person?: never
+          created_at?: string | null
+          email?: never
+          id?: string | null
+          is_verified?: boolean | null
+          name?: string | null
+          phone?: never
+          registration_number?: never
+          specialization?: string[] | null
+          total_projects_completed?: number | null
+          total_ratings?: number | null
+          updated_at?: string | null
+          verification_date?: string | null
+          website?: never
+          years_experience?: number | null
+        }
+        Update: {
+          average_rating?: number | null
+          blacklist_reason?: string | null
+          blacklisted?: boolean | null
+          company_type?: string | null
+          contact_person?: never
+          created_at?: string | null
+          email?: never
+          id?: string | null
+          is_verified?: boolean | null
+          name?: string | null
+          phone?: never
+          registration_number?: never
+          specialization?: string[] | null
+          total_projects_completed?: number | null
+          total_ratings?: number | null
+          updated_at?: string | null
+          verification_date?: string | null
+          website?: never
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_comment_karma: { Args: { user_uuid: string }; Returns: number }
