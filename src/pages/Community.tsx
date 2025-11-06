@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CommunityProfile, Post, CommunityModerator, CommunityRule, CommunityFlair } from '@/types/index';
+import DOMPurify from 'dompurify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -301,7 +302,7 @@ const Community = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {community.descriptionHtml ? (
-                      <div dangerouslySetInnerHTML={{ __html: community.descriptionHtml }} />
+                      <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(community.descriptionHtml) }} />
                     ) : (
                       <p className="text-gray-700">{community.description}</p>
                     )}
