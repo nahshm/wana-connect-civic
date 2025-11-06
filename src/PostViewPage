@@ -1,0 +1,110 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+
+// Define a type for the post data we expect from the API
+type Post = {
+  id: string;
+  created_at: string;
+  title: string;
+  content?: string;
+  media_urls?: string[];
+  flair?: string;
+  tags?: string[];
+  author: {
+    username: string;
+    avatar_url?: string;
+  };
+  community?: {
+    name: string;
+    avatar_url?: string;
+  };
+};
+
+export function PostViewPage() {
+  const { postId } = useParams<{ postId: string }>();
+  const [post, setPost] = useState<Post | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!postId) return;
+
+    const fetchPost = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`http://localhost:5000/api/posts/${postId}`);
+        if (!response.ok) {
+          throw new Error('Post not found or server error');
+        }
+        const data: Post = await response.json();
+        setPost(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch post.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPost();
+  }, [postId]);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-red-500">
+        <AlertTriangle className="h-8 w-8 mb-2" />
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return <div className="text-center py-10">Post not found.</div>;
+  }
+
+  return (
+    <div className="container mx-auto max-w-4xl py-8">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={post.community?.avatar_url} />
+              <AvatarFallback>{post.community?.name?.[0]}</AvatarFallback>
+            </Avatar>
+            <span className="font-bold">{post.community ? `c/${post.community.name}` : 'Posted to profile'}</span>
+            <span>·</span>
+            <span>Posted by u/{post.author.username}</span>
+            <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
+          </div>
+          <CardTitle className="text-2xl">{post.title}</CardTitle>
+          {post.flair && <Badge variant="secondary" className="w-fit">{post.flair}</Badge>}
+        </CardHeader>
+        <CardContent>
+          {post.content && <p className="text-base whitespace-pre-wrap">{post.content}</p>}
+          {post.media_urls && post.media_urls.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {post.media_urls.map((url, index) => (
+                url.endsWith('.mp4') || url.endsWith('.webm') ? (
+                  <video key={index} src={url} controls className="max-w-full rounded-md" />
+                ) : (
+                  <img key={index} src={url} alt={`Post media ${index + 1}`} className="max-w-full rounded-md" />
+                )
+              ))}
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-wrap gap-2">
+          {post.tags?.map(tag => <Badge key={tag} variant="outline">#{tag}</Badge>)}
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}

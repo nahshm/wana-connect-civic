@@ -3,15 +3,9 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-interface Profile {
-  id: string;
-  username: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  role: string;
-  is_verified: boolean;
-}
+import { UserProfile } from '@/types/index';
+
+interface Profile extends UserProfile {}
 
 interface AuthContextType {
   user: User | null;

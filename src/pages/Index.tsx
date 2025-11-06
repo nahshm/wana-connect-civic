@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FeedHeader } from '@/components/feed/FeedHeader';
@@ -10,52 +10,30 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Community, Post, PostMedia } from '@/types';
+import { useFeatureToggle } from '@/hooks/useFeatureToggle';
 
-interface Post {
-  id: string;
+interface BarazaSpace {
+  space_id: string;
   title: string;
-  content: string;
-  author: {
-    id: string;
-    username: string;
-    display_name: string;
-    avatar_url?: string;
-    is_verified?: boolean;
-    role?: string;
-  };
-  community?: {
-    id: string;
-    name: string;
-    display_name: string;
-    category: string;
-  };
-  official?: {
-    id: string;
-    name: string;
-    position: string;
-  };
-  upvotes: number;
-  downvotes: number;
-  comment_count: number;
-  tags: string[];
+  description: string;
+  host_user_id: string;
+  participant_count: number;
   created_at: string;
-  user_vote?: 'up' | 'down' | null;
 }
 
 export default function Index() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [communities, setCommunities] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [barazaSpaces, setBarazaSpaces] = useState<BarazaSpace[]>([]);
+  const barazaEnabled = useFeatureToggle('baraza');
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('hot');
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Fetch posts with author, community, and official information
       const { data: postsData, error: postsError } = await supabase
@@ -63,35 +41,69 @@ export default function Index() {
         .select(`
           *,
           profiles!posts_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
-          communities (id, name, display_name, category),
-          officials (id, name, position)
+          communities!posts_community_id_fkey (id, name, display_name, description, member_count, category),
+          officials!posts_official_id_fkey (id, name, position),
+          post_media!post_media_post_id_fkey (*)
         `)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (postsError) throw postsError;
 
+      // Fetch user votes if authenticated
+      let userVotes: { [postId: string]: 'up' | 'down' } = {};
+      if (user && postsData) {
+        const postIds = postsData.map(post => post.id);
+        const { data: votesData } = await supabase
+          .from('votes')
+          .select('post_id, vote_type')
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
+
+        if (votesData) {
+          votesData.forEach(vote => {
+            userVotes[vote.post_id] = vote.vote_type as 'up' | 'down';
+          });
+        }
+      }
+
       // Transform the data to match our interface
-      const transformedPosts = postsData?.map(post => ({
+      const transformedPosts: Post[] = postsData?.map(post => ({
         id: post.id,
         title: post.title,
         content: post.content,
         author: {
-          id: post.profiles.id,
-          username: post.profiles.username || 'Anonymous',
-          display_name: post.profiles.display_name || 'Anonymous User',
-          avatar_url: post.profiles.avatar_url,
-          is_verified: post.profiles.is_verified,
-          role: post.profiles.role,
+          id: post.profiles?.id || '',
+          username: post.profiles?.username || 'Anonymous',
+          displayName: post.profiles?.display_name || 'Anonymous User',
+          avatar: post.profiles?.avatar_url,
+          isVerified: post.profiles?.is_verified,
+          role: post.profiles?.role as 'citizen' | 'official' | 'expert' | 'journalist',
         },
-        community: post.communities,
-        official: post.officials,
-        upvotes: post.upvotes,
-        downvotes: post.downvotes,
-        comment_count: post.comment_count,
+        community: post.communities ? {
+          id: post.communities.id,
+          name: post.communities.name,
+          displayName: post.communities.display_name,
+          description: post.communities.description || '',
+          memberCount: post.communities.member_count || 0,
+          category: post.communities.category as 'governance' | 'civic-education' | 'accountability' | 'discussion',
+        } : undefined,
+        upvotes: post.upvotes || 0,
+        downvotes: post.downvotes || 0,
+        commentCount: post.comment_count || 0,
         tags: post.tags || [],
-        created_at: post.created_at,
-        user_vote: null, // TODO: Fetch user vote if authenticated
+        createdAt: new Date(post.created_at),
+        userVote: userVotes[post.id] || null,
+        contentSensitivity: post.content_sensitivity || 'public',
+        isNgoVerified: post.is_ngo_verified || false,
+        media: post.post_media?.map(m => ({
+          id: m.id.toString(),
+          post_id: m.post_id,
+          file_path: m.file_path,
+          filename: m.filename,
+          file_type: m.file_type,
+          file_size: m.file_size,
+        })) || [],
       })) || [];
 
       setPosts(transformedPosts);
@@ -104,19 +116,52 @@ export default function Index() {
         .limit(5);
 
       if (communitiesError) throw communitiesError;
-      setCommunities(communitiesData || []);
+      const transformedCommunities = (communitiesData || []).map(community => ({
+        id: community.id,
+        name: community.name,
+        displayName: community.display_name,
+        description: community.description || '',
+        memberCount: community.member_count,
+        category: community.category as 'governance' | 'civic-education' | 'accountability' | 'discussion',
+        isFollowing: false, // TODO: Fetch user following status
+      }));
+      setCommunities(transformedCommunities);
 
-    } catch (error) {
+      // TODO: Fetch live Baraza spaces when service is available
+      // For now, keeping empty array as Baraza service is not running
+      if (barazaEnabled) {
+        try {
+          const response = await fetch('http://localhost:5000/api/baraza/spaces');
+          if (response.ok) {
+            const data = await response.json();
+            setBarazaSpaces(data.spaces || []);
+          } else {
+            setBarazaSpaces([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Baraza spaces:', error);
+          setBarazaSpaces([]);
+        }
+      } else {
+        setBarazaSpaces([]);
+      }
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load posts",
+        description: `Failed to load posts: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleVote = async (postId: string, voteType: 'up' | 'down') => {
     if (!user) {
@@ -135,7 +180,7 @@ export default function Index() {
         .select('*')
         .eq('user_id', user.id)
         .eq('post_id', postId)
-        .single();
+        .maybeSingle();
 
       if (existingVote) {
         if (existingVote.vote_type === voteType) {
@@ -144,30 +189,12 @@ export default function Index() {
             .from('votes')
             .delete()
             .eq('id', existingVote.id);
-          
-          // Update post count
-          const updateField = voteType === 'up' ? 'upvotes' : 'downvotes';
-          await supabase
-            .from('posts')
-            .update({ [updateField]: posts.find(p => p.id === postId)![updateField] - 1 })
-            .eq('id', postId);
         } else {
           // Update vote
           await supabase
             .from('votes')
             .update({ vote_type: voteType })
             .eq('id', existingVote.id);
-          
-          // Update post counts
-          const post = posts.find(p => p.id === postId)!;
-          const updates = voteType === 'up' 
-            ? { upvotes: post.upvotes + 1, downvotes: post.downvotes - 1 }
-            : { upvotes: post.upvotes - 1, downvotes: post.downvotes + 1 };
-          
-          await supabase
-            .from('posts')
-            .update(updates)
-            .eq('id', postId);
         }
       } else {
         // Create new vote
@@ -178,16 +205,9 @@ export default function Index() {
             post_id: postId,
             vote_type: voteType,
           });
-        
-        // Update post count
-        const updateField = voteType === 'up' ? 'upvotes' : 'downvotes';
-        await supabase
-          .from('posts')
-          .update({ [updateField]: posts.find(p => p.id === postId)![updateField] + 1 })
-          .eq('id', postId);
       }
 
-      // Refresh posts
+      // Refresh posts to show updated vote counts
       fetchData();
     } catch (error) {
       console.error('Error voting:', error);
@@ -202,6 +222,9 @@ export default function Index() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-6">
+          <p className="text-muted-foreground">Loading posts...</p>
+        </div>
         <div className="space-y-6">
           {[...Array(5)].map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -225,19 +248,19 @@ export default function Index() {
   const sortedPosts = posts.sort((a, b) => {
     switch (sortBy) {
       case 'new':
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return b.createdAt.getTime() - a.createdAt.getTime();
       case 'top':
         return (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes);
       case 'rising':
         // Simple rising algorithm: recent posts with good engagement
-        const aScore = (a.upvotes - a.downvotes) / Math.max(1, Math.floor((Date.now() - new Date(a.created_at).getTime()) / (1000 * 60 * 60)));
-        const bScore = (b.upvotes - b.downvotes) / Math.max(1, Math.floor((Date.now() - new Date(b.created_at).getTime()) / (1000 * 60 * 60)));
+        const aScore = (a.upvotes - a.downvotes) / Math.max(1, Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60)));
+        const bScore = (b.upvotes - b.downvotes) / Math.max(1, Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60)));
         return bScore - aScore;
       case 'hot':
       default:
         // Hot algorithm: balance of votes and recency
-        const aHot = a.upvotes + a.comment_count - Math.floor((Date.now() - new Date(a.created_at).getTime()) / (1000 * 60 * 60));
-        const bHot = b.upvotes + b.comment_count - Math.floor((Date.now() - new Date(b.created_at).getTime()) / (1000 * 60 * 60));
+        const aHot = a.upvotes + a.commentCount - Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60));
+        const bHot = b.upvotes + b.commentCount - Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60));
         return bHot - aHot;
     }
   });
@@ -307,7 +330,7 @@ export default function Index() {
                     Kenya's premier civic engagement platform. Here's what you can do:
                   </p>
                 </div>
-                
+
                 <div className="grid md:grid-cols-2 gap-6 mb-8">
                   <div className="space-y-4">
                     <h3 className="font-semibold text-civic-green flex items-center gap-2">
@@ -326,7 +349,7 @@ export default function Index() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <h3 className="font-semibold text-civic-blue flex items-center gap-2">
                       <TrendingUp className="h-5 w-5" />
@@ -379,31 +402,64 @@ export default function Index() {
                   author: {
                     id: post.author.id,
                     username: post.author.username,
-                    displayName: post.author.display_name,
-                    avatar: post.author.avatar_url,
-                    isVerified: post.author.is_verified,
+                    displayName: post.author.displayName,
+                    avatar: post.author.avatar,
+                    isVerified: post.author.isVerified,
                     role: post.author.role as 'citizen' | 'official' | 'expert' | 'journalist',
                   },
                   community: post.community ? {
                     id: post.community.id,
                     name: post.community.name,
-                    displayName: post.community.display_name,
-                    description: '',
-                    memberCount: 0,
+                    displayName: post.community.displayName,
+                    description: post.community.description,
+                    memberCount: post.community.memberCount,
                     category: post.community.category as 'governance' | 'civic-education' | 'accountability' | 'discussion',
                   } : undefined,
-                  createdAt: new Date(post.created_at),
+                  createdAt: post.createdAt,
                   upvotes: post.upvotes,
                   downvotes: post.downvotes,
-                  commentCount: post.comment_count,
-                  userVote: post.user_vote,
+                  commentCount: post.commentCount,
+                  userVote: post.userVote,
                   tags: post.tags,
+                  contentSensitivity: post.contentSensitivity,
+                  isNgoVerified: post.isNgoVerified,
+                  media: post.media,
                 }}
                 onVote={handleVote}
               />
             ))
           )}
         </div>
+
+        {/* Live Baraza Spaces */}
+        {barazaEnabled && barazaSpaces.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Live Baraza Spaces
+              </CardTitle>
+              <CardDescription>
+                Join live audio discussions on civic matters
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {barazaSpaces.map(space => (
+                <div key={space.space_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{space.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {space.participant_count} participants • Live now
+                    </p>
+                  </div>
+                  <Button size="sm" asChild>
+                    <Link to={`/baraza/${space.space_id}`}>Join</Link>
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
       
       {/* Right Sidebar */}
@@ -423,9 +479,9 @@ export default function Index() {
               {communities.slice(0, 5).map(community => (
                 <div key={community.id} className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-sm">{community.display_name}</p>
+                    <p className="font-medium text-sm">{community.displayName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {community.member_count.toLocaleString()} members
+                      {community.memberCount.toLocaleString()} members
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs">

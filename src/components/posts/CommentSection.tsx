@@ -9,6 +9,9 @@ import { ArrowUp, ArrowDown, MessageSquare, MoreHorizontal, Reply, Flag } from '
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { CommentAwardDisplay } from './CommentAwardDisplay';
+import { CommentAwardButton } from './CommentAwardButton';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Comment, User } from '@/types';
 
 interface CommentSectionProps {
@@ -30,6 +33,7 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
   const [replyContent, setReplyContent] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleReply = () => {
     if (replyContent.trim()) {
@@ -120,6 +124,9 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
                 </p>
               </div>
 
+              {/* Comment Awards Display */}
+              <CommentAwardDisplay awards={comment.awards} size="sm" />
+
               {/* Comment Actions */}
               <div className="flex items-center gap-1">
                 <Button
@@ -149,6 +156,11 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
                   <Reply className="h-3 w-3 mr-1" />
                   Reply
                 </Button>
+                <CommentAwardButton
+                  commentId={comment.id}
+                  userRole={user?.role}
+                  size="sm"
+                />
               </div>
 
               {/* Reply Form */}

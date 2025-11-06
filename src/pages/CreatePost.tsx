@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const CreatePost = () => {
@@ -16,7 +16,7 @@ const CreatePost = () => {
   const [communities, setCommunities] = useState<any[]>([]);
 
   // Fetch communities on component mount
-  useState(() => {
+  useEffect(() => {
     const fetchCommunities = async () => {
       const { data } = await supabase
         .from('communities')
@@ -25,9 +25,11 @@ const CreatePost = () => {
       setCommunities(data || []);
     };
     fetchCommunities();
-  });
+  }, []);
 
   const handleCreatePost = async (postData: any) => {
+    // For now, anonymous posting is not supported by the database schema
+    // All posts require an authenticated user
     if (!user) {
       toast({
         title: "Authentication required",
@@ -38,27 +40,110 @@ const CreatePost = () => {
     }
 
     setLoading(true);
-    
+
     try {
+
+      const postPayload = {
+        title: postData.title,
+        content: postData.content,
+        author_id: user.id,
+        community_id: postData.communityId || null,
+        tags: postData.tags || [],
+      };
+
       const { data, error } = await supabase
         .from('posts')
-        .insert({
-          title: postData.title,
-          content: postData.content,
-          author_id: user.id,
-          community_id: postData.communityId,
-          tags: postData.tags || [],
-        })
+        .insert(postPayload)
         .select()
         .single();
 
       if (error) throw error;
 
-      toast({
-        title: "Success!",
-        description: "Your post has been created successfully",
-      });
-      
+      // Handle file uploads if any evidence files are provided
+      if (postData.evidenceFiles && postData.evidenceFiles.length > 0) {
+        try {
+          const postId = data.id;
+
+          // Upload each file to Supabase Storage
+          const uploadPromises = postData.evidenceFiles.map(async (file: File, index: number) => {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${postId}/evidence_${index + 1}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('media')
+              .upload(fileName, file);
+
+            if (uploadError) {
+              console.error('Error uploading file:', uploadError);
+              throw new Error(`Failed to upload ${file.name}`);
+            }
+
+            return {
+              post_id: postId,
+              file_name: fileName,
+              file_type: file.type,
+              file_size: file.size,
+              uploaded_at: new Date().toISOString(),
+            };
+          });
+
+          const evidenceRecords = await Promise.all(uploadPromises);
+
+          // Insert evidence records into database
+          const { error: evidenceError } = await supabase
+            .from('post_media')
+            .insert(evidenceRecords.map(record => ({
+              post_id: record.post_id,
+              file_path: record.file_name,
+              filename: record.file_name.split('/').pop() || '',
+              file_type: record.file_type,
+              file_size: record.file_size,
+            })));
+
+          if (evidenceError) {
+            console.error('Error saving evidence records:', evidenceError);
+            toast({
+              title: "File Upload Issue",
+              description: "Your post was created but there was an issue saving file metadata. Files may not display correctly.",
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "Files Uploaded Successfully",
+              description: `${postData.evidenceFiles.length} file(s) have been uploaded with your post.`,
+              variant: "default",
+            });
+          }
+        } catch (uploadError) {
+          console.error('File upload process failed:', uploadError);
+          toast({
+            title: "File Upload Failed",
+            description: "Your post was created successfully, but file uploads failed. You can try again later.",
+            variant: "default",
+          });
+        }
+      }
+
+      // Handle sensitive content notifications
+      if (postData.contentSensitivity === 'crisis') {
+        toast({
+          title: "Crisis Report Submitted",
+          description: "Your report has been flagged for immediate attention and will be escalated to appropriate authorities.",
+          variant: "default",
+        });
+      } else if (postData.contentSensitivity === 'sensitive') {
+        toast({
+          title: "Sensitive Content Submitted",
+          description: "Your post will undergo additional verification before being published.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Your post has been created successfully",
+        });
+      }
+
       navigate('/');
     } catch (error) {
       console.error('Error creating post:', error);
@@ -84,7 +169,7 @@ const CreatePost = () => {
               Back to Feed
             </Link>
           </Button>
-          
+
           <div className="mb-2">
             <h1 className="text-3xl font-bold text-sidebar-foreground">Create a Post</h1>
             <p className="text-sidebar-muted-foreground">

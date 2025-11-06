@@ -7,12 +7,17 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import PrefixRouter from "@/components/routing/PrefixRouter";
 import Index from "./pages/Index";
 import CreatePost from "./pages/CreatePost";
+import EditPost from "./pages/EditPost";
 import PostDetail from "./pages/PostDetail";
 import Communities from "./pages/Communities";
+import Community from "./pages/Community";
 import Officials from "./pages/Officials";
+import Projects from "./pages/Projects";
 import SettingsPage from "./pages/Settings";
+import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -35,10 +40,23 @@ const App = () => (
                       <Route path="/" element={<Index />} />
                       <Route path="/create" element={<CreatePost />} />
                       <Route path="/post/:id" element={<PostDetail />} />
-              <Route path="/communities" element={<Communities />} />
-              <Route path="/officials" element={<Officials />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<NotFound />} />
+                      <Route path="/edit-post/:id" element={<EditPost />} />
+                      <Route path="/u/:username" element={<Profile />} />
+                      <Route path="/profile/:username" element={<Profile />} />
+                      <Route path="/c/:communityName" element={<Community />} />
+                      <Route path="/community/:communityName" element={<Community />} />
+                      <Route path="/communities" element={<Communities />} />
+                      <Route path="/officials" element={<Officials />} />
+                      <Route path="/projects" element={<Projects />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      {/* Functional prefix routes - handled by PrefixRouter */}
+                      <Route path="/c/:communityName" element={<PrefixRouter />} />
+                      <Route path="/u/:username" element={<PrefixRouter />} />
+                      <Route path="/g/:officialId" element={<PrefixRouter />} />
+                      <Route path="/p/:projectId" element={<PrefixRouter />} />
+                      <Route path="/pr/:promiseId" element={<PrefixRouter />} />
+                      <Route path="/w/:username" element={<PrefixRouter />} />
+                      <Route path="*" element={<NotFound />} />
                     </Routes>
                   </AppLayout>
                 } />

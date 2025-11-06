@@ -2,16 +2,31 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowUp, ArrowDown, MessageCircle, Share, Verified, MoreHorizontal, Bookmark } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageCircle, Share, Verified, MoreHorizontal, Bookmark, Edit, Trash2 } from 'lucide-react';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface PostCardProps {
   post: Post;
@@ -21,8 +36,73 @@ interface PostCardProps {
 }
 
 export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card' }: PostCardProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const isAuthor = user && post.author.id === user.id;
+
+  const handleDelete = async () => {
+    if (!user || !isAuthor) return;
+
+    setIsDeleting(true);
+    try {
+      // Delete associated media first
+      if (post.media && post.media.length > 0) {
+        const { error: mediaError } = await supabase
+          .from('post_media')
+          .delete()
+          .eq('post_id', post.id);
+
+        if (mediaError) {
+          console.error('Error deleting media:', mediaError);
+        }
+
+        // Delete files from storage
+        for (const media of post.media) {
+          await supabase.storage.from('media').remove([media.file_path]);
+        }
+      }
+
+      // Delete the post
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('author_id', user.id); // Extra safety check
+
+      if (error) throw error;
+
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully deleted.",
+      });
+
+      // Navigate away if on post detail page
+      if (isDetailView) {
+        navigate('/');
+      } else {
+        // Trigger a refresh of the parent component
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete post. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle community data that might be under 'community' or 'community_id' alias
+  const communityData = post.community || (post as any).community_id;
+
   const getVoteScore = () => post.upvotes - post.downvotes;
-  
+
   const getRoleColor = (role?: string) => {
     switch (role) {
       case 'official': return 'bg-civic-blue/10 text-civic-blue border-civic-blue/20';
@@ -37,6 +117,46 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
       return (num / 1000).toFixed(1) + 'k';
     }
     return num.toString();
+  };
+
+  // New helper to render badges for sensitive content and urgency
+  const renderSpecialBadges = () => {
+    const badges = [];
+
+    // Map content sensitivity to badges
+    if (post.contentSensitivity === 'crisis') {
+      badges.push(
+        <Badge key="sensitive" variant="destructive" className="mr-1">
+          SENSITIVE REPORT
+        </Badge>
+      );
+      badges.push(
+        <Badge key="urgent" variant="destructive" className="mr-1">
+          URGENT
+        </Badge>
+      );
+    } else if (post.contentSensitivity === 'sensitive') {
+      badges.push(
+        <Badge key="sensitive" variant="destructive" className="mr-1">
+          SENSITIVE REPORT
+        </Badge>
+      );
+    }
+
+    if (post.isNgoVerified) {
+      badges.push(
+        <Badge key="verified" variant="outline" className="mr-1 flex items-center gap-1">
+          <Verified className="w-3 h-3 text-blue-500" />
+          NGO VERIFIED
+        </Badge>
+      );
+    }
+
+    return badges.length > 0 ? (
+      <div className="flex flex-wrap mb-2">
+        {badges}
+      </div>
+    ) : null;
   };
 
   if (viewMode === 'compact') {
@@ -68,9 +188,13 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
         {/* Content */}
         <div className="flex-1 p-3">
           <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-1">
-            <Link to={`/c/${post.community.name}`} className="hover:underline font-medium">
-              c/{post.community.name}
-            </Link>
+            {communityData ? (
+              <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
+                c/{communityData.name}
+              </Link>
+            ) : (
+              <span className="font-medium">Profile Post</span>
+            )}
             <span>•</span>
             <span>Posted by</span>
             <Link to={`/u/${post.author.displayName}`} className="hover:underline">
@@ -79,7 +203,9 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             <span>•</span>
             <span>{formatDistanceToNow(post.createdAt)} ago</span>
           </div>
-          
+
+          {renderSpecialBadges()}
+
           <Link to={`/post/${post.id}`} className="block group">
             <h3 className="font-medium text-sidebar-foreground group-hover:text-primary line-clamp-2 mb-1">
               {post.title}
@@ -141,9 +267,13 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               <AvatarImage src={post.author.avatar} />
               <AvatarFallback className="text-xs">{post.author.displayName.charAt(0)}</AvatarFallback>
             </Avatar>
-            <Link to={`/c/${post.community.name}`} className="hover:underline font-medium">
-              c/{post.community.name}
-            </Link>
+            {communityData ? (
+              <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
+                c/{communityData.name}
+              </Link>
+            ) : (
+              <span className="font-medium">Profile Post</span>
+            )}
             <span>•</span>
             <span>Posted by</span>
             <Link to={`/u/${post.author.displayName}`} className="hover:underline">
@@ -160,7 +290,9 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             <span>•</span>
             <span>{formatDistanceToNow(post.createdAt)} ago</span>
           </div>
-          
+
+          {renderSpecialBadges()}
+
           {/* Title and Content */}
           {isDetailView ? (
             <div>
@@ -181,7 +313,49 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               )}
             </Link>
           )}
-          
+
+          {/* Media */}
+          {post.media && post.media.length > 0 && (
+            <div className="mb-3">
+              {post.media.length === 1 ? (
+                <div className="rounded-lg overflow-hidden border border-sidebar-border">
+                  {post.media[0].file_type.startsWith('image/') ? (
+                    <img
+                      src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+                      alt="Post media"
+                      className="w-full h-auto max-h-96 object-cover"
+                    />
+                  ) : post.media[0].file_type.startsWith('video/') ? (
+                    <video
+                      src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+                      controls
+                      className="w-full h-auto max-h-96"
+                    />
+                  ) : null}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {post.media.slice(0, 4).map((media, index) => (
+                    <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
+                      {media.file_type.startsWith('image/') ? (
+                        <img
+                          src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
+                          alt={`Post media ${index + 1}`}
+                          className="w-full h-32 object-cover"
+                        />
+                      ) : media.file_type.startsWith('video/') ? (
+                        <video
+                          src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
+                          className="w-full h-32 object-cover"
+                        />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tags */}
           {post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-3">
@@ -219,6 +393,48 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-sidebar-background border-sidebar-border">
+                {isAuthor && (
+                  <>
+                    <DropdownMenuItem
+                      className="text-sidebar-foreground hover:bg-sidebar-accent"
+                      onClick={() => navigate(`/edit-post/${post.id}`)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit post
+                    </DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem
+                          className="text-destructive hover:bg-destructive/10"
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete post
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-sidebar-background border-sidebar-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-sidebar-foreground">Delete Post</AlertDialogTitle>
+                          <AlertDialogDescription className="text-sidebar-muted-foreground">
+                            Are you sure you want to delete this post? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                )}
                 <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
                   Hide post
                 </DropdownMenuItem>
