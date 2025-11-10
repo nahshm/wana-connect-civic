@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      civic_interests: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       comment_award_assignments: {
         Row: {
           award_id: string
@@ -845,6 +875,48 @@ export type Database = {
           },
         ]
       }
+      constituencies: {
+        Row: {
+          county_id: string | null
+          created_at: string | null
+          id: string
+          mp_id: string | null
+          name: string
+          population: number | null
+        }
+        Insert: {
+          county_id?: string | null
+          created_at?: string | null
+          id?: string
+          mp_id?: string | null
+          name: string
+          population?: number | null
+        }
+        Update: {
+          county_id?: string | null
+          created_at?: string | null
+          id?: string
+          mp_id?: string | null
+          name?: string
+          population?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constituencies_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "constituencies_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "officials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contractor_ratings: {
         Row: {
           communication_rating: number | null
@@ -988,6 +1060,30 @@ export type Database = {
           verification_date?: string | null
           website?: string | null
           years_experience?: number | null
+        }
+        Relationships: []
+      }
+      counties: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          id: string
+          name: string
+          population: number | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          population?: number | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          population?: number | null
         }
         Relationships: []
       }
@@ -1296,6 +1392,59 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_progress: {
+        Row: {
+          communities_joined: number | null
+          completed_at: string | null
+          created_at: string | null
+          first_comment: boolean | null
+          first_post: boolean | null
+          id: string
+          interests_set: boolean | null
+          location_set: boolean | null
+          persona_set: boolean | null
+          step_completed: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          communities_joined?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          first_comment?: boolean | null
+          first_post?: boolean | null
+          id?: string
+          interests_set?: boolean | null
+          location_set?: boolean | null
+          persona_set?: boolean | null
+          step_completed?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          communities_joined?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          first_comment?: boolean | null
+          first_post?: boolean | null
+          id?: string
+          interests_set?: boolean | null
+          location_set?: boolean | null
+          persona_set?: boolean | null
+          step_completed?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_media: {
         Row: {
           file_path: string
@@ -1414,6 +1563,8 @@ export type Database = {
           badges: string[] | null
           bio: string | null
           comment_karma: number | null
+          constituency_id: string | null
+          county_id: string | null
           created_at: string
           display_name: string | null
           expertise: string[] | null
@@ -1423,12 +1574,15 @@ export type Database = {
           karma: number | null
           last_activity: string | null
           location: string | null
+          onboarding_completed: boolean | null
+          persona: Database["public"]["Enums"]["user_persona"] | null
           post_karma: number | null
           privacy_settings: Json | null
           role: string | null
           social_links: Json | null
           updated_at: string
           username: string | null
+          ward_id: string | null
           website: string | null
         }
         Insert: {
@@ -1437,6 +1591,8 @@ export type Database = {
           badges?: string[] | null
           bio?: string | null
           comment_karma?: number | null
+          constituency_id?: string | null
+          county_id?: string | null
           created_at?: string
           display_name?: string | null
           expertise?: string[] | null
@@ -1446,12 +1602,15 @@ export type Database = {
           karma?: number | null
           last_activity?: string | null
           location?: string | null
+          onboarding_completed?: boolean | null
+          persona?: Database["public"]["Enums"]["user_persona"] | null
           post_karma?: number | null
           privacy_settings?: Json | null
           role?: string | null
           social_links?: Json | null
           updated_at?: string
           username?: string | null
+          ward_id?: string | null
           website?: string | null
         }
         Update: {
@@ -1460,6 +1619,8 @@ export type Database = {
           badges?: string[] | null
           bio?: string | null
           comment_karma?: number | null
+          constituency_id?: string | null
+          county_id?: string | null
           created_at?: string
           display_name?: string | null
           expertise?: string[] | null
@@ -1469,15 +1630,40 @@ export type Database = {
           karma?: number | null
           last_activity?: string | null
           location?: string | null
+          onboarding_completed?: boolean | null
+          persona?: Database["public"]["Enums"]["user_persona"] | null
           post_karma?: number | null
           privacy_settings?: Json | null
           role?: string | null
           social_links?: Json | null
           updated_at?: string
           username?: string | null
+          ward_id?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_constituency_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_ward_id_fkey"
+            columns: ["ward_id"]
+            isOneToOne: false
+            referencedRelation: "wards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_contractors: {
         Row: {
@@ -1881,6 +2067,42 @@ export type Database = {
           },
         ]
       }
+      user_interests: {
+        Row: {
+          id: string
+          interest_id: string | null
+          selected_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          interest_id?: string | null
+          selected_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          interest_id?: string | null
+          selected_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_interests_interest_id_fkey"
+            columns: ["interest_id"]
+            isOneToOne: false
+            referencedRelation: "civic_interests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_interests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_privacy_settings: {
         Row: {
           activity_visibility: string | null
@@ -1997,6 +2219,48 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wards: {
+        Row: {
+          constituency_id: string | null
+          created_at: string | null
+          id: string
+          mca_id: string | null
+          name: string
+          population: number | null
+        }
+        Insert: {
+          constituency_id?: string | null
+          created_at?: string | null
+          id?: string
+          mca_id?: string | null
+          name: string
+          population?: number | null
+        }
+        Update: {
+          constituency_id?: string | null
+          created_at?: string | null
+          id?: string
+          mca_id?: string | null
+          name?: string
+          population?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wards_constituency_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wards_mca_id_fkey"
+            columns: ["mca_id"]
+            isOneToOne: false
+            referencedRelation: "officials"
             referencedColumns: ["id"]
           },
         ]
@@ -2154,6 +2418,12 @@ export type Database = {
         | "women_rep"
         | "mca"
       promise_status: "completed" | "ongoing" | "not_started" | "cancelled"
+      user_persona:
+        | "active_citizen"
+        | "community_organizer"
+        | "civic_learner"
+        | "government_watcher"
+        | "professional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2298,6 +2568,13 @@ export const Constants = {
         "mca",
       ],
       promise_status: ["completed", "ongoing", "not_started", "cancelled"],
+      user_persona: [
+        "active_citizen",
+        "community_organizer",
+        "civic_learner",
+        "government_watcher",
+        "professional",
+      ],
     },
   },
 } as const

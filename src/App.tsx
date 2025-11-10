@@ -20,6 +20,9 @@ import SettingsPage from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import OnboardingFlow from "./pages/Onboarding/OnboardingFlow";
+import CivicDashboard from "./pages/Dashboard/CivicDashboard";
+import { OnboardingGuard } from "@/components/routing/OnboardingGuard";
 
 const queryClient = new QueryClient();
 
@@ -32,12 +35,15 @@ const App = () => (
           <Sonner />
           <SidebarProvider>
             <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/*" element={
+              <OnboardingGuard>
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/onboarding" element={<OnboardingFlow />} />
+                  <Route path="/*" element={
                   <AppLayout>
                     <Routes>
                       <Route path="/" element={<Index />} />
+                      <Route path="/dashboard" element={<CivicDashboard />} />
                       <Route path="/create" element={<CreatePost />} />
                       <Route path="/post/:id" element={<PostDetail />} />
                       <Route path="/edit-post/:id" element={<EditPost />} />
@@ -61,6 +67,7 @@ const App = () => (
                   </AppLayout>
                 } />
               </Routes>
+              </OnboardingGuard>
             </BrowserRouter>
           </SidebarProvider>
         </TooltipProvider>

@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string, username?: string) => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/onboarding`;
       
       const { error } = await supabase.auth.signUp({
         email,
@@ -137,8 +137,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link to complete your registration."
+        title: "Welcome to WanaIQ!",
+        description: "Let's set up your profile to connect you to your community."
       });
       
       return { error: null };
