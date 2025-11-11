@@ -22,6 +22,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import OnboardingFlow from "./pages/Onboarding/OnboardingFlow";
 import CivicDashboard from "./pages/Dashboard/CivicDashboard";
+import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
 import { OnboardingGuard } from "@/components/routing/OnboardingGuard";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
                       <Route path="/officials" element={<Officials />} />
                       <Route path="/projects" element={<Projects />} />
                       <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
                       {/* Functional prefix routes - handled by PrefixRouter */}
                       <Route path="/c/:communityName" element={<PrefixRouter />} />
                       <Route path="/u/:username" element={<PrefixRouter />} />
