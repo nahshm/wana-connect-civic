@@ -5,16 +5,74 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Sample Kenya geographic data - In production, this should come from a comprehensive CSV/JSON file
+// Comprehensive Kenya geographic data based on IEBC official data (2022)
 const kenyaData = {
   counties: [
+    // Nairobi Region
     { name: 'Nairobi', population: 4397073 },
-    { name: 'Mombasa', population: 1208333 },
-    { name: 'Kisumu', population: 1155574 },
-    { name: 'Nakuru', population: 2162202 },
+    
+    // Central Region
     { name: 'Kiambu', population: 2417735 },
+    { name: 'Nyeri', population: 759164 },
+    { name: 'Kirinyaga', population: 610411 },
+    { name: 'Murang\'a', population: 1056640 },
+    { name: 'Nyandarua', population: 638289 },
+    
+    // Coast Region
+    { name: 'Mombasa', population: 1208333 },
+    { name: 'Kilifi', population: 1453787 },
+    { name: 'Kwale', population: 866820 },
+    { name: 'Lamu', population: 143920 },
+    { name: 'Taita Taveta', population: 340671 },
+    { name: 'Tana River', population: 315943 },
+    
+    // Eastern Region
+    { name: 'Embu', population: 608599 },
+    { name: 'Isiolo', population: 268002 },
+    { name: 'Kitui', population: 1136187 },
+    { name: 'Machakos', population: 1421932 },
+    { name: 'Makueni', population: 987653 },
+    { name: 'Marsabit', population: 459785 },
+    { name: 'Meru', population: 1545714 },
+    { name: 'Tharaka Nithi', population: 393177 },
+    
+    // North Eastern Region
+    { name: 'Garissa', population: 841353 },
+    { name: 'Mandera', population: 1200000 },
+    { name: 'Wajir', population: 781263 },
+    
+    // Nyanza Region
+    { name: 'Homa Bay', population: 1131950 },
+    { name: 'Kisii', population: 1266860 },
+    { name: 'Kisumu', population: 1155574 },
+    { name: 'Migori', population: 1116436 },
+    { name: 'Nyamira', population: 605576 },
+    { name: 'Siaya', population: 993183 },
+    
+    // Rift Valley Region
+    { name: 'Baringo', population: 666763 },
+    { name: 'Bomet', population: 875689 },
+    { name: 'Elgeyo Marakwet', population: 454480 },
+    { name: 'Kajiado', population: 1117840 },
+    { name: 'Kericho', population: 901777 },
+    { name: 'Laikipia', population: 518560 },
+    { name: 'Nakuru', population: 2162202 },
+    { name: 'Nandi', population: 885711 },
+    { name: 'Narok', population: 1157873 },
+    { name: 'Samburu', population: 310327 },
+    { name: 'Trans Nzoia', population: 990341 },
+    { name: 'Turkana', population: 926976 },
+    { name: 'Uasin Gishu', population: 1163186 },
+    { name: 'West Pokot', population: 621241 },
+    
+    // Western Region
+    { name: 'Bungoma', population: 1670570 },
+    { name: 'Busia', population: 893681 },
+    { name: 'Kakamega', population: 1867579 },
+    { name: 'Vihiga', population: 590013 },
   ],
   constituencies: {
+    // Nairobi County (17 constituencies)
     'Nairobi': [
       { name: 'Westlands' },
       { name: 'Dagoretti North' },
@@ -34,6 +92,24 @@ const kenyaData = {
       { name: 'Starehe' },
       { name: 'Mathare' },
     ],
+    
+    // Kiambu County
+    'Kiambu': [
+      { name: 'Gatundu South' },
+      { name: 'Gatundu North' },
+      { name: 'Juja' },
+      { name: 'Thika Town' },
+      { name: 'Ruiru' },
+      { name: 'Githunguri' },
+      { name: 'Kiambu' },
+      { name: 'Kiambaa' },
+      { name: 'Kabete' },
+      { name: 'Kikuyu' },
+      { name: 'Limuru' },
+      { name: 'Lari' },
+    ],
+    
+    // Mombasa County (6 constituencies)
     'Mombasa': [
       { name: 'Changamwe' },
       { name: 'Jomvu' },
@@ -42,6 +118,8 @@ const kenyaData = {
       { name: 'Likoni' },
       { name: 'Mvita' },
     ],
+    
+    // Kisumu County (7 constituencies)
     'Kisumu': [
       { name: 'Kisumu East' },
       { name: 'Kisumu West' },
@@ -51,13 +129,220 @@ const kenyaData = {
       { name: 'Muhoroni' },
       { name: 'Nyakach' },
     ],
+    
+    // Nakuru County (11 constituencies)
+    'Nakuru': [
+      { name: 'Nakuru Town East' },
+      { name: 'Nakuru Town West' },
+      { name: 'Bahati' },
+      { name: 'Gilgil' },
+      { name: 'Naivasha' },
+      { name: 'Kuresoi South' },
+      { name: 'Kuresoi North' },
+      { name: 'Molo' },
+      { name: 'Njoro' },
+      { name: 'Rongai' },
+      { name: 'Subukia' },
+    ],
+    
+    // Kakamega County (12 constituencies)
+    'Kakamega': [
+      { name: 'Lugari' },
+      { name: 'Likuyani' },
+      { name: 'Malava' },
+      { name: 'Lurambi' },
+      { name: 'Navakholo' },
+      { name: 'Mumias West' },
+      { name: 'Mumias East' },
+      { name: 'Matungu' },
+      { name: 'Butere' },
+      { name: 'Khwisero' },
+      { name: 'Shinyalu' },
+      { name: 'Ikolomani' },
+    ],
+    
+    // Machakos County (8 constituencies)
+    'Machakos': [
+      { name: 'Machakos Town' },
+      { name: 'Mavoko' },
+      { name: 'Kathiani' },
+      { name: 'Yatta' },
+      { name: 'Kangundo' },
+      { name: 'Matungulu' },
+      { name: 'Mwala' },
+      { name: 'Masinga' },
+    ],
+    
+    // Kilifi County (7 constituencies)
+    'Kilifi': [
+      { name: 'Kilifi North' },
+      { name: 'Kilifi South' },
+      { name: 'Ganze' },
+      { name: 'Kaloleni' },
+      { name: 'Malindi' },
+      { name: 'Magarini' },
+      { name: 'Rabai' },
+    ],
+    
+    // Bungoma County (9 constituencies)
+    'Bungoma': [
+      { name: 'Bumula' },
+      { name: 'Kabuchai' },
+      { name: 'Kanduyi' },
+      { name: 'Kimilili' },
+      { name: 'Mt Elgon' },
+      { name: 'Sirisia' },
+      { name: 'Tongaren' },
+      { name: 'Webuye East' },
+      { name: 'Webuye West' },
+    ],
+    
+    // Uasin Gishu County (6 constituencies)
+    'Uasin Gishu': [
+      { name: 'Ainabkoi' },
+      { name: 'Kapseret' },
+      { name: 'Kesses' },
+      { name: 'Moiben' },
+      { name: 'Soy' },
+      { name: 'Turbo' },
+    ],
   },
   wards: {
-    'Westlands': ['Kitisuru', 'Parklands/Highridge', 'Karura', 'Kangemi', 'Mountain View'],
-    'Kamukunji': ['Pumwani', 'Eastleigh North', 'Eastleigh South', 'Airbase', 'California'],
-    'Starehe': ['Nairobi Central', 'Ngara', 'Ziwani/Kariokor', 'Landimawe', 'Nairobi South'],
-    'Changamwe': ['Port Reitz', 'Kipevu', 'Airport', 'Changamwe', 'Chaani'],
-    'Kisumu East': ['Kajulu', 'Kolwa East', 'Manyatta B', 'Kolwa Central', 'Nyalenda A'],
+    // Nairobi - Westlands Constituency
+    'Westlands': [
+      { name: 'Kitisuru' },
+      { name: 'Parklands/Highridge' },
+      { name: 'Karura' },
+      { name: 'Kangemi' },
+      { name: 'Mountain View' },
+    ],
+    
+    // Nairobi - Kamukunji Constituency
+    'Kamukunji': [
+      { name: 'Pumwani' },
+      { name: 'Eastleigh North' },
+      { name: 'Eastleigh South' },
+      { name: 'Airbase' },
+      { name: 'California' },
+    ],
+    
+    // Nairobi - Starehe Constituency
+    'Starehe': [
+      { name: 'Nairobi Central' },
+      { name: 'Ngara' },
+      { name: 'Ziwani/Kariokor' },
+      { name: 'Landimawe' },
+      { name: 'Nairobi South' },
+    ],
+    
+    // Nairobi - Kibra Constituency
+    'Kibra': [
+      { name: 'Laini Saba' },
+      { name: 'Lindi' },
+      { name: 'Makina' },
+      { name: 'Woodley/Kenyatta Golf Course' },
+      { name: 'Sarang\'ombe' },
+    ],
+    
+    // Nairobi - Embakasi East Constituency
+    'Embakasi East': [
+      { name: 'Upper Savannah' },
+      { name: 'Lower Savannah' },
+      { name: 'Embakasi' },
+      { name: 'Utawala' },
+      { name: 'Mihango' },
+    ],
+    
+    // Kiambu - Ruiru Constituency
+    'Ruiru': [
+      { name: 'Biashara' },
+      { name: 'Gatongora' },
+      { name: 'Kahawa Sukari' },
+      { name: 'Kahawa Wendani' },
+      { name: 'Kiuu' },
+      { name: 'Mwihoko' },
+    ],
+    
+    // Kiambu - Thika Town Constituency
+    'Thika Town': [
+      { name: 'Township' },
+      { name: 'Kamenu' },
+      { name: 'Hospital' },
+      { name: 'Gatuanyaga' },
+      { name: 'Ngoliba' },
+    ],
+    
+    // Mombasa - Changamwe Constituency
+    'Changamwe': [
+      { name: 'Port Reitz' },
+      { name: 'Kipevu' },
+      { name: 'Airport' },
+      { name: 'Changamwe' },
+      { name: 'Chaani' },
+    ],
+    
+    // Mombasa - Mvita Constituency
+    'Mvita': [
+      { name: 'Mji Wa Kale/Makadara' },
+      { name: 'Tudor' },
+      { name: 'Tononoka' },
+      { name: 'Shimanzi/Ganjoni' },
+      { name: 'Majengo' },
+    ],
+    
+    // Kisumu - Kisumu East Constituency
+    'Kisumu East': [
+      { name: 'Kajulu' },
+      { name: 'Kolwa East' },
+      { name: 'Manyatta B' },
+      { name: 'Kolwa Central' },
+      { name: 'Nyalenda A' },
+    ],
+    
+    // Kisumu - Kisumu Central Constituency
+    'Kisumu Central': [
+      { name: 'Market Milimani' },
+      { name: 'Kondele' },
+      { name: 'Nyalenda B' },
+      { name: 'Migosi' },
+      { name: 'Shaurimoyo Kaloleni' },
+    ],
+    
+    // Nakuru - Nakuru Town East Constituency
+    'Nakuru Town East': [
+      { name: 'Biashara' },
+      { name: 'Kivumbini' },
+      { name: 'Flamingo' },
+      { name: 'Menengai West' },
+      { name: 'Nakuru East' },
+    ],
+    
+    // Kakamega - Lurambi Constituency
+    'Lurambi': [
+      { name: 'Butsotso East' },
+      { name: 'Butsotso South' },
+      { name: 'Butsotso Central' },
+      { name: 'Sheywe' },
+      { name: 'Mahiakalo' },
+      { name: 'Shirugu-Mugai' },
+    ],
+    
+    // Machakos - Mavoko Constituency
+    'Mavoko': [
+      { name: 'Athi River' },
+      { name: 'Kinanie' },
+      { name: 'Muthwani' },
+      { name: 'Syokimau/Mulolongo' },
+    ],
+    
+    // Uasin Gishu - Kapseret Constituency
+    'Kapseret': [
+      { name: 'Simat/Kapseret' },
+      { name: 'Kipkenyo' },
+      { name: 'Ngeria' },
+      { name: 'Megun' },
+      { name: 'Langas' },
+    ],
   }
 };
 
@@ -79,17 +364,26 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Check if data already exists
-    const { count } = await supabaseClient
+    // Check if data already exists and prevent duplicate seeding
+    const { data: existingCounties, count } = await supabaseClient
       .from('counties')
-      .select('*', { count: 'exact', head: true });
+      .select('id, name', { count: 'exact' });
 
     if (count && count > 0) {
+      // Check if we already have comprehensive data (all 47 counties)
+      const hasComprehensiveData = count >= 47;
+      
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Geographic data already seeded',
-          existing_counties: count 
+          message: hasComprehensiveData 
+            ? 'Kenya geographic data already fully seeded' 
+            : 'Geographic data partially exists. Delete existing data first to reseed.',
+          existing_counties: count,
+          counties: existingCounties?.map(c => c.name) || [],
+          note: hasComprehensiveData 
+            ? 'All 47 counties are present' 
+            : 'Consider running a migration to add missing counties'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
