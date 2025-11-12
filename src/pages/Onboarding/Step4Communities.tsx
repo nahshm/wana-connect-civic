@@ -135,7 +135,10 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
     setLoading(true);
     
     try {
-      // Update profile with location and persona
+      // 1. Create geographic communities if they don't exist
+      const geoCommunities = await createGeographicCommunities();
+      
+      // 2. Update profile with location and persona
       await supabase
         .from('profiles')
         .update({
@@ -147,7 +150,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         })
         .eq('id', user.id);
 
-      // Save user interests
+      // 3. Save user interests
       if (onboardingData.interests.length > 0) {
         const interestInserts = onboardingData.interests.map(interestId => ({
           user_id: user.id,
@@ -159,7 +162,23 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           .insert(interestInserts);
       }
 
-      // Update onboarding progress
+      // 4. Subscribe user to selected communities
+      const communityMemberships = selectedCommunities.map(communityId => {
+        // Map temporary geo IDs to real community IDs
+        const realId = geoCommunities[communityId] || communityId;
+        return {
+          user_id: user.id,
+          community_id: realId,
+        };
+      });
+
+      if (communityMemberships.length > 0) {
+        await supabase
+          .from('community_members')
+          .insert(communityMemberships);
+      }
+
+      // 5. Update onboarding progress
       await supabase
         .from('onboarding_progress')
         .upsert({
@@ -173,13 +192,129 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         });
 
       toast.success('Welcome to WanaIQ! 🎉');
-      navigate('/dashboard');
+      navigate('/welcome');
     } catch (error) {
       console.error('Error completing onboarding:', error);
       toast.error('Failed to complete onboarding');
     } finally {
       setLoading(false);
     }
+  };
+
+  const createGeographicCommunities = async (): Promise<Record<string, string>> => {
+    const mapping: Record<string, string> = {};
+
+    try {
+      // Get location names
+      const { data: county } = await supabase
+        .from('counties')
+        .select('name')
+        .eq('id', onboardingData.countyId)
+        .single();
+
+      const { data: constituency } = await supabase
+        .from('constituencies')
+        .select('name')
+        .eq('id', onboardingData.constituencyId)
+        .single();
+
+      const { data: ward } = await supabase
+        .from('wards')
+        .select('name')
+        .eq('id', onboardingData.wardId)
+        .single();
+
+      // Create or get county community
+      if (county) {
+        const communityName = county.name.replace(/\s+/g, '');
+        const { data: existing } = await supabase
+          .from('communities')
+          .select('id')
+          .eq('name', communityName)
+          .single();
+
+        if (existing) {
+          mapping[`geo-county-${onboardingData.countyId}`] = existing.id;
+        } else {
+          const { data: newCommunity } = await supabase
+            .from('communities')
+            .insert({
+              name: communityName,
+              display_name: `${county.name} County`,
+              description: `Community for ${county.name} County residents`,
+              category: 'Geographic',
+            })
+            .select('id')
+            .single();
+          
+          if (newCommunity) {
+            mapping[`geo-county-${onboardingData.countyId}`] = newCommunity.id;
+          }
+        }
+      }
+
+      // Create or get constituency community
+      if (constituency) {
+        const communityName = constituency.name.replace(/\s+/g, '');
+        const { data: existing } = await supabase
+          .from('communities')
+          .select('id')
+          .eq('name', communityName)
+          .single();
+
+        if (existing) {
+          mapping[`geo-constituency-${onboardingData.constituencyId}`] = existing.id;
+        } else {
+          const { data: newCommunity } = await supabase
+            .from('communities')
+            .insert({
+              name: communityName,
+              display_name: `${constituency.name} Constituency`,
+              description: `Community for ${constituency.name} Constituency residents`,
+              category: 'Geographic',
+            })
+            .select('id')
+            .single();
+          
+          if (newCommunity) {
+            mapping[`geo-constituency-${onboardingData.constituencyId}`] = newCommunity.id;
+          }
+        }
+      }
+
+      // Create or get ward community
+      if (ward) {
+        const communityName = ward.name.replace(/\s+/g, '');
+        const { data: existing } = await supabase
+          .from('communities')
+          .select('id')
+          .eq('name', communityName)
+          .single();
+
+        if (existing) {
+          mapping[`geo-ward-${onboardingData.wardId}`] = existing.id;
+        } else {
+          const { data: newCommunity } = await supabase
+            .from('communities')
+            .insert({
+              name: communityName,
+              display_name: `${ward.name} Ward`,
+              description: `Community for ${ward.name} Ward residents`,
+              category: 'Geographic',
+            })
+            .select('id')
+            .single();
+          
+          if (newCommunity) {
+            mapping[`geo-ward-${onboardingData.wardId}`] = newCommunity.id;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error creating geographic communities:', error);
+    }
+
+    return mapping;
   };
 
   return (

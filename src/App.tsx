@@ -21,6 +21,7 @@ import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import OnboardingFlow from "./pages/Onboarding/OnboardingFlow";
+import WelcomeDashboard from "./pages/Onboarding/WelcomeDashboard";
 import CivicDashboard from "./pages/Dashboard/CivicDashboard";
 import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
 import { OnboardingGuard } from "@/components/routing/OnboardingGuard";
@@ -40,6 +41,7 @@ const App = () => (
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/onboarding" element={<OnboardingFlow />} />
+                  <Route path="/welcome" element={<WelcomeDashboard />} />
                   <Route path="/*" element={
                   <AppLayout>
                     <Routes>
