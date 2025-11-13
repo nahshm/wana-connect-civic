@@ -218,33 +218,33 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         .from('counties')
         .select('name')
         .eq('id', onboardingData.countyId)
-        .single();
+        .maybeSingle();
 
       const { data: constituency } = await supabase
         .from('constituencies')
         .select('name')
         .eq('id', onboardingData.constituencyId)
-        .single();
+        .maybeSingle();
 
       const { data: ward } = await supabase
         .from('wards')
         .select('name')
         .eq('id', onboardingData.wardId)
-        .single();
+        .maybeSingle();
 
       // Create or get county community
       if (county) {
         const communityName = county.name.replace(/\s+/g, '');
-        const { data: existing } = await supabase
+        const { data: existing, error: existingError } = await supabase
           .from('communities')
           .select('id')
           .eq('name', communityName)
-          .single();
+          .maybeSingle();
 
         if (existing) {
           mapping[`geo-county-${onboardingData.countyId}`] = existing.id;
         } else {
-          const { data: newCommunity } = await supabase
+          const { data: newCommunity, error: insertError } = await supabase
             .from('communities')
             .insert({
               name: communityName,
@@ -255,7 +255,9 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
             .select('id')
             .single();
           
-          if (newCommunity) {
+          if (insertError) {
+            console.error('Error creating county community:', insertError);
+          } else if (newCommunity) {
             mapping[`geo-county-${onboardingData.countyId}`] = newCommunity.id;
           }
         }
@@ -264,16 +266,16 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       // Create or get constituency community
       if (constituency) {
         const communityName = constituency.name.replace(/\s+/g, '');
-        const { data: existing } = await supabase
+        const { data: existing, error: existingError } = await supabase
           .from('communities')
           .select('id')
           .eq('name', communityName)
-          .single();
+          .maybeSingle();
 
         if (existing) {
           mapping[`geo-constituency-${onboardingData.constituencyId}`] = existing.id;
         } else {
-          const { data: newCommunity } = await supabase
+          const { data: newCommunity, error: insertError } = await supabase
             .from('communities')
             .insert({
               name: communityName,
@@ -284,7 +286,9 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
             .select('id')
             .single();
           
-          if (newCommunity) {
+          if (insertError) {
+            console.error('Error creating constituency community:', insertError);
+          } else if (newCommunity) {
             mapping[`geo-constituency-${onboardingData.constituencyId}`] = newCommunity.id;
           }
         }
@@ -293,16 +297,16 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       // Create or get ward community
       if (ward) {
         const communityName = ward.name.replace(/\s+/g, '');
-        const { data: existing } = await supabase
+        const { data: existing, error: existingError } = await supabase
           .from('communities')
           .select('id')
           .eq('name', communityName)
-          .single();
+          .maybeSingle();
 
         if (existing) {
           mapping[`geo-ward-${onboardingData.wardId}`] = existing.id;
         } else {
-          const { data: newCommunity } = await supabase
+          const { data: newCommunity, error: insertError } = await supabase
             .from('communities')
             .insert({
               name: communityName,
@@ -313,7 +317,9 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
             .select('id')
             .single();
           
-          if (newCommunity) {
+          if (insertError) {
+            console.error('Error creating ward community:', insertError);
+          } else if (newCommunity) {
             mapping[`geo-ward-${onboardingData.wardId}`] = newCommunity.id;
           }
         }
