@@ -22,7 +22,7 @@ export const useOnboarding = () => {
         .from('profiles')
         .select('onboarding_completed')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       setNeedsOnboarding(!profile?.onboarding_completed);
     } catch (error) {

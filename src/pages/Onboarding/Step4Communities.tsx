@@ -150,19 +150,23 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         })
         .eq('id', user.id);
 
-      // 3. Save user interests
+      // 3. Save user interests (handle duplicates)
       if (onboardingData.interests.length > 0) {
         const interestInserts = onboardingData.interests.map(interestId => ({
           user_id: user.id,
           interest_id: interestId,
         }));
         
-        await supabase
+        const { error: interestsError } = await supabase
           .from('user_interests')
-          .insert(interestInserts);
+          .upsert(interestInserts, { onConflict: 'user_id,interest_id', ignoreDuplicates: true });
+        
+        if (interestsError) {
+          console.error('Error saving interests:', interestsError);
+        }
       }
 
-      // 4. Subscribe user to selected communities
+      // 4. Subscribe user to selected communities (handle duplicates)
       const communityMemberships = selectedCommunities.map(communityId => {
         // Map temporary geo IDs to real community IDs
         const realId = geoCommunities[communityId] || communityId;
@@ -170,12 +174,16 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           user_id: user.id,
           community_id: realId,
         };
-      });
+      }).filter(m => m.community_id); // Filter out any invalid IDs
 
       if (communityMemberships.length > 0) {
-        await supabase
+        const { error: membershipError } = await supabase
           .from('community_members')
-          .insert(communityMemberships);
+          .upsert(communityMemberships, { onConflict: 'user_id,community_id', ignoreDuplicates: true });
+        
+        if (membershipError) {
+          console.error('Error adding community memberships:', membershipError);
+        }
       }
 
       // 5. Update onboarding progress
