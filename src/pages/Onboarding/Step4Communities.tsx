@@ -191,7 +191,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           .upsert(communityMemberships, { onConflict: 'user_id,community_id', ignoreDuplicates: true });
         
         if (membershipError) {
-          console.error('Error adding community memberships:', membershipError);
+          console.error('Error adding community memberships:', membershipError.message, membershipError);
         }
       }
 
@@ -265,7 +265,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
             .single();
           
           if (insertError) {
-            console.error('Error creating county community:', insertError);
+            console.error('Error creating county community:', insertError.message, insertError);
           } else if (newCommunity) {
             mapping[`geo-county-${onboardingData.countyId}`] = newCommunity.id;
           }
@@ -296,7 +296,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
             .single();
           
           if (insertError) {
-            console.error('Error creating constituency community:', insertError);
+            console.error('Error creating constituency community:', insertError.message, insertError);
           } else if (newCommunity) {
             mapping[`geo-constituency-${onboardingData.constituencyId}`] = newCommunity.id;
           }
@@ -327,7 +327,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
             .single();
           
           if (insertError) {
-            console.error('Error creating ward community:', insertError);
+            console.error('Error creating ward community:', insertError.message, insertError);
           } else if (newCommunity) {
             mapping[`geo-ward-${onboardingData.wardId}`] = newCommunity.id;
           }
