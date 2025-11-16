@@ -138,8 +138,16 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       // 1. Create geographic communities if they don't exist
       const geoCommunities = await createGeographicCommunities();
       
+      // Check if community creation was successful
+      const hasValidCommunities = Object.keys(geoCommunities).length > 0;
+      if (!hasValidCommunities) {
+        toast.error('Failed to create geographic communities. Please try again.');
+        setLoading(false);
+        return;
+      }
+      
       // 2. Update profile with location and persona
-      await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           county_id: onboardingData.countyId,
@@ -149,6 +157,13 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           onboarding_completed: true,
         })
         .eq('id', user.id);
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        toast.error('Failed to update profile. Please try again.');
+        setLoading(false);
+        return;
+      }
 
       // 3. Save user interests (handle duplicates)
       if (onboardingData.interests.length > 0) {
@@ -192,6 +207,9 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         
         if (membershipError) {
           console.error('Error adding community memberships:', membershipError.message, membershipError);
+          toast.error('Failed to join communities. Please try again.');
+          setLoading(false);
+          return;
         }
       }
 
@@ -259,7 +277,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
               name: communityName,
               display_name: `${county.name} County`,
               description: `Community for ${county.name} County residents`,
-              category: 'Geographic',
+              category: 'geographic',
             })
             .select('id')
             .single();
@@ -290,7 +308,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
               name: communityName,
               display_name: `${constituency.name} Constituency`,
               description: `Community for ${constituency.name} Constituency residents`,
-              category: 'Geographic',
+              category: 'geographic',
             })
             .select('id')
             .single();
@@ -321,7 +339,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
               name: communityName,
               display_name: `${ward.name} Ward`,
               description: `Community for ${ward.name} Ward residents`,
-              category: 'Geographic',
+              category: 'geographic',
             })
             .select('id')
             .single();
