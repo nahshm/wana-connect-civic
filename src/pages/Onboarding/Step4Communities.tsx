@@ -167,14 +167,23 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       }
 
       // 4. Subscribe user to selected communities (handle duplicates)
-      const communityMemberships = selectedCommunities.map(communityId => {
-        // Map temporary geo IDs to real community IDs
-        const realId = geoCommunities[communityId] || communityId;
-        return {
-          user_id: user.id,
-          community_id: realId,
-        };
-      }).filter(m => m.community_id); // Filter out any invalid IDs
+      const communityMemberships = selectedCommunities
+        .map(communityId => {
+          // Map temporary geo IDs to real community IDs
+          const realId = geoCommunities[communityId] || communityId;
+          return {
+            user_id: user.id,
+            community_id: realId,
+          };
+        })
+        .filter(m => {
+          // Only include valid UUIDs (not temporary geo-* IDs)
+          const isValidUUID = m.community_id && !m.community_id.startsWith('geo-');
+          if (!isValidUUID) {
+            console.log('Filtering out invalid community ID:', m.community_id);
+          }
+          return isValidUUID;
+        });
 
       if (communityMemberships.length > 0) {
         const { error: membershipError } = await supabase
