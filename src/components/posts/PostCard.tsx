@@ -265,7 +265,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-2">
             <Avatar className="h-5 w-5">
               <AvatarImage src={post.author.avatar} />
-              <AvatarFallback className="text-xs">{post.author.displayName.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-xs">{(post.author.displayName || post.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             {communityData ? (
               <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">

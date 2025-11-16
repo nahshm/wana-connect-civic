@@ -70,7 +70,7 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
             <div className="flex items-center gap-2">
               <Avatar className="h-7 w-7">
                 <AvatarImage src={comment.author.avatar} />
-                <AvatarFallback>{comment.author.displayName.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{(comment.author.displayName || comment.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm">{comment.author.displayName}</span>

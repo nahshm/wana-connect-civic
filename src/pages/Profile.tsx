@@ -640,7 +640,7 @@ const Profile = () => {
                 <Avatar className="w-20 h-20 relative">
                   <AvatarImage src={profile.avatar || undefined} />
                   <AvatarFallback className="text-2xl">
-                    {profile.displayName?.charAt(0) || profile.username?.charAt(0) || '?'}
+                    {(profile.displayName || profile.username || '?')[0]?.toUpperCase()}
                   </AvatarFallback>
                   {isOwnProfile && (
                     <Button
@@ -813,7 +813,7 @@ const Profile = () => {
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={comment.author.avatar || undefined} />
                           <AvatarFallback>
-                            {comment.author.displayName?.charAt(0) || comment.author.username?.charAt(0)}
+                            {(comment.author.displayName || comment.author.username || '?')[0]?.toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
@@ -864,7 +864,7 @@ const Profile = () => {
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={(item as Comment).author.avatar || undefined} />
                               <AvatarFallback>
-                                {(item as Comment).author.displayName?.charAt(0) || (item as Comment).author.username?.charAt(0)}
+                                {((item as Comment).author.displayName || (item as Comment).author.username || '?')[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
@@ -918,7 +918,7 @@ const Profile = () => {
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={(item as Comment).author.avatar || undefined} />
                               <AvatarFallback>
-                                {(item as Comment).author.displayName?.charAt(0) || (item as Comment).author.username?.charAt(0)}
+                                {((item as Comment).author.displayName || (item as Comment).author.username || '?')[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
@@ -967,7 +967,7 @@ const Profile = () => {
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={(item as Comment).author.avatar || undefined} />
                               <AvatarFallback>
-                                {(item as Comment).author.displayName?.charAt(0) || (item as Comment).author.username?.charAt(0)}
+                                {((item as Comment).author.displayName || (item as Comment).author.username || '?')[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
@@ -1016,7 +1016,7 @@ const Profile = () => {
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={(item as Comment).author.avatar || undefined} />
                               <AvatarFallback>
-                                {(item as Comment).author.displayName?.charAt(0) || (item as Comment).author.username?.charAt(0)}
+                                {((item as Comment).author.displayName || (item as Comment).author.username || '?')[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
@@ -1065,7 +1065,7 @@ const Profile = () => {
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={(item as Comment).author.avatar || undefined} />
                               <AvatarFallback>
-                                {(item as Comment).author.displayName?.charAt(0) || (item as Comment).author.username?.charAt(0)}
+                                {((item as Comment).author.displayName || (item as Comment).author.username || '?')[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
@@ -1108,7 +1108,7 @@ const Profile = () => {
               <Avatar className="w-24 h-24 relative">
                 <AvatarImage src={profile.avatar || undefined} />
                 <AvatarFallback className="text-4xl">
-                  {profile.displayName?.charAt(0) || profile.username?.charAt(0) || '?'}
+                  {(profile.displayName || profile.username || '?')[0]?.toUpperCase()}
                 </AvatarFallback>
                 {isOwnProfile && (
                   <Button
