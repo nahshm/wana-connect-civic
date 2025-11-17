@@ -74,8 +74,8 @@ export default function Index() {
         content: post.content,
         author: {
           id: post.profiles?.id || '',
-          username: post.profiles?.username || 'Anonymous',
-          displayName: post.profiles?.display_name || 'Anonymous User',
+          username: post.profiles?.username || 'anonymous',
+          displayName: post.profiles?.display_name || post.profiles?.username || 'Anonymous User',
           avatar: post.profiles?.avatar_url,
           isVerified: post.profiles?.is_verified,
           role: post.profiles?.role as 'citizen' | 'official' | 'expert' | 'journalist',
