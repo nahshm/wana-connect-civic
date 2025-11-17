@@ -197,8 +197,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             )}
             <span>•</span>
             <span>Posted by</span>
-            <Link to={`/u/${post.author.displayName}`} className="hover:underline">
-              u/{post.author.displayName}
+            <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
+              u/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
             <span>•</span>
             <span>{formatDistanceToNow(post.createdAt)} ago</span>
@@ -276,8 +276,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             )}
             <span>•</span>
             <span>Posted by</span>
-            <Link to={`/u/${post.author.displayName}`} className="hover:underline">
-              u/{post.author.displayName}
+            <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
+              u/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
             {post.author.isVerified && (
               <Verified className="w-3 h-3 text-blue-500" />
