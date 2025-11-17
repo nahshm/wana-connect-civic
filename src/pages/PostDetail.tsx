@@ -78,8 +78,8 @@ const PostDetail = () => {
           content: postData.content,
           author: {
             id: postData.profiles?.id || '',
-            username: postData.profiles?.username || 'Anonymous',
-            displayName: postData.profiles?.display_name || 'Anonymous User',
+            username: postData.profiles?.username || 'anonymous',
+            displayName: postData.profiles?.display_name || postData.profiles?.username || 'Anonymous User',
             avatar: postData.profiles?.avatar_url,
             isVerified: postData.profiles?.is_verified,
             role: postData.profiles?.role as 'citizen' | 'official' | 'expert' | 'journalist',
@@ -234,8 +234,8 @@ const PostDetail = () => {
             content: commentData.content,
             author: {
               id: commentData.profiles?.id || '',
-              username: commentData.profiles?.username || 'Anonymous',
-              displayName: commentData.profiles?.display_name || 'Anonymous User',
+              username: commentData.profiles?.username || 'anonymous',
+              displayName: commentData.profiles?.display_name || commentData.profiles?.username || 'Anonymous User',
               avatar: commentData.profiles?.avatar_url,
               isVerified: commentData.profiles?.is_verified,
               role: commentData.profiles?.role as 'citizen' | 'official' | 'expert' | 'journalist',
@@ -460,8 +460,8 @@ const PostDetail = () => {
           content: commentData.content,
           author: {
             id: commentData.profiles?.id || '',
-            username: commentData.profiles?.username || 'Anonymous',
-            displayName: commentData.profiles?.display_name || 'Anonymous User',
+            username: commentData.profiles?.username || 'anonymous',
+            displayName: commentData.profiles?.display_name || commentData.profiles?.username || 'Anonymous User',
             avatar: commentData.profiles?.avatar_url,
             isVerified: commentData.profiles?.is_verified,
             role: commentData.profiles?.role as 'citizen' | 'official' | 'expert' | 'journalist',
