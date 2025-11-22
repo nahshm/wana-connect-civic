@@ -28,8 +28,6 @@ const CreatePost = () => {
   }, []);
 
   const handleCreatePost = async (postData: any) => {
-    // For now, anonymous posting is not supported by the database schema
-    // All posts require an authenticated user
     if (!user) {
       toast({
         title: "Authentication required",
@@ -42,6 +40,28 @@ const CreatePost = () => {
     setLoading(true);
 
     try {
+      // Determine content type based on post type and files
+      let contentType: 'text' | 'video' | 'image' | 'link' = 'text'
+      let hasVideo = false
+      let hasImage = false
+
+      if (postData.postType === 'link') {
+        contentType = 'link'
+      } else if (postData.evidenceFiles && postData.evidenceFiles.length > 0) {
+        // Check if any files are videos
+        hasVideo = postData.evidenceFiles.some((file: File) =>
+          file.type.startsWith('video/')
+        )
+        hasImage = postData.evidenceFiles.some((file: File) =>
+          file.type.startsWith('image/')
+        )
+
+        if (hasVideo) {
+          contentType = 'video'
+        } else if (hasImage) {
+          contentType = 'image'
+        }
+      }
 
       const postPayload = {
         title: postData.title,
@@ -49,6 +69,8 @@ const CreatePost = () => {
         author_id: user.id,
         community_id: postData.communityId || null,
         tags: postData.tags || [],
+        content_type: contentType,
+        content_sensitivity: postData.contentSensitivity || 'public',
       };
 
       const { data, error } = await supabase
@@ -59,12 +81,79 @@ const CreatePost = () => {
 
       if (error) throw error;
 
-      // Handle file uploads if any evidence files are provided
+      const postId = data.id
+
+      // Handle VIDEO uploads - Create civic_clip record
+      if (hasVideo && postData.evidenceFiles) {
+        const videoFiles = postData.evidenceFiles.filter((file: File) =>
+          file.type.startsWith('video/')
+        )
+
+        for (const videoFile of videoFiles) {
+          try {
+            // Upload video to storage
+            const fileExt = videoFile.name.split('.').pop()
+            const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+
+            const { error: uploadError } = await supabase.storage
+              .from('media')
+              .upload(fileName, videoFile)
+
+            if (uploadError) throw uploadError
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+              .from('media')
+              .getPublicUrl(fileName)
+
+            // Extract video metadata
+            const videoElement = document.createElement('video')
+            videoElement.src = URL.createObjectURL(videoFile)
+
+            await new Promise((resolve) => {
+              videoElement.onloadedmetadata = resolve
+            })
+
+            const duration = Math.floor(videoElement.duration)
+            const width = videoElement.videoWidth
+            const height = videoElement.videoHeight
+            const aspectRatio = width > height ? '16:9' : '9:16'
+
+            // Create civic_clip record
+            const { error: clipError } = await supabase
+              .from('civic_clips')
+              .insert({
+                post_id: postId,
+                video_url: publicUrl,
+                duration,
+                width,
+                height,
+                aspect_ratio: aspectRatio,
+                file_size: videoFile.size,
+                category: postData.flairId || null,
+                hashtags: postData.tags || [],
+                processing_status: 'ready'
+              })
+
+            if (clipError) {
+              console.error('Error creating civic_clip:', clipError)
+            }
+
+            URL.revokeObjectURL(videoElement.src)
+          } catch (videoError) {
+            console.error('Video processing error:', videoError)
+            toast({
+              title: "Video Upload Issue",
+              description: "Your post was created but there was an issue processing the video.",
+              variant: "default",
+            })
+          }
+        }
+      }
+
+      // Handle other file uploads (images, documents)
       if (postData.evidenceFiles && postData.evidenceFiles.length > 0) {
         try {
-          const postId = data.id;
-
-          // Upload each file to Supabase Storage
           const uploadPromises = postData.evidenceFiles.map(async (file: File, index: number) => {
             const fileExt = file.name.split('.').pop();
             const fileName = `${postId}/evidence_${index + 1}.${fileExt}`;
@@ -89,7 +178,6 @@ const CreatePost = () => {
 
           const evidenceRecords = await Promise.all(uploadPromises);
 
-          // Insert evidence records into database
           const { error: evidenceError } = await supabase
             .from('post_media')
             .insert(evidenceRecords.map(record => ({
@@ -104,7 +192,7 @@ const CreatePost = () => {
             console.error('Error saving evidence records:', evidenceError);
             toast({
               title: "File Upload Issue",
-              description: "Your post was created but there was an issue saving file metadata. Files may not display correctly.",
+              description: "Your post was created but there was an issue saving file metadata.",
               variant: "default",
             });
           } else {
@@ -118,7 +206,7 @@ const CreatePost = () => {
           console.error('File upload process failed:', uploadError);
           toast({
             title: "File Upload Failed",
-            description: "Your post was created successfully, but file uploads failed. You can try again later.",
+            description: "Your post was created successfully, but file uploads failed.",
             variant: "default",
           });
         }

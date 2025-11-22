@@ -2,9 +2,11 @@ import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SearchBar } from '@/components/layout/SearchBar';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Bell, User, Plus, LogOut } from 'lucide-react';
+import { Bell, User, Plus, LogOut, Users, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { CreateCommunityWizard } from '@/components/community/CreateCommunityWizard';
+import { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +18,7 @@ import {
 
 export const Header = () => {
   const { user, profile, signOut } = useAuth();
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -29,9 +32,9 @@ export const Header = () => {
           <h1 className="text-2xl font-bold text-sidebar-primary">
             WanaIQ
           </h1>
-          
+
           <div className="hidden md:flex flex-1 max-w-2xl">
-            <SearchBar 
+            <SearchBar
               placeholder="Search discussions, communities, users..."
               className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring"
               onSearch={(query, filters) => {
@@ -41,13 +44,13 @@ export const Header = () => {
             />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-1">
           {user ? (
             <>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 asChild
                 className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium"
               >
@@ -56,21 +59,32 @@ export const Header = () => {
                   <span className="hidden sm:inline">Create</span>
                 </Link>
               </Button>
-              
-              <Button 
-                variant="ghost" 
+
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <Link to="/chat">
+                  <MessageCircle className="w-4 h-4" />
+                </Link>
+              </Button>
+
+              <Button
+                variant="ghost"
                 size="icon"
                 className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
               >
                 <Bell className="w-4 h-4" />
               </Button>
-              
+
               <ThemeToggle />
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
                   >
@@ -79,6 +93,11 @@ export const Header = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setWizardOpen(true)}>
+                    <Users className="mr-2 h-4 w-4" />
+                    Create Community
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to={`/profile/${profile?.username || user.id}`}>Profile</Link>
@@ -97,9 +116,9 @@ export const Header = () => {
           ) : (
             <>
               <ThemeToggle />
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 asChild
                 className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium"
               >
@@ -109,6 +128,12 @@ export const Header = () => {
           )}
         </div>
       </div>
+
+      {/* Create Community Wizard */}
+      <CreateCommunityWizard
+        isOpen={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+      />
     </header>
   );
 };

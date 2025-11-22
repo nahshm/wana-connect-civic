@@ -4,11 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  MapPin, 
-  Users, 
-  MessageSquare, 
-  Target, 
+import {
+  MapPin,
+  Users,
+  MessageSquare,
+  Target,
   Flag,
   TrendingUp,
   Award,
@@ -68,30 +68,6 @@ export const WelcomeDashboard = () => {
       title: 'Create Your First Post',
       description: 'Share an issue or start a discussion in your community',
       action: () => navigate('/create-post'),
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-    },
-    {
-      icon: Users,
-      title: 'Explore Communities',
-      description: 'Join more communities based on your interests',
-      action: () => navigate('/communities'),
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
-    },
-    {
-      icon: Target,
-      title: 'Track Projects',
-      description: 'Monitor development projects in your area',
-      action: () => navigate('/projects'),
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
-    },
-    {
-      icon: Flag,
-      title: 'Follow Promises',
-      description: 'Track your representatives\' campaign promises',
-      action: () => navigate('/officials'),
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',
     },
@@ -139,7 +115,7 @@ export const WelcomeDashboard = () => {
 
           <div className="grid md:grid-cols-2 gap-4 mb-8">
             {quickActions.map((action, index) => (
-              <Card 
+              <Card
                 key={index}
                 className="cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={action.action}

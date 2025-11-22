@@ -2,7 +2,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowUp, ArrowDown, MessageCircle, Share, Verified, MoreHorizontal, Bookmark, Edit, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageCircle, Share, Verified, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon } from 'lucide-react';
+import { CIVIC_FLAIRS } from '@/config/flairs';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
@@ -42,6 +43,14 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isAuthor = user && post.author.id === user.id;
+
+  // Helper to get the correct post link based on community context
+  const getPostLink = () => {
+    if (post.community?.name) {
+      return `/c/${post.community.name}/post/${post.id}`;
+    }
+    return `/post/${post.id}`;
+  };
 
   const handleDelete = async () => {
     if (!user || !isAuthor) return;
@@ -113,47 +122,51 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   };
 
   const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
     if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'k';
+      return (num / 1000).toFixed(1) + 'K';
     }
     return num.toString();
   };
 
-  // New helper to render badges for sensitive content and urgency
+  // Helper to render badges for content sensitivity (matching form design)
   const renderSpecialBadges = () => {
     const badges = [];
-
-    // Map content sensitivity to badges
+    // Map content sensitivity to badges with icons matching the form
     if (post.contentSensitivity === 'crisis') {
       badges.push(
-        <Badge key="sensitive" variant="destructive" className="mr-1">
-          SENSITIVE REPORT
-        </Badge>
-      );
-      badges.push(
-        <Badge key="urgent" variant="destructive" className="mr-1">
-          URGENT
+        <Badge key="crisis" variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1">
+          <AlertOctagon className="w-3 h-3" />
+          Crisis Report
         </Badge>
       );
     } else if (post.contentSensitivity === 'sensitive') {
       badges.push(
-        <Badge key="sensitive" variant="destructive" className="mr-1">
-          SENSITIVE REPORT
+        <Badge key="sensitive" variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3" />
+          Sensitive Topic
+        </Badge>
+      );
+    } else if (post.contentSensitivity === 'public') {
+      badges.push(
+        <Badge key="public" variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1">
+          <MessageSquare className="w-3 h-3" />
+          Public Discussion
         </Badge>
       );
     }
-
     if (post.isNgoVerified) {
       badges.push(
-        <Badge key="verified" variant="outline" className="mr-1 flex items-center gap-1">
+        <Badge key="verified" variant="outline" className="flex items-center gap-1">
           <Verified className="w-3 h-3 text-blue-500" />
           NGO VERIFIED
         </Badge>
       );
     }
-
     return badges.length > 0 ? (
-      <div className="flex flex-wrap mb-2">
+      <div className="flex flex-wrap gap-1 mb-2 justify-end ml-auto">
         {badges}
       </div>
     ) : null;
@@ -161,7 +174,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
 
   if (viewMode === 'compact') {
     return (
-      <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border/50">
+      <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
         {/* Vote Column */}
         <div className="flex flex-col items-center p-2 w-12 bg-sidebar-background/50">
           <Button
@@ -186,7 +199,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-3">
+        <div className="flex-1 p-3 min-w-0">
           <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-1">
             {communityData ? (
               <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
@@ -196,7 +209,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               <span className="font-medium">Profile Post</span>
             )}
             <span>•</span>
-            <span>Posted by</span>
+            <span>by</span>
             <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
               u/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
@@ -206,7 +219,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
 
           {renderSpecialBadges()}
 
-          <Link to={`/post/${post.id}`} className="block group">
+          <Link to={getPostLink()} className="block group">
             <h3 className="font-medium text-sidebar-foreground group-hover:text-primary line-clamp-2 mb-1">
               {post.title}
             </h3>
@@ -214,9 +227,9 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
 
           <div className="flex items-center space-x-4 mt-2">
             <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-sidebar-muted-foreground hover:bg-sidebar-accent" asChild>
-              <Link to={`/post/${post.id}`}>
+              <Link to={getPostLink()}>
                 <MessageCircle className="w-3 h-3 mr-1" />
-                {post.commentCount} comments
+                {post.commentCount}
               </Link>
             </Button>
             <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-sidebar-muted-foreground hover:bg-sidebar-accent">
@@ -235,32 +248,9 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
 
   return (
     <Card className="mb-2 bg-sidebar-background border-sidebar-border hover:border-sidebar-ring transition-colors">
-      <div className="flex">
-        {/* Vote Column */}
-        <div className="flex flex-col items-center p-3 w-12 bg-sidebar-background/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onVote(post.id, 'up')}
-            className={`h-8 w-8 p-0 ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
-          >
-            <ArrowUp className="w-4 h-4" />
-          </Button>
-          <span className="text-sm font-medium text-sidebar-foreground py-1">
-            {formatNumber(getVoteScore())}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onVote(post.id, 'down')}
-            className={`h-8 w-8 p-0 ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
-          >
-            <ArrowDown className="w-4 h-4" />
-          </Button>
-        </div>
-
+      <div className="flex flex-col">
         {/* Main Content */}
-        <CardContent className="flex-1 p-3">
+        <CardContent className="flex-1 p-3 min-w-0">
           {/* Header */}
           <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-2">
             <Avatar className="h-5 w-5">
@@ -275,7 +265,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               <span className="font-medium">Profile Post</span>
             )}
             <span>•</span>
-            <span>Posted by</span>
+            <span>by</span>
             <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
               u/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
@@ -302,7 +292,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               </div>
             </div>
           ) : (
-            <Link to={`/post/${post.id}`} className="block group">
+            <Link to={getPostLink()} className="block group">
               <h2 className="font-semibold text-lg mb-2 text-sidebar-foreground group-hover:text-primary leading-tight line-clamp-3">
                 {post.title}
               </h2>
@@ -356,39 +346,73 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             </div>
           )}
 
-          {/* Tags */}
-          {post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
-              {post.tags.map(tag => (
-                <Badge key={tag} variant="outline" className="text-xs bg-sidebar-accent/50 text-sidebar-accent-foreground border-sidebar-border">
-                  #{tag}
-                </Badge>
-              ))}
+          {/* Flairs - Display with same colors as form */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {post.tags.map(tagId => {
+                const flair = CIVIC_FLAIRS.find(f => f.id === tagId);
+                if (!flair) return null;
+
+                return (
+                  <Badge
+                    key={tagId}
+                    variant="outline"
+                    className={`text-xs ${flair.bgColor} ${flair.color} border-transparent`}
+                  >
+                    {flair.label}
+                  </Badge>
+                );
+              })}
             </div>
           )}
-          
+
           {/* Actions */}
-          <div className="flex items-center space-x-1">
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent" asChild>
-              <Link to={`/post/${post.id}`}>
-                <MessageCircle className="w-4 h-4 mr-1" />
-                {post.commentCount} Comments
-              </Link>
-            </Button>
-            
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent">
-              <Share className="w-4 h-4 mr-1" />
-              Share
-            </Button>
-            
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent">
-              <Bookmark className="w-4 h-4 mr-1" />
-              Save
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
+              {/* Voting Buttons moved here */}
+              <div className="flex items-center bg-sidebar-accent/50 rounded-full px-1 mr-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onVote(post.id, 'up')}
+                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
+                >
+                  <ArrowUp className="w-4 h-4" />
+                </Button>
+                <span className="text-xs font-medium text-sidebar-foreground px-1 min-w-[1.5rem] text-center">
+                  {formatNumber(getVoteScore())}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onVote(post.id, 'down')}
+                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
+                >
+                  <ArrowDown className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full" asChild>
+                <Link to={getPostLink()}>
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                  {post.commentCount}
+                </Link>
+              </Button>
+
+              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Share className="w-4 h-4 mr-1" />
+                Share
+              </Button>
+
+              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Bookmark className="w-4 h-4 mr-1" />
+                Save
+              </Button>
+            </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent">
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>

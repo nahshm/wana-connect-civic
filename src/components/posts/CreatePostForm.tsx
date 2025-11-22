@@ -1,391 +1,376 @@
-import React, { useState } from 'react';
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronDown, Shield, AlertTriangle, Upload, Eye, EyeOff, X, File, Image, Video } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { FlairTagsModal } from './FlairTagsModal';
-import { MediaUploader } from './MediaUploader';
-import type { Community } from '@/types';
+import { useState, useEffect } from 'react'
+import { FileText, Image, Link2, AlertCircle, Lock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { CommunitySelector } from './CommunitySelector'
+import { FlairSelector } from './FlairSelector'
+import { ContentSensitivitySelector, ContentSensitivity } from './ContentSensitivitySelector'
+import { RichTextEditor } from './RichTextEditor'
+import { MediaUploadZone } from './MediaUploadZone'
+import { LinkPostInput } from './LinkPostInput'
+import { cn } from '@/lib/utils'
 
-const formSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters").max(300, "Title cannot exceed 300 characters"),
-  content: z.string().min(10, "Content must be at least 10 characters"),
-  communityId: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  isAnonymous: z.boolean().default(false),
-  contentSensitivity: z.enum(['public', 'sensitive', 'crisis']).default('public'),
-  evidenceFiles: z.array(z.any()).optional(),
-  isNgoVerified: z.boolean().default(false),
-});
-
-type PostFormValues = z.infer<typeof formSchema>;
-
-interface CreatePostFormProps {
-  communities: Community[];
-  onSubmit: (data: PostFormValues) => void;
-  initialValues?: Partial<PostFormValues>;
-  isEditing?: boolean;
+interface Community {
+  id: string
+  name: string
+  display_name: string
+  member_count: number
 }
 
-const sensitiveCommunities = ['corruption', 'justice', 'institution', 'tribalism', 'human-rights'];
+interface CreatePostFormProps {
+  communities: Community[]
+  onSubmit: (data: PostFormData) => void
+  disabled?: boolean
+}
 
-export function CreatePostForm({ communities, onSubmit, initialValues, isEditing = false }: CreatePostFormProps) {
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
-  const [communitySelectorOpen, setCommunitySelectorOpen] = useState(false);
-  const [flairTagsModalOpen, setFlairTagsModalOpen] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>(initialValues?.tags || []);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+export interface PostFormData {
+  title: string
+  content: string
+  communityId?: string
+  tags: string[]
+  contentSensitivity: ContentSensitivity
+  evidenceFiles: File[]
+  postType: 'text' | 'media' | 'link'
+  linkUrl?: string
+  flair
 
-  const form = useForm<PostFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: initialValues?.title || '',
-      content: initialValues?.content || '',
-      communityId: initialValues?.communityId || '',
-      tags: initialValues?.tags || [],
-      isAnonymous: initialValues?.isAnonymous || false,
-      contentSensitivity: initialValues?.contentSensitivity || 'public',
-      evidenceFiles: initialValues?.evidenceFiles || [],
-    },
-  });
+  Ids?: string[]
+}
 
-  const selectedCommunity = communities.find(c => c.id === form.watch('communityId'));
-  const contentSensitivity = form.watch('contentSensitivity');
-  const isAnonymous = form.watch('isAnonymous');
+const POST_TYPES = [
+  {
+    id: 'text' as const,
+    label: 'Text',
+    icon: FileText,
+    description: 'Create a discussion post with rich text formatting'
+  },
+  {
+    id: 'media' as const,
+    label: 'Image & Video',
+    icon: Image,
+    description: 'Share images, videos, or documents'
+  },
+  {
+    id: 'link' as const,
+    label: 'Link',
+    icon: Link2,
+    description: 'Share a link to an article or website'
+  }
+]
 
-  const isSensitiveCommunity = selectedCommunity?.category &&
-    sensitiveCommunities.some(cat => selectedCommunity.category.includes(cat));
+const DRAFT_STORAGE_KEY = 'wana_post_draft'
 
-  const handleFormSubmit = async (values: PostFormValues) => {
-    if (!user && !values.isAnonymous) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to create a post, or enable anonymous posting",
-        variant: "destructive",
-      });
-      return;
+export const CreatePostForm = ({ communities, onSubmit, disabled }: CreatePostFormProps) => {
+  // Form state
+  const [postType, setPostType] = useState<'text' | 'media' | 'link'>('text')
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [communityId, setCommunityId] = useState<string>()
+  const [flairIds, setFlairIds] = useState<string[]>([])
+  const [contentSensitivity, setContentSensitivity] = useState<ContentSensitivity>('public')
+  const [files, setFiles] = useState<File[]>([])
+  const [linkUrl, setLinkUrl] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY)
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft)
+        setPostType(draft.postType || 'text')
+        setTitle(draft.title || '')
+        setContent(draft.content || '')
+        setCommunityId(draft.communityId)
+        setFlairIds(draft.flairIds || [])
+        setContentSensitivity(draft.contentSensitivity || 'public')
+        setLinkUrl(draft.linkUrl || '')
+      } catch (error) {
+        console.error('Failed to load draft:', error)
+      }
+    }
+  }, [])
+
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    const draft = {
+      postType,
+      title,
+      content,
+      communityId,
+      flairIds,
+      contentSensitivity,
+      linkUrl,
+      timestamp: Date.now()
+    }
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
+  }, [postType, title, content, communityId, flairIds, contentSensitivity, linkUrl])
+
+  const handleSaveDraft = () => {
+    // Draft is auto-saved, just notify user
+    alert('Draft saved! Your post will be restored when you return.')
+  }
+
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY)
+    setTitle('')
+    setContent('')
+    setCommunityId(undefined)
+    setFlairIds([])
+    setContentSensitivity('public')
+    setFiles([])
+    setLinkUrl('')
+  }
+
+  const validateForm = (): string | null => {
+    if (!title.trim()) {
+      return 'Please enter a title for your post'
     }
 
-    // Check karma requirements for community posting
-    if (selectedCommunity?.minimumKarmaToPost && profile) {
-      const userTotalKarma = (profile.postKarma || 0) + (profile.commentKarma || 0);
-      if (userTotalKarma < selectedCommunity.minimumKarmaToPost) {
-        toast({
-          title: "Insufficient karma",
-          description: `You need at least ${selectedCommunity.minimumKarmaToPost} total karma to post in c/${selectedCommunity.name}. You currently have ${userTotalKarma} karma.`,
-          variant: "destructive",
-        });
-        return;
+    if (title.length > 300) {
+      return 'Title must be 300 characters or less'
+    }
+
+    if (postType === 'link' && !linkUrl.trim()) {
+      return 'Please enter a URL for your link post'
+    }
+
+    if (postType === 'link') {
+      try {
+        new URL(linkUrl)
+      } catch {
+        return 'Please enter a valid URL'
       }
     }
 
-    setIsSubmitting(true);
+    if (postType === 'media' && files.length === 0) {
+      return 'Please upload at least one file for your media post'
+    }
+
+    return null
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Validate
+    const validationError = validateForm()
+    if (validationError) {
+      alert(validationError)
+      return
+    }
+
+    setIsSubmitting(true)
+
     try {
-      await onSubmit(values);
-      form.reset();
-      setSelectedTags([]);
-      setUploadedFiles([]);
+      const formData: PostFormData = {
+        title: title.trim(),
+        content: content.trim(),
+        communityId,
+        tags: flairIds,
+        contentSensitivity,
+        evidenceFiles: files,
+        postType,
+        linkUrl: postType === 'link' ? linkUrl.trim() : undefined,
+        flairIds
+      }
+
+      await onSubmit(formData)
+
+      // Clear form and draft on successful submission
+      clearDraft()
     } catch (error) {
-      // Error handling is done in parent component
+      console.error('Form submission error:', error)
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
-
-  const getSensitivityColor = (level: string) => {
-    switch (level) {
-      case 'crisis': return 'bg-red-100 text-red-800 border-red-200';
-      case 'sensitive': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-green-100 text-green-800 border-green-200';
-    }
-  };
-
-  const getSensitivityIcon = (level: string) => {
-    switch (level) {
-      case 'crisis': return <AlertTriangle className="w-4 h-4" />;
-      case 'sensitive': return <Shield className="w-4 h-4" />;
-      default: return null;
-    }
-  };
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Content Sensitivity Warning */}
-      {(contentSensitivity !== 'public' || isSensitiveCommunity) && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-orange-800">
-              <Shield className="w-5 h-5" />
-              <div>
-                <p className="font-medium">Sensitive Content Notice</p>
-                <p className="text-sm">
-                  {contentSensitivity === 'crisis'
-                    ? 'This post will be treated as a crisis report and escalated immediately.'
-                    : 'This content involves sensitive civic matters. Additional verification may be required.'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Community Selector */}
-          <FormField
-            control={form.control}
-            name="communityId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sidebar-foreground">Community (Optional)</FormLabel>
-                <FormControl>
-                  <Dialog open={communitySelectorOpen} onOpenChange={setCommunitySelectorOpen}>
-                    <DialogTrigger asChild>
-                      <button
-                        type="button"
-                        className="w-full border border-sidebar-border rounded-md px-3 py-2 text-left flex items-center justify-between bg-sidebar-background text-sidebar-foreground hover:bg-sidebar-accent"
-                      >
-                        {selectedCommunity ? (
-                          <>
-                            <Avatar className="w-6 h-6 mr-2">
-                              <AvatarFallback className="text-xs">{selectedCommunity.name[0].toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <span className="font-medium">c/{selectedCommunity.name}</span>
-                              {isSensitiveCommunity && (
-                                <Badge variant="outline" className="ml-2 text-xs bg-orange-100 text-orange-800">
-                                  <Shield className="w-3 h-3 mr-1" />
-                                  Sensitive
-                                </Badge>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-sidebar-muted-foreground">Select a community (optional)</span>
-                        )}
-                        <ChevronDown className="w-4 h-4 text-sidebar-muted-foreground" />
-                      </button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-sidebar-background border-sidebar-border">
-                      <DialogHeader>
-                        <DialogTitle className="text-sidebar-foreground">Select Community</DialogTitle>
-                        <p className="text-sm text-sidebar-muted-foreground">Choose a community to post in, or leave empty for general discussion.</p>
-                      </DialogHeader>
-                      <Command>
-                        <CommandInput
-                          placeholder="Search communities..."
-                          className="bg-sidebar-background border-sidebar-border text-sidebar-foreground"
-                        />
-                        <CommandList>
-                          <CommandEmpty className="text-sidebar-muted-foreground">No communities found.</CommandEmpty>
-                          <CommandGroup>
-                            {communities.map((community) => {
-                              const isSensitive = sensitiveCommunities.some(cat =>
-                                community.category.includes(cat)
-                              );
-                              return (
-                                <CommandItem
-                                  key={community.id}
-                                  value={community.name}
-                                  onSelect={() => {
-                                    field.onChange(community.id);
-                                    setCommunitySelectorOpen(false);
-                                  }}
-                                  className="text-sidebar-foreground hover:bg-sidebar-accent"
-                                >
-                                  <Avatar className="w-6 h-6 mr-2">
-                                    <AvatarFallback className="text-xs">{community.name[0].toUpperCase()}</AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1">
-                                    <span>c/{community.name}</span>
-                                    <p className="text-xs text-sidebar-muted-foreground">{community.description}</p>
-                                  </div>
-                                  {isSensitive && (
-                                    <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800">
-                                      <Shield className="w-3 h-3 mr-1" />
-                                      Sensitive
-                                    </Badge>
-                                  )}
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </DialogContent>
-                  </Dialog>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Content Sensitivity */}
-          <FormField
-            control={form.control}
-            name="contentSensitivity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sidebar-foreground">Content Sensitivity</FormLabel>
-                <FormControl>
-                  <div className="flex gap-2">
-                    {[
-                      { value: 'public', label: 'Public Discussion', desc: 'Regular civic discussion' },
-                      { value: 'sensitive', label: 'Sensitive Topic', desc: 'Corruption, human rights, etc.' },
-                      { value: 'crisis', label: 'Crisis Report', desc: 'Urgent safety/emergency issue' },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => field.onChange(option.value)}
-                        className={`flex-1 p-3 rounded-lg border text-left transition-colors ${
-                          field.value === option.value
-                            ? getSensitivityColor(option.value)
-                            : 'border-sidebar-border bg-sidebar-background hover:bg-sidebar-accent'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          {getSensitivityIcon(option.value)}
-                          <span className="font-medium text-sm">{option.label}</span>
-                        </div>
-                        <p className="text-xs opacity-75">{option.desc}</p>
-                      </button>
-                    ))}
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Note: Anonymous posting is not currently supported */}
-          <div className="rounded-lg border border-sidebar-border p-4 bg-sidebar-background">
-            <div className="flex items-center gap-2 text-sidebar-muted-foreground">
-              <Eye className="w-4 h-4" />
-              <span className="text-sm">
-                All posts are attributed to your account for transparency and accountability in civic discussions.
-              </span>
-            </div>
-          </div>
-
-          {/* Title */}
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sidebar-foreground">Title *</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="What would you like to discuss?"
-                    maxLength={300}
-                    className="bg-sidebar-background border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-muted-foreground"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Content */}
-          <FormField
-            control={form.control}
-            name="content"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sidebar-foreground">Content *</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Share your thoughts, evidence, or concerns..."
-                    className="min-h-[120px] bg-sidebar-background border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-muted-foreground resize-y"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Tags and Evidence */}
-          <div className="flex flex-col gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setFlairTagsModalOpen(true)}
-              className="flex items-center gap-2 border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent"
-            >
-              <Shield className="w-4 h-4" />
-              Add Tags & Evidence
-            </Button>
-
-            {selectedTags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {selectedTags.map(tag => (
-                  <Badge key={tag} variant="outline" className="bg-sidebar-accent text-sidebar-accent-foreground">
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            <MediaUploader
-              onFilesChange={(files) => {
-                setUploadedFiles(files);
-                form.setValue('evidenceFiles', files);
-              }}
-              initialFiles={uploadedFiles}
-              uploadProgress={new Map()}
-            />
-          </div>
-
-          {/* Submit */}
-          <div className="flex justify-end gap-4 pt-4 border-t border-sidebar-border">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-civic-blue hover:bg-civic-blue/90 text-white"
-            >
-              {isSubmitting ? (isEditing ? "Updating..." : "Creating...") : (isEditing ? "Update Post" : "Create Post")}
-            </Button>
-          </div>
-        </form>
-      </Form>
-
-      {/* Flair and Tags Modal */}
-      <FlairTagsModal
-        open={flairTagsModalOpen}
-        onOpenChange={setFlairTagsModalOpen}
-        selectedFlairId={null} // TODO: Implement flair selection
-        onFlairChange={() => {}} // TODO: Implement flair handling
-        tags={[]} // TODO: Implement tag management
-        onTagToggle={(tag) => {
-          setSelectedTags(prev =>
-            prev.includes(tag)
-              ? prev.filter(t => t !== tag)
-              : [...prev, tag]
-          );
-          const currentTags = form.getValues('tags') || [];
-          const newTags = currentTags.includes(tag)
-            ? currentTags.filter(t => t !== tag)
-            : [...currentTags, tag];
-          form.setValue('tags', newTags);
-        }}
+    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+      {/* Community Selection */}
+      <CommunitySelector
+        communities={communities}
+        selectedCommunityId={communityId}
+        onSelectCommunity={setCommunityId}
+        disabled={disabled || isSubmitting}
       />
-    </div>
-  );
+
+      {/* Post Type Tabs */}
+      <Tabs value={postType} onValueChange={(v) => setPostType(v as typeof postType)}>
+        <TabsList className="grid w-full grid-cols-3">
+          {POST_TYPES.map(type => {
+            const Icon = type.icon
+            return (
+              <TabsTrigger
+                key={type.id}
+                value={type.id}
+                disabled={disabled || isSubmitting}
+                className="flex items-center gap-2"
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{type.label}</span>
+              </TabsTrigger>
+            )
+          })}
+        </TabsList>
+
+        {/* Title Input (shown for all types) */}
+        <div className="mt-6 space-y-2">
+          <Input
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={300}
+            disabled={disabled || isSubmitting}
+            required
+            className="text-lg font-medium"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>A clear, descriptive title helps others understand your post</span>
+            <span>{title.length}/300</span>
+          </div>
+        </div>
+
+        {/* Text Post Content */}
+        <TabsContent value="text" className="space-y-4 mt-6">
+          <RichTextEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Share your thoughts about civic matters, ask questions, or start a discussion..."
+            disabled={disabled || isSubmitting}
+          />
+
+          {/* Optional file attachments for text posts */}
+          <details className="group">
+            <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Add supporting files (optional)
+            </summary>
+            <div className="mt-4">
+              <MediaUploadZone
+                files={files}
+                onFilesChange={setFiles}
+                disabled={disabled || isSubmitting}
+                maxFiles={5}
+                maxSizeMB={40}
+              />
+            </div>
+          </details>
+        </TabsContent>
+
+        {/* Media Post Content */}
+        <TabsContent value="media" className="space-y-4 mt-6">
+          <MediaUploadZone
+            files={files}
+            onFilesChange={setFiles}
+            disabled={disabled || isSubmitting}
+            maxFiles={10}
+            maxSizeMB={100}
+          />
+
+          <RichTextEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Add a description or context for your media..."
+            disabled={disabled || isSubmitting}
+          />
+        </TabsContent>
+
+        {/* Link Post Content */}
+        <TabsContent value="link" className="space-y-4 mt-6">
+          <LinkPostInput
+            url={linkUrl}
+            onUrlChange={setLinkUrl}
+            disabled={disabled || isSubmitting}
+          />
+
+          <RichTextEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Add your commentary or thoughts about this link..."
+            disabled={disabled || isSubmitting}
+          />
+        </TabsContent>
+      </Tabs>
+
+      {/* Flair Selection */}
+      <FlairSelector
+        selectedFlairIds={flairIds}
+        onSelectFlairs={setFlairIds}
+        disabled={disabled || isSubmitting}
+      />
+
+      {/* Content Sensitivity */}
+      <ContentSensitivitySelector
+        value={contentSensitivity}
+        onValueChange={setContentSensitivity}
+        disabled={disabled || isSubmitting}
+      />
+
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-6 border-t">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Lock className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            {contentSensitivity === 'crisis'
+              ? 'Crisis reports are immediately escalated'
+              : contentSensitivity === 'sensitive'
+                ? 'Sensitive posts undergo additional verification'
+                : 'Your post will be reviewed by moderators'}
+          </span>
+        </div>
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSaveDraft}
+            disabled={disabled || isSubmitting}
+          >
+            Save Draft
+          </Button>
+          <Button
+            type="submit"
+            disabled={disabled || isSubmitting || !title.trim()}
+          >
+            {isSubmitting ? 'Posting...' : 'Post'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Posting Guidelines */}
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            Posting Guidelines
+          </h3>
+          <ul className="text-sm text-muted-foreground space-y-2">
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>Ensure your title is clear and descriptive</span>
+            </li>
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>Provide evidence for corruption or accountability claims</span>
+            </li>
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>Be respectful and avoid personal attacks</span>
+            </li>
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>Check community rules before posting</span>
+            </li>
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>Videos: Max 100MB • Images/Docs: Max 40MB per file</span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+    </form>
+  )
 }

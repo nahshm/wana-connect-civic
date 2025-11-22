@@ -1,0 +1,155 @@
+import { useEffect, useRef, useState } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { CivicClipCard } from './CivicClipCard'
+import { Loader2 } from 'lucide-react'
+import { useInView } from 'react-intersection-observer'
+
+interface VideoFeedProps {
+    category?: string
+    hashtag?: string
+    userId?: string
+}
+
+export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
+    const [currentIndex, setCurrentIndex] = useState(0)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const { ref: loadMoreRef, inView } = useInView()
+
+    // Fetch civic clips with infinite scroll
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading
+    } = useInfiniteQuery({
+        queryKey: ['civic-clips', category, hashtag, userId],
+        queryFn: async ({ pageParam = 0 }) => {
+            let query = supabase
+                .from('civic_clips')
+                .select(`
+          *,
+          post:posts!civic_clips_post_id_fkey(
+            id,
+            title,
+            content,
+            created_at,
+            author:profiles!posts_author_id_fkey(
+              id,
+              username,
+              display_name,
+              avatar_url
+            ),
+            community:communities(
+              id,
+              name,
+              display_name
+            )
+          )
+        `)
+                .eq('processing_status', 'ready')
+                .order('created_at', { ascending: false })
+                .range(pageParam * 10, (pageParam + 1) * 10 - 1)
+
+            // Apply filters
+            if (category) {
+                query = query.eq('category', category)
+            }
+            if (hashtag) {
+                query = query.contains('hashtags', [hashtag])
+            }
+            if (userId) {
+                query = query.eq('post.author_id', userId)
+            }
+
+            const { data, error } = await query
+
+            if (error) throw error
+            return data || []
+        },
+        getNextPageParam: (lastPage, pages) => {
+            if (lastPage.length < 10) return undefined
+            return pages.length
+        },
+        initialPageParam: 0
+    })
+
+    // Load more when scrolling to bottom
+    useEffect(() => {
+        if (inView && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage()
+        }
+    }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+    // Handle scroll snapping
+    useEffect(() => {
+        const container = containerRef.current
+        if (!container) return
+
+        const handleScroll = () => {
+            const scrollTop = container.scrollTop
+            const itemHeight = container.clientHeight
+            const newIndex = Math.round(scrollTop / itemHeight)
+
+            if (newIndex !== currentIndex) {
+                setCurrentIndex(newIndex)
+            }
+        }
+
+        container.addEventListener('scroll', handleScroll, { passive: true })
+        return () => container.removeEventListener('scroll', handleScroll)
+    }, [currentIndex])
+
+    const allClips = data?.pages.flatMap(page => page) || []
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
+    }
+
+    if (allClips.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen text-center p-6">
+                <div className="text-6xl mb-4">🎬</div>
+                <h3 className="text-2xl font-bold mb-2">No CivicClips Yet</h3>
+                <p className="text-muted-foreground">
+                    {category ? `No videos in the ${category} category.` : 'Be the first to create a CivicClip!'}
+                </p>
+            </div>
+        )
+    }
+
+    return (
+        <div
+            ref={containerRef}
+            className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+            {allClips.map((clip, index) => (
+                <CivicClipCard
+                    key={clip.id}
+                    clip={clip}
+                    isActive={index === currentIndex}
+                />
+            ))}
+
+            {/* Load more trigger */}
+            <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
+                {isFetchingNextPage && (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                )}
+            </div>
+
+            {/* Hide scrollbar with CSS */}
+            <style>{`
+        div::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+        </div>
+    )
+}

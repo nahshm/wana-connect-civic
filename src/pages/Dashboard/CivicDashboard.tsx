@@ -7,13 +7,18 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, TrendingUp, Users, FileText, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MyActions } from '@/components/dashboard/MyActions';
 
 interface DashboardData {
   countyName: string;
   constituencyName: string;
   wardName: string;
   mpName: string;
+  mpId?: string;
   mcaName: string;
+  mcaId?: string;
+  governorName?: string;
+  governorId?: string;
   localPosts: any[];
   trendingDiscussions: any[];
   onboardingProgress: number;
@@ -44,6 +49,17 @@ const CivicDashboard = () => {
         .eq('id', user.id)
         .single();
 
+      // Fetch officials based on user's location
+      const { data: officials } = await supabase
+        .from('officials')
+        .select('*')
+        .or(`ward_id.eq.${profile?.ward_id},constituency_id.eq.${profile?.constituency_id},county_id.eq.${profile?.county_id}`);
+
+      // Find specific officials by level
+      const mca = officials?.find(o => o.level === 'mca');
+      const mp = officials?.find(o => o.level === 'mp');
+      const governor = officials?.find(o => o.level === 'governor');
+
       // Get local posts from ward
       const { data: localPosts } = await supabase
         .from('posts')
@@ -68,8 +84,12 @@ const CivicDashboard = () => {
         countyName: profile?.counties?.name || 'N/A',
         constituencyName: profile?.constituencies?.name || 'N/A',
         wardName: profile?.wards?.name || 'N/A',
-        mpName: 'Your MP', // TODO: Link to actual MP
-        mcaName: 'Your MCA', // TODO: Link to actual MCA
+        mpName: mp?.name || 'MP not yet registered',
+        mpId: mp?.id,
+        mcaName: mca?.name || 'MCA not yet registered',
+        mcaId: mca?.id,
+        governorName: governor?.name || 'Governor not found',
+        governorId: governor?.id,
         localPosts: localPosts || [],
         trendingDiscussions: trendingPosts || [],
         onboardingProgress: 100,
@@ -166,7 +186,7 @@ const CivicDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/create-post">
+              <Link to="/dashboard/report">
                 <FileText className="w-4 h-4 mr-2" />
                 Report an Issue
               </Link>
@@ -181,6 +201,12 @@ const CivicDashboard = () => {
               <Link to="/projects">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Track Projects
+              </Link>
+            </Button>
+            <Button variant="outline" className="w-full justify-start" asChild>
+              <Link to="/dashboard/analytics">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                View Analytics
               </Link>
             </Button>
           </CardContent>
@@ -253,6 +279,9 @@ const CivicDashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* My Actions Card */}
+        <MyActions />
       </div>
     </div>
   );

@@ -23,7 +23,13 @@ import NotFound from "./pages/NotFound";
 import OnboardingFlow from "./pages/Onboarding/OnboardingFlow";
 import WelcomeDashboard from "./pages/Onboarding/WelcomeDashboard";
 import CivicDashboard from "./pages/Dashboard/CivicDashboard";
+import ReportIssue from "./pages/Dashboard/ReportIssue";
+import ActionDetail from "./pages/Dashboard/ActionDetail";
+import Analytics from "./pages/Dashboard/Analytics";
 import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
+import { SearchResults } from "./pages/SearchResults";
+import { CivicClipsPage } from "./pages/CivicClips";
+import Chat from "./pages/Chat";
 import { OnboardingGuard } from "@/components/routing/OnboardingGuard";
 
 const queryClient = new QueryClient();
@@ -43,34 +49,40 @@ const App = () => (
                   <Route path="/onboarding" element={<OnboardingFlow />} />
                   <Route path="/welcome" element={<WelcomeDashboard />} />
                   <Route path="/*" element={
-                  <AppLayout>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/dashboard" element={<CivicDashboard />} />
-                      <Route path="/create" element={<CreatePost />} />
-                      <Route path="/post/:id" element={<PostDetail />} />
-                      <Route path="/edit-post/:id" element={<EditPost />} />
-                      <Route path="/u/:username" element={<Profile />} />
-                      <Route path="/profile/:username" element={<Profile />} />
-                      <Route path="/c/:communityName" element={<Community />} />
-                      <Route path="/community/:communityName" element={<Community />} />
-                      <Route path="/communities" element={<Communities />} />
-                      <Route path="/officials" element={<Officials />} />
-                      <Route path="/projects" element={<Projects />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
-                      {/* Functional prefix routes - handled by PrefixRouter */}
-                      <Route path="/c/:communityName" element={<PrefixRouter />} />
-                      <Route path="/u/:username" element={<PrefixRouter />} />
-                      <Route path="/g/:officialId" element={<PrefixRouter />} />
-                      <Route path="/p/:projectId" element={<PrefixRouter />} />
-                      <Route path="/pr/:promiseId" element={<PrefixRouter />} />
-                      <Route path="/w/:username" element={<PrefixRouter />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </AppLayout>
-                } />
-              </Routes>
+                    <AppLayout>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/dashboard" element={<CivicDashboard />} />
+                        <Route path="/dashboard/report" element={<ReportIssue />} />
+                        <Route path="/dashboard/actions/:id" element={<ActionDetail />} />
+                        <Route path="/dashboard/analytics" element={<Analytics />} />
+                        <Route path="/create" element={<CreatePost />} />
+                        <Route path="/submit" element={<CreatePost />} />
+                        <Route path="/post/:id" element={<PostDetail />} />
+                        <Route path="/edit-post/:id" element={<EditPost />} />
+                        <Route path="/u/:username" element={<Profile />} />
+                        <Route path="/profile/:username" element={<Profile />} />
+                        <Route path="/c/:communityName/post/:id" element={<PostDetail />} />
+                        <Route path="/c/:communityName" element={<Community />} />
+                        <Route path="/community/:communityName" element={<Community />} />
+                        <Route path="/communities" element={<Communities />} />
+                        <Route path="/officials" element={<Officials />} />
+                        <Route path="/projects" element={<Projects />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/search" element={<SearchResults />} />
+                        <Route path="/civic-clips" element={<CivicClipsPage />} />
+                        <Route path="/chat" element={<Chat />} />
+                        <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
+                        {/* Functional prefix routes - handled by PrefixRouter */}
+                        <Route path="/g/:officialId" element={<PrefixRouter />} />
+                        <Route path="/p/:projectId" element={<PrefixRouter />} />
+                        <Route path="/pr/:promiseId" element={<PrefixRouter />} />
+                        <Route path="/w/:username" element={<PrefixRouter />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </AppLayout>
+                  } />
+                </Routes>
               </OnboardingGuard>
             </BrowserRouter>
           </SidebarProvider>

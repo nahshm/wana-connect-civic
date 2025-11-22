@@ -153,7 +153,7 @@ const PostDetail = () => {
             profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
             comment_award_assignments!comment_id (
               id,
-              created_at,
+              awarded_at,
               comment_awards!award_id (
                 id,
                 name,
@@ -226,7 +226,7 @@ const PostDetail = () => {
               username: '',
               displayName: assignment.profiles.display_name,
             } : undefined,
-            assignedAt: new Date(assignment.created_at),
+            assignedAt: new Date(assignment.awarded_at),
           })) || [];
 
           const comment: Comment = {
@@ -380,7 +380,7 @@ const PostDetail = () => {
           profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
           comment_award_assignments!comment_id (
             id,
-            created_at,
+            awarded_at,
             comment_awards!award_id (
               id,
               name,
@@ -452,7 +452,7 @@ const PostDetail = () => {
             username: '',
             displayName: assignment.profiles.display_name,
           } : undefined,
-          assignedAt: new Date(assignment.created_at),
+          assignedAt: new Date(assignment.awarded_at),
         })) || [];
 
         const comment: Comment = {
@@ -588,28 +588,28 @@ const PostDetail = () => {
               replies: comment.replies.map(reply =>
                 reply.id === commentId
                   ? (() => {
-                      const currentVote = reply.userVote;
-                      let newUpvotes = reply.upvotes;
-                      let newDownvotes = reply.downvotes;
-                      let newUserVote: 'up' | 'down' | null = vote;
+                    const currentVote = reply.userVote;
+                    let newUpvotes = reply.upvotes;
+                    let newDownvotes = reply.downvotes;
+                    let newUserVote: 'up' | 'down' | null = vote;
 
-                      if (currentVote === 'up') newUpvotes--;
-                      if (currentVote === 'down') newDownvotes--;
+                    if (currentVote === 'up') newUpvotes--;
+                    if (currentVote === 'down') newDownvotes--;
 
-                      if (currentVote === vote) {
-                        newUserVote = null;
-                      } else {
-                        if (vote === 'up') newUpvotes++;
-                        if (vote === 'down') newDownvotes++;
-                      }
+                    if (currentVote === vote) {
+                      newUserVote = null;
+                    } else {
+                      if (vote === 'up') newUpvotes++;
+                      if (vote === 'down') newDownvotes++;
+                    }
 
-                      return {
-                        ...reply,
-                        upvotes: newUpvotes,
-                        downvotes: newDownvotes,
-                        userVote: newUserVote
-                      };
-                    })()
+                    return {
+                      ...reply,
+                      upvotes: newUpvotes,
+                      downvotes: newDownvotes,
+                      userVote: newUserVote
+                    };
+                  })()
                   : reply
               )
             };
@@ -705,6 +705,23 @@ const PostDetail = () => {
     }
   };
 
+  // Show loading skeleton while post is being fetched
+  if (postLoading) {
+    return (
+      <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
+        <div className="flex-1 max-w-2xl">
+          <Skeleton className="h-8 w-32 mb-4" />
+          <div className="space-y-4">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error only when loading is complete and post is not found
   if (!post) {
     return (
       <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
@@ -729,9 +746,9 @@ const PostDetail = () => {
       <div className="flex-1 max-w-2xl">
         {/* Back Navigation */}
         <Button variant="ghost" asChild className="mb-4 text-muted-foreground hover:text-foreground">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to={post.community ? `/c/${post.community.name}` : "/"} className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Back to Feed
+            {post.community ? `Back to r/${post.community.name}` : "Back to Feed"}
           </Link>
         </Button>
 

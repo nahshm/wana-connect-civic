@@ -266,7 +266,7 @@ export default function Index() {
   });
 
   return (
-    <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
+    <div className="flex flex-col lg:flex-row gap-6 max-w-screen-xl mx-auto px-4 py-6">
       {/* Main Content */}
       <div className="flex-1 max-w-4xl space-y-6">
         {/* Welcome Section */}
@@ -311,8 +311,8 @@ export default function Index() {
         )}
 
         {/* Feed Header */}
-        <FeedHeader 
-          sortBy={sortBy} 
+        <FeedHeader
+          sortBy={sortBy}
           onSortChange={setSortBy}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -461,12 +461,12 @@ export default function Index() {
           </Card>
         )}
       </div>
-      
+
       {/* Right Sidebar */}
       <div className="hidden lg:block w-80">
         <div className="sticky top-24 space-y-6">
           <RightSidebar />
-          
+
           {/* Popular Communities */}
           <Card>
             <CardHeader>

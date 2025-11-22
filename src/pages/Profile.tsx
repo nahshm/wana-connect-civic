@@ -63,19 +63,19 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="displayName">Display Name</Label>
-              <Input id="displayName" value={formData.displayName} onChange={(e) => setFormData({...formData, displayName: e.target.value})} />
+              <Input id="displayName" value={formData.displayName} onChange={(e) => setFormData({ ...formData, displayName: e.target.value })} />
             </div>
             <div>
               <Label htmlFor="bio">Bio</Label>
-              <Textarea id="bio" value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} />
+              <Textarea id="bio" value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} />
             </div>
             <div>
               <Label htmlFor="location">Location</Label>
-              <Input id="location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+              <Input id="location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
             </div>
             <div>
               <Label htmlFor="expertise">Expertise (comma separated)</Label>
-              <Input id="expertise" value={formData.expertise} onChange={(e) => setFormData({...formData, expertise: e.target.value})} />
+              <Input id="expertise" value={formData.expertise} onChange={(e) => setFormData({ ...formData, expertise: e.target.value })} />
             </div>
             <div className="flex space-x-2">
               <Button type="submit">Save</Button>
@@ -629,7 +629,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 flex gap-6 max-w-screen-xl">
+    <div className="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-6 max-w-screen-xl">
       {/* Main Content */}
       <div className="flex-1">
         {/* Profile Header */}
@@ -687,43 +687,43 @@ const Profile = () => {
               </div>
             </div>
           </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-            {profile.location && (
-              <div className="flex items-center space-x-1">
-                <MapPin className="w-4 h-4" />
-                <span>{profile.location}</span>
-              </div>
-            )}
-            {profile.expertise && profile.expertise.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <span>Expertise:</span>
-                <div className="flex flex-wrap gap-1">
-                  {profile.expertise.map((skill, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
+          <CardContent>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+              {profile.location && (
+                <div className="flex items-center space-x-1">
+                  <MapPin className="w-4 h-4" />
+                  <span>{profile.location}</span>
                 </div>
+              )}
+              {profile.expertise && profile.expertise.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <span>Expertise:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {profile.expertise.map((skill, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {profile.badges && profile.badges.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {profile.badges.map((badge, index) => (
+                  <Badge key={index} variant="default">
+                    {badge}
+                  </Badge>
+                ))}
               </div>
             )}
-          </div>
-          {profile.badges && profile.badges.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {profile.badges.map((badge, index) => (
-                <Badge key={index} variant="default">
-                  {badge}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardContent>
+          </CardContent>
         </Card>
-{/* Removed debug component as it has served its purpose */}
+        {/* Removed debug component as it has served its purpose */}
 
         {/* Profile Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-8 h-auto p-1 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
@@ -854,7 +854,7 @@ const Profile = () => {
                 savedItems.map((item) => {
                   if ('title' in item) {
                     // It's a post
-                    return <PostCard key={item.id} post={item as Post} onVote={() => {}} />;
+                    return <PostCard key={item.id} post={item as Post} onVote={() => { }} />;
                   } else {
                     // It's a comment
                     return (
@@ -908,7 +908,7 @@ const Profile = () => {
                 historyItems.map((item) => {
                   if ('title' in item) {
                     // It's a post
-                    return <PostCard key={item.id} post={item as Post} onVote={() => {}} />;
+                    return <PostCard key={item.id} post={item as Post} onVote={() => { }} />;
                   } else {
                     // It's a comment
                     return (
@@ -957,7 +957,7 @@ const Profile = () => {
                 hiddenItems.map((item) => {
                   if ('title' in item) {
                     // It's a post
-                    return <PostCard key={item.id} post={item as Post} onVote={() => {}} />;
+                    return <PostCard key={item.id} post={item as Post} onVote={() => { }} />;
                   } else {
                     // It's a comment
                     return (
@@ -1006,7 +1006,7 @@ const Profile = () => {
                 upvotedItems.map((item) => {
                   if ('title' in item) {
                     // It's a post
-                    return <PostCard key={item.id} post={item as Post} onVote={() => {}} />;
+                    return <PostCard key={item.id} post={item as Post} onVote={() => { }} />;
                   } else {
                     // It's a comment
                     return (
@@ -1055,7 +1055,7 @@ const Profile = () => {
                 downvotedItems.map((item) => {
                   if ('title' in item) {
                     // It's a post
-                    return <PostCard key={item.id} post={item as Post} onVote={() => {}} />;
+                    return <PostCard key={item.id} post={item as Post} onVote={() => { }} />;
                   } else {
                     // It's a comment
                     return (

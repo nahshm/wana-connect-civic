@@ -10,6 +10,7 @@ export interface Community {
   sensitivityLevel?: 'public' | 'moderated' | 'private';
   allowPostFlairs?: boolean;
   allowUserFlairs?: boolean;
+  avatarUrl?: string;
   bannerUrl?: string;
   themeColor?: string;
   sidebarContent?: string;
