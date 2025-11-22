@@ -309,13 +309,13 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             <div className="mb-3">
               {post.media.length === 1 ? (
                 <div className="rounded-lg overflow-hidden border border-sidebar-border">
-                  {post.media[0].file_type.startsWith('image/') ? (
+                  {post.media[0].file_type?.startsWith('image/') ? (
                     <img
                       src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
                       alt="Post media"
                       className="w-full h-auto max-h-96 object-cover"
                     />
-                  ) : post.media[0].file_type.startsWith('video/') ? (
+                  ) : post.media[0].file_type?.startsWith('video/') ? (
                     <video
                       src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
                       controls
@@ -327,13 +327,13 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 <div className="grid grid-cols-2 gap-2">
                   {post.media.slice(0, 4).map((media, index) => (
                     <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
-                      {media.file_type.startsWith('image/') ? (
+                      {media.file_type?.startsWith('image/') ? (
                         <img
                           src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
                           alt={`Post media ${index + 1}`}
                           className="w-full h-32 object-cover"
                         />
-                      ) : media.file_type.startsWith('video/') ? (
+                      ) : media.file_type?.startsWith('video/') ? (
                         <video
                           src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
                           className="w-full h-32 object-cover"
