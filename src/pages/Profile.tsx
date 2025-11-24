@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { PostCard } from '@/components/posts/PostCard';
 import { CommentSection } from '@/components/posts/CommentSection';
 import { ProfileDataDebug } from '@/components/debug/ProfileDataDebug';
+import { BadgeShowcase } from '@/components/gamification/BadgeShowcase';
 
 // Utility function to convert snake_case keys to camelCase recursively
 function toCamelCase(obj: any): any {
@@ -723,8 +724,9 @@ const Profile = () => {
 
         {/* Profile Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-8 h-auto p-1 gap-1">
+          <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-9 h-auto p-1 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="badges">Badges</TabsTrigger>
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
             <TabsTrigger value="saved">Saved</TabsTrigger>
@@ -775,6 +777,10 @@ const Profile = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="badges" className="mt-6">
+            <BadgeShowcase userId={profile.id} />
           </TabsContent>
 
           <TabsContent value="posts" className="mt-6">

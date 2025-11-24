@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, TrendingUp, Users, FileText, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MyActions } from '@/components/dashboard/MyActions';
+import { GamificationWidgets } from '@/components/gamification/GamificationWidgets';
 
 interface DashboardData {
   countyName: string;
@@ -213,6 +214,12 @@ const CivicDashboard = () => {
         </Card>
       </div>
 
+      {/* Gamification Overview */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-4">Your Civic Impact</h2>
+        <GamificationWidgets />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Local Issues */}
         <Card>
@@ -277,6 +284,25 @@ const CivicDashboard = () => {
                 No trending discussions yet
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* My Projects Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>My Projects</CardTitle>
+            <CardDescription>Projects you've reported</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Project data would be loaded here */}
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground mb-2">
+                Track your submitted projects here
+              </p>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/projects/submit">Post a Project</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

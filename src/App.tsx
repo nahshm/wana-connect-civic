@@ -30,6 +30,13 @@ import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
 import { SearchResults } from "./pages/SearchResults";
 import { CivicClipsPage } from "./pages/CivicClips";
 import Chat from "./pages/Chat";
+import OfficialDetail from "./pages/OfficialDetail";
+import ProjectDetail from "./pages/ProjectDetail";
+import PromiseDetail from "./pages/PromiseDetail";
+import SubmitProject from "./pages/SubmitProject";
+import Quests from "./pages/Quests";
+import Leaderboards from "./pages/Leaderboards";
+import DiscoveryDashboard from "./pages/DiscoveryDashboard";
 import { OnboardingGuard } from "@/components/routing/OnboardingGuard";
 
 const queryClient = new QueryClient();
@@ -67,9 +74,16 @@ const App = () => (
                         <Route path="/community/:communityName" element={<Community />} />
                         <Route path="/communities" element={<Communities />} />
                         <Route path="/officials" element={<Officials />} />
+                        <Route path="/officials/:officialId" element={<OfficialDetail />} />
                         <Route path="/projects" element={<Projects />} />
+                        <Route path="/projects/submit" element={<SubmitProject />} />
+                        <Route path="/projects/:projectId" element={<ProjectDetail />} />
+                        <Route path="/promises/:promiseId" element={<PromiseDetail />} />
+                        <Route path="/discover" element={<DiscoveryDashboard />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/search" element={<SearchResults />} />
+                        <Route path="/quests" element={<Quests />} />
+                        <Route path="/leaderboards" element={<Leaderboards />} />
                         <Route path="/civic-clips" element={<CivicClipsPage />} />
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />

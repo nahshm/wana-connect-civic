@@ -97,8 +97,10 @@ export const Header = () => {
                   <DropdownMenuItem onClick={() => setWizardOpen(true)}>
                     <Users className="mr-2 h-4 w-4" />
                     Create Community
+                  </DropdownMenuItem>                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to={`/profile/${profile?.username || user.id}`}>Profile</Link>
                   </DropdownMenuItem>
