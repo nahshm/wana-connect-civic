@@ -3,34 +3,30 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useOnboarding = () => {
-  const { user } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkOnboardingStatus();
-  }, [user]);
+    if (authLoading) return;
 
-  const checkOnboardingStatus = async () => {
     if (!user) {
+      setNeedsOnboarding(false);
       setLoading(false);
       return;
     }
 
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarding_completed')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      setNeedsOnboarding(!profile?.onboarding_completed);
-    } catch (error) {
-      console.error('Error checking onboarding status:', error);
-    } finally {
+    // Use profile from AuthContext which is the single source of truth
+    if (profile) {
+      setNeedsOnboarding(!profile.onboardingCompleted);
       setLoading(false);
+    } else {
+      // If profile is null but user exists, we might still be loading profile
+      // or profile doesn't exist (which means needs onboarding or error)
+      // We'll let AuthContext handle the profile fetching and just wait
+      setLoading(true);
     }
-  };
+  }, [user, profile, authLoading]);
 
   return { needsOnboarding, loading };
 };

@@ -148,7 +148,7 @@ export const UserFlairSelector: React.FC<UserFlairSelectorProps> = ({
             <SelectItem value="none" className="text-gray-400 italic">
               No flair
             </SelectItem>
-            
+
             {/* Counties Section */}
             <div className="px-2 py-1.5 text-xs font-semibold text-gray-400 uppercase">
               Counties

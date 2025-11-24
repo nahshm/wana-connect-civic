@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { UserProfile } from '@/types/index';
 
-interface Profile extends UserProfile {}
+interface Profile extends UserProfile { }
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +15,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, username?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         // Defer profile fetch with setTimeout to prevent deadlock
         if (session?.user) {
           setTimeout(() => {
@@ -49,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         setTimeout(() => {
           fetchProfile(session.user.id);
@@ -100,7 +101,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isPrivate: data.is_private,
         privacySettings: data.privacy_settings as any,
         activityStats: data.activity_stats as any,
-        lastActivity: data.last_activity ? new Date(data.last_activity) : undefined
+        lastActivity: data.last_activity ? new Date(data.last_activity) : undefined,
+        onboardingCompleted: data.onboarding_completed
       };
 
       setProfile(profileData);
@@ -109,10 +111,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
+  };
+
   const signUp = async (email: string, password: string, username?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/onboarding`;
-      
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -134,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           toast({
             variant: "destructive",
-            title: "Sign up failed", 
+            title: "Sign up failed",
             description: error.message
           });
         }
@@ -145,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Welcome to WanaIQ!",
         description: "Let's set up your profile to connect you to your community."
       });
-      
+
       return { error: null };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -178,7 +186,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Welcome back!",
         description: "Successfully signed in to your account."
       });
-      
+
       return { error: null };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -225,6 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUp,
     signIn,
     signOut,
+    refreshProfile,
   };
 
   return (

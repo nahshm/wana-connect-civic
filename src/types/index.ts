@@ -6,6 +6,9 @@ export interface Community {
   descriptionHtml?: string;
   memberCount: number;
   category: 'governance' | 'civic-education' | 'accountability' | 'discussion';
+  type?: 'location' | 'interest';
+  locationType?: 'ward' | 'constituency' | 'county' | 'national';
+  locationValue?: string;
   isFollowing?: boolean;
   sensitivityLevel?: 'public' | 'moderated' | 'private';
   allowPostFlairs?: boolean;
@@ -181,6 +184,9 @@ export interface User {
   postKarma?: number;
   commentKarma?: number;
   location?: string;
+  county?: string;
+  constituency?: string;
+  ward?: string;
   expertise?: string[];
   bio?: string;
   website?: string;
@@ -209,6 +215,7 @@ export interface User {
 
 export interface UserProfile extends User {
   createdAt?: Date;
+  onboardingCompleted?: boolean;
   privacySettings?: UserPrivacySettings;
   activityLog?: UserActivity[];
 }
@@ -312,6 +319,11 @@ export interface GovernmentProject {
   last_updated_by?: string;
   contractors?: ProjectContractor[];
   updates?: ProjectUpdate[];
+  // New user-generated content fields
+  is_verified?: boolean;
+  media_urls?: string[];
+  documents_urls?: string[];
+  community_confidence?: number;
 }
 
 export interface Contractor {

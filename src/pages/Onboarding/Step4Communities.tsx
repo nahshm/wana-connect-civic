@@ -32,7 +32,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,7 +42,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
   const loadRecommendedCommunities = async () => {
     // Load geographic communities
     const geoNames = await getGeographicCommunityNames();
-    
+
     // Load interest-based communities
     const { data: interestCommunities } = await supabase
       .from('communities')
@@ -56,21 +56,21 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
     ];
 
     setCommunities(allCommunities);
-    
+
     // Auto-select geographic communities
     setSelectedCommunities(geoNames.map(c => c.id));
   };
 
   const getGeographicCommunityNames = async () => {
     const names: Community[] = [];
-    
+
     // Get county name
     const { data: county } = await supabase
       .from('counties')
       .select('name')
       .eq('id', onboardingData.countyId)
       .single();
-    
+
     if (county) {
       names.push({
         id: `geo-county-${onboardingData.countyId}`,
@@ -88,7 +88,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       .select('name')
       .eq('id', onboardingData.constituencyId)
       .single();
-    
+
     if (constituency) {
       names.push({
         id: `geo-constituency-${onboardingData.constituencyId}`,
@@ -106,7 +106,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       .select('name')
       .eq('id', onboardingData.wardId)
       .single();
-    
+
     if (ward) {
       names.push({
         id: `geo-ward-${onboardingData.wardId}`,
@@ -131,13 +131,13 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
 
   const handleComplete = async () => {
     if (!user) return;
-    
+
     setLoading(true);
-    
+
     try {
       // 1. Create geographic communities if they don't exist
       const geoCommunities = await createGeographicCommunities();
-      
+
       // Check if community creation was successful
       const hasValidCommunities = Object.keys(geoCommunities).length > 0;
       if (!hasValidCommunities) {
@@ -145,7 +145,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         setLoading(false);
         return;
       }
-      
+
       // 2. Update profile with location and persona
       const { error: profileError } = await supabase
         .from('profiles')
@@ -171,11 +171,11 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           user_id: user.id,
           interest_id: interestId,
         }));
-        
+
         const { error: interestsError } = await supabase
           .from('user_interests')
           .upsert(interestInserts, { onConflict: 'user_id,interest_id', ignoreDuplicates: true });
-        
+
         if (interestsError) {
           console.error('Error saving interests:', interestsError);
         }
@@ -204,7 +204,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         const { error: membershipError } = await supabase
           .from('community_members')
           .upsert(communityMemberships, { onConflict: 'user_id,community_id', ignoreDuplicates: true });
-        
+
         if (membershipError) {
           console.error('Error adding community memberships:', membershipError.message, membershipError);
           toast.error('Failed to join communities. Please try again.');
@@ -225,6 +225,9 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           communities_joined: selectedCommunities.length,
           completed_at: new Date().toISOString(),
         });
+
+      // Refresh profile to update onboarding status in context
+      await refreshProfile();
 
       toast.success('Welcome to WanaIQ! 🎉');
       navigate('/welcome');
@@ -277,11 +280,11 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
               name: communityName,
               display_name: `${county.name} County`,
               description: `Community for ${county.name} County residents`,
-              category: 'geographic',
+              category: 'governance',
             })
             .select('id')
             .single();
-          
+
           if (insertError) {
             console.error('Error creating county community:', insertError.message, insertError);
           } else if (newCommunity) {
@@ -308,11 +311,11 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
               name: communityName,
               display_name: `${constituency.name} Constituency`,
               description: `Community for ${constituency.name} Constituency residents`,
-              category: 'geographic',
+              category: 'governance',
             })
             .select('id')
             .single();
-          
+
           if (insertError) {
             console.error('Error creating constituency community:', insertError.message, insertError);
           } else if (newCommunity) {
@@ -339,11 +342,11 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
               name: communityName,
               display_name: `${ward.name} Ward`,
               description: `Community for ${ward.name} Ward residents`,
-              category: 'geographic',
+              category: 'governance',
             })
             .select('id')
             .single();
-          
+
           if (insertError) {
             console.error('Error creating ward community:', insertError.message, insertError);
           } else if (newCommunity) {
@@ -376,11 +379,10 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         {communities.map((community) => (
           <div
             key={community.id}
-            className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-              selectedCommunities.includes(community.id)
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            } ${community.isGeo ? 'bg-accent/20' : ''}`}
+            className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${selectedCommunities.includes(community.id)
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-primary/50'
+              } ${community.isGeo ? 'bg-accent/20' : ''}`}
             onClick={() => !community.isGeo && toggleCommunity(community.id)}
           >
             <Checkbox

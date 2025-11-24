@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CommunityProfile, Post, CommunityModerator, CommunityRule, CommunityFlair } from '@/types/index';
+import { CommunityProfile, Post, CommunityModerator, CommunityRule, CommunityFlair, GovernmentProject } from '@/types/index';
 import DOMPurify from 'dompurify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Users, Calendar, Shield, Settings, Plus, Minus, Crown, UserCheck, Flag, MessageSquare } from 'lucide-react';
+import { Users, Calendar, Shield, Settings, Plus, Minus, Crown, UserCheck, Flag, MessageSquare, MapPin, TrendingUp } from 'lucide-react';
 import { PostCard } from '@/components/posts/PostCard';
 import { CommunityHeader } from '@/components/community/CommunityHeader';
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
@@ -40,6 +40,7 @@ const Community = () => {
   const [rules, setRules] = useState<CommunityRule[]>([]);
   const [flairs, setFlairs] = useState<CommunityFlair[]>([]);
   const [members, setMembers] = useState<any[]>([]);
+  const [projects, setProjects] = useState<GovernmentProject[]>([]);
   const [isMember, setIsMember] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -149,6 +150,22 @@ const Community = () => {
             .eq('community_id', community.id);
           setMembers(toCamelCase(membersData) || []);
           break;
+
+        case 'projects':
+          // Fetch projects matching community location
+          if (community.locationType && community.locationValue) {
+            const { data: projectsData } = await supabase
+              .from('government_projects')
+              .select(`
+                *,
+                official:officials(id, name, position)
+              `)
+              .or(`${community.locationType}.eq.${community.locationValue}`)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            setProjects(toCamelCase(projectsData) || []);
+          }
+          break;
       }
     } catch (error) {
       console.error('Error fetching tab data:', error);
@@ -248,6 +265,60 @@ const Community = () => {
                         <p className="text-gray-700">{community.description}</p>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="projects" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Local Projects ({projects.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {projects.length > 0 ? (
+                      <div className="space-y-4">
+                        {projects.map((project) => (
+                          <div key={project.id} className="p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-semibold line-clamp-1">{project.title}</h4>
+                              {project.is_verified === false && (
+                                <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50 text-xs">
+                                  Community Report
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{project.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
+                              {project.location && (
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  <span>{project.location}</span>
+                                </div>
+                              )}
+                              {project.status && (
+                                <Badge variant="secondary" className="text-xs">{project.status}</Badge>
+                              )}
+                            </div>
+                            {project.progress_percentage !== undefined && (
+                              <div className="flex items-center gap-2 text-xs">
+                                <span>Progress:</span>
+                                <div className="flex-1 bg-muted rounded-full h-2">
+                                  <div className="bg-primary h-2 rounded-full" style={{ width: `${project.progress_percentage}%` }} />
+                                </div>
+                                <span>{project.progress_percentage}%</span>
+                              </div>
+                            )}
+                            <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => window.location.href = `/projects/${project.id}`}>
+                              View Details
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No projects found in this location yet.
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

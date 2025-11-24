@@ -3,7 +3,9 @@ import { Routes, Route, useParams, Navigate } from 'react-router-dom';
 import Community from '@/pages/Community';
 import Profile from '@/pages/Profile';
 import Officials from '@/pages/Officials';
+import OfficialDetail from '@/pages/OfficialDetail';
 import Projects from '@/pages/Projects';
+import ProjectDetail from '@/pages/ProjectDetail';
 import PromiseDetail from '@/pages/PromiseDetail';
 import NotFound from '@/pages/NotFound';
 
@@ -20,14 +22,14 @@ const UserPrefixHandler: React.FC = () => {
 
 const GovernmentPrefixHandler: React.FC = () => {
   const { officialId } = useParams<{ officialId: string }>();
-  // For now, redirect to officials page - will be enhanced later
-  return <Officials />;
+  // Route to official detail page
+  return <OfficialDetail />;
 };
 
 const ProjectPrefixHandler: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  // For now, redirect to projects page - will be enhanced with project details later
-  return <Projects />;
+  // Route to project detail page
+  return <ProjectDetail />;
 };
 
 const PromisePrefixHandler: React.FC = () => {

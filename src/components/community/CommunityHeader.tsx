@@ -104,6 +104,12 @@ export const CommunityHeader = ({
                             About
                         </TabsTrigger>
                         <TabsTrigger
+                            value="projects"
+                            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 py-2 bg-transparent"
+                        >
+                            Projects
+                        </TabsTrigger>
+                        <TabsTrigger
                             value="members"
                             className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 py-2 bg-transparent"
                         >

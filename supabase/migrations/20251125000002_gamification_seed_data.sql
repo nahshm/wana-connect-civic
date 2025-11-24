@@ -48,7 +48,7 @@ INSERT INTO public.badges (name, description, icon, category, tier, requirements
 ('Community Reporter - Platinum', 'Submitted 50 project reports', '💎', 'community_reporter', 'platinum', '{"action": "project_submitted", "count": 50}', 100),
 
 -- Policy Analyst Badge
-s
+
 ('Policy Analyst - Bronze', 'Analyzed 5 government policies', '🥉', 'policy_analyst', 'bronze', '{"action": "policy_analyzed", "count": 5}', 10),
 ('Policy Analyst - Silver', 'Analyzed 20 government policies', '🥈', 'policy_analyst', 'silver', '{"action": "policy_analyzed", "count": 20}', 25),
 ('Policy Analyst - Gold', 'Analyzed 50 government policies', '🥇', 'policy_analyst', 'gold', '{"action": "policy_analyzed", "count": 50}', 50),

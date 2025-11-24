@@ -170,8 +170,8 @@ const Projects = () => {
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.location?.toLowerCase().includes(searchQuery.toLowerCase());
+      project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.location?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = selectedStatus === 'all' || project.status === selectedStatus;
     const matchesCounty = selectedCounty === 'all' || project.county === selectedCounty;
@@ -210,10 +210,17 @@ const Projects = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Government Projects Monitor</h1>
-        <p className="text-muted-foreground">
-          Track government projects, budgets, and contractor performance across Kenya
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Government Projects Monitor</h1>
+            <p className="text-muted-foreground">
+              Track government projects, budgets, and contractor performance across Kenya
+            </p>
+          </div>
+          <Button onClick={() => window.location.href = '/projects/submit'}>
+            + Post Project
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
