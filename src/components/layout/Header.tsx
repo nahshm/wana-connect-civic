@@ -2,11 +2,17 @@ import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SearchBar } from '@/components/layout/SearchBar';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Bell, User, Plus, LogOut, Users, MessageCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, User, Plus, LogOut, Users, MessageCircle, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateCommunityWizard } from '@/components/community/CreateCommunityWizard';
 import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +24,9 @@ import {
 
 export const Header = () => {
   const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -26,36 +34,47 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
-      <div className="w-full px-4 h-16 flex items-center">
-        <SidebarTrigger className="mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
-        <div className="flex items-center space-x-6 flex-1">
-          <h1 className="text-2xl font-bold text-sidebar-primary">
+      <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center">
+        <SidebarTrigger className="mr-2 sm:mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
+        <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-sidebar-primary">
             WanaIQ
           </h1>
 
+          {/* Desktop Search */}
           <div className="hidden md:flex flex-1 max-w-2xl">
             <SearchBar
               placeholder="Search discussions, communities, users..."
               className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring"
               onSearch={(query, filters) => {
                 console.log('Search:', query, filters);
-                // TODO: Implement search functionality
+                navigate(`/search?q=${encodeURIComponent(query)}`);
               }}
             />
           </div>
+
+          {/* Mobile Search Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground"
+            onClick={() => setMobileSearchOpen(true)}
+          >
+            <Search className="w-4 h-4" />
+          </Button>
         </div>
 
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-0.5 sm:space-x-1">
           {user ? (
             <>
               <Button
                 variant="ghost"
                 size="sm"
                 asChild
-                className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium"
+                className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium h-8 sm:h-9"
               >
-                <Link to="/create">
-                  <Plus className="w-4 h-4 mr-1" />
+                <Link to="/create" className="flex items-center">
+                  <Plus className="w-4 h-4 sm:mr-1" />
                   <span className="hidden sm:inline">Create</span>
                 </Link>
               </Button>
@@ -64,7 +83,7 @@ export const Header = () => {
                 variant="ghost"
                 size="icon"
                 asChild
-                className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
+                className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9"
               >
                 <Link to="/chat">
                   <MessageCircle className="w-4 h-4" />
@@ -74,7 +93,7 @@ export const Header = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
+                className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9"
               >
                 <Bell className="w-4 h-4" />
               </Button>
@@ -86,7 +105,7 @@ export const Header = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
+                    className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9"
                   >
                     <User className="w-4 h-4" />
                   </Button>
@@ -130,6 +149,26 @@ export const Header = () => {
           )}
         </div>
       </div>
+
+      {/* Mobile Search Dialog */}
+      <Dialog open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Search</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <SearchBar
+              placeholder="Search discussions, communities, users..."
+              className="w-full"
+              onSearch={(query, filters) => {
+                console.log('Search:', query, filters);
+                navigate(`/search?q=${encodeURIComponent(query)}`);
+                setMobileSearchOpen(false);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Community Wizard */}
       <CreateCommunityWizard

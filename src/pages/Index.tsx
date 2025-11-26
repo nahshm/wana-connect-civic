@@ -266,9 +266,9 @@ export default function Index() {
   });
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 max-w-screen-xl mx-auto px-4 py-6">
+    <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-16 xl:px-24 py-6">
       {/* Main Content */}
-      <div className="flex-1 max-w-4xl space-y-6">
+      <div className="flex-1 max-w-3xl space-y-6">
         {/* Welcome Section */}
         {!user && (
           <Card className="bg-gradient-to-r from-civic-green/10 to-civic-blue/10 border-civic-green/20">
@@ -291,25 +291,9 @@ export default function Index() {
           </Card>
         )}
 
-        {/* Create Post CTA */}
-        {user && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <p className="text-muted-foreground">What's on your mind about civic matters?</p>
-                </div>
-                <Button asChild className="bg-civic-blue hover:bg-civic-blue/90">
-                  <Link to="/create" className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Post
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
+
+        {/* Feed Header */}
         {/* Feed Header */}
         <FeedHeader
           sortBy={sortBy}
@@ -319,7 +303,7 @@ export default function Index() {
         />
 
         {/* Posts Feed */}
-        <div className="space-y-4">
+        <div className="space-y-4 -mt-7">
           {posts.length === 0 ? (
             <Card className="bg-gradient-to-br from-civic-green/5 to-civic-blue/5 border-civic-green/20">
               <CardContent className="py-12 px-8">

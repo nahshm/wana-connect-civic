@@ -179,7 +179,7 @@ const DiscoveryDashboard = () => {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-4xl font-bold mb-2">Discover Civic Accountability</h1>
@@ -189,7 +189,7 @@ const DiscoveryDashboard = () => {
             </div>
 
             <Tabs defaultValue="broken-promises" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                     <TabsTrigger value="broken-promises">
                         <XCircle className="w-4 h-4 mr-2" />
                         Broken Promises
@@ -211,6 +211,7 @@ const DiscoveryDashboard = () => {
                         My Officials
                     </TabsTrigger>
                 </TabsList>
+
 
                 {/* Broken Promises Tab */}
                 <TabsContent value="broken-promises" className="space-y-4">

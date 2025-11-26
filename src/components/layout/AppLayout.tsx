@@ -11,9 +11,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
-      <SidebarInset className="flex-1 w-full overflow-x-hidden">
+      <SidebarInset className="flex-1 w-full flex flex-col">
         <Header />
-        <main className="flex-1">
+        <main className="flex-1 overflow-auto">
           {children}
         </main>
       </SidebarInset>

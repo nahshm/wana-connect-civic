@@ -399,14 +399,14 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 </Link>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Share className="w-4 h-4 mr-1" />
-                Share
+              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Share className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Share</span>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Bookmark className="w-4 h-4 mr-1" />
-                Save
+              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Bookmark className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Save</span>
               </Button>
             </div>
 

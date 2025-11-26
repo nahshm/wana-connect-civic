@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowUp, ArrowDown, MessageSquare, MoreHorizontal, Reply, Flag } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageSquare, MoreHorizontal, Reply, Flag, Share2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -51,111 +51,114 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
     onVote?.(comment.id, vote);
   };
 
-  const getVoteButtonVariant = (voteType: 'up' | 'down') => {
-    if (comment.userVote === voteType) {
-      return voteType === 'up' ? 'default' : 'destructive';
-    }
-    return 'ghost';
-  };
+  const getVoteScore = () => comment.upvotes - comment.downvotes;
 
   const maxDepth = 6;
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
 
   return (
-    <div className={`${depth > 0 ? 'ml-6 border-l-2 border-border pl-4' : ''}`}>
-      <Card className="mb-3">
-        <CardContent className="p-4">
-          {/* Comment Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-7 w-7">
-                <AvatarImage src={comment.author.avatar} />
-                <AvatarFallback>{(comment.author.displayName || comment.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{comment.author.displayName}</span>
-                <span className="text-xs text-muted-foreground">@{comment.author.username}</span>
-                {comment.author.isVerified && (
-                  <Badge variant="secondary" className="h-4 text-xs">
-                    {comment.author.role === 'official' ? 'Official' : 'Verified'}
-                  </Badge>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
-                </span>
-              </div>
+    <div className={`relative ${depth > 0 ? 'ml-6' : ''}`}>
+      {/* Thread line with BOLD collapse button for nested comments */}
+      {depth > 0 && (
+        <>
+          {/* Vertical line */}
+          <div className="absolute left-0 top-0 bottom-0 w-px bg-border" />
+
+          {/* Horizontal connector curve */}
+          <div className="absolute left-0 top-4 w-3 h-px bg-border" />
+
+          {/* BOLD Collapse button ON the line */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="absolute left-[-5px] top-[10px] w-4 h-4 bg-background border-2 border-foreground/40 rounded-sm flex items-center justify-center text-xs font-bold leading-none text-foreground hover:border-foreground hover:bg-accent z-10 shadow-sm"
+          >
+            {isCollapsed ? '+' : '−'}
+          </button>
+        </>
+      )}
+
+      <div className={`py-2 ${depth > 0 ? 'pl-4' : 'pl-2'} pr-2 hover:bg-accent/30 rounded-sm transition-colors`}>
+        {/* Compact Header - Avatar + Username + Time */}
+        <div className="flex items-center gap-1.5 text-xs mb-1.5">
+          <Avatar className="h-5 w-5">
+            <AvatarImage src={comment.author.avatar} />
+            <AvatarFallback>{(comment.author.displayName || comment.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <span className="font-medium text-foreground">{comment.author.displayName || comment.author.username}</span>
+          {comment.author.isVerified && (
+            <Badge variant="secondary" className="h-4 px-1 text-[10px] leading-none">
+              {comment.author.role === 'official' ? 'Official' : '✓'}
+            </Badge>
+          )}
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground">
+            {formatDistanceToNow(comment.createdAt, { addSuffix: true }).replace('about ', '').replace(' ago', '')}
+          </span>
+
+          {/* BOLD Collapse button for top-level comments (no thread line) */}
+          {depth === 0 && (
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="text-foreground hover:text-primary px-1 text-xs font-bold border-2 border-foreground/40 rounded-sm w-5 h-4 flex items-center justify-center leading-none hover:border-foreground"
+            >
+              {isCollapsed ? '+' : '−'}
+            </button>
+          )}
+        </div>
+
+        {!isCollapsed && (
+          <>
+            {/* Comment Content */}
+            <div className="mb-1.5 text-sm leading-snug">
+              <p className="whitespace-pre-wrap">{comment.content}</p>
             </div>
-            
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="h-6 px-2 text-xs"
+
+            {/* Comment Awards Display */}
+            {comment.awards && comment.awards.length > 0 && (
+              <div className="mb-1">
+                <CommentAwardDisplay awards={comment.awards} size="sm" />
+              </div>
+            )}
+
+            {/* Inline Actions - Vote + Reply + Award + Share */}
+            <div className="flex items-center gap-1 mt-1">
+              {/* Upvote */}
+              <button
+                onClick={() => handleVote('up')}
+                className={`p-0.5 hover:bg-accent rounded transition-colors ${comment.userVote === 'up' ? 'text-civic-green' : 'text-muted-foreground hover:text-civic-green'
+                  }`}
               >
-                [{isCollapsed ? '+' : '−'}]
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Flag className="h-4 w-4 mr-2" />
-                    Report
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Share
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+                <ArrowUp className="h-3.5 w-3.5" />
+              </button>
 
-          {!isCollapsed && (
-            <>
-              {/* Comment Content */}
-              <div className="mb-3">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {comment.content}
-                </p>
-              </div>
+              {/* Vote Score */}
+              <span className={`text-xs font-medium min-w-[24px] text-center ${comment.userVote === 'up' ? 'text-civic-green' :
+                  comment.userVote === 'down' ? 'text-civic-red' :
+                    'text-foreground'
+                }`}>
+                {getVoteScore()}
+              </span>
 
-              {/* Comment Awards Display */}
-              <CommentAwardDisplay awards={comment.awards} size="sm" />
+              {/* Downvote */}
+              <button
+                onClick={() => handleVote('down')}
+                className={`p-0.5 hover:bg-accent rounded transition-colors ${comment.userVote === 'down' ? 'text-civic-red' : 'text-muted-foreground hover:text-civic-red'
+                  }`}
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+              </button>
 
-              {/* Comment Actions */}
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={getVoteButtonVariant('up')}
-                  size="sm"
-                  onClick={() => handleVote('up')}
-                  className="h-7 px-2"
-                >
-                  <ArrowUp className="h-3 w-3 mr-1" />
-                  {comment.upvotes}
-                </Button>
-                <Button
-                  variant={getVoteButtonVariant('down')}
-                  size="sm"
-                  onClick={() => handleVote('down')}
-                  className="h-7 px-2"
-                >
-                  <ArrowDown className="h-3 w-3 mr-1" />
-                  {comment.downvotes}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsReplying(!isReplying)}
-                  className="h-7 px-2"
-                >
-                  <Reply className="h-3 w-3 mr-1" />
-                  Reply
-                </Button>
+              {/* Reply */}
+              <button
+                onClick={() => setIsReplying(!isReplying)}
+                className="text-xs px-1.5 py-0.5 text-muted-foreground hover:bg-accent hover:text-foreground rounded transition-colors font-medium"
+              >
+                <Reply className="h-3 w-3 inline mr-0.5" />
+                Reply
+              </button>
+
+              {/* Award */}
+              <div className="flex items-center">
                 <CommentAwardButton
                   commentId={comment.id}
                   userRole={user?.role as any}
@@ -163,45 +166,68 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
                 />
               </div>
 
-              {/* Reply Form */}
-              {isReplying && (
-                <div className="mt-3 space-y-2">
-                  <Textarea
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder="Write a reply..."
-                    rows={3}
-                    className="text-sm"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleReply}
-                      disabled={!replyContent.trim()}
-                    >
-                      Reply
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsReplying(false);
-                        setReplyContent('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
+              {/* Share */}
+              <button className="text-xs px-1.5 py-0.5 text-muted-foreground hover:bg-accent hover:text-foreground rounded transition-colors font-medium">
+                <Share2 className="h-3 w-3 inline mr-0.5" />
+                Share
+              </button>
+
+              {/* More options */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground rounded transition-colors ml-auto">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <Flag className="h-4 w-4 mr-2" />
+                    Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Reply Form */}
+            {isReplying && (
+              <div className="mt-2 space-y-2 pl-2 border-l-2 border-border">
+                <Textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Write a reply..."
+                  rows={3}
+                  className="text-sm"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleReply}
+                    disabled={!replyContent.trim()}
+                    className="h-7"
+                  >
+                    Reply
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsReplying(false);
+                      setReplyContent('');
+                    }}
+                    className="h-7"
+                  >
+                    Cancel
+                  </Button>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Nested Replies */}
       {shouldShowReplies && !isCollapsed && (
-        <div className="space-y-2">
+        <div>
           {comment.replies!.map((reply) => (
             <CommentItem
               key={reply.id}
@@ -303,7 +329,7 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
       <Separator />
 
       {/* Comments List */}
-      <div className="space-y-2">
+      <div>
         {sortedComments.length === 0 ? (
           <div className="text-center py-8">
             <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
