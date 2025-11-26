@@ -178,6 +178,7 @@ export interface User {
   username: string;
   displayName: string;
   avatar?: string;
+  bannerUrl?: string;
   isVerified?: boolean;
   role?: 'citizen' | 'official' | 'expert' | 'journalist' | 'admin';
   karma?: number;

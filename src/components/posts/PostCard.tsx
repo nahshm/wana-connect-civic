@@ -166,10 +166,56 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
       );
     }
     return badges.length > 0 ? (
-      <div className="flex flex-wrap gap-1 mb-2 justify-end ml-auto">
+      <div className="flex flex-wrap gap-1 mb-2">
         {badges}
       </div>
     ) : null;
+  };
+
+  // Helper to render media (used in both views)
+  const renderMedia = () => {
+    if (!post.media || post.media.length === 0) return null;
+
+    return (
+      <div className="mb-3">
+        {post.media.length === 1 ? (
+          <div className="rounded-lg overflow-hidden border border-sidebar-border">
+            {post.media[0].file_type?.startsWith('image/') ? (
+              <img
+                src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+                alt="Post media"
+                className="w-full h-auto max-h-96 object-cover"
+              />
+            ) : post.media[0].file_type?.startsWith('video/') ? (
+              <video
+                src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+                controls
+                className="w-full h-auto max-h-96"
+              />
+            ) : null}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {post.media.slice(0, 4).map((media, index) => (
+              <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
+                {media.file_type?.startsWith('image/') ? (
+                  <img
+                    src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
+                    alt={`Post media ${index + 1}`}
+                    className="w-full h-32 object-cover"
+                  />
+                ) : media.file_type?.startsWith('video/') ? (
+                  <video
+                    src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
+                    className="w-full h-32 object-cover"
+                  />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (viewMode === 'compact') {
@@ -247,25 +293,25 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   }
 
   return (
-    <Card className="mb-2 bg-sidebar-background border-sidebar-border hover:border-sidebar-ring transition-colors">
+    <Card className="mb-2 bg-sidebar-background border-sidebar-border hover:border-sidebar-ring transition-colors max-w-2xl mx-auto">
       <div className="flex flex-col">
         {/* Main Content */}
-        <CardContent className="flex-1 p-3 min-w-0">
+        <CardContent className="flex-1 p-4 min-w-0">
           {/* Header */}
           <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-2">
-            <Avatar className="h-5 w-5">
+            <Avatar className="h-7 w-7">
               <AvatarImage src={post.author.avatar} />
               <AvatarFallback className="text-xs">{(post.author.displayName || post.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             {communityData ? (
-              <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
-                c/{communityData.name}
-              </Link>
-            ) : (
-              <span className="font-medium">Profile Post</span>
-            )}
-            <span>•</span>
-            <span>by</span>
+              <>
+                <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
+                  c/{communityData.name}
+                </Link>
+                <span>•</span>
+                <span>by</span>
+              </>
+            ) : null}
             <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
               u/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
@@ -286,69 +332,34 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           {/* Title and Content */}
           {isDetailView ? (
             <div>
-              <h1 className="font-semibold text-xl mb-3 text-sidebar-foreground leading-tight">{post.title}</h1>
-              <div className="text-sidebar-foreground mb-4">
+              {/* Detail View: Title -> Media -> Description */}
+              <h1 className="font-semibold text-2xl mb-4 text-sidebar-foreground leading-tight">{post.title}</h1>
+
+              {/* Media between title and description */}
+              {renderMedia()}
+
+              {/* Description */}
+              <div className="text-sidebar-foreground text-base mb-5">
                 {post.content}
               </div>
             </div>
           ) : (
-            <Link to={getPostLink()} className="block group">
-              <h2 className="font-semibold text-lg mb-2 text-sidebar-foreground group-hover:text-primary leading-tight line-clamp-3">
-                {post.title}
-              </h2>
-              {post.content && (
-                <p className="text-sm text-sidebar-muted-foreground mb-3 line-clamp-3">
-                  {post.content}
-                </p>
-              )}
-            </Link>
-          )}
+            <div>
+              {/* Feed View: Title only, no description */}
+              <Link to={getPostLink()} className="block group">
+                <h2 className="font-semibold text-xl mb-3 text-sidebar-foreground group-hover:text-primary leading-tight line-clamp-3">
+                  {post.title}
+                </h2>
+              </Link>
 
-          {/* Media */}
-          {post.media && post.media.length > 0 && (
-            <div className="mb-3">
-              {post.media.length === 1 ? (
-                <div className="rounded-lg overflow-hidden border border-sidebar-border">
-                  {post.media[0].file_type?.startsWith('image/') ? (
-                    <img
-                      src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-                      alt="Post media"
-                      className="w-full h-auto max-h-96 object-cover"
-                    />
-                  ) : post.media[0].file_type?.startsWith('video/') ? (
-                    <video
-                      src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-                      controls
-                      className="w-full h-auto max-h-96"
-                    />
-                  ) : null}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {post.media.slice(0, 4).map((media, index) => (
-                    <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
-                      {media.file_type?.startsWith('image/') ? (
-                        <img
-                          src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
-                          alt={`Post media ${index + 1}`}
-                          className="w-full h-32 object-cover"
-                        />
-                      ) : media.file_type?.startsWith('video/') ? (
-                        <video
-                          src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
-                          className="w-full h-32 object-cover"
-                        />
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Media shown in feed view - outside Link so it's clickable */}
+              {renderMedia()}
             </div>
           )}
 
           {/* Flairs - Display with same colors as form */}
           {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-4">
               {post.tags.map(tagId => {
                 const flair = CIVIC_FLAIRS.find(f => f.id === tagId);
                 if (!flair) return null;
@@ -357,7 +368,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                   <Badge
                     key={tagId}
                     variant="outline"
-                    className={`text-xs ${flair.bgColor} ${flair.color} border-transparent`}
+                    className={`text-sm ${flair.bgColor} ${flair.color} border-transparent`}
                   >
                     {flair.label}
                   </Badge>
@@ -368,52 +379,52 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
 
           {/* Actions */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
               {/* Voting Buttons moved here */}
-              <div className="flex items-center bg-sidebar-accent/50 rounded-full px-1 mr-2">
+              <div className="flex items-center bg-sidebar-accent/50 rounded-full px-2 mr-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onVote(post.id, 'up')}
-                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
+                  className={`h-10 w-10 p-0 rounded-full ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
                 >
-                  <ArrowUp className="w-4 h-4" />
+                  <ArrowUp className="w-5 h-5" />
                 </Button>
-                <span className="text-xs font-medium text-sidebar-foreground px-1 min-w-[1.5rem] text-center">
+                <span className="text-sm font-medium text-sidebar-foreground px-2 min-w-[2rem] text-center">
                   {formatNumber(getVoteScore())}
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onVote(post.id, 'down')}
-                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
+                  className={`h-10 w-10 p-0 rounded-full ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
                 >
-                  <ArrowDown className="w-4 h-4" />
+                  <ArrowDown className="w-5 h-5" />
                 </Button>
               </div>
 
-              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full" asChild>
+              <Button variant="ghost" size="sm" className="h-10 px-4 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full" asChild>
                 <Link to={getPostLink()}>
-                  <MessageCircle className="w-4 h-4 mr-1" />
+                  <MessageCircle className="w-5 h-5 mr-2" />
                   {post.commentCount}
                 </Link>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Share className="w-4 h-4 sm:mr-1" />
+              <Button variant="ghost" size="sm" className="h-10 px-3 sm:px-4 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Share className="w-5 h-5 sm:mr-2" />
                 <span className="hidden sm:inline">Share</span>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Bookmark className="w-4 h-4 sm:mr-1" />
+              <Button variant="ghost" size="sm" className="h-10 px-3 sm:px-4 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Bookmark className="w-5 h-5 sm:mr-2" />
                 <span className="hidden sm:inline">Save</span>
               </Button>
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                  <MoreHorizontal className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="h-10 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                  <MoreHorizontal className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-sidebar-background border-sidebar-border">

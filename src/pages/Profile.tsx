@@ -19,6 +19,7 @@ import { PostCard } from '@/components/posts/PostCard';
 import { CommentSection } from '@/components/posts/CommentSection';
 import { ProfileDataDebug } from '@/components/debug/ProfileDataDebug';
 import { BadgeShowcase } from '@/components/gamification/BadgeShowcase';
+import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 
 // Utility function to convert snake_case keys to camelCase recursively
 function toCamelCase(obj: any): any {
@@ -40,6 +41,8 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
     bio: profile.bio || '',
     location: profile.location || '',
     expertise: profile.expertise?.join(', ') || '',
+    avatar: profile.avatar || '',
+    bannerUrl: profile.bannerUrl || '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -50,6 +53,8 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
       bio: formData.bio,
       location: formData.location,
       expertise: formData.expertise.split(',').map(s => s.trim()).filter(s => s),
+      avatar: formData.avatar,
+      bannerUrl: formData.bannerUrl,
     };
     onSave(updated);
   };
@@ -61,7 +66,19 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
           <CardTitle>Edit Profile</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <ProfileImageUpload
+              userId={profile.id}
+              imageUrl={formData.bannerUrl}
+              imageType="banner"
+              onChange={(url) => setFormData({ ...formData, bannerUrl: url })}
+            />
+            <ProfileImageUpload
+              userId={profile.id}
+              imageUrl={formData.avatar}
+              imageType="avatar"
+              onChange={(url) => setFormData({ ...formData, avatar: url })}
+            />
             <div>
               <Label htmlFor="displayName">Display Name</Label>
               <Input id="displayName" value={formData.displayName} onChange={(e) => setFormData({ ...formData, displayName: e.target.value })} />
@@ -193,14 +210,25 @@ const Profile = () => {
           bio: updatedProfile.bio,
           location: updatedProfile.location,
           expertise: updatedProfile.expertise,
+          avatar_url: updatedProfile.avatar,
+          banner_url: updatedProfile.bannerUrl,
         })
         .eq('id', profile?.id);
 
       if (error) throw error;
       setProfile(updatedProfile);
       setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
     } catch (error) {
       console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
     }
   };
 
@@ -234,7 +262,14 @@ const Profile = () => {
         .single();
 
       if (error) throw error;
-      setProfile(toCamelCase(data));
+
+      // Convert to camelCase and map avatar_url to avatar for consistency
+      const profileData = toCamelCase(data);
+      if (profileData.avatarUrl && !profileData.avatar) {
+        profileData.avatar = profileData.avatarUrl;
+      }
+
+      setProfile(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -633,6 +668,13 @@ const Profile = () => {
     <div className="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-6 max-w-screen-xl">
       {/* Main Content */}
       <div className="flex-1">
+        {/* Profile Banner */}
+        {profile.bannerUrl && (
+          <div
+            className="w-full h-48 md:h-64 rounded-lg bg-cover bg-center mb-6"
+            style={{ backgroundImage: `url(${profile.bannerUrl})` }}
+          />
+        )}
         {/* Profile Header */}
         <Card className="mb-6">
           <CardHeader className="pb-4">
