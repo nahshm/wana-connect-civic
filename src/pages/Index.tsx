@@ -266,7 +266,7 @@ export default function Index() {
   });
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-16 xl:px-24 py-6">
+    <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
       {/* Main Content */}
       <div className="flex-1 max-w-3xl space-y-6">
         {/* Welcome Section */}
