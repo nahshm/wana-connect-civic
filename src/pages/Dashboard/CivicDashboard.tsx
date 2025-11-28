@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MapPin, TrendingUp, Users, FileText, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MyActions } from '@/components/dashboard/MyActions';
@@ -23,6 +24,9 @@ interface DashboardData {
   localPosts: any[];
   trendingDiscussions: any[];
   onboardingProgress: number;
+  userAvatar?: string;
+  userDisplayName?: string;
+  userBanner?: string;
 }
 
 const CivicDashboard = () => {
@@ -94,6 +98,9 @@ const CivicDashboard = () => {
         localPosts: localPosts || [],
         trendingDiscussions: trendingPosts || [],
         onboardingProgress: 100,
+        userAvatar: profile?.avatar_url,
+        userDisplayName: profile?.display_name || profile?.username,
+        userBanner: (profile as any)?.banner_url,
       });
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -116,14 +123,46 @@ const CivicDashboard = () => {
   if (!data) return null;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Welcome back! 👋
-        </h1>
-        <p className="text-muted-foreground">
-          Here's what's happening in {data.wardName}
-        </p>
+    <div className="container mx-auto px-2 sm:px-4 pb-6">
+      {/* Dashboard Header with Banner */}
+      <div className="w-full bg-card border border-border rounded-lg overflow-hidden mb-6">
+        {/* Banner */}
+        <div className="h-16 sm:h-20 md:h-24 lg:h-28 w-full bg-muted relative">
+          {data.userBanner ? (
+            <div
+              className="w-full h-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${data.userBanner})` }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+          )}
+        </div>
+
+        {/* Header Content */}
+        <div className="px-4 sm:px-6">
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-end pb-4 -mt-8 sm:-mt-12 mb-2">
+            {/* Avatar */}
+            <div className="relative mr-0 sm:mr-4 mb-4 sm:mb-0">
+              <Avatar className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 border-4 border-card rounded-full">
+                <AvatarImage src={data.userAvatar || undefined} />
+                <AvatarFallback className="text-2xl sm:text-3xl lg:text-4xl bg-primary text-primary-foreground">
+                  {data.userDisplayName?.[0]?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            {/* Welcome Info */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">
+                Welcome back! 👋
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base flex items-center gap-2 mt-1">
+                <MapPin className="w-4 h-4" />
+                Here's what's happening in {data.wardName}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -60,13 +60,13 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
       <Card>
         <CardHeader>
-          <CardTitle>Edit Profile</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">Edit Profile</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <ProfileImageUpload
               userId={profile.id}
               imageUrl={formData.bannerUrl}
@@ -85,7 +85,7 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
             </div>
             <div>
               <Label htmlFor="bio">Bio</Label>
-              <Textarea id="bio" value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} />
+              <Textarea id="bio" value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} rows={4} />
             </div>
             <div>
               <Label htmlFor="location">Location</Label>
@@ -95,9 +95,9 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
               <Label htmlFor="expertise">Expertise (comma separated)</Label>
               <Input id="expertise" value={formData.expertise} onChange={(e) => setFormData({ ...formData, expertise: e.target.value })} />
             </div>
-            <div className="flex space-x-2">
-              <Button type="submit">Save</Button>
-              <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
+              <Button type="submit" className="w-full sm:w-auto">Save</Button>
+              <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
             </div>
           </form>
         </CardContent>
@@ -665,53 +665,53 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-6 max-w-screen-xl">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 flex flex-col lg:flex-row gap-4 lg:gap-6 max-w-screen-xl">
       {/* Main Content */}
-      <div className="flex-1">
-        {/* Profile Banner */}
-        {profile.bannerUrl && (
-          <div
-            className="w-full h-48 md:h-64 rounded-lg bg-cover bg-center mb-6"
-            style={{ backgroundImage: `url(${profile.bannerUrl})` }}
-          />
-        )}
-        {/* Profile Header */}
-        <Card className="mb-6">
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-4">
-                <Avatar className="w-20 h-20 relative">
+      <div className="flex-1 min-w-0">
+        {/* Profile Banner & Header */}
+        <div className="w-full bg-card border border-border rounded-lg overflow-hidden mb-4 sm:mb-6">
+          {/* Banner */}
+          <div className="h-16 sm:h-20 md:h-24 lg:h-28 w-full bg-muted relative">
+            {profile.bannerUrl ? (
+              <div
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${profile.bannerUrl})` }}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-400" />
+            )}
+          </div>
+
+          {/* Header Content */}
+          <div className="px-4 sm:px-6">
+            <div className="relative flex flex-col sm:flex-row items-start sm:items-end pb-4 -mt-8 sm:-mt-12 mb-2">
+              {/* Avatar */}
+              <div className="relative mr-0 sm:mr-4 mb-4 sm:mb-0">
+                <Avatar className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 border-4 border-card rounded-full">
                   <AvatarImage src={profile.avatar || undefined} />
-                  <AvatarFallback className="text-2xl">
+                  <AvatarFallback className="text-2xl sm:text-3xl lg:text-4xl bg-primary text-primary-foreground">
                     {(profile.displayName || profile.username || '?')[0]?.toUpperCase()}
                   </AvatarFallback>
-                  {isOwnProfile && (
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="absolute bottom-0 right-0 rounded-full p-1"
-                      aria-label="Update Avatar"
-                      onClick={() => alert('Avatar update functionality to be implemented')}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </Button>
-                  )}
                 </Avatar>
-                <div>
-                  <h1 className="text-3xl font-bold">{profile.displayName || profile.username}</h1>
-                  <p className="text-gray-600">@{profile.username}</p>
-                  <div className="flex items-center space-x-4 mt-2">
+              </div>
+
+              {/* Title and Actions */}
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4 w-full min-w-0">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold truncate">{profile.displayName || profile.username}</h1>
+                  <p className="text-muted-foreground text-sm sm:text-base truncate">@{profile.username}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
                     <div className="flex items-center space-x-1">
-                      <MessageSquare className="w-4 h-4" />
-                      <span className="text-sm">{profile.activityStats?.postCount || 0} posts</span>
+                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm">{profile.activityStats?.postCount || 0} posts</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4" />
-                      <span className="text-sm">{profile.activityStats?.commentCount || 0} comments</span>
+                      <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm">{profile.activityStats?.commentCount || 0} comments</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-sm">
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm">
                         Joined {profile.activityStats?.joinDate ?
                           new Date(profile.activityStats.joinDate).toLocaleDateString() :
                           'Recently'}
@@ -719,18 +719,22 @@ const Profile = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {isOwnProfile && (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                )}
+
+                <div className="flex items-center space-x-2 sm:flex-shrink-0">
+                  {isOwnProfile && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="w-full sm:w-auto rounded-full">
+                      <Edit className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">Edit Profile</span>
+                      <span className="sm:hidden">Edit</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+
+          {/* Bio and Additional Info */}
+          <CardContent className="pt-0 px-4 sm:px-6 pb-4">
             <div className="flex flex-wrap gap-4 text-sm text-gray-600">
               {profile.location && (
                 <div className="flex items-center space-x-1">
@@ -761,7 +765,7 @@ const Profile = () => {
               </div>
             )}
           </CardContent>
-        </Card>
+        </div>
         {/* Removed debug component as it has served its purpose */}
 
         {/* Profile Tabs */}

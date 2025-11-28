@@ -118,3 +118,33 @@
         /* overflow-x: hidden; Removed to allow scrolling if needed */
     }
 }
+
+@layer utilities {
+
+    /* Reddit-inspired spacing utilities */
+    .feed-spacing {
+        @apply space-y-3;
+    }
+
+    .card-compact {
+        @apply p-3;
+    }
+
+    .card-normal {
+        @apply p-4;
+    }
+
+    /* Improved focus states */
+    .focus-ring {
+        @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    }
+}
+
+/* Improve default card styling */
+.card {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.card:hover {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}

@@ -293,15 +293,15 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   }
 
   return (
-    <Card className="mb-2 bg-sidebar-background border-sidebar-border hover:border-sidebar-ring transition-colors max-w-2xl mx-auto">
+    <Card className="mb-2 bg-sidebar-background border-sidebar-border hover:border-sidebar-ring transition-colors max-w-[640px] mx-auto">
       <div className="flex flex-col">
         {/* Main Content */}
-        <CardContent className="flex-1 p-4 min-w-0">
+        <CardContent className="flex-1 p-3 min-w-0">
           {/* Header */}
-          <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-2">
-            <Avatar className="h-7 w-7">
+          <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-1.5">
+            <Avatar className="h-6 w-6">
               <AvatarImage src={post.author.avatar} />
-              <AvatarFallback className="text-xs">{(post.author.displayName || post.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="text-[10px]">{(post.author.displayName || post.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             {communityData ? (
               <>
@@ -333,13 +333,13 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           {isDetailView ? (
             <div>
               {/* Detail View: Title -> Media -> Description */}
-              <h1 className="font-semibold text-2xl mb-4 text-sidebar-foreground leading-tight">{post.title}</h1>
+              <h1 className="font-semibold text-xl mb-3 text-sidebar-foreground leading-tight">{post.title}</h1>
 
               {/* Media between title and description */}
               {renderMedia()}
 
               {/* Description */}
-              <div className="text-sidebar-foreground text-base mb-5">
+              <div className="text-sidebar-foreground text-sm mb-4">
                 {post.content}
               </div>
             </div>
@@ -347,7 +347,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             <div>
               {/* Feed View: Title only, no description */}
               <Link to={getPostLink()} className="block group">
-                <h2 className="font-semibold text-xl mb-3 text-sidebar-foreground group-hover:text-primary leading-tight line-clamp-3">
+                <h2 className="font-semibold text-base mb-2 text-sidebar-foreground group-hover:text-primary leading-snug line-clamp-3">
                   {post.title}
                 </h2>
               </Link>
@@ -359,7 +359,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
 
           {/* Flairs - Display with same colors as form */}
           {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-1.5 mb-3">
               {post.tags.map(tagId => {
                 const flair = CIVIC_FLAIRS.find(f => f.id === tagId);
                 if (!flair) return null;
@@ -368,7 +368,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                   <Badge
                     key={tagId}
                     variant="outline"
-                    className={`text-sm ${flair.bgColor} ${flair.color} border-transparent`}
+                    className={`text-xs ${flair.bgColor} ${flair.color} border-transparent`}
                   >
                     {flair.label}
                   </Badge>
@@ -381,50 +381,50 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {/* Voting Buttons moved here */}
-              <div className="flex items-center bg-sidebar-accent/50 rounded-full px-2 mr-2">
+              <div className="flex items-center bg-sidebar-accent/50 rounded-full px-1.5 mr-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onVote(post.id, 'up')}
-                  className={`h-10 w-10 p-0 rounded-full ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
+                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
                 >
-                  <ArrowUp className="w-5 h-5" />
+                  <ArrowUp className="w-4 h-4" />
                 </Button>
-                <span className="text-sm font-medium text-sidebar-foreground px-2 min-w-[2rem] text-center">
+                <span className="text-xs font-medium text-sidebar-foreground px-1.5 min-w-[1.5rem] text-center">
                   {formatNumber(getVoteScore())}
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onVote(post.id, 'down')}
-                  className={`h-10 w-10 p-0 rounded-full ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
+                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
                 >
-                  <ArrowDown className="w-5 h-5" />
+                  <ArrowDown className="w-4 h-4" />
                 </Button>
               </div>
 
-              <Button variant="ghost" size="sm" className="h-10 px-4 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full" asChild>
+              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full" asChild>
                 <Link to={getPostLink()}>
-                  <MessageCircle className="w-5 h-5 mr-2" />
-                  {post.commentCount}
+                  <MessageCircle className="w-4 h-4 mr-1.5" />
+                  <span className="text-xs">{post.commentCount}</span>
                 </Link>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-10 px-3 sm:px-4 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Share className="w-5 h-5 sm:mr-2" />
-                <span className="hidden sm:inline">Share</span>
+              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Share className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline text-xs">Share</span>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-10 px-3 sm:px-4 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Bookmark className="w-5 h-5 sm:mr-2" />
-                <span className="hidden sm:inline">Save</span>
+              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                <Bookmark className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline text-xs">Save</span>
               </Button>
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-10 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                  <MoreHorizontal className="w-5 h-5" />
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
+                  <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-sidebar-background border-sidebar-border">
