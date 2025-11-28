@@ -1298,8 +1298,8 @@ const Profile = () => {
             </div>
             <Separator className="my-4" />
             <div className="text-xs text-gray-500 text-center">
-              <p>WanaIQ Rules | Privacy Policy | User Agreement | Accessibility</p>
-              <p>WanaIQ, Inc. © 2025. All rights reserved.</p>
+              <p>ama Rules | Privacy Policy | User Agreement | Accessibility</p>
+              <p>ama, Inc. © 2025. All rights reserved.</p>
             </div>
           </CardContent>
         </Card>

@@ -217,7 +217,7 @@ export const RightSidebar = () => {
           </div>
           <div className="mt-4 pt-3 border-t border-sidebar-border">
             <p className="text-xs text-sidebar-muted-foreground">
-              WanaIQ Inc © 2024. All rights reserved.
+              ama Inc © 2024. All rights reserved.
             </p>
           </div>
         </CardContent>

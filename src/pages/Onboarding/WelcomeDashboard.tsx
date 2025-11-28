@@ -90,7 +90,7 @@ export const WelcomeDashboard = () => {
             <Award className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-4xl font-bold text-foreground mb-2">
-            Welcome to WanaIQ! 🎉
+            Welcome to ama! 🎉
           </h1>
           <p className="text-lg text-muted-foreground mb-4">
             You're all set up and ready to make a difference in your community

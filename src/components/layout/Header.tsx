@@ -38,7 +38,7 @@ export const Header = () => {
         <SidebarTrigger className="mr-2 sm:mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
         <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
           <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-sidebar-primary">
-            WanaIQ
+            ama
           </h1>
 
           {/* Desktop Search */}

@@ -273,7 +273,7 @@ export default function Index() {
         {!user && (
           <Card className="bg-gradient-to-r from-civic-green/10 to-civic-blue/10 border-civic-green/20">
             <CardHeader>
-              <CardTitle className="text-2xl">Welcome to WanaIQ</CardTitle>
+              <CardTitle className="text-2xl">Welcome to ama</CardTitle>
               <CardDescription className="text-lg">
                 Kenya's premier civic engagement platform. Join discussions, track government promises, and participate in democracy.
               </CardDescription>
@@ -309,7 +309,7 @@ export default function Index() {
               <CardContent className="py-12 px-8">
                 <div className="text-center mb-8">
                   <MessageSquare className="h-16 w-16 text-civic-blue mx-auto mb-6" />
-                  <h2 className="text-2xl font-bold mb-4 text-civic-blue">Welcome to WanaIQ!</h2>
+                  <h2 className="text-2xl font-bold mb-4 text-civic-blue">Welcome to ama!</h2>
                   <p className="text-lg text-muted-foreground mb-6">
                     Kenya's premier civic engagement platform. Here's what you can do:
                   </p>
@@ -365,7 +365,7 @@ export default function Index() {
                     <Button asChild className="bg-civic-green hover:bg-civic-green/90">
                       <Link to="/auth" className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        Join WanaIQ Community
+                        Join ama Community
                       </Link>
                     </Button>
                   )}

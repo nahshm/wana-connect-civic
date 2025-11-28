@@ -113,7 +113,7 @@ export interface Comment {
   depth: number;
   isCollapsed: boolean;
   moderationStatus: 'pending' | 'approved' | 'removed';
-  // New WanaIQ comment enhancements
+  // New ama comment enhancements
   flair?: CommentFlair;
   awards?: CommentAward[];
   karma?: number;

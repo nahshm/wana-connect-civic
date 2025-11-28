@@ -150,7 +150,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       toast({
-        title: "Welcome to WanaIQ!",
+        title: "Welcome to ama!",
         description: "Let's set up your profile to connect you to your community."
       });
 

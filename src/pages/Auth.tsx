@@ -68,10 +68,10 @@ export default function Auth() {
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to WanaIQ
+            Back to ama
           </Link>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-civic-green to-civic-blue bg-clip-text text-transparent">
-            WanaIQ
+            ama
           </h1>
           <p className="text-muted-foreground">
             Empowering Kenyan civic engagement

@@ -229,7 +229,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       // Refresh profile to update onboarding status in context
       await refreshProfile();
 
-      toast.success('Welcome to WanaIQ! 🎉');
+      toast.success('Welcome to ama! 🎉');
       navigate('/welcome');
     } catch (error) {
       console.error('Error completing onboarding:', error);
