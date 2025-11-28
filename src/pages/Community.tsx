@@ -232,13 +232,13 @@ const Community = () => {
           isModerator={isModerator || isAdmin}
         />
 
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="container mx-auto px-3 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Main Content (Feed) */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 feed-spacing">
               {activeTab === 'posts' && <CreatePostInput />}
 
-              <TabsContent value="posts" className="mt-0 space-y-4">
+              <TabsContent value="posts" className="mt-0 feed-spacing">
                 {posts.length > 0 ? (
                   posts.map((post) => (
                     <PostCard key={post.id} post={post} onVote={() => { }} />

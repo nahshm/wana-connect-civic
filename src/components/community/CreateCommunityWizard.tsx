@@ -19,6 +19,9 @@ interface CommunityData {
     is_mature: boolean;
     banner_url: string;
     avatar_url: string;
+    rules?: string;
+    moderation_type?: 'admin' | 'elected' | 'community';
+    tags?: string[];
 }
 
 interface CreateCommunityWizardProps {
@@ -39,7 +42,10 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
         visibility_type: 'public',
         is_mature: false,
         banner_url: '',
-        avatar_url: ''
+        avatar_url: '',
+        rules: '',
+        moderation_type: 'admin',
+        tags: []
     });
 
     const MAX_STEPS = 3;
@@ -136,7 +142,10 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
                     visibility_type: 'public',
                     is_mature: false,
                     banner_url: '',
-                    avatar_url: ''
+                    avatar_url: '',
+                    rules: '',
+                    moderation_type: 'admin',
+                    tags: []
                 });
             }, 300);
         }
@@ -144,7 +153,7 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-5xl max-h-[85vh] p-0 gap-0">
+            <DialogContent className="max-w-4xl max-h-[80vh] p-0 gap-0">
                 <DialogTitle className="sr-only">Create Community</DialogTitle>
                 <DialogDescription className="sr-only">
                     Create a new community in 3 steps
@@ -157,8 +166,14 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
                     <X className="h-5 w-5" />
                 </button>
 
-                <div className="grid grid-cols-2 h-full max-h-[85vh]">
-                    <div className="flex flex-col p-6 overflow-y-auto">
+                <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] h-full max-h-[80vh]">
+                    {/* Preview - Top on mobile, Right on desktop */}
+                    <div className="bg-muted/20 p-3 border-b lg:border-b-0 lg:border-l lg:order-2 overflow-y-auto max-h-[200px] lg:max-h-none">
+                        <CommunityPreview data={communityData} />
+                    </div>
+
+                    {/* Form Content - Bottom on mobile, Left on desktop */}
+                    <div className="flex flex-col p-4 overflow-y-auto lg:order-1">
                         <div className="flex-1">
                             {step === 1 && (
                                 <Step1_CommunityType
@@ -182,6 +197,7 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
                             )}
                         </div>
 
+                        {/* Navigation */}
                         <div className="mt-auto pt-4 border-t">
                             <div className="flex justify-center gap-2 mb-4">
                                 {[1, 2, 3].map((i) => (
@@ -204,15 +220,11 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
                                     <Button onClick={handleNext} disabled={isCreating}>Next</Button>
                                 ) : (
                                     <Button onClick={handleCreateCommunity} disabled={isCreating}>
-                                        {isCreating ? 'Creating...' : 'Create Community'}
+                                        {isCreating ? 'Creating...' : 'Create'}
                                     </Button>
                                 )}
                             </div>
                         </div>
-                    </div>
-
-                    <div className="bg-muted/20 p-6 overflow-y-auto border-l">
-                        <CommunityPreview data={communityData} />
                     </div>
                 </div>
             </DialogContent>
