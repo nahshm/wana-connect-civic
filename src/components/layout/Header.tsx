@@ -37,9 +37,13 @@ export const Header = () => {
       <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center">
         <SidebarTrigger className="mr-2 sm:mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
         <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-sidebar-primary">
-            ama
-          </h1>
+          <Link to="/" className="flex-shrink-0">
+            <img
+              src="/logo.png"
+              alt="ama Logo"
+              className="h-8 sm:h-10 w-auto"
+            />
+          </Link>
 
           {/* Desktop Search */}
           <div className="hidden md:flex flex-1 max-w-2xl">
