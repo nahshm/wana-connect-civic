@@ -10,6 +10,7 @@ export interface Community {
   locationType?: 'ward' | 'constituency' | 'county' | 'national';
   locationValue?: string;
   isFollowing?: boolean;
+  isFavorite?: boolean;
   sensitivityLevel?: 'public' | 'moderated' | 'private';
   allowPostFlairs?: boolean;
   allowUserFlairs?: boolean;

@@ -35,7 +35,7 @@ const mainItems = [
   { title: 'Home', url: '/', icon: Home },
   { title: 'Popular', url: '/popular', icon: TrendingUp },
   { title: 'Government Tracker', url: '/officials', icon: Building2 },
-  { title: 'Explore', url: '/explore', icon: Globe },
+  { title: 'Explore', url: '/communities', icon: Globe },
 ];
 
 const feedItems = [
