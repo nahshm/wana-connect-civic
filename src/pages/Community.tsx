@@ -98,7 +98,7 @@ const Community = () => {
           .select('role')
           .eq('community_id', communityData.id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         setIsModerator(modData?.role === 'moderator');
         setIsAdmin(modData?.role === 'admin');

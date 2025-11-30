@@ -3,7 +3,7 @@ import { VideoPlayer } from './VideoPlayer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Heart, MessageCircle, Bookmark, Share2, Eye } from 'lucide-react'
+import { Heart, MessageCircle, Bookmark, Share2, Eye, Volume2, VolumeX } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,9 +13,11 @@ import { formatDistanceToNow } from 'date-fns'
 interface CivicClipCardProps {
     clip: any
     isActive: boolean
+    isMuted: boolean
+    onMuteToggle: (muted: boolean) => void
 }
 
-export const CivicClipCard = ({ clip, isActive }: CivicClipCardProps) => {
+export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle }: CivicClipCardProps) => {
     const { user } = useAuth()
     const { toast } = useToast()
     const [liked, setLiked] = useState(false)
@@ -128,6 +130,10 @@ export const CivicClipCard = ({ clip, isActive }: CivicClipCardProps) => {
         }
     }
 
+    const toggleMute = () => {
+        onMuteToggle(!isMuted)
+    }
+
     const getCategoryColor = (category?: string) => {
         const colors: Record<string, string> = {
             civic_education: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -156,22 +162,37 @@ export const CivicClipCard = ({ clip, isActive }: CivicClipCardProps) => {
                     videoUrl={clip.video_url}
                     thumbnailUrl={clip.thumbnail_url}
                     autoPlay={isActive}
-                    muted={true}
+                    isActive={isActive}
+                    muted={isMuted}
                     loop={true}
                     onView={handleView}
+                    onMuteChange={onMuteToggle}
                     className="h-full w-full"
                 />
             </div>
 
             {/* Overlay Content */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none">
-                {/* Top Bar */}
-                <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between pointer-events-auto">
+                {/* Mute/Unmute Button - Top Left */}
+                <button
+                    onClick={toggleMute}
+                    className="absolute top-20 left-4 p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all pointer-events-auto z-50"
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
+                >
+                    {isMuted ? (
+                        <VolumeX className="h-6 w-6 text-white" />
+                    ) : (
+                        <Volume2 className="h-6 w-6 text-white" />
+                    )}
+                </button>
+
+                {/* Category and Views - Top Right */}
+                <div className="absolute top-20 right-4 flex items-center gap-3 pointer-events-auto z-10">
                     <Badge className={`${getCategoryColor(clip.category)} border`}>
                         {formatCategory(clip.category)}
                     </Badge>
 
-                    <div className="flex items-center gap-2 text-white text-sm">
+                    <div className="flex items-center gap-2 text-white text-sm bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
                         <Eye className="h-4 w-4" />
                         <span>{clip.views_count.toLocaleString()}</span>
                     </div>

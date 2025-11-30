@@ -13,6 +13,7 @@ interface VideoFeedProps {
 
 export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
     const [currentIndex, setCurrentIndex] = useState(0)
+    const [isMuted, setIsMuted] = useState(true) // Global mute state for all videos
     const containerRef = useRef<HTMLDivElement>(null)
     const { ref: loadMoreRef, inView } = useInView()
 
@@ -82,26 +83,43 @@ export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
         }
     }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
 
-    // Handle scroll snapping
+    const allClips = data?.pages.flatMap(page => page) || []
+
+    // Track which video is currently in view using Intersection Observer
     useEffect(() => {
         const container = containerRef.current
         if (!container) return
 
-        const handleScroll = () => {
-            const scrollTop = container.scrollTop
-            const itemHeight = container.clientHeight
-            const newIndex = Math.round(scrollTop / itemHeight)
-
-            if (newIndex !== currentIndex) {
-                setCurrentIndex(newIndex)
-            }
+        const observerOptions = {
+            root: container,
+            threshold: 0.5, // Video must be at least 50% visible
+            rootMargin: '0px'
         }
 
-        container.addEventListener('scroll', handleScroll, { passive: true })
-        return () => container.removeEventListener('scroll', handleScroll)
-    }, [currentIndex])
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    // Find the index of the intersecting video
+                    const videoElement = entry.target as HTMLElement
+                    const index = parseInt(videoElement.dataset.index || '0', 10)
+                    if (index !== currentIndex) {
+                        setCurrentIndex(index)
+                    }
+                }
+            })
+        }
 
-    const allClips = data?.pages.flatMap(page => page) || []
+        const observer = new IntersectionObserver(observerCallback, observerOptions)
+
+        // Observe all video cards
+        const videoCards = container.querySelectorAll('[data-video-card]')
+        videoCards.forEach((card) => observer.observe(card))
+
+        return () => {
+            videoCards.forEach((card) => observer.unobserve(card))
+            observer.disconnect()
+        }
+    }, [allClips.length, currentIndex])
 
     if (isLoading) {
         return (
@@ -130,11 +148,14 @@ export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
             {allClips.map((clip, index) => (
-                <CivicClipCard
-                    key={clip.id}
-                    clip={clip}
-                    isActive={index === currentIndex}
-                />
+                <div key={clip.id} data-video-card data-index={index}>
+                    <CivicClipCard
+                        clip={clip}
+                        isActive={index === currentIndex}
+                        isMuted={isMuted}
+                        onMuteToggle={setIsMuted}
+                    />
+                </div>
             ))}
 
             {/* Load more trigger */}

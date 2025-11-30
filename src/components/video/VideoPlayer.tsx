@@ -11,8 +11,10 @@ interface VideoPlayerProps {
     muted?: boolean
     loop?: boolean
     className?: string
+    isActive?: boolean
     onView?: (duration: number, percentage: number) => void
     onComplete?: () => void
+    onMuteChange?: (muted: boolean) => void
 }
 
 export const VideoPlayer = ({
@@ -22,8 +24,10 @@ export const VideoPlayer = ({
     muted = true,
     loop = false,
     className,
+    isActive = true,
     onView,
-    onComplete
+    onComplete,
+    onMuteChange
 }: VideoPlayerProps) => {
     const videoRef = useRef<HTMLVideoElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -108,6 +112,22 @@ export const VideoPlayer = ({
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }, [])
 
+    // Handle play/pause based on isActive (visibility)
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video) return
+
+        if (isActive) {
+            // Video is in view - play it
+            video.play().catch(() => {
+                // Autoplay might be blocked, user needs to interact
+            })
+        } else {
+            // Video is out of view - pause it
+            video.pause()
+        }
+    }, [isActive])
+
     const togglePlay = () => {
         if (videoRef.current) {
             if (playing) {
@@ -124,6 +144,7 @@ export const VideoPlayer = ({
             videoRef.current.muted = newMuted
             setIsMuted(newMuted)
             setVolume(newMuted ? 0 : 1)
+            onMuteChange?.(newMuted)
         }
     }
 
