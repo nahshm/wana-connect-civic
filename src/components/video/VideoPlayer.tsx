@@ -117,15 +117,32 @@ export const VideoPlayer = ({
         const video = videoRef.current
         if (!video) return
 
-        if (isActive) {
-            // Video is in view - play it
-            video.play().catch(() => {
-                // Autoplay might be blocked, user needs to interact
-            })
-        } else {
-            // Video is out of view - pause it
-            video.pause()
+        const handlePlayPause = async () => {
+            try {
+                if (isActive) {
+                    // Video is in view - play it
+                    // Only play if not already playing
+                    if (video.paused) {
+                        await video.play()
+                    }
+                } else {
+                    // Video is out of view - pause it
+                    // Only pause if not already paused
+                    if (!video.paused) {
+                        video.pause()
+                    }
+                }
+            } catch (error) {
+                // Silently handle AbortError when play/pause conflict
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    // Expected error when scrolling quickly, ignore it
+                    return
+                }
+                console.error('Video play/pause error:', error)
+            }
         }
+
+        handlePlayPause()
     }, [isActive])
 
     const togglePlay = () => {
