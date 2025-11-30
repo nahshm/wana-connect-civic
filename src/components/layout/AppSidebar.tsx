@@ -6,15 +6,8 @@ import {
   Globe,
   Plus,
   Settings,
-  HelpCircle,
-  FileText,
-  Shield,
   Star,
   Building2,
-  BarChart3,
-  GraduationCap,
-  Megaphone,
-  Phone,
   User
 } from 'lucide-react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
@@ -40,19 +33,7 @@ const mainItems = [
   { title: 'Explore', url: '/communities', icon: Globe },
 ];
 
-const feedItems = [
-  { title: 'Budget Analysis', url: '/feed/budget', icon: BarChart3 },
-  { title: 'Policy Updates', url: '/feed/policy', icon: FileText },
-  { title: 'Civic Education', url: '/c/CivicEducation', icon: GraduationCap },
-];
 
-const resourceItems = [
-  { title: 'Public Participation', url: '/participation', icon: Megaphone },
-  { title: 'Government Contacts', url: '/contacts', icon: Phone },
-  { title: 'Civic Education Hub', url: '/education', icon: HelpCircle },
-  { title: 'Help', url: '/help', icon: HelpCircle },
-  { title: 'Privacy Policy', url: '/privacy', icon: Shield },
-];
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -95,26 +76,6 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            📊 Analysis & Updates
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {feedItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
             🏘️ Communities
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -134,26 +95,6 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            📚 Resources
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {resourceItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

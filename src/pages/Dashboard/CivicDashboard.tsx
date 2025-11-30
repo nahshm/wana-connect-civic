@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, TrendingUp, Users, FileText, CheckCircle2 } from 'lucide-react';
+import { MapPin, TrendingUp, Users, FileText, CheckCircle2, BarChart3, GraduationCap, Megaphone, Phone, HelpCircle, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MyActions } from '@/components/dashboard/MyActions';
 import { GamificationWidgets } from '@/components/gamification/GamificationWidgets';
@@ -257,6 +257,129 @@ const CivicDashboard = () => {
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-4">Your Civic Impact</h2>
         <GamificationWidgets />
+      </div>
+
+      {/* Insights & Analysis Section */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-4">📊 Insights & Analysis</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Budget Analysis Card */}
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer" asChild>
+            <Link to="/feed/budget">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                  Budget Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Track and analyze government budget allocations and spending
+                </CardDescription>
+              </CardContent>
+            </Link>
+          </Card>
+
+          {/* Policy Updates Card */}
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer" asChild>
+            <Link to="/feed/policy">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-green-500" />
+                  Policy Updates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Stay informed about latest policy changes and legislation
+                </CardDescription>
+              </CardContent>
+            </Link>
+          </Card>
+
+          {/* Civic Education Card */}
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer" asChild>
+            <Link to="/c/CivicEducation">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-purple-500" />
+                  Civic Education
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Learn about your rights, responsibilities, and civic duties
+                </CardDescription>
+              </CardContent>
+            </Link>
+          </Card>
+        </div>
+      </div>
+
+      {/* Civic Resources Section */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-4">📚 Civic Resources</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
+            <Link to="/participation">
+              <div className="flex items-start gap-3">
+                <Megaphone className="w-5 h-5 mt-0.5 text-orange-500" />
+                <div>
+                  <p className="font-semibold">Public Participation</p>
+                  <p className="text-xs text-muted-foreground">Engage in public forums</p>
+                </div>
+              </div>
+            </Link>
+          </Button>
+
+          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
+            <Link to="/contacts">
+              <div className="flex items-start gap-3">
+                <Phone className="w-5 h-5 mt-0.5 text-blue-500" />
+                <div>
+                  <p className="font-semibold">Government Contacts</p>
+                  <p className="text-xs text-muted-foreground">Directory of officials</p>
+                </div>
+              </div>
+            </Link>
+          </Button>
+
+          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
+            <Link to="/education">
+              <div className="flex items-start gap-3">
+                <HelpCircle className="w-5 h-5 mt-0.5 text-green-500" />
+                <div>
+                  <p className="font-semibold">Civic Education Hub</p>
+                  <p className="text-xs text-muted-foreground">Learning resources</p>
+                </div>
+              </div>
+            </Link>
+          </Button>
+
+          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
+            <Link to="/help">
+              <div className="flex items-start gap-3">
+                <HelpCircle className="w-5 h-5 mt-0.5 text-purple-500" />
+                <div>
+                  <p className="font-semibold">Help Center</p>
+                  <p className="text-xs text-muted-foreground">Get support</p>
+                </div>
+              </div>
+            </Link>
+          </Button>
+
+          <Button variant="outline" className="h-auto py-4 justify-start text-left" asChild>
+            <Link to="/privacy">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 mt-0.5 text-gray-500" />
+                <div>
+                  <p className="font-semibold">Privacy Policy</p>
+                  <p className="text-xs text-muted-foreground">Your data protection</p>
+                </div>
+              </div>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
