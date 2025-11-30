@@ -51,21 +51,21 @@ export function AppSidebar() {
 
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive
-      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground';
+      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
+      : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors';
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarContent className="gap-0">
-        <SidebarGroup>
+      <SidebarContent className="gap-0 py-2">
+        <SidebarGroup className="px-2">
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
                     <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <item.icon className="h-5 w-5" />
+                      {!collapsed && <span className="text-sm">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -74,24 +74,24 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            🏘️ Communities
+        <SidebarGroup className="px-2 pt-4 border-t border-sidebar-border/40">
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'px-3 pb-2 text-xs font-semibold text-sidebar-muted-foreground uppercase tracking-wide'}>
+            Communities
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setWizardOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                  {!collapsed && <span>Create Community</span>}
+                <SidebarMenuButton onClick={() => setWizardOpen(true)} className="h-10 px-3 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+                  <Plus className="h-5 w-5" />
+                  {!collapsed && <span className="text-sm">Create Community</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
                   <NavLink to="/communities" className={getNavCls}>
-                    <Star className="h-4 w-4" />
-                    {!collapsed && <span>Browse All</span>}
+                    <Star className="h-5 w-5" />
+                    {!collapsed && <span className="text-sm">Browse All</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -99,25 +99,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'text-xs font-medium text-sidebar-muted-foreground uppercase tracking-wider'}>
-            👤 Profile
+        <SidebarGroup className="px-2 pt-4 border-t border-sidebar-border/40">
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'px-3 pb-2 text-xs font-semibold text-sidebar-muted-foreground uppercase tracking-wide'}>
+            Profile
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/profile" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    {!collapsed && <span>My Profile</span>}
+                <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
+                  <Link to="/profile" className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+                    <User className="h-5 w-5" />
+                    {!collapsed && <span className="text-sm">My Profile</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/settings" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    {!collapsed && <span>Settings</span>}
+                <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
+                  <Link to="/settings" className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+                    <Settings className="h-5 w-5" />
+                    {!collapsed && <span className="text-sm">Settings</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
