@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Home,
+  Video,
   TrendingUp,
   Globe,
   Plus,
@@ -32,7 +33,8 @@ import {
 } from '@/components/ui/sidebar';
 
 const mainItems = [
-  { title: 'Home', url: '/', icon: Home },
+  { title: 'For You', url: '/', icon: Home },
+  { title: 'Reels', url: '/civic-clips', icon: Video },
   { title: 'Popular', url: '/popular', icon: TrendingUp },
   { title: 'Government Tracker', url: '/officials', icon: Building2 },
   { title: 'Explore', url: '/communities', icon: Globe },
