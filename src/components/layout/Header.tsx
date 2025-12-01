@@ -33,7 +33,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
+    <header className="w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
       <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center">
         <SidebarTrigger className="mr-2 sm:mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
         <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
