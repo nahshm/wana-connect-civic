@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SearchBar } from '@/components/layout/SearchBar';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Bell, User, Plus, LogOut, Users, MessageCircle, Search } from 'lucide-react';
@@ -33,41 +32,40 @@ export const Header = () => {
   };
 
   return (
-    <header className="w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
-      <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center">
-        <SidebarTrigger className="mr-2 sm:mr-4 hover:bg-sidebar-accent text-sidebar-foreground" />
-        <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
-          <Link to="/" className="flex-shrink-0">
-            <img
-              src="/logo.png"
-              alt="ama Logo"
-              className="h-8 sm:h-10 w-auto"
-            />
-          </Link>
+    <header className="w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60 z-10 relative">
+      <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-4">
+        {/* Logo */}
+        <Link to="/" className="flex-shrink-0">
+          <img
+            src="/logo.png"
+            alt="ama Logo"
+            className="h-8 sm:h-10 w-auto"
+          />
+        </Link>
 
-          {/* Desktop Search */}
-          <div className="hidden md:flex flex-1 max-w-2xl">
-            <SearchBar
-              placeholder="Search discussions, communities, users..."
-              className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring"
-              onSearch={(query, filters) => {
-                console.log('Search:', query, filters);
-                navigate(`/search?q=${encodeURIComponent(query)}`);
-              }}
-            />
-          </div>
-
-          {/* Mobile Search Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground"
-            onClick={() => setMobileSearchOpen(true)}
-          >
-            <Search className="w-4 h-4" />
-          </Button>
+        {/* Centered Search */}
+        <div className="hidden md:flex flex-1 max-w-2xl">
+          <SearchBar
+            placeholder="Search discussions, communities, users..."
+            className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring"
+            onSearch={(query, filters) => {
+              console.log('Search:', query, filters);
+              navigate(`/search?q=${encodeURIComponent(query)}`);
+            }}
+          />
         </div>
 
+        {/* Mobile Search Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground"
+          onClick={() => setMobileSearchOpen(true)}
+        >
+          <Search className="w-4 h-4" />
+        </Button>
+
+        {/* Right side actions */}
         <div className="flex items-center space-x-0.5 sm:space-x-1">
           {user ? (
             <>

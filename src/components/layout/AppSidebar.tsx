@@ -22,6 +22,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
 
@@ -125,6 +126,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* Toggle button on right edge of sidebar */}
+      <SidebarRail />
 
       <CreateCommunityWizard
         isOpen={wizardOpen}
