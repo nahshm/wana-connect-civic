@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { SearchBar } from '@/components/layout/SearchBar';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Bell, User, Plus, LogOut, Users, MessageCircle, Search } from 'lucide-react';
+import { Bell, User, Plus, LogOut, Users, MessageCircle, Search, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateCommunityWizard } from '@/components/community/CreateCommunityWizard';
@@ -27,6 +27,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const { toggleSidebar } = useSidebar();
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,7 +37,14 @@ export const Header = () => {
     <header className="sticky top-0 z-10 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
       <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
         {/* Mobile Hamburger Menu */}
-        <SidebarTrigger className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground -ml-2 h-9 w-9"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
 
         {/* Logo */}
         <Link to="/" className="flex-shrink-0">
