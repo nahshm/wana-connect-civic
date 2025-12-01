@@ -3703,6 +3703,41 @@ export type Database = {
         }
         Relationships: []
       }
+      public_community_moderators: {
+        Row: {
+          added_at: string | null
+          avatar_url: string | null
+          community_id: string | null
+          display_name: string | null
+          id: string | null
+          role: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_moderators_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_moderators_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_moderators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_contractors: {
         Row: {
           average_rating: number | null
