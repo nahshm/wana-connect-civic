@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SearchBar } from '@/components/layout/SearchBar';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Bell, User, Plus, LogOut, Users, MessageCircle, Search } from 'lucide-react';
@@ -32,8 +33,11 @@ export const Header = () => {
   };
 
   return (
-    <header className="w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60 z-10 relative">
-      <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-10 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
+      <div className="w-full px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+        {/* Mobile Hamburger Menu */}
+        <SidebarTrigger className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground" />
+
         {/* Logo */}
         <Link to="/" className="flex-shrink-0">
           <img
