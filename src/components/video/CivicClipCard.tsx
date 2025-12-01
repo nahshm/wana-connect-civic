@@ -1,28 +1,32 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { VideoPlayer } from './VideoPlayer'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Heart, MessageCircle, Bookmark, Share2, Eye, Volume2, VolumeX } from 'lucide-react'
+import { Heart, MessageCircle, Bookmark, Share2, Eye, Volume2, VolumeX, MoreHorizontal } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
 import { formatDistanceToNow } from 'date-fns'
+import { CivicClipAccountabilityBadge } from './CivicClipAccountabilityBadge'
+import { CivicClipProgressIndicator } from './CivicClipProgressIndicator'
 
 interface CivicClipCardProps {
     clip: any
     isActive: boolean
     isMuted: boolean
     onMuteToggle: (muted: boolean) => void
+    showAccountability?: boolean
 }
 
-export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle }: CivicClipCardProps) => {
+export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccountability = false }: CivicClipCardProps) => {
     const { user } = useAuth()
     const { toast } = useToast()
     const [liked, setLiked] = useState(false)
     const [saved, setSaved] = useState(false)
     const [likes, setLikes] = useState(clip.post?.votes_count || 0)
+    const [progress, setProgress] = useState(0)
+    const [showActions, setShowActions] = useState(false)
 
     const post = clip.post
     const author = post?.author
@@ -111,6 +115,8 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle }: CivicCl
     }
 
     const handleView = async (duration: number, percentage: number) => {
+        setProgress(percentage)
+        
         if (!user) return
 
         try {
@@ -156,6 +162,11 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle }: CivicCl
 
     return (
         <div className="relative h-screen w-full snap-start snap-always bg-black">
+            {/* Video Progress Bar - Top */}
+            <div className="absolute top-0 left-0 right-0 z-50 px-0">
+                <CivicClipProgressIndicator progress={progress} duration={clip.duration} />
+            </div>
+
             {/* Video Player */}
             <div className="absolute inset-0">
                 <VideoPlayer
@@ -176,7 +187,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle }: CivicCl
                 {/* Mute/Unmute Button - Top Left */}
                 <button
                     onClick={toggleMute}
-                    className="absolute top-20 left-4 p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all pointer-events-auto z-50"
+                    className="absolute top-24 left-4 p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all pointer-events-auto z-50"
                     aria-label={isMuted ? 'Unmute' : 'Mute'}
                 >
                     {isMuted ? (
@@ -187,15 +198,26 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle }: CivicCl
                 </button>
 
                 {/* Category and Views - Top Right */}
-                <div className="absolute top-20 right-4 flex items-center gap-3 pointer-events-auto z-10">
-                    <Badge className={`${getCategoryColor(clip.category)} border`}>
-                        {formatCategory(clip.category)}
-                    </Badge>
+                <div className="absolute top-24 right-4 flex flex-col items-end gap-2 pointer-events-auto z-10">
+                    <div className="flex items-center gap-2">
+                        <Badge className={`${getCategoryColor(clip.category)} border`}>
+                            {formatCategory(clip.category)}
+                        </Badge>
 
-                    <div className="flex items-center gap-2 text-white text-sm bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                        <Eye className="h-4 w-4" />
-                        <span>{clip.views_count.toLocaleString()}</span>
+                        <div className="flex items-center gap-1.5 text-white text-sm bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                            <Eye className="h-3.5 w-3.5" />
+                            <span>{clip.views_count?.toLocaleString() || 0}</span>
+                        </div>
                     </div>
+
+                    {/* Accountability Badge */}
+                    {showAccountability && (
+                        <CivicClipAccountabilityBadge
+                            factCheckStatus={clip.fact_check_status || 'unverified'}
+                            officialResponse={clip.official_response_status || 'none'}
+                            hasSourceCitation={clip.has_sources || false}
+                        />
+                    )}
                 </div>
 
                 {/* Bottom Content */}
