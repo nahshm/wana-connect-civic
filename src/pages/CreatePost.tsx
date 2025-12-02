@@ -41,12 +41,13 @@ const CreatePost = () => {
 
     try {
       // Determine content type based on post type and files
-      let contentType: 'text' | 'video' | 'image' | 'link' = 'text'
+      // Map 'link' to 'text' since 'link' is not a valid DB content_type
+      let contentType: 'text' | 'video' | 'image' = 'text'
       let hasVideo = false
       let hasImage = false
 
       if (postData.postType === 'link') {
-        contentType = 'link'
+        contentType = 'text' // Link posts are stored as text type
       } else if (postData.evidenceFiles && postData.evidenceFiles.length > 0) {
         // Check if any files are videos
         hasVideo = postData.evidenceFiles.some((file: File) =>
@@ -75,7 +76,7 @@ const CreatePost = () => {
 
       const { data, error } = await supabase
         .from('posts')
-        .insert(postPayload)
+        .insert([postPayload])
         .select()
         .single();
 

@@ -46,7 +46,7 @@ export const BadgeShowcase = ({ userId }: BadgeShowcaseProps) => {
                 .order('awarded_at', { ascending: false });
 
             if (error) throw error;
-            setUserBadges(data || []);
+            setUserBadges((data as any[]) || []);
         } catch (error) {
             console.error('Error fetching badges:', error);
         } finally {
@@ -62,7 +62,7 @@ export const BadgeShowcase = ({ userId }: BadgeShowcaseProps) => {
                 .eq('user_id', userId);
 
             if (error) throw error;
-            const total = data?.reduce((sum, action) => sum + action.action_value, 0) || 0;
+            const total = (data as any[])?.reduce((sum: number, action: any) => sum + (action.action_value || 0), 0) || 0;
             setTotalPoints(total);
         } catch (error) {
             console.error('Error fetching points:', error);

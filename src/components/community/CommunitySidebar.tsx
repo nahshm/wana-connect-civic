@@ -119,7 +119,14 @@ export const CommunitySidebar = ({
                         <Button className="w-full rounded-full" asChild>
                             <a href="/create-post">Create Post</a>
                         </Button>
-                        <CommunityGuideModal community={community} />
+                        <CommunityGuideModal 
+                            community={community} 
+                            trigger={
+                                <Button variant="outline" className="w-full rounded-full">
+                                    Community Guide
+                                </Button>
+                            }
+                        />
                     </div>
                 </CardContent>
             </Card>
@@ -129,9 +136,16 @@ export const CommunitySidebar = ({
                 <Card className="bg-sidebar-background border-sidebar-border">
                     <CardContent className="pt-4">
                         <UserFlairSelector
-                            communityId={community.id}
                             currentFlair={userProfile?.user_flair}
-                            onFlairUpdate={(flair) => setUserProfile({ ...userProfile, user_flair: flair })}
+                            onFlairUpdated={async () => {
+                                // Refetch user profile after flair update
+                                const { data } = await supabase
+                                    .from('profiles')
+                                    .select('user_flair')
+                                    .eq('id', user.id)
+                                    .single();
+                                if (data) setUserProfile(data);
+                            }}
                         />
                     </CardContent>
                 </Card>
