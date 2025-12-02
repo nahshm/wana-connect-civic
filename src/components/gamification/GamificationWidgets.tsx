@@ -38,7 +38,7 @@ export const GamificationWidgets = () => {
                 .eq('status', 'active')
                 .limit(3);
 
-            setActiveQuests(quests || []);
+            setActiveQuests((quests as any[]) || []);
 
             // Fetch recent badges (last 3)
             const { data: badges } = await supabase
@@ -48,7 +48,7 @@ export const GamificationWidgets = () => {
                 .order('awarded_at', { ascending: false })
                 .limit(3);
 
-            setRecentBadges(badges || []);
+            setRecentBadges((badges as any[]) || []);
 
             // Fetch user rank
             const { data: rank } = await supabase
@@ -59,7 +59,7 @@ export const GamificationWidgets = () => {
                 .is('location_type', null)
                 .maybeSingle();
 
-            setUserRank(rank);
+            setUserRank(rank as any);
 
             // Fetch total points
             const { data: actions } = await supabase
@@ -67,7 +67,7 @@ export const GamificationWidgets = () => {
                 .select('action_value')
                 .eq('user_id', user.id);
 
-            const total = actions?.reduce((sum, a) => sum + a.action_value, 0) || 0;
+            const total = (actions as any[])?.reduce((sum: number, a: any) => sum + (a.action_value || 0), 0) || 0;
             setTotalPoints(total);
         } catch (error) {
             console.error('Error fetching gamification data:', error);

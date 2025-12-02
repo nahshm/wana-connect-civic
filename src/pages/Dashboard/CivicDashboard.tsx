@@ -264,8 +264,8 @@ const CivicDashboard = () => {
         <h2 className="text-2xl font-bold mb-4">📊 Insights & Analysis</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Budget Analysis Card */}
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer" asChild>
-            <Link to="/feed/budget">
+          <Link to="/feed/budget">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-blue-500" />
@@ -277,12 +277,12 @@ const CivicDashboard = () => {
                   Track and analyze government budget allocations and spending
                 </CardDescription>
               </CardContent>
-            </Link>
-          </Card>
+            </Card>
+          </Link>
 
           {/* Policy Updates Card */}
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer" asChild>
-            <Link to="/feed/policy">
+          <Link to="/feed/policy">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-green-500" />
@@ -294,12 +294,12 @@ const CivicDashboard = () => {
                   Stay informed about latest policy changes and legislation
                 </CardDescription>
               </CardContent>
-            </Link>
-          </Card>
+            </Card>
+          </Link>
 
           {/* Civic Education Card */}
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer" asChild>
-            <Link to="/c/CivicEducation">
+          <Link to="/c/CivicEducation">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="w-5 h-5 text-purple-500" />
@@ -311,8 +311,8 @@ const CivicDashboard = () => {
                   Learn about your rights, responsibilities, and civic duties
                 </CardDescription>
               </CardContent>
-            </Link>
-          </Card>
+            </Card>
+          </Link>
         </div>
       </div>
 
