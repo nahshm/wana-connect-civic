@@ -53,6 +53,73 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_promises: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          politician_id: string
+          politician_name: string | null
+          sentiment_id: string | null
+          status: string
+          submitted_by: string
+          title: string
+          updated_at: string | null
+          verification_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          politician_id: string
+          politician_name?: string | null
+          sentiment_id?: string | null
+          status?: string
+          submitted_by: string
+          title: string
+          updated_at?: string | null
+          verification_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          politician_id?: string
+          politician_name?: string | null
+          sentiment_id?: string | null
+          status?: string
+          submitted_by?: string
+          title?: string
+          updated_at?: string | null
+          verification_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_promises_politician_id_fkey"
+            columns: ["politician_id"]
+            isOneToOne: false
+            referencedRelation: "officials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_promises_sentiment_id_fkey"
+            columns: ["sentiment_id"]
+            isOneToOne: false
+            referencedRelation: "sentiment_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_promises_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_submissions: {
         Row: {
           challenge_id: string
@@ -1122,9 +1189,11 @@ export type Database = {
           referenced_project_id: string | null
           referenced_promise_id: string | null
           search_vector: unknown
+          sentiment_id: string | null
           toxicity_score: number | null
           updated_at: string
           upvotes: number | null
+          verification_id: string | null
         }
         Insert: {
           appeal_status?: string | null
@@ -1157,9 +1226,11 @@ export type Database = {
           referenced_project_id?: string | null
           referenced_promise_id?: string | null
           search_vector?: unknown
+          sentiment_id?: string | null
           toxicity_score?: number | null
           updated_at?: string
           upvotes?: number | null
+          verification_id?: string | null
         }
         Update: {
           appeal_status?: string | null
@@ -1192,9 +1263,11 @@ export type Database = {
           referenced_project_id?: string | null
           referenced_promise_id?: string | null
           search_vector?: unknown
+          sentiment_id?: string | null
           toxicity_score?: number | null
           updated_at?: string
           upvotes?: number | null
+          verification_id?: string | null
         }
         Relationships: [
           {
@@ -1258,6 +1331,20 @@ export type Database = {
             columns: ["referenced_promise_id"]
             isOneToOne: false
             referencedRelation: "development_promises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_sentiment_id_fkey"
+            columns: ["sentiment_id"]
+            isOneToOne: false
+            referencedRelation: "sentiment_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "verifications"
             referencedColumns: ["id"]
           },
         ]
@@ -1968,9 +2055,11 @@ export type Database = {
           priority: string | null
           progress_percentage: number | null
           search_vector: unknown
+          sentiment_id: string | null
           status: string | null
           title: string
           updated_at: string | null
+          verification_id: string | null
           ward: string | null
         }
         Insert: {
@@ -2003,9 +2092,11 @@ export type Database = {
           priority?: string | null
           progress_percentage?: number | null
           search_vector?: unknown
+          sentiment_id?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
+          verification_id?: string | null
           ward?: string | null
         }
         Update: {
@@ -2038,9 +2129,11 @@ export type Database = {
           priority?: string | null
           progress_percentage?: number | null
           search_vector?: unknown
+          sentiment_id?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null
+          verification_id?: string | null
           ward?: string | null
         }
         Relationships: [
@@ -2070,6 +2163,20 @@ export type Database = {
             columns: ["official_id"]
             isOneToOne: false
             referencedRelation: "officials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_projects_sentiment_id_fkey"
+            columns: ["sentiment_id"]
+            isOneToOne: false
+            referencedRelation: "sentiment_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_projects_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "verifications"
             referencedColumns: ["id"]
           },
         ]
@@ -2498,10 +2605,12 @@ export type Database = {
           is_ngo_verified: boolean | null
           official_id: string | null
           search_vector: unknown
+          sentiment_id: string | null
           tags: string[] | null
           title: string
           updated_at: string
           upvotes: number | null
+          verification_id: string | null
           video_data: Json | null
         }
         Insert: {
@@ -2517,10 +2626,12 @@ export type Database = {
           is_ngo_verified?: boolean | null
           official_id?: string | null
           search_vector?: unknown
+          sentiment_id?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
           upvotes?: number | null
+          verification_id?: string | null
           video_data?: Json | null
         }
         Update: {
@@ -2536,10 +2647,12 @@ export type Database = {
           is_ngo_verified?: boolean | null
           official_id?: string | null
           search_vector?: unknown
+          sentiment_id?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
           upvotes?: number | null
+          verification_id?: string | null
           video_data?: Json | null
         }
         Relationships: [
@@ -2571,6 +2684,20 @@ export type Database = {
             referencedRelation: "officials"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "posts_sentiment_id_fkey"
+            columns: ["sentiment_id"]
+            isOneToOne: false
+            referencedRelation: "sentiment_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "verifications"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -2591,6 +2718,7 @@ export type Database = {
           id: string
           is_private: boolean | null
           is_verified: boolean | null
+          join_date: string | null
           karma: number | null
           last_activity: string | null
           location: string | null
@@ -2601,6 +2729,7 @@ export type Database = {
           role: string | null
           search_vector: unknown
           social_links: Json | null
+          title: string | null
           updated_at: string
           user_flair: string | null
           username: string | null
@@ -2625,6 +2754,7 @@ export type Database = {
           id: string
           is_private?: boolean | null
           is_verified?: boolean | null
+          join_date?: string | null
           karma?: number | null
           last_activity?: string | null
           location?: string | null
@@ -2635,6 +2765,7 @@ export type Database = {
           role?: string | null
           search_vector?: unknown
           social_links?: Json | null
+          title?: string | null
           updated_at?: string
           user_flair?: string | null
           username?: string | null
@@ -2659,6 +2790,7 @@ export type Database = {
           id?: string
           is_private?: boolean | null
           is_verified?: boolean | null
+          join_date?: string | null
           karma?: number | null
           last_activity?: string | null
           location?: string | null
@@ -2669,6 +2801,7 @@ export type Database = {
           role?: string | null
           search_vector?: unknown
           social_links?: Json | null
+          title?: string | null
           updated_at?: string
           user_flair?: string | null
           username?: string | null
@@ -3079,6 +3212,71 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sentiment_scores: {
+        Row: {
+          content_id: string
+          content_type: string
+          id: string
+          negative_count: number | null
+          neutral_count: number | null
+          positive_count: number | null
+          total_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          id?: string
+          negative_count?: number | null
+          neutral_count?: number | null
+          positive_count?: number | null
+          total_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          id?: string
+          negative_count?: number | null
+          neutral_count?: number | null
+          positive_count?: number | null
+          total_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sentiment_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          sentiment_id: string
+          sentiment_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          sentiment_id: string
+          sentiment_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          sentiment_id?: string
+          sentiment_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentiment_votes_sentiment_id_fkey"
+            columns: ["sentiment_id"]
+            isOneToOne: false
+            referencedRelation: "sentiment_scores"
             referencedColumns: ["id"]
           },
         ]
@@ -3515,6 +3713,71 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      verification_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string
+          verification_id: string
+          vote_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id: string
+          verification_id: string
+          vote_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          verification_id?: string
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_votes_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verifications: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string | null
+          id: string
+          status: string
+          total_votes: number | null
+          truth_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          created_at?: string | null
+          id?: string
+          status?: string
+          total_votes?: number | null
+          truth_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string | null
+          id?: string
+          status?: string
+          total_votes?: number | null
+          truth_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       votes: {
         Row: {

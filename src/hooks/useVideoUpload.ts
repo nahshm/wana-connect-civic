@@ -42,11 +42,12 @@ export const useVideoUpload = () => {
             const randomString = Math.random().toString(36).substring(7)
             const fileName = `${userId}/${timestamp}_${randomString}.${fileExt}`
 
-            // Upload to Supabase Storage with progress tracking
+            // Upload to Supabase Storage with long-term caching (1 year)
+            // Videos are immutable - once uploaded, they never change
             const { data, error } = await supabase.storage
                 .from('civic-clips')
                 .upload(fileName, file, {
-                    cacheControl: '3600',
+                    cacheControl: '31536000, immutable', // 1 year cache - reduces repeat downloads
                     upsert: false
                 })
 
