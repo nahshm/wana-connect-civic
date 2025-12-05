@@ -55,6 +55,7 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/onboarding" element={<OnboardingFlow />} />
                   <Route path="/welcome" element={<WelcomeDashboard />} />
+                  <Route path="/civic-clips" element={<CivicClipsPage />} />
                   <Route path="/*" element={
                     <AppLayout>
                       <Routes>
@@ -84,7 +85,6 @@ const App = () => (
                         <Route path="/search" element={<SearchResults />} />
                         <Route path="/quests" element={<Quests />} />
                         <Route path="/leaderboards" element={<Leaderboards />} />
-                        <Route path="/civic-clips" element={<CivicClipsPage />} />
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
                         {/* Functional prefix routes - handled by PrefixRouter */}

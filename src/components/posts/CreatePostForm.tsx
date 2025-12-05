@@ -23,6 +23,8 @@ interface CreatePostFormProps {
   communities: Community[]
   onSubmit: (data: PostFormData) => void
   disabled?: boolean
+  initialValues?: Partial<PostFormData & { title?: string; content?: string }>
+  isEditing?: boolean
 }
 
 export interface PostFormData {
@@ -34,9 +36,7 @@ export interface PostFormData {
   evidenceFiles: File[]
   postType: 'text' | 'media' | 'link'
   linkUrl?: string
-  flair
-
-  Ids?: string[]
+  flairIds?: string[]
 }
 
 const POST_TYPES = [
@@ -62,14 +62,14 @@ const POST_TYPES = [
 
 const DRAFT_STORAGE_KEY = 'wana_post_draft'
 
-export const CreatePostForm = ({ communities, onSubmit, disabled }: CreatePostFormProps) => {
+export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues, isEditing }: CreatePostFormProps) => {
   // Form state
-  const [postType, setPostType] = useState<'text' | 'media' | 'link'>('text')
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [communityId, setCommunityId] = useState<string>()
-  const [flairIds, setFlairIds] = useState<string[]>([])
-  const [contentSensitivity, setContentSensitivity] = useState<ContentSensitivity>('public')
+  const [postType, setPostType] = useState<'text' | 'media' | 'link'>(initialValues?.postType || 'text')
+  const [title, setTitle] = useState(initialValues?.title || '')
+  const [content, setContent] = useState(initialValues?.content || '')
+  const [communityId, setCommunityId] = useState<string | undefined>(initialValues?.communityId)
+  const [flairIds, setFlairIds] = useState<string[]>(initialValues?.flairIds || [])
+  const [contentSensitivity, setContentSensitivity] = useState<ContentSensitivity>(initialValues?.contentSensitivity || 'public')
   const [files, setFiles] = useState<File[]>([])
   const [linkUrl, setLinkUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)

@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react'
+import { useInView } from 'react-intersection-observer'
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
@@ -15,6 +16,10 @@ interface VideoPlayerProps {
     onView?: (duration: number, percentage: number) => void
     onComplete?: () => void
     onMuteChange?: (muted: boolean) => void
+    /** Enable lazy loading - only loads video when near viewport */
+    lazyLoad?: boolean
+    /** Root margin for intersection observer (how early to start loading) */
+    preloadMargin?: string
 }
 
 export const VideoPlayer = ({
@@ -27,7 +32,9 @@ export const VideoPlayer = ({
     isActive = true,
     onView,
     onComplete,
-    onMuteChange
+    onMuteChange,
+    lazyLoad = true,
+    preloadMargin = '200px'
 }: VideoPlayerProps) => {
     const videoRef = useRef<HTMLVideoElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -40,6 +47,28 @@ export const VideoPlayer = ({
     const [showControls, setShowControls] = useState(true)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [hasStarted, setHasStarted] = useState(false)
+    const [isLoaded, setIsLoaded] = useState(!lazyLoad) // If not lazy loading, consider it loaded
+    const [isBuffering, setIsBuffering] = useState(false)
+
+    // Intersection Observer for lazy loading
+    const { ref: inViewRef, inView } = useInView({
+        threshold: 0,
+        rootMargin: preloadMargin,
+        triggerOnce: true, // Only trigger once - once loaded, stay loaded
+    })
+
+    // Combine refs
+    const setRefs = (node: HTMLDivElement | null) => {
+        containerRef.current = node
+        inViewRef(node)
+    }
+
+    // Start loading video when it comes into view
+    useEffect(() => {
+        if (inView && lazyLoad && !isLoaded) {
+            setIsLoaded(true)
+        }
+    }, [inView, lazyLoad, isLoaded])
 
     useEffect(() => {
         const video = videoRef.current
@@ -197,9 +226,29 @@ export const VideoPlayer = ({
         return `${minutes}:${seconds.toString().padStart(2, '0')}`
     }
 
+    // Handle video buffering state
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video) return
+
+        const handleWaiting = () => setIsBuffering(true)
+        const handlePlaying = () => setIsBuffering(false)
+        const handleCanPlay = () => setIsBuffering(false)
+
+        video.addEventListener('waiting', handleWaiting)
+        video.addEventListener('playing', handlePlaying)
+        video.addEventListener('canplay', handleCanPlay)
+
+        return () => {
+            video.removeEventListener('waiting', handleWaiting)
+            video.removeEventListener('playing', handlePlaying)
+            video.removeEventListener('canplay', handleCanPlay)
+        }
+    }, [isLoaded])
+
     return (
         <div
-            ref={containerRef}
+            ref={setRefs}
             className={cn(
                 'relative aspect-[9/16] bg-black rounded-lg overflow-hidden group',
                 className
@@ -207,15 +256,33 @@ export const VideoPlayer = ({
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
         >
+            {/* Thumbnail placeholder shown before video loads */}
+            {(!isLoaded || !videoUrl) && thumbnailUrl && (
+                <img 
+                    src={thumbnailUrl} 
+                    alt="Video thumbnail"
+                    className="absolute inset-0 w-full h-full object-cover"
+                />
+            )}
+
+            {/* Loading spinner */}
+            {(!isLoaded || isBuffering) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                    <Loader2 className="h-10 w-10 text-white animate-spin" />
+                </div>
+            )}
+
+            {/* Video element - only render src when loaded */}
             <video
                 ref={videoRef}
-                src={videoUrl}
+                src={isLoaded ? videoUrl : undefined}
                 poster={thumbnailUrl}
                 className="w-full h-full object-contain cursor-pointer"
-                autoPlay={autoPlay}
+                autoPlay={isLoaded && autoPlay}
                 muted={muted}
                 loop={loop}
                 playsInline
+                preload={isLoaded ? 'auto' : 'none'}
                 onClick={togglePlay}
             />
 

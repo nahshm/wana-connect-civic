@@ -46,11 +46,11 @@ const Leaderboards = () => {
             const { data, error } = await query;
 
             if (error) throw error;
-            setLeaderboards(data || []);
+            setLeaderboards((data as any[]) || []);
 
             // Find current user's rank
             if (user && data) {
-                const myRank = data.find(score => score.user_id === user.id);
+                const myRank = (data as any[]).find((score: any) => score.user_id === user.id);
                 setUserRank(myRank || null);
             }
         } catch (error) {
@@ -207,16 +207,16 @@ const Leaderboards = () => {
 
                                     {/* Avatar */}
                                     <Avatar className="w-12 h-12">
-                                        <AvatarImage src={score.user?.avatar_url || ''} />
+                                        <AvatarImage src={(score.user as any)?.avatar_url || (score.user as any)?.avatar || ''} />
                                         <AvatarFallback>
-                                            {score.user?.display_name?.charAt(0) || score.user?.username?.charAt(0) || '?'}
+                                            {(score.user as any)?.display_name?.charAt(0) || (score.user as any)?.displayName?.charAt(0) || score.user?.username?.charAt(0) || '?'}
                                         </AvatarFallback>
                                     </Avatar>
 
                                     {/* User Info */}
                                     <div className="flex-1">
                                         <p className="font-semibold">
-                                            {score.user?.display_name || score.user?.username || 'Anonymous'}
+                                            {(score.user as any)?.display_name || (score.user as any)?.displayName || score.user?.username || 'Anonymous'}
                                             {score.user_id === user?.id && (
                                                 <Badge variant="secondary" className="ml-2">You</Badge>
                                             )}

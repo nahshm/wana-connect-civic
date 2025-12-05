@@ -50,7 +50,7 @@ const Quests = () => {
                 .order('difficulty', { ascending: true });
 
             if (error) throw error;
-            setQuests(data || []);
+            setQuests((data as any[]) || []);
         } catch (error) {
             console.error('Error fetching quests:', error);
         } finally {
@@ -68,7 +68,7 @@ const Quests = () => {
                 .eq('user_id', user.id);
 
             if (error) throw error;
-            setUserQuests(data || []);
+            setUserQuests((data as any[]) || []);
         } catch (error) {
             console.error('Error fetching user quests:', error);
         }

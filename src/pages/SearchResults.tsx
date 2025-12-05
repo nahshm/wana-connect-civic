@@ -76,7 +76,7 @@ export const SearchResults = () => {
                             <div className="space-y-2">
                                 <h3 className="text-lg font-semibold">Posts</h3>
                                 {data.posts.map((post: any) => (
-                                    <PostCard key={post.id} post={post} view="card" />
+                                    <PostCard key={post.id} post={post} onVote={() => {}} viewMode="card" />
                                 ))}
                             </div>
                         )}
@@ -167,7 +167,7 @@ export const SearchResults = () => {
                     <TabsContent value="posts" className="space-y-4">
                         {data?.posts && data.posts.length > 0 ? (
                             data.posts.map((post: any) => (
-                                <PostCard key={post.id} post={post} view="card" />
+                                <PostCard key={post.id} post={post} onVote={() => {}} viewMode="card" />
                             ))
                         ) : (
                             <div className="text-center text-muted-foreground py-8">

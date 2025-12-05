@@ -55,7 +55,7 @@ interface ActionDetail {
 
 interface ActionUpdate {
     id: string;
-    old_status: string | null;
+    previous_status: string | null;
     new_status: string;
     comment: string | null;
     created_at: string;

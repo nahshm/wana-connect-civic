@@ -8,10 +8,17 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Video, Loader2, X } from 'lucide-react'
+import { Upload, Video, Loader2, X, Zap } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { 
+    compressVideo, 
+    isCompressionSupported, 
+    formatFileSize,
+    type CompressionProgress 
+} from '@/lib/videoCompression'
+import { generateVideoThumbnail, uploadThumbnail } from '@/lib/generateThumbnail'
 
 export const CreateCivicClip = () => {
     const { user } = useAuth()
@@ -20,30 +27,113 @@ export const CreateCivicClip = () => {
     const { toast } = useToast()
 
     const [videoFile, setVideoFile] = useState<File | null>(null)
+    const [compressedFile, setCompressedFile] = useState<File | null>(null)
     const [videoPreview, setVideoPreview] = useState<string | null>(null)
+    const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+    const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null)
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [category, setCategory] = useState('')
     const [hashtags, setHashtags] = useState('')
     const [communityId, setCommunityId] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const [compressing, setCompressing] = useState(false)
+    const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null)
+    const [compressionStats, setCompressionStats] = useState<{
+        original: number
+        compressed: number
+        ratio: number
+    } | null>(null)
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (file) {
-            // Validate file type
-            if (!file.type.startsWith('video/')) {
-                toast({
-                    title: 'Invalid file type',
-                    description: 'Please select a video file',
-                    variant: 'destructive'
-                })
-                return
+        if (!file) return
+
+        // Validate file type
+        if (!file.type.startsWith('video/')) {
+            toast({
+                title: 'Invalid file type',
+                description: 'Please select a video file',
+                variant: 'destructive'
+            })
+            return
+        }
+
+        setVideoFile(file)
+        const url = URL.createObjectURL(file)
+        setVideoPreview(url)
+
+        // Generate thumbnail immediately
+        try {
+            const thumbnail = await generateVideoThumbnail(file, 1)
+            setThumbnailPreview(thumbnail.dataUrl)
+            setThumbnailBlob(thumbnail.blob)
+        } catch (error) {
+            console.error('Failed to generate thumbnail:', error)
+        }
+
+        // Auto-compress if file is large and compression is supported
+        if (file.size > 10 * 1024 * 1024 && isCompressionSupported()) {
+            handleCompress(file)
+        }
+    }
+
+    const handleCompress = async (file: File) => {
+        if (!isCompressionSupported()) {
+            toast({
+                title: 'Compression not supported',
+                description: 'Your browser does not support video compression',
+                variant: 'destructive'
+            })
+            return
+        }
+
+        setCompressing(true)
+        setCompressionProgress({ stage: 'loading', progress: 0, message: 'Starting compression...' })
+
+        try {
+            const result = await compressVideo(file, {
+                maxWidth: 1280,
+                maxHeight: 720,
+                videoBitrate: 2_000_000,
+                onProgress: setCompressionProgress
+            })
+
+            setCompressedFile(result.compressedFile)
+            setCompressionStats({
+                original: result.originalSize,
+                compressed: result.compressedSize,
+                ratio: result.compressionRatio
+            })
+
+            // Update preview with compressed video
+            if (videoPreview) {
+                URL.revokeObjectURL(videoPreview)
+            }
+            setVideoPreview(URL.createObjectURL(result.compressedFile))
+
+            // Use thumbnail from compression if available
+            if (result.thumbnail && !thumbnailBlob) {
+                setThumbnailBlob(result.thumbnail)
+                const reader = new FileReader()
+                reader.onload = () => setThumbnailPreview(reader.result as string)
+                reader.readAsDataURL(result.thumbnail)
             }
 
-            setVideoFile(file)
-            const url = URL.createObjectURL(file)
-            setVideoPreview(url)
+            toast({
+                title: 'Video compressed!',
+                description: `Reduced from ${formatFileSize(result.originalSize)} to ${formatFileSize(result.compressedSize)} (${Math.round((1 - 1/result.compressionRatio) * 100)}% smaller)`
+            })
+        } catch (error: any) {
+            console.error('Compression error:', error)
+            toast({
+                title: 'Compression failed',
+                description: 'Using original video instead',
+                variant: 'destructive'
+            })
+        } finally {
+            setCompressing(false)
+            setCompressionProgress(null)
         }
     }
 
@@ -82,8 +172,17 @@ export const CreateCivicClip = () => {
         try {
             setSubmitting(true)
 
+            // Use compressed file if available, otherwise original
+            const fileToUpload = compressedFile || videoFile
+
             // Upload video
-            const { path, url } = await uploadVideo(videoFile, user.id)
+            const { path, url } = await uploadVideo(fileToUpload, user.id)
+
+            // Upload thumbnail if available
+            let thumbnailUrl: string | null = null
+            if (thumbnailBlob) {
+                thumbnailUrl = await uploadThumbnail(supabase, thumbnailBlob, user.id, 'civic-clips')
+            }
 
             // Parse hashtags
             const hashtagArray = hashtags
@@ -126,11 +225,12 @@ export const CreateCivicClip = () => {
                 .insert({
                     post_id: post.id,
                     video_url: url,
+                    thumbnail_url: thumbnailUrl,
                     duration,
                     width,
                     height,
                     aspect_ratio: aspectRatio,
-                    file_size: videoFile.size,
+                    file_size: fileToUpload.size,
                     category,
                     hashtags: hashtagArray,
                     processing_status: 'ready'
@@ -160,6 +260,10 @@ export const CreateCivicClip = () => {
 
     const handleRemoveVideo = () => {
         setVideoFile(null)
+        setCompressedFile(null)
+        setCompressionStats(null)
+        setThumbnailBlob(null)
+        setThumbnailPreview(null)
         if (videoPreview) {
             URL.revokeObjectURL(videoPreview)
             setVideoPreview(null)
@@ -218,14 +322,52 @@ export const CreateCivicClip = () => {
                                         <X className="h-4 w-4 mr-1" />
                                         Remove
                                     </Button>
-                                    {videoFile && (
-                                        <p className="text-xs text-muted-foreground mt-2">
-                                            File size: {(videoFile.size / 1024 / 1024).toFixed(2)} MB
-                                        </p>
-                                    )}
+                                    {/* File size info and compression stats */}
+                                    <div className="mt-2 space-y-1">
+                                        {videoFile && !compressionStats && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Original size: {formatFileSize(videoFile.size)}
+                                            </p>
+                                        )}
+                                        {compressionStats && (
+                                            <div className="text-xs space-y-1">
+                                                <p className="text-muted-foreground">
+                                                    Original: {formatFileSize(compressionStats.original)} → 
+                                                    Compressed: {formatFileSize(compressionStats.compressed)}
+                                                </p>
+                                                <p className="text-green-600 dark:text-green-400 font-medium">
+                                                    ✓ {Math.round((1 - 1/compressionStats.ratio) * 100)}% smaller - saves bandwidth!
+                                                </p>
+                                            </div>
+                                        )}
+                                        {/* Manual compress button for smaller files */}
+                                        {videoFile && !compressedFile && !compressing && isCompressionSupported() && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleCompress(videoFile)}
+                                                className="mt-2"
+                                            >
+                                                <Zap className="h-3 w-3 mr-1" />
+                                                Compress Video
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
+                            {/* Compression progress */}
+                            {compressing && compressionProgress && (
+                                <div className="mt-4">
+                                    <Progress value={compressionProgress.progress} className="h-2" />
+                                    <p className="text-sm text-muted-foreground mt-2 text-center">
+                                        {compressionProgress.message}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Upload progress */}
                             {uploading && (
                                 <div className="mt-4">
                                     <Progress value={progress.percentage} className="h-2" />
@@ -315,15 +457,15 @@ export const CreateCivicClip = () => {
                             >
                                 Cancel
                             </Button>
-                            <Button
+                        <Button
                                 type="submit"
-                                disabled={!videoFile || !title || submitting || uploading}
+                                disabled={!videoFile || !title || submitting || uploading || compressing}
                                 className="flex-1"
                             >
-                                {(submitting || uploading) ? (
+                                {(submitting || uploading || compressing) ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        {uploading ? 'Uploading...' : 'Publishing...'}
+                                        {compressing ? 'Compressing...' : uploading ? 'Uploading...' : 'Publishing...'}
                                     </>
                                 ) : (
                                     <>

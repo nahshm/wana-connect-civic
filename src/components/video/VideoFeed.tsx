@@ -9,9 +9,10 @@ interface VideoFeedProps {
     category?: string
     hashtag?: string
     userId?: string
+    trending?: boolean
 }
 
-export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
+export const VideoFeed = ({ category, hashtag, userId, trending = false }: VideoFeedProps) => {
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isMuted, setIsMuted] = useState(true) // Global mute state for all videos
     const containerRef = useRef<HTMLDivElement>(null)
@@ -25,7 +26,7 @@ export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
         isFetchingNextPage,
         isLoading
     } = useInfiniteQuery({
-        queryKey: ['civic-clips', category, hashtag, userId],
+        queryKey: ['civic-clips', category, hashtag, userId, trending],
         queryFn: async ({ pageParam = 0 }) => {
             let query = supabase
                 .from('civic_clips')
@@ -50,8 +51,15 @@ export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
           )
         `)
                 .eq('processing_status', 'ready')
-                .order('created_at', { ascending: false })
-                .range(pageParam * 10, (pageParam + 1) * 10 - 1)
+
+            // Order by trending (views) or recency
+            if (trending) {
+                query = query.order('views_count', { ascending: false })
+            } else {
+                query = query.order('created_at', { ascending: false })
+            }
+            
+            query = query.range(pageParam * 10, (pageParam + 1) * 10 - 1)
 
             // Apply filters
             if (category) {
@@ -144,7 +152,7 @@ export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
     return (
         <div
             ref={containerRef}
-            className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth"
+            className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth pt-24"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
             {allClips.map((clip, index) => (
@@ -154,6 +162,7 @@ export const VideoFeed = ({ category, hashtag, userId }: VideoFeedProps) => {
                         isActive={index === currentIndex}
                         isMuted={isMuted}
                         onMuteToggle={setIsMuted}
+                        showAccountability={true}
                     />
                 </div>
             ))}
