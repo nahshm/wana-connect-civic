@@ -1,4 +1,5 @@
 {
-  "name": "r/Kenya Clone",
-  "description": "A high-fidelity clone of the r/Kenya subreddit interface using React and Tailwind, featuring AI-generated content via Gemini."
+  "name": "WanaIQ",
+  "description": "The Civic Action Platform - From Discussion to Action. A unified platform for Kenyan civic engagement, combining video content, community discussion, and government accountability tools.",
+  "requestFramePermissions": []
 }

@@ -28,6 +28,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { useVerification } from '@/hooks/useVerification';
+import VerificationPanel from '@/components/verification/VerificationPanel';
+import SentimentBar from '@/components/verification/SentimentBar';
 
 interface PostCardProps {
   post: Post;
@@ -41,6 +44,12 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Verification system  
+  const { verification, castVote, isCastingVote } = useVerification({
+    contentId: post.id,
+    contentType: 'post'
+  });
 
   const isAuthor = user && post.author.id === user.id;
 
@@ -376,6 +385,18 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               })}
             </div>
           )}
+
+          {/* Sentiment Bar */}
+          {post.sentiment && (
+            <SentimentBar sentiment={post.sentiment} className="mb-3" />
+          )}
+
+          {/* Verification Panel */}
+          <VerificationPanel
+            verification={verification}
+            onVote={castVote}
+            isLoading={isCastingVote}
+          />
 
           {/* Actions */}
           <div className="flex items-center justify-between">

@@ -444,3 +444,157 @@ export interface ProjectWithContractors extends GovernmentProject {
   updates: ProjectUpdate[];
   official?: Official;
 }
+
+// ============================================================
+// VERIFICATION & SENTIMENT TYPES (from r_kenya-clone)
+// ============================================================
+
+export type VerificationStatus = 'VERIFIED' | 'DISPUTED' | 'DEBUNKED' | 'PENDING';
+
+export interface Verification {
+  id: string;
+  contentId: string;
+  contentType: 'post' | 'comment' | 'project' | 'promise';
+  status: VerificationStatus;
+  truthScore: number; // 0 to 100
+  totalVotes: number;
+  breakdown: {
+    true: number;
+    misleading: number;
+    outdated: number;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VerificationVote {
+  id: string;
+  verificationId: string;
+  userId: string;
+  voteType: 'true' | 'misleading' | 'outdated';
+  createdAt: Date;
+}
+
+export interface Sentiment {
+  id: string;
+  contentId: string;
+  contentType: 'post' | 'comment' | 'project' | 'promise';
+  positive: number;
+  neutral: number;
+  negative: number;
+  updatedAt: Date;
+}
+
+export interface SentimentVote {
+  id: string;
+  sentimentId: string;
+  userId: string;
+  sentimentType: 'positive' | 'neutral' | 'negative';
+  createdAt: Date;
+}
+
+// ============================================================
+// USER-GENERATED CONTENT TYPES
+// ============================================================
+
+export interface CivicProject {
+  id: string;
+  title: string;
+  description: string;
+  status: 'PROPOSED' | 'STALLED' | 'ACTIVE' | 'COMPLETED';
+  budget: string;
+  location: string;
+  imageUrl?: string;
+  submittedBy: User;
+  wardId?: string;
+  constituencyId?: string;
+  countyId?: string;
+  isVerified: boolean;
+  verification?: Verification;
+  sentiment?: Sentiment;
+  createdAt: Date;
+  lastUpdated: Date;
+}
+
+export interface CampaignPromise {
+  id: string;
+  title: string;
+  description: string;
+  politicianId: string;
+  politicianName: string;
+  status: 'KEPT' | 'BROKEN' | 'IN_PROGRESS' | 'COMPROMISED';
+  submittedBy: User;
+  verification?: Verification;
+  sentiment?: Sentiment;
+  dueDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserAction {
+  id: string;
+  userId: string;
+  actionType: 'JOIN_COMMUNITY' | 'VERIFY_POST' | 'VOTE_POLL' | 'SUBMIT_REPORT' |
+  'ATTEND_EVENT' | 'CREATE_PROJECT' | 'CREATE_PROMISE' | 'CAST_VERIFICATION_VOTE';
+  description: string;
+  targetId?: string;
+  targetName?: string;
+  targetType?: string;
+  createdAt: Date;
+}
+
+// ============================================================
+// ENHANCED POST & COMMENT TYPES WITH VERIFICATION
+// ============================================================
+
+export interface PostWithVerification extends Post {
+  verification?: Verification;
+  sentiment?: Sentiment;
+}
+
+export interface CommentWithVerification extends Comment {
+  verification?: Verification;
+  sentiment?: Sentiment;
+}
+
+// ============================================================
+// COMMUNITY FORUM TYPES (Discord-style)
+// ============================================================
+
+export type HierarchyType = 'COUNTY' | 'CONSTITUENCY' | 'WARD';
+
+export interface Leader {
+  id: string;
+  name: string;
+  role: string;
+  party: string;
+  avatarUrl: string;
+  status: 'ONLINE' | 'OFFLINE' | 'BUSY';
+  approvalRating?: number;
+}
+
+export interface Channel {
+  id: string;
+  name: string;
+  type: 'TEXT' | 'VOICE' | 'LEADERS' | 'PROJECTS' | 'PROMISES';
+  categoryId: 'INFO' | 'MONITORING' | 'ENGAGEMENT';
+  description?: string;
+}
+
+export interface CommunityLevel {
+  id: string;
+  type: HierarchyType;
+  name: string;
+  icon: string; // Emoji or URL
+  leaders: Leader[];
+  channels: Channel[];
+}
+
+export interface CommunityMessage {
+  id: string;
+  author: User;
+  content: string;
+  timestamp: string;
+  upvotes: number;
+}
+

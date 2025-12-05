@@ -1,123 +1,188 @@
-import React, { useState } from 'react';
-import { Post } from '../types';
-import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, Bookmark, MoreHorizontal } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { ThumbsUp, ThumbsDown, MessageSquare, Share2, MoreHorizontal, CheckCircle, Play, VolumeX, ShieldCheck, BarChart3 } from 'lucide-react';
+import { Post, PostType } from '../types';
+import VerificationPanel from './VerificationPanel';
 
 interface PostCardProps {
   post: Post;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post }) => {
-  const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null);
-  const [votes, setVotes] = useState(post.upvotes);
+const PostCard: React.FC<PostCardProps> = ({ post }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isHovering, setIsHovering] = useState(false);
+  const [isInteractive, setIsInteractive] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
 
-  const handleVote = (type: 'up' | 'down') => {
-    if (voteStatus === type) {
-      setVoteStatus(null);
-      setVotes(type === 'up' ? votes - 1 : votes + 1);
-    } else {
-      if (voteStatus === 'up') setVotes(votes - 2);
-      else if (voteStatus === 'down') setVotes(votes + 2);
-      else setVotes(type === 'up' ? votes + 1 : votes - 1);
-      
-      setVoteStatus(type);
-    }
-  };
+  // Determine sentiment color
+  const sentimentColor = post.sentiment 
+    ? post.sentiment.positive > post.sentiment.negative 
+      ? 'bg-emerald-500' 
+      : 'bg-red-500'
+    : 'bg-slate-500';
 
   return (
-    <div className={`flex flex-col sm:flex-row bg-reddit-gray border border-reddit-border rounded-md hover:border-gray-500 transition-colors cursor-pointer mb-4 ${post.isSponsored ? 'border-transparent' : ''}`}>
-      {/* Vote Sidebar - Desktop */}
-      <div className="hidden sm:flex flex-col items-center p-2 bg-[#151f23] rounded-l-md w-10 shrink-0">
-        <button 
-          onClick={(e) => { e.stopPropagation(); handleVote('up'); }}
-          className={`p-1 hover:bg-gray-800 rounded ${voteStatus === 'up' ? 'text-reddit-accent' : 'text-gray-400'}`}
-        >
-          <ArrowBigUp size={24} fill={voteStatus === 'up' ? 'currentColor' : 'none'} />
-        </button>
-        <span className={`text-xs font-bold my-1 ${voteStatus === 'up' ? 'text-reddit-accent' : voteStatus === 'down' ? 'text-blue-500' : 'text-white'}`}>
-          {votes === 0 ? 'Vote' : votes < 1000 ? votes : `${(votes / 1000).toFixed(1)}k`}
-        </span>
-        <button 
-          onClick={(e) => { e.stopPropagation(); handleVote('down'); }}
-          className={`p-1 hover:bg-gray-800 rounded ${voteStatus === 'down' ? 'text-blue-500' : 'text-gray-400'}`}
-        >
-          <ArrowBigDown size={24} fill={voteStatus === 'down' ? 'currentColor' : 'none'} />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 p-2 sm:p-3">
-        {/* Header */}
-        <div className="flex items-center text-xs text-reddit-textMuted mb-2 flex-wrap gap-1">
-           {post.subreddit.startsWith('u/') ? (
-             <span className="font-bold text-white mr-1">{post.subreddit}</span>
-           ) : (
-            <div className="flex items-center">
-              <div className="w-5 h-5 rounded-full bg-black border border-white mr-1 overflow-hidden">
-                 <img src="https://styles.redditmedia.com/t5_2t74u/styles/communityIcon_ln7j30467w761.png" alt="icon" className="w-full h-full object-cover" onError={(e) => e.currentTarget.src='https://www.redditstatic.com/avatars/defaults/v2/avatar_default_4.png'} />
-              </div>
-              <span className="font-bold text-white hover:underline mr-1">{post.subreddit}</span>
-            </div>
-           )}
-           <span className="mx-1">•</span>
-           <span className="hover:underline">Posted by {post.author}</span>
-           <span className="mx-1">{post.timeAgo}</span>
+    <div className="bg-white rounded-lg mb-4 shadow-sm border border-slate-200 group">
+      <div className="flex">
+        {/* Voting Sidebar */}
+        <div className="flex flex-col items-center p-3 w-12 bg-slate-50 rounded-l-lg border-r border-slate-100">
+          <button className="text-slate-400 hover:text-emerald-500 transition-colors">
+            <ThumbsUp className="h-5 w-5" />
+          </button>
+          <span className="text-sm font-bold text-slate-600 my-1">{post.upvotes > 1000 ? `${(post.upvotes / 1000).toFixed(1)}k` : post.upvotes}</span>
+          <button className="text-slate-400 hover:text-red-500 transition-colors">
+            <ThumbsDown className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Title */}
-        <h3 className="text-lg font-medium text-reddit-text mb-2 leading-snug">{post.title}</h3>
-
-        {/* Flair */}
-        {post.flair && (
-          <div 
-            className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold mb-2"
-            style={{ 
-              backgroundColor: post.flair.color, 
-              color: post.flair.textColor || 'white' 
-            }}
-          >
-            {post.flair.text}
+        {/* Content Area */}
+        <div className="p-3 flex-1">
+          {/* Metadata Header */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center text-xs text-slate-500 space-x-2">
+              <span className="font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                {post.community.prefix}{post.community.name}
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="flex items-center hover:underline cursor-pointer text-slate-600">
+                Posted by {post.author.isOfficial ? 'g/' : post.author.isVerified ? 'w/' : 'u/'}{post.author.username}
+                {post.author.isVerified && <CheckCircle className="h-3 w-3 text-blue-500 ml-1" />}
+              </span>
+              <span className="text-slate-300">•</span>
+              <span>{post.timestamp}</span>
+              {post.reference && (
+                 <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-xs font-mono border border-slate-200">
+                   {post.reference}
+                 </span>
+              )}
+            </div>
+            <button className="text-slate-400 hover:bg-slate-100 p-1 rounded transition-colors">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
           </div>
-        )}
 
-        {/* Media/Content */}
-        <div className="mb-2">
-          {post.image ? (
-            <div className="w-full rounded-md overflow-hidden border border-reddit-border bg-black max-h-[500px] flex items-center justify-center">
-               <img src={post.image} alt={post.title} className="max-w-full object-contain max-h-[500px]" />
+          {/* Title */}
+          <h2 className="text-lg font-bold text-slate-900 mb-2 leading-snug">{post.title}</h2>
+
+          {/* Tag Chips */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {post.tags.map((tag, idx) => (
+              <span key={idx} className="bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-full font-medium">
+                #{tag}
+              </span>
+            ))}
+          </div>
+
+          {/* Media Content */}
+          {post.type === PostType.CIVIC_CLIP && post.mediaUrl && (
+             <div 
+               className="relative w-full h-96 bg-black rounded-lg overflow-hidden mb-3 group cursor-pointer border border-slate-200"
+               onMouseEnter={() => {
+                 if (!isInteractive && videoRef.current) {
+                   videoRef.current.muted = true;
+                   videoRef.current.play().catch(() => {});
+                   setIsHovering(true);
+                 }
+               }}
+               onMouseLeave={() => {
+                 if (!isInteractive && videoRef.current) {
+                   videoRef.current.pause();
+                   setIsHovering(false);
+                 }
+               }}
+               onClick={() => {
+                 if (!isInteractive) {
+                   setIsInteractive(true);
+                   if (videoRef.current) {
+                     videoRef.current.muted = false;
+                     videoRef.current.currentTime = 0;
+                     videoRef.current.play().catch(() => {});
+                   }
+                 }
+               }}
+             >
+               <video 
+                 ref={videoRef}
+                 src={post.mediaUrl}
+                 className="w-full h-full object-cover"
+                 loop
+                 playsInline
+                 muted={!isInteractive}
+                 controls={isInteractive}
+               />
+               
+               {/* Overlay (Play Button) - Only show if not interactive and not hovering */}
+               {!isInteractive && !isHovering && (
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                   <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full border border-white/40 shadow-xl transition-transform group-hover:scale-110">
+                     <Play className="h-8 w-8 text-white fill-white" />
+                   </div>
+                 </div>
+               )}
+
+               {/* Badge - Hide when interactive to show full video controls clearly */}
+               {!isInteractive && (
+                 <div className="absolute bottom-2 left-2 right-2 text-white text-xs text-shadow pointer-events-none flex justify-between">
+                   <span className="bg-black/50 px-2 py-1 rounded">CivicClip</span>
+                   {isHovering && <span className="bg-black/50 px-2 py-1 rounded flex items-center"><VolumeX className="h-3 w-3 mr-1"/> Muted Preview</span>}
+                 </div>
+               )}
+             </div>
+          )}
+
+           {post.type !== PostType.CIVIC_CLIP && post.mediaUrl && (
+             <div className="relative w-full h-64 bg-slate-100 rounded-lg overflow-hidden mb-3 border border-slate-200">
+               <img src={post.mediaUrl} alt="Post Content" className="w-full h-full object-cover" />
+             </div>
+          )}
+
+          {/* Text Content */}
+          <p className="text-slate-800 text-sm leading-relaxed mb-3">
+            {post.content}
+          </p>
+          
+          {/* Sentiment Bar (If exists) */}
+          {post.sentiment && (
+            <div className="mb-3 flex items-center space-x-2 text-xs">
+              <BarChart3 className="h-3 w-3 text-slate-400" />
+              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
+                <div className="h-full bg-emerald-500" style={{ width: `${post.sentiment.positive}%` }} title="Positive"></div>
+                <div className="h-full bg-slate-300" style={{ width: `${post.sentiment.neutral}%` }} title="Neutral"></div>
+                <div className="h-full bg-red-500" style={{ width: `${post.sentiment.negative}%` }} title="Negative"></div>
+              </div>
+              <span className="text-slate-500 tabular-nums">{post.sentiment.positive}% Pos</span>
             </div>
-          ) : post.content ? (
-            <div className="text-sm text-reddit-text line-clamp-6" style={{ whiteSpace: 'pre-line' }}>
-              {post.content}
-            </div>
-          ) : null}
-        </div>
+          )}
 
-        {/* Actions Bar */}
-        <div className="flex items-center gap-1 text-reddit-textMuted text-xs font-bold">
-            {/* Mobile Vote (Visible only on small screens) */}
-           <div className="flex sm:hidden items-center bg-reddit-hover px-2 py-1.5 rounded-full mr-2">
-              <button onClick={(e) => { e.stopPropagation(); handleVote('up'); }} className={voteStatus === 'up' ? 'text-reddit-accent' : ''}><ArrowBigUp size={20} /></button>
-              <span className="mx-1">{votes}</span>
-              <button onClick={(e) => { e.stopPropagation(); handleVote('down'); }} className={voteStatus === 'down' ? 'text-blue-500' : ''}><ArrowBigDown size={20} /></button>
-           </div>
+          {/* Verification Panel (Conditional) */}
+          {post.verification && showVerification && (
+             <VerificationPanel verification={post.verification} isExpanded={true} />
+          )}
 
-           <button className="flex items-center gap-2 hover:bg-reddit-hover px-3 py-2 rounded-sm transition-colors">
-             <MessageSquare size={20} />
-             <span>{post.comments} Comments</span>
-           </button>
-           <button className="flex items-center gap-2 hover:bg-reddit-hover px-3 py-2 rounded-sm transition-colors">
-             <Share2 size={20} />
-             <span>Share</span>
-           </button>
-           <button className="flex items-center gap-2 hover:bg-reddit-hover px-3 py-2 rounded-sm transition-colors">
-             <Bookmark size={20} />
-             <span>Save</span>
-           </button>
-           <button className="flex items-center hover:bg-reddit-hover px-2 py-2 rounded-sm transition-colors">
-             <MoreHorizontal size={20} />
-           </button>
+          {/* Footer Actions */}
+          <div className="flex items-center space-x-4 text-slate-500 text-sm font-medium mt-2">
+            <button className="flex items-center hover:bg-slate-100 px-2 py-1 rounded transition-colors hover:text-slate-900">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              {post.comments} Comments
+            </button>
+            <button className="flex items-center hover:bg-slate-100 px-2 py-1 rounded transition-colors hover:text-slate-900">
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </button>
+            {post.verification && (
+              <button 
+                onClick={() => setShowVerification(!showVerification)}
+                className={`flex items-center px-2 py-1 rounded transition-colors ${showVerification ? 'text-blue-600 bg-blue-50' : 'hover:bg-slate-100 hover:text-blue-600'}`}
+              >
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                {showVerification ? 'Close Verify' : 'Verify'}
+              </button>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
   );
 };
+
+export default PostCard;
