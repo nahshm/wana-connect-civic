@@ -15,6 +15,10 @@ import { PostCard } from '@/components/posts/PostCard';
 import { CommunityHeader } from '@/components/community/CommunityHeader';
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
 import { CreatePostInput } from '@/components/community/CreatePostInput';
+import LevelSelector from '@/components/community/discord/LevelSelector';
+import ChannelList from '@/components/community/discord/ChannelList';
+import ChannelContent from '@/components/community/discord/ChannelContent';
+import { Menu, X } from 'lucide-react';
 
 // Utility function to convert snake_case keys to camelCase recursively
 function toCamelCase(obj: any): any {
@@ -45,7 +49,30 @@ const Community = () => {
   const [isModerator, setIsModerator] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('posts');
+
+  // Discord-style state
+  const [activeLevel, setActiveLevel] = useState('county');
+  const [activeChannelId, setActiveChannelId] = useState('general-chat');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Define hierarchy levels and channels
+  const levels = [
+    { id: 'county', name: community?.locationValue || 'County', type: 'COUNTY' as const, avatarUrl: community?.avatarUrl },
+    { id: 'constituency', name: 'Constituency', type: 'CONSTITUENCY' as const, avatarUrl: community?.avatarUrl },
+    { id: 'ward', name: 'Ward', type: 'WARD' as const, avatarUrl: community?.avatarUrl },
+  ];
+
+  const channels = [
+    { id: 'announcements', name: 'announcements', category: 'INFO' as const },
+    { id: 'faqs', name: 'faqs', category: 'INFO' as const },
+    { id: 'our-leaders', name: 'our-leaders', category: 'MONITORING' as const },
+    { id: 'projects-watch', name: 'projects-watch', category: 'MONITORING' as const },
+    { id: 'promises-watch', name: 'promises-watch', category: 'MONITORING' as const },
+    { id: 'general-chat', name: 'general-chat', category: 'ENGAGEMENT' as const },
+    { id: 'town-hall', name: 'town-hall', category: 'ENGAGEMENT' as const },
+  ];
+
+  const currentLevel = levels.find(l => l.id === activeLevel) || levels[0];
 
   useEffect(() => {
     if (communityName) {
@@ -54,10 +81,10 @@ const Community = () => {
   }, [communityName]);
 
   useEffect(() => {
-    if (community?.id && activeTab !== 'about') {
-      fetchTabData(activeTab);
+    if (community?.id) {
+      fetchChannelData(activeChannelId);
     }
-  }, [community?.id, activeTab]);
+  }, [community?.id, activeChannelId, activeLevel]);
 
   const fetchCommunity = async () => {
     try {
@@ -114,61 +141,58 @@ const Community = () => {
     }
   };
 
-  const fetchTabData = async (tab: string) => {
+  const fetchChannelData = async (channelId: string) => {
     if (!community?.id) return;
 
     try {
-      switch (tab) {
-        case 'posts':
-          const { data: postsData } = await supabase
-            .from('posts')
+      // For text channels (general-chat, announcements, etc.), fetch posts
+      if (['general-chat', 'announcements', 'faqs', 'town-hall'].includes(channelId)) {
+        const { data: postsData } = await supabase
+          .from('posts')
+          .select(`
+            *,
+            author:profiles(*),
+            community:communities(*),
+            post_media(*)
+          `)
+          .eq('community_id', community.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        const camelCasePosts = toCamelCase(postsData) || [];
+        const mappedPosts = camelCasePosts.map((p: any) => ({
+          ...p,
+          media: p.postMedia
+        }));
+        setPosts(mappedPosts);
+      }
+
+      // For projects-watch, fetch projects
+      if (channelId === 'projects-watch') {
+        if (community.locationType && community.locationValue) {
+          const { data: projectsData } = await supabase
+            .from('government_projects')
             .select(`
               *,
-              author:profiles(*),
-              community:communities(*),
-              post_media(*)
+              official:officials(id, name, position)
             `)
-            .eq('community_id', community.id)
+            .or(`${community.locationType}.eq.${community.locationValue}`)
             .order('created_at', { ascending: false })
             .limit(20);
-          const camelCasePosts = toCamelCase(postsData) || [];
-          // Map postMedia to media to match Post interface
-          const mappedPosts = camelCasePosts.map((p: any) => ({
-            ...p,
-            media: p.postMedia
-          }));
-          setPosts(mappedPosts);
-          break;
-
-        case 'members':
-          const { data: membersData } = await supabase
-            .from('community_members')
-            .select(`
-              *,
-              profiles (username, display_name, avatar_url, role)
-            `)
-            .eq('community_id', community.id);
-          setMembers(toCamelCase(membersData) || []);
-          break;
-
-        case 'projects':
-          // Fetch projects matching community location
-          if (community.locationType && community.locationValue) {
-            const { data: projectsData } = await supabase
-              .from('government_projects')
-              .select(`
-                *,
-                official:officials(id, name, position)
-              `)
-              .or(`${community.locationType}.eq.${community.locationValue}`)
-              .order('created_at', { ascending: false })
-              .limit(20);
-            setProjects(toCamelCase(projectsData) || []);
-          }
-          break;
+          setProjects(toCamelCase(projectsData) || []);
+        }
       }
+
+      // For members sidebar, fetch members
+      const { data: membersData } = await supabase
+        .from('community_members')
+        .select(`
+          *,
+          profiles (username, display_name, avatar_url, role)
+        `)
+        .eq('community_id', community.id);
+      setMembers(toCamelCase(membersData) || []);
     } catch (error) {
-      console.error('Error fetching tab data:', error);
+      console.error('Error fetching channel data:', error);
     }
   };
 
@@ -221,184 +245,80 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* Community Header (contains TabsList) */}
-        <CommunityHeader
-          community={community}
-          isMember={isMember}
-          onJoinLeave={handleJoinLeave}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          isModerator={isModerator || isAdmin}
-        />
 
-        <div className="container mx-auto px-3 py-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Main Content (Feed) */}
-            <div className="lg:col-span-2 feed-spacing">
-              {activeTab === 'posts' && <CreatePostInput />}
+      {/* Main Layout: Discord-style 3-column - Fixed height for independent scrolling */}
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background relative">
 
-              <TabsContent value="posts" className="mt-0 feed-spacing">
-                {posts.length > 0 ? (
-                  posts.map((post) => (
-                    <PostCard key={post.id} post={post} onVote={() => { }} />
-                  ))
-                ) : (
-                  <Card>
-                    <CardContent className="text-center py-8">
-                      <p className="text-gray-600">No posts yet. Be the first to post!</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
+        {/* Mobile Backdrop */}
+        {mobileMenuOpen && (
+          <div
+            className="absolute inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
 
-              <TabsContent value="about" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>About Community</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {community.descriptionHtml ? (
-                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(community.descriptionHtml) }} />
-                      ) : (
-                        <p className="text-gray-700">{community.description}</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+        {/* Left Navigation (Level Rail + Channel List) */}
+        <div className={`
+          flex h-full z-40 transition-transform duration-300 ease-in-out
+          md:relative md:translate-x-0
+          absolute inset-y-0 left-0 shadow-2xl md:shadow-none
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          {/* Level Selector Rail */}
+          <LevelSelector
+            levels={levels}
+            activeLevel={activeLevel}
+            onChange={setActiveLevel}
+          />
 
-              <TabsContent value="projects" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Local Projects ({projects.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {projects.length > 0 ? (
-                      <div className="space-y-4">
-                        {projects.map((project) => (
-                          <div key={project.id} className="p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-semibold line-clamp-1">{project.title}</h4>
-                              {project.is_verified === false && (
-                                <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50 text-xs">
-                                  Community Report
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{project.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
-                              {project.location && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  <span>{project.location}</span>
-                                </div>
-                              )}
-                              {project.status && (
-                                <Badge variant="secondary" className="text-xs">{project.status}</Badge>
-                              )}
-                            </div>
-                            {project.progress_percentage !== undefined && (
-                              <div className="flex items-center gap-2 text-xs">
-                                <span>Progress:</span>
-                                <div className="flex-1 bg-muted rounded-full h-2">
-                                  <div className="bg-primary h-2 rounded-full" style={{ width: `${project.progress_percentage}%` }} />
-                                </div>
-                                <span>{project.progress_percentage}%</span>
-                              </div>
-                            )}
-                            <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => window.location.href = `/projects/${project.id}`}>
-                              View Details
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No projects found in this location yet.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="members" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Members ({members.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {members.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src={member.profiles?.avatarUrl || undefined} />
-                              <AvatarFallback>
-                                {member.profiles?.displayName?.charAt(0) || member.profiles?.username?.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{member.profiles?.displayName || member.profiles?.username}</p>
-                              <p className="text-sm text-gray-600">@{member.profiles?.username}</p>
-                            </div>
-                          </div>
-                          {member.profiles?.role && (
-                            <Badge variant="outline">{member.profiles.role}</Badge>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {(isModerator || isAdmin) && (
-                <TabsContent value="moderation" className="mt-0">
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Moderation Tools</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Button variant="outline" className="justify-start">
-                            <Flag className="w-4 h-4 mr-2" />
-                            Reported Posts
-                          </Button>
-                          <Button variant="outline" className="justify-start">
-                            <UserCheck className="w-4 h-4 mr-2" />
-                            User Management
-                          </Button>
-                          <Button variant="outline" className="justify-start">
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Post Approval Queue
-                          </Button>
-                          <Button variant="outline" className="justify-start">
-                            <Settings className="w-4 h-4 mr-2" />
-                            Community Settings
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </TabsContent>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <CommunitySidebar
-                community={community}
-                rules={rules}
-                moderators={moderators}
-                flairs={flairs}
-              />
-            </div>
-          </div>
+          {/* Channel List */}
+          <ChannelList
+            channels={channels}
+            activeChannel={activeChannelId}
+            onChange={(channelId) => {
+              setActiveChannelId(channelId);
+              setMobileMenuOpen(false);
+            }}
+            levelName={currentLevel.name}
+          />
         </div>
-      </Tabs>
+
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-y-auto bg-background thin-scrollbar">
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+            <h2 className="font-bold text-foreground">#{channels.find(c => c.id === activeChannelId)?.name}</h2>
+            <div className="w-10" /> {/* Spacer for centering */}
+          </div>
+
+          {/* Channel Content */}
+          <ChannelContent
+            channelId={activeChannelId}
+            levelType={currentLevel.type}
+            locationValue={currentLevel.name}
+            posts={posts}
+            projects={projects}
+            postsLoading={false}
+            projectsLoading={false}
+          />
+        </div>
+
+        {/* Right Sidebar - Original CommunitySidebar */}
+        <div className="hidden lg:block w-80 border-l border-sidebar-border bg-sidebar-background overflow-y-auto thin-scrollbar">
+          <CommunitySidebar
+            community={community}
+            rules={rules}
+            moderators={moderators}
+            flairs={flairs}
+          />
+        </div>
+      </div>
     </div>
   );
 };
