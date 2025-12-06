@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -169,6 +170,9 @@ export const Header = () => {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Search</DialogTitle>
+            <DialogDescription className="sr-only">
+              Search for discussions, communities, and users
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <SearchBar

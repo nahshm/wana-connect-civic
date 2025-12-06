@@ -50,17 +50,60 @@ const Community = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Geographic communities for navigation
+  const [geoCommunities, setGeoCommunities] = useState<{
+    county?: CommunityProfile;
+    constituency?: CommunityProfile;
+    ward?: CommunityProfile;
+  }>({});
+  const [joinedCommunities, setJoinedCommunities] = useState<CommunityProfile[]>([]);
+
   // Discord-style state
-  const [activeLevel, setActiveLevel] = useState('county');
   const [activeChannelId, setActiveChannelId] = useState('general-chat');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Define hierarchy levels and channels
-  const levels = [
-    { id: 'county', name: community?.locationValue || 'County', type: 'COUNTY' as const, avatarUrl: community?.avatarUrl },
-    { id: 'constituency', name: 'Constituency', type: 'CONSTITUENCY' as const, avatarUrl: community?.avatarUrl },
-    { id: 'ward', name: 'Ward', type: 'WARD' as const, avatarUrl: community?.avatarUrl },
+  // Build levels from fetched geographic communities
+  const primaryLevels = [
+    {
+      id: 'county',
+      name: geoCommunities.county?.displayName || 'County',
+      type: 'COUNTY' as const,
+      avatarUrl: geoCommunities.county?.avatarUrl,
+      communitySlug: geoCommunities.county?.name,
+      isActive: community?.id === geoCommunities.county?.id
+    },
+    {
+      id: 'constituency',
+      name: geoCommunities.constituency?.displayName || 'Constituency',
+      type: 'CONSTITUENCY' as const,
+      avatarUrl: geoCommunities.constituency?.avatarUrl,
+      communitySlug: geoCommunities.constituency?.name,
+      isActive: community?.id === geoCommunities.constituency?.id
+    },
+    {
+      id: 'ward',
+      name: geoCommunities.ward?.displayName || 'Ward',
+      type: 'WARD' as const,
+      avatarUrl: geoCommunities.ward?.avatarUrl,
+      communitySlug: geoCommunities.ward?.name,
+      isActive: community?.id === geoCommunities.ward?.id
+    },
   ];
+
+  const secondaryLevels = joinedCommunities.map(c => ({
+    id: c.id,
+    name: c.displayName,
+    type: 'COMMUNITY' as const,
+    avatarUrl: c.avatarUrl,
+    communitySlug: c.name,
+    isActive: community?.id === c.id
+  }));
+
+  const levels = [...primaryLevels];
+  if (secondaryLevels.length > 0) {
+    levels.push({ id: 'sep-1', name: 'Separator', type: 'SEPARATOR' as const });
+    levels.push(...secondaryLevels);
+  }
 
   const channels = [
     { id: 'announcements', name: 'announcements', category: 'INFO' as const },
@@ -72,7 +115,7 @@ const Community = () => {
     { id: 'town-hall', name: 'town-hall', category: 'ENGAGEMENT' as const },
   ];
 
-  const currentLevel = levels.find(l => l.id === activeLevel) || levels[0];
+  const currentLevel = levels.find(l => l.isActive) || levels[0];
 
   useEffect(() => {
     if (communityName) {
@@ -82,9 +125,10 @@ const Community = () => {
 
   useEffect(() => {
     if (community?.id) {
+      fetchGeographicCommunities();
       fetchChannelData(activeChannelId);
     }
-  }, [community?.id, activeChannelId, activeLevel]);
+  }, [community?.id, activeChannelId]);
 
   const fetchCommunity = async () => {
     try {
@@ -138,6 +182,140 @@ const Community = () => {
       console.error('Error fetching community:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchGeographicCommunities = async () => {
+    try {
+      console.log('🔍 === fetchGeographicCommunities START ===');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('⚠️ No user logged in');
+        return;
+      }
+      console.log('👤 User ID:', user.id);
+
+      // 1. Fetch User Profile to get location IDs
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('county_id, constituency_id, ward_id')
+        .eq('id', user.id)
+        .single();
+
+      console.log('📋 Profile data:', profile);
+
+      const fetchedCommunities: {
+        county?: CommunityProfile;
+        constituency?: CommunityProfile;
+        ward?: CommunityProfile;
+      } = {};
+
+      // 2. Resolve Location Names & Fetch Communities
+      if (profile) {
+        // Fetch County
+        if (profile.county_id) {
+          console.log('🏛️ Fetching county for ID:', profile.county_id);
+          const { data: county } = await supabase.from('counties').select('name').eq('id', profile.county_id).single();
+          console.log('   County name:', county?.name);
+
+          if (county) {
+            const { data: countyComm, error: countyError } = await supabase
+              .from('communities')
+              .select('*')
+              .eq('type', 'location')
+              .eq('location_type', 'county')
+              .eq('location_value', county.name)
+              .maybeSingle();
+            console.log('   County community:', countyComm?.name, 'ID:', countyComm?.id, 'Error:', countyError);
+            if (countyComm) fetchedCommunities.county = toCamelCase(countyComm);
+          }
+        }
+
+        // Fetch Constituency
+        if (profile.constituency_id) {
+          console.log('🏢 Fetching constituency for ID:', profile.constituency_id);
+          const { data: constituency } = await supabase.from('constituencies').select('name').eq('id', profile.constituency_id).single();
+          console.log('   Constituency name:', constituency?.name);
+
+          if (constituency) {
+            const { data: constComm, error: constError } = await supabase
+              .from('communities')
+              .select('*')
+              .eq('type', 'location')
+              .eq('location_type', 'constituency')
+              .eq('location_value', constituency.name)
+              .maybeSingle();
+            console.log('   Constituency community:', constComm?.name, 'ID:', constComm?.id, 'Error:', constError);
+            if (constComm) fetchedCommunities.constituency = toCamelCase(constComm);
+          }
+        }
+
+        // Fetch Ward
+        if (profile.ward_id) {
+          console.log('🏘️ Fetching ward for ID:', profile.ward_id);
+          const { data: ward } = await supabase.from('wards').select('name').eq('id', profile.ward_id).single();
+          console.log('   Ward name:', ward?.name);
+
+          if (ward) {
+            const { data: wardComm, error: wardError } = await supabase
+              .from('communities')
+              .select('*')
+              .eq('type', 'location')
+              .eq('location_type', 'ward')
+              .eq('location_value', ward.name)
+              .maybeSingle();
+            console.log('   Ward community:', wardComm?.name, 'ID:', wardComm?.id, 'Error:', wardError);
+            if (wardComm) fetchedCommunities.ward = toCamelCase(wardComm);
+          }
+        }
+      }
+
+      console.log('✅ Final fetchedCommunities:', {
+        county: fetchedCommunities.county?.name,
+        constituency: fetchedCommunities.constituency?.name,
+        ward: fetchedCommunities.ward?.name
+      });
+
+      setGeoCommunities(fetchedCommunities);
+
+      // 3. Fetch Joined Communities
+      console.log('📥 Fetching joined communities...');
+      const { data: memberships } = await supabase
+        .from('community_members')
+        .select('community:communities(*)')
+        .eq('user_id', user.id);
+
+      console.log('   Raw memberships count:', memberships?.length);
+
+      if (memberships) {
+        const allJoined = memberships.map((m: any) => toCamelCase(m.community));
+        console.log('   All joined communities (detailed):', allJoined.map(c => ({
+          name: c.name,
+          displayName: c.displayName,
+          type: c.type,
+          locationType: c.locationType,
+          locationValue: c.locationValue,
+          id: c.id
+        })));
+
+        const joined = allJoined.filter((c: CommunityProfile) => {
+          // Exclude the geographic communities we just fetched
+          const isExcluded = (
+            c.id === fetchedCommunities.county?.id ||
+            c.id === fetchedCommunities.constituency?.id ||
+            c.id === fetchedCommunities.ward?.id
+          );
+          console.log(`   ${c.name} (${c.id}): ${isExcluded ? 'EXCLUDED' : 'INCLUDED'}`);
+          return !isExcluded;
+        });
+
+        console.log('   Final secondary communities:', joined.map(c => c.name));
+        setJoinedCommunities(joined);
+      }
+
+      console.log('🏁 === fetchGeographicCommunities END ===');
+    } catch (error) {
+      console.error('❌ Error fetching communities:', error);
     }
   };
 
@@ -259,7 +437,7 @@ const Community = () => {
 
         {/* Left Navigation (Level Rail + Channel List) */}
         <div className={`
-          flex h-full z-40 transition-transform duration-300 ease-in-out
+          flex h-full z-40 transition-transform duration-300 ease-in-out bg-background
           md:relative md:translate-x-0
           absolute inset-y-0 left-0 shadow-2xl md:shadow-none
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -267,8 +445,6 @@ const Community = () => {
           {/* Level Selector Rail */}
           <LevelSelector
             levels={levels}
-            activeLevel={activeLevel}
-            onChange={setActiveLevel}
           />
 
           {/* Channel List */}

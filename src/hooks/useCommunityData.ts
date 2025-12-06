@@ -105,8 +105,7 @@ export const useCommunityData = () => {
           .from('community_members')
           .insert({
             community_id: communityId,
-            user_id: user.id,
-            role: 'member'
+            user_id: user.id
           });
 
         if (error) throw error;

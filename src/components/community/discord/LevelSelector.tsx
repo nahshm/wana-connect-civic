@@ -1,21 +1,24 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 interface Level {
     id: string;
     name: string;
-    type: 'COUNTY' | 'CONSTITUENCY' | 'WARD';
+    type: 'COUNTY' | 'CONSTITUENCY' | 'WARD' | 'COMMUNITY' | 'SEPARATOR';
     avatarUrl?: string;
+    communitySlug?: string;  // URL slug for navigation
+    isActive?: boolean;       // Whether this is the current community
 }
 
 interface LevelSelectorProps {
     levels: Level[];
-    activeLevel: string;
-    onChange: (levelId: string) => void;
 }
 
-const LevelSelector: React.FC<LevelSelectorProps> = ({ levels, activeLevel, onChange }) => {
+const LevelSelector: React.FC<LevelSelectorProps> = ({ levels }) => {
+    const navigate = useNavigate();
+
     const getInitials = (name: string) => {
         return name
             .split(' ')
@@ -25,20 +28,37 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ levels, activeLevel, onCh
             .slice(0, 2);
     };
 
+    const handleLevelClick = (level: Level) => {
+        // Only navigate if community exists and is not already active
+        if (level.communitySlug && !level.isActive) {
+            navigate(`/c/${level.communitySlug}`);
+        }
+    };
+
     return (
         <div className="w-[60px] bg-sidebar-background flex flex-col items-center py-4 space-y-3 border-r border-sidebar-border">
             {levels.map((level) => {
-                const isActive = level.id === activeLevel;
+                if (level.type === 'SEPARATOR') {
+                    return (
+                        <div key={level.id} className="w-8 h-[2px] bg-sidebar-border rounded-full shrink-0 my-1" />
+                    );
+                }
+
+                const isActive = level.isActive;
+                const isDisabled = !level.communitySlug;  // Disabled if community doesn't exist
 
                 return (
                     <div key={level.id} className="relative group flex items-center justify-center w-full shrink-0">
                         <button
-                            onClick={() => onChange(level.id)}
+                            onClick={() => handleLevelClick(level)}
+                            disabled={isDisabled}
                             className={cn(
                                 'w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 relative overflow-hidden',
                                 isActive
                                     ? 'ring-2 ring-primary ring-offset-2 ring-offset-sidebar-background'
-                                    : 'hover:ring-2 hover:ring-sidebar-accent hover:ring-offset-2 hover:ring-offset-sidebar-background'
+                                    : isDisabled
+                                        ? 'opacity-40 cursor-not-allowed'
+                                        : 'hover:ring-2 hover:ring-sidebar-accent hover:ring-offset-2 hover:ring-offset-sidebar-background cursor-pointer'
                             )}
                             title={level.name}
                         >
@@ -59,6 +79,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ levels, activeLevel, onCh
                         <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground text-sm rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg border border-border">
                             <div className="font-semibold">{level.name}</div>
                             <div className="text-xs text-muted-foreground">{level.type}</div>
+                            {isDisabled && <div className="text-xs text-destructive mt-1">Not created</div>}
                             {/* Arrow */}
                             <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-popover" />
                         </div>
