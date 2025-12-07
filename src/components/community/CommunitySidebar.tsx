@@ -14,6 +14,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ModMailDialog } from './ModMailDialog';
 import { RelatedCommunities } from './RelatedCommunities';
+import { CommunityEventsWidget } from './events/CommunityEventsWidget';
+import { CommunityPollsWidget } from './polls/CommunityPollsWidget';
+import { CommunitySettingsDialog } from './CommunitySettingsDialog';
 
 interface CommunitySidebarProps {
     community: CommunityProfile;
@@ -26,23 +29,24 @@ export const CommunitySidebar = ({
     community,
     rules,
     moderators,
-    flairs
-}: CommunitySidebarProps) => {
+    flairs,
+    isAdmin = false
+}: CommunitySidebarProps & { isAdmin?: boolean }) => {
     const { user } = useAuth();
     const [userProfile, setUserProfile] = useState<any>(null);
     const [isModMailOpen, setIsModMailOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchUserProfile = async () => {
-            if (!user) return;
-            const { data } = await supabase
-                .from('profiles')
-                .select('user_flair')
-                .eq('id', user.id)
-                .single();
-            if (data) setUserProfile(data);
-        };
+    const fetchUserProfile = async () => {
+        if (!user) return;
+        const { data } = await supabase
+            .from('profiles')
+            .select('user_flair')
+            .eq('id', user.id)
+            .single();
+        if (data) setUserProfile(data);
+    };
 
+    useEffect(() => {
         fetchUserProfile();
     }, [user]);
 
@@ -83,6 +87,12 @@ export const CommunitySidebar = ({
                     <CardHeader className="bg-sidebar-accent/50 pb-3">
                         <CardTitle className="text-sm font-bold uppercase text-sidebar-muted-foreground flex items-center justify-between">
                             About Community
+                            {isAdmin && (
+                                <CommunitySettingsDialog
+                                    community={community}
+                                    onUpdate={() => window.location.reload()}
+                                />
+                            )}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
@@ -136,23 +146,35 @@ export const CommunitySidebar = ({
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 mt-4">
                             <Button className="w-full rounded-full" asChild>
                                 <a href="/create-post">Create Post</a>
                             </Button>
-                            <CommunityGuideModal community={community} />
+                            <CommunityGuideModal
+                                community={community}
+                                trigger={
+                                    <Button variant="outline" className="w-full rounded-full">
+                                        Community Guide
+                                    </Button>
+                                }
+                            />
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Events Widget */}
+                <CommunityEventsWidget communityId={community.id} isAdmin={isAdmin} />
+
+                {/* Polls Widget */}
+                <CommunityPollsWidget communityId={community.id} isAdmin={isAdmin} />
 
                 {/* User Flair Widget */}
                 {user && (
                     <Card className="bg-sidebar-background border-sidebar-border">
                         <CardContent className="pt-4">
                             <UserFlairSelector
-                                communityId={community.id}
                                 currentFlair={userProfile?.user_flair}
-                                onFlairUpdate={(flair) => setUserProfile({ ...userProfile, user_flair: flair })}
+                                onFlairUpdated={fetchUserProfile}
                             />
                         </CardContent>
                     </Card>
@@ -260,6 +282,6 @@ export const CommunitySidebar = ({
                     communityName={community.name}
                 />
             </div>
-        </div>
+        </div >
     );
 };

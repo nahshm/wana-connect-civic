@@ -1,6 +1,6 @@
-import React from 'react';
-import { Hash, ChevronDown, Users, Shield, FileText, Hammer } from 'lucide-react';
+import { Hash, ChevronDown, Users, Shield, FileText, Hammer, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface Channel {
     id: string;
@@ -13,9 +13,12 @@ interface ChannelListProps {
     activeChannel: string;
     onChange: (channelId: string) => void;
     levelName: string;
+    isAdmin?: boolean;
+    onAddChannel?: () => void;
 }
 
-const ChannelList: React.FC<ChannelListProps> = ({ channels, activeChannel, onChange, levelName }) => {
+const ChannelList: React.FC<ChannelListProps> = ({ channels, activeChannel, onChange, levelName, isAdmin, onAddChannel }) => {
+    // ... categories and getChannelIcon ...
     const categories = {
         INFO: { label: 'Information', icon: FileText },
         MONITORING: { label: 'Monitoring', icon: Shield },
@@ -38,11 +41,25 @@ const ChannelList: React.FC<ChannelListProps> = ({ channels, activeChannel, onCh
     return (
         <div className="w-60 bg-sidebar-background flex flex-col overflow-hidden border-r border-sidebar-border">
             {/* Level Header */}
-            <div className="p-4 border-b border-sidebar-border bg-sidebar-background">
-                <button className="w-full flex items-center justify-between text-left group hover:bg-sidebar-accent/50 rounded px-2 py-1 transition-colors">
+            <div className="p-4 border-b border-sidebar-border bg-sidebar-background flex items-center justify-between group">
+                <button className="flex-1 flex items-center justify-between text-left hover:bg-sidebar-accent/50 rounded px-2 py-1 transition-colors mr-2">
                     <span className="font-bold text-sidebar-foreground truncate">{levelName}</span>
                     <ChevronDown className="w-4 h-4 text-sidebar-muted-foreground group-hover:text-sidebar-foreground flex-shrink-0" />
                 </button>
+
+                {isAdmin && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-sidebar-muted-foreground hover:text-sidebar-foreground"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAddChannel?.();
+                        }}
+                    >
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                )}
             </div>
 
             {/* Channels */}

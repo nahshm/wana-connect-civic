@@ -19,6 +19,7 @@ import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';
 import { Menu, X } from 'lucide-react';
+import { CreateChannelDialog } from '@/components/community/discord/CreateChannelDialog';
 
 // Utility function to convert snake_case keys to camelCase recursively
 function toCamelCase(obj: any): any {
@@ -49,6 +50,8 @@ const Community = () => {
   const [isModerator, setIsModerator] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [channels, setChannels] = useState<any[]>([]);
+  const [createChannelOpen, setCreateChannelOpen] = useState(false);
 
   // Geographic communities for navigation
   const [geoCommunities, setGeoCommunities] = useState<{
@@ -99,40 +102,39 @@ const Community = () => {
     isActive: community?.id === c.id
   }));
 
-  const levels = [...primaryLevels];
-  if (secondaryLevels.length > 0) {
-    levels.push({ id: 'sep-1', name: 'Separator', type: 'SEPARATOR' as const });
-    levels.push(...secondaryLevels);
-  }
-
-  const channels = [
-    { id: 'announcements', name: 'announcements', category: 'INFO' as const },
-    { id: 'faqs', name: 'faqs', category: 'INFO' as const },
-    { id: 'our-leaders', name: 'our-leaders', category: 'MONITORING' as const },
-    { id: 'projects-watch', name: 'projects-watch', category: 'MONITORING' as const },
-    { id: 'promises-watch', name: 'promises-watch', category: 'MONITORING' as const },
-    { id: 'general-chat', name: 'general-chat', category: 'ENGAGEMENT' as const },
-    { id: 'town-hall', name: 'town-hall', category: 'ENGAGEMENT' as const },
+  const levels = [
+    ...primaryLevels.filter(l => l.communitySlug),
+    ...(secondaryLevels.length > 0 ? [{ type: 'SEPARATOR' as const, id: 'sep-1', name: '', isActive: false }] : []),
+    ...secondaryLevels
   ];
 
-  const currentLevel = levels.find(l => l.isActive) || levels[0];
+  const currentLevel = [...primaryLevels, ...secondaryLevels].find(l => l.isActive) || { name: community?.displayName || 'Community', type: 'COMMUNITY' as const };
 
   useEffect(() => {
     if (communityName) {
-      fetchCommunity();
+      setLoading(true);
+      fetchCommunityData();
     }
-  }, [communityName]);
+  }, [communityName, user?.id]);
 
+  // Separate effect for getting the user's hierarchy once
   useEffect(() => {
-    if (community?.id) {
+    if (user) {
       fetchGeographicCommunities();
+    }
+  }, [user]);
+
+  // Fetch channel data when active channel changes
+  useEffect(() => {
+    if (activeChannelId) {
       fetchChannelData(activeChannelId);
     }
-  }, [community?.id, activeChannelId]);
+  }, [activeChannelId, community?.id]);
 
-  const fetchCommunity = async () => {
+  const fetchCommunityData = async () => {
     try {
-      setLoading(true);
+      if (!communityName) return;
+
       const { data, error } = await supabase
         .from('communities')
         .select(`
@@ -144,7 +146,8 @@ const Community = () => {
             profiles!community_moderators_user_id_fkey (username, display_name, avatar_url)
           ),
           community_rules (*),
-          community_flairs (*)
+          community_flairs (*),
+          channels (*)
         `)
         .eq('name', communityName)
         .single();
@@ -178,6 +181,27 @@ const Community = () => {
       setModerators(communityData.communityModerators || []);
       setRules(communityData.communityRules || []);
       setFlairs(communityData.communityFlairs || []);
+
+      if (communityData.channels && communityData.channels.length > 0) {
+        const dbChannels = communityData.channels.map((ch: any) => ({
+          id: ch.id,
+          name: ch.name,
+          category: ch.type === 'announcement' ? 'INFO' : 'ENGAGEMENT', // Map types to categories
+          type: ch.type
+        }));
+        setChannels(dbChannels);
+      } else {
+        // Fallback to default channels
+        setChannels([
+          { id: 'announcements', name: 'announcements', category: 'INFO' },
+          { id: 'faqs', name: 'faqs', category: 'INFO' },
+          { id: 'projects-watch', name: 'projects-watch', category: 'MONITORING' },
+          { id: 'promises-watch', name: 'promises-watch', category: 'MONITORING' },
+          { id: 'our-leaders', name: 'our-leaders', category: 'MONITORING' },
+          { id: 'general-chat', name: 'general-chat', category: 'ENGAGEMENT' },
+          { id: 'town-hall', name: 'town-hall', category: 'ENGAGEMENT' },
+        ]);
+      }
     } catch (error) {
       console.error('Error fetching community:', error);
     } finally {
@@ -399,6 +423,16 @@ const Community = () => {
     }
   };
 
+  const handleChannelCreated = (newChannel: any) => {
+    // Optimistically update or re-fetch
+    setChannels(prev => [...prev, {
+      id: newChannel.id,
+      name: newChannel.name,
+      category: newChannel.type === 'announcement' ? 'INFO' : 'ENGAGEMENT',
+      type: newChannel.type
+    }]);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -423,8 +457,6 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-background">
-
-      {/* Main Layout: Discord-style 3-column - Fixed height for independent scrolling */}
       <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background relative">
 
         {/* Mobile Backdrop */}
@@ -456,6 +488,8 @@ const Community = () => {
               setMobileMenuOpen(false);
             }}
             levelName={currentLevel.name}
+            isAdmin={isAdmin}
+            onAddChannel={() => setCreateChannelOpen(true)}
           />
         </div>
 
@@ -492,9 +526,20 @@ const Community = () => {
             rules={rules}
             moderators={moderators}
             flairs={flairs}
+            isAdmin={isAdmin}
           />
         </div>
       </div>
+
+      {/* Create Channel Dialog */}
+      {community && (
+        <CreateChannelDialog
+          isOpen={createChannelOpen}
+          onClose={() => setCreateChannelOpen(false)}
+          communityId={community.id}
+          onChannelCreated={handleChannelCreated}
+        />
+      )}
     </div>
   );
 };

@@ -10,7 +10,7 @@ import { GovernmentProject } from '@/types';
 
 interface ChannelContentProps {
     channelId: string;
-    levelType: 'COUNTY' | 'CONSTITUENCY' | 'WARD';
+    levelType: 'COUNTY' | 'CONSTITUENCY' | 'WARD' | 'COMMUNITY';
     locationValue: string;
     posts: Post[];
     projects: GovernmentProject[];
@@ -29,6 +29,13 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 }) => {
     // Specialized channel views
     if (channelId === 'our-leaders') {
+        if (levelType === 'COMMUNITY') {
+            return (
+                <div className="p-6 text-center text-muted-foreground">
+                    This feature is only available for geographic communities.
+                </div>
+            );
+        }
         return <LeadersGrid levelType={levelType} locationValue={locationValue} />;
     }
 
@@ -37,6 +44,13 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     }
 
     if (channelId === 'promises-watch') {
+        if (levelType === 'COMMUNITY') {
+            return (
+                <div className="p-6 text-center text-muted-foreground">
+                    This feature is only available for geographic communities.
+                </div>
+            );
+        }
         return <PromisesGrid levelType={levelType} locationValue={locationValue} />;
     }
 
