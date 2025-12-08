@@ -16,6 +16,7 @@ interface ChannelContentProps {
     projects: GovernmentProject[];
     postsLoading: boolean;
     projectsLoading: boolean;
+    isAdmin?: boolean;
 }
 
 const ChannelContent: React.FC<ChannelContentProps> = ({
@@ -26,6 +27,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     projects,
     postsLoading,
     projectsLoading,
+    isAdmin = false,
 }) => {
     // Specialized channel views
     if (channelId === 'our-leaders') {

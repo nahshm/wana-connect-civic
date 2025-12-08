@@ -182,26 +182,16 @@ const Community = () => {
       setRules(communityData.communityRules || []);
       setFlairs(communityData.communityFlairs || []);
 
-      if (communityData.channels && communityData.channels.length > 0) {
-        const dbChannels = communityData.channels.map((ch: any) => ({
-          id: ch.id,
-          name: ch.name,
-          category: ch.type === 'announcement' ? 'INFO' : 'ENGAGEMENT', // Map types to categories
-          type: ch.type
-        }));
-        setChannels(dbChannels);
-      } else {
-        // Fallback to default channels
-        setChannels([
-          { id: 'announcements', name: 'announcements', category: 'INFO' },
-          { id: 'faqs', name: 'faqs', category: 'INFO' },
-          { id: 'projects-watch', name: 'projects-watch', category: 'MONITORING' },
-          { id: 'promises-watch', name: 'promises-watch', category: 'MONITORING' },
-          { id: 'our-leaders', name: 'our-leaders', category: 'MONITORING' },
-          { id: 'general-chat', name: 'general-chat', category: 'ENGAGEMENT' },
-          { id: 'town-hall', name: 'town-hall', category: 'ENGAGEMENT' },
-        ]);
-      }
+      // Revert to original hardcoded channels + logic
+      setChannels([
+        { id: 'announcements', name: 'announcements', category: 'INFO' },
+        { id: 'faqs', name: 'faqs', category: 'INFO' },
+        { id: 'projects-watch', name: 'projects-watch', category: 'MONITORING' },
+        { id: 'promises-watch', name: 'promises-watch', category: 'MONITORING' },
+        { id: 'our-leaders', name: 'our-leaders', category: 'MONITORING' },
+        { id: 'general-chat', name: 'general-chat', category: 'ENGAGEMENT' },
+        { id: 'town-hall', name: 'town-hall', category: 'ENGAGEMENT' },
+      ]);
     } catch (error) {
       console.error('Error fetching community:', error);
     } finally {
@@ -510,12 +500,15 @@ const Community = () => {
           {/* Channel Content */}
           <ChannelContent
             channelId={activeChannelId}
+            // Pass full channel object if found
+            channel={channels.find(c => c.id === activeChannelId)}
             levelType={currentLevel.type}
             locationValue={currentLevel.name}
             posts={posts}
             projects={projects}
             postsLoading={false}
             projectsLoading={false}
+            isAdmin={isAdmin}
           />
         </div>
 
