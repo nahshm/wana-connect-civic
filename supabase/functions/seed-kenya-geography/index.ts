@@ -10,14 +10,14 @@ const kenyaData = {
   counties: [
     // Nairobi Region
     { name: 'Nairobi', population: 4397073 },
-    
+
     // Central Region
     { name: 'Kiambu', population: 2417735 },
     { name: 'Nyeri', population: 759164 },
     { name: 'Kirinyaga', population: 610411 },
     { name: 'Murang\'a', population: 1056640 },
     { name: 'Nyandarua', population: 638289 },
-    
+
     // Coast Region
     { name: 'Mombasa', population: 1208333 },
     { name: 'Kilifi', population: 1453787 },
@@ -25,7 +25,7 @@ const kenyaData = {
     { name: 'Lamu', population: 143920 },
     { name: 'Taita Taveta', population: 340671 },
     { name: 'Tana River', population: 315943 },
-    
+
     // Eastern Region
     { name: 'Embu', population: 608599 },
     { name: 'Isiolo', population: 268002 },
@@ -35,12 +35,12 @@ const kenyaData = {
     { name: 'Marsabit', population: 459785 },
     { name: 'Meru', population: 1545714 },
     { name: 'Tharaka Nithi', population: 393177 },
-    
+
     // North Eastern Region
     { name: 'Garissa', population: 841353 },
     { name: 'Mandera', population: 1200000 },
     { name: 'Wajir', population: 781263 },
-    
+
     // Nyanza Region
     { name: 'Homa Bay', population: 1131950 },
     { name: 'Kisii', population: 1266860 },
@@ -48,7 +48,7 @@ const kenyaData = {
     { name: 'Migori', population: 1116436 },
     { name: 'Nyamira', population: 605576 },
     { name: 'Siaya', population: 993183 },
-    
+
     // Rift Valley Region
     { name: 'Baringo', population: 666763 },
     { name: 'Bomet', population: 875689 },
@@ -64,7 +64,7 @@ const kenyaData = {
     { name: 'Turkana', population: 926976 },
     { name: 'Uasin Gishu', population: 1163186 },
     { name: 'West Pokot', population: 621241 },
-    
+
     // Western Region
     { name: 'Bungoma', population: 1670570 },
     { name: 'Busia', population: 893681 },
@@ -92,7 +92,7 @@ const kenyaData = {
       { name: 'Starehe' },
       { name: 'Mathare' },
     ],
-    
+
     // Kiambu County
     'Kiambu': [
       { name: 'Gatundu South' },
@@ -108,7 +108,7 @@ const kenyaData = {
       { name: 'Limuru' },
       { name: 'Lari' },
     ],
-    
+
     // Mombasa County (6 constituencies)
     'Mombasa': [
       { name: 'Changamwe' },
@@ -118,7 +118,7 @@ const kenyaData = {
       { name: 'Likoni' },
       { name: 'Mvita' },
     ],
-    
+
     // Kisumu County (7 constituencies)
     'Kisumu': [
       { name: 'Kisumu East' },
@@ -129,7 +129,7 @@ const kenyaData = {
       { name: 'Muhoroni' },
       { name: 'Nyakach' },
     ],
-    
+
     // Nakuru County (11 constituencies)
     'Nakuru': [
       { name: 'Nakuru Town East' },
@@ -144,7 +144,7 @@ const kenyaData = {
       { name: 'Rongai' },
       { name: 'Subukia' },
     ],
-    
+
     // Kakamega County (12 constituencies)
     'Kakamega': [
       { name: 'Lugari' },
@@ -160,7 +160,7 @@ const kenyaData = {
       { name: 'Shinyalu' },
       { name: 'Ikolomani' },
     ],
-    
+
     // Machakos County (8 constituencies)
     'Machakos': [
       { name: 'Machakos Town' },
@@ -172,7 +172,7 @@ const kenyaData = {
       { name: 'Mwala' },
       { name: 'Masinga' },
     ],
-    
+
     // Kilifi County (7 constituencies)
     'Kilifi': [
       { name: 'Kilifi North' },
@@ -183,7 +183,7 @@ const kenyaData = {
       { name: 'Magarini' },
       { name: 'Rabai' },
     ],
-    
+
     // Bungoma County (9 constituencies)
     'Bungoma': [
       { name: 'Bumula' },
@@ -196,7 +196,7 @@ const kenyaData = {
       { name: 'Webuye East' },
       { name: 'Webuye West' },
     ],
-    
+
     // Uasin Gishu County (6 constituencies)
     'Uasin Gishu': [
       { name: 'Ainabkoi' },
@@ -216,7 +216,7 @@ const kenyaData = {
       { name: 'Kangemi' },
       { name: 'Mountain View' },
     ],
-    
+
     // Nairobi - Kamukunji Constituency
     'Kamukunji': [
       { name: 'Pumwani' },
@@ -225,7 +225,7 @@ const kenyaData = {
       { name: 'Airbase' },
       { name: 'California' },
     ],
-    
+
     // Nairobi - Starehe Constituency
     'Starehe': [
       { name: 'Nairobi Central' },
@@ -234,7 +234,7 @@ const kenyaData = {
       { name: 'Landimawe' },
       { name: 'Nairobi South' },
     ],
-    
+
     // Nairobi - Kibra Constituency
     'Kibra': [
       { name: 'Laini Saba' },
@@ -243,7 +243,7 @@ const kenyaData = {
       { name: 'Woodley/Kenyatta Golf Course' },
       { name: 'Sarang\'ombe' },
     ],
-    
+
     // Nairobi - Embakasi East Constituency
     'Embakasi East': [
       { name: 'Upper Savannah' },
@@ -252,7 +252,7 @@ const kenyaData = {
       { name: 'Utawala' },
       { name: 'Mihango' },
     ],
-    
+
     // Kiambu - Ruiru Constituency
     'Ruiru': [
       { name: 'Biashara' },
@@ -262,7 +262,7 @@ const kenyaData = {
       { name: 'Kiuu' },
       { name: 'Mwihoko' },
     ],
-    
+
     // Kiambu - Thika Town Constituency
     'Thika Town': [
       { name: 'Township' },
@@ -271,7 +271,7 @@ const kenyaData = {
       { name: 'Gatuanyaga' },
       { name: 'Ngoliba' },
     ],
-    
+
     // Mombasa - Changamwe Constituency
     'Changamwe': [
       { name: 'Port Reitz' },
@@ -280,7 +280,7 @@ const kenyaData = {
       { name: 'Changamwe' },
       { name: 'Chaani' },
     ],
-    
+
     // Mombasa - Mvita Constituency
     'Mvita': [
       { name: 'Mji Wa Kale/Makadara' },
@@ -289,7 +289,7 @@ const kenyaData = {
       { name: 'Shimanzi/Ganjoni' },
       { name: 'Majengo' },
     ],
-    
+
     // Kisumu - Kisumu East Constituency
     'Kisumu East': [
       { name: 'Kajulu' },
@@ -298,7 +298,7 @@ const kenyaData = {
       { name: 'Kolwa Central' },
       { name: 'Nyalenda A' },
     ],
-    
+
     // Kisumu - Kisumu Central Constituency
     'Kisumu Central': [
       { name: 'Market Milimani' },
@@ -307,7 +307,7 @@ const kenyaData = {
       { name: 'Migosi' },
       { name: 'Shaurimoyo Kaloleni' },
     ],
-    
+
     // Nakuru - Nakuru Town East Constituency
     'Nakuru Town East': [
       { name: 'Biashara' },
@@ -316,7 +316,7 @@ const kenyaData = {
       { name: 'Menengai West' },
       { name: 'Nakuru East' },
     ],
-    
+
     // Kakamega - Lurambi Constituency
     'Lurambi': [
       { name: 'Butsotso East' },
@@ -326,7 +326,7 @@ const kenyaData = {
       { name: 'Mahiakalo' },
       { name: 'Shirugu-Mugai' },
     ],
-    
+
     // Machakos - Mavoko Constituency
     'Mavoko': [
       { name: 'Athi River' },
@@ -334,7 +334,7 @@ const kenyaData = {
       { name: 'Muthwani' },
       { name: 'Syokimau/Mulolongo' },
     ],
-    
+
     // Uasin Gishu - Kapseret Constituency
     'Kapseret': [
       { name: 'Simat/Kapseret' },
@@ -372,22 +372,22 @@ Deno.serve(async (req) => {
     if (count && count > 0) {
       // Check if we already have comprehensive data (all 47 counties)
       const hasComprehensiveData = count >= 47;
-      
+
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: hasComprehensiveData 
-            ? 'Kenya geographic data already fully seeded' 
+        JSON.stringify({
+          success: true,
+          message: hasComprehensiveData
+            ? 'Kenya geographic data already fully seeded'
             : 'Geographic data partially exists. Delete existing data first to reseed.',
           existing_counties: count,
           counties: existingCounties?.map(c => c.name) || [],
-          note: hasComprehensiveData 
-            ? 'All 47 counties are present' 
+          note: hasComprehensiveData
+            ? 'All 47 counties are present'
             : 'Consider running a migration to add missing counties'
         }),
-        { 
+        {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
+          status: 200
         }
       );
     }
@@ -459,7 +459,7 @@ Deno.serve(async (req) => {
     if (wardError) throw wardError;
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: 'Kenya geographic data seeded successfully',
         stats: {
@@ -468,22 +468,22 @@ Deno.serve(async (req) => {
           wards: insertedWards.length,
         }
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        status: 200
       }
     );
 
   } catch (error) {
     console.error('Error seeding geographic data:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: 500
       }
     );
   }

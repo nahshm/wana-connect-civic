@@ -27,7 +27,7 @@ import ReportIssue from "./pages/Dashboard/ReportIssue";
 import ActionDetail from "./pages/Dashboard/ActionDetail";
 import Analytics from "./pages/Dashboard/Analytics";
 import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
-import { PositionVerification } from "./pages/admin/PositionVerification";
+import { PositionVerification } from "./pages/Admin/PositionVerification";
 import { SearchResults } from "./pages/SearchResults";
 import { CivicClipsPage } from "./pages/CivicClips";
 import Chat from "./pages/Chat";

@@ -247,6 +247,7 @@ export type Database = {
           created_at: string | null
           id: string
           room_id: string
+          channel_id: string | null
           sender_id: string | null
           updated_at: string | null
         }
@@ -255,6 +256,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           room_id: string
+          channel_id?: string | null
           sender_id?: string | null
           updated_at?: string | null
         }
@@ -263,6 +265,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           room_id?: string
+          channel_id?: string | null
           sender_id?: string | null
           updated_at?: string | null
         }
@@ -331,6 +334,341 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      channels: {
+        Row: {
+          id: string
+          community_id: string
+          name: string
+          type: string
+          category: string | null
+          description: string | null
+          is_default: boolean | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          name: string
+          type?: string
+          category?: string | null
+          description?: string | null
+          is_default?: boolean | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          name?: string
+          type?: string
+          category?: string | null
+          description?: string | null
+          is_default?: boolean | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      community_events: {
+        Row: {
+          id: string
+          community_id: string
+          title: string
+          description: string | null
+          event_date: string
+          location: string | null
+          created_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          title: string
+          description?: string | null
+          event_date: string
+          location?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          title?: string
+          description?: string | null
+          event_date?: string
+          location?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      community_polls: {
+        Row: {
+          id: string
+          community_id: string
+          question: string
+          options: Json
+          ends_at: string | null
+          created_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          question: string
+          options: Json
+          ends_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          question?: string
+          options?: Json
+          ends_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      community_poll_votes: {
+        Row: {
+          id: string
+          poll_id: string
+          user_id: string
+          option_index: number
+          voted_at: string | null
+        }
+        Insert: {
+          id?: string
+          poll_id: string
+          user_id: string
+          option_index: number
+          voted_at?: string | null
+        }
+        Update: {
+          id?: string
+          poll_id?: string
+          user_id?: string
+          option_index?: number
+          voted_at?: string | null
+        }
+        Relationships: []
+      }
+      country_governance_templates: {
+        Row: {
+          id: string
+          country_code: string
+          country_name: string
+          governance_structure: Json
+          administrative_levels: Json
+          position_templates: Json | null
+          is_verified: boolean | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          country_code: string
+          country_name: string
+          governance_structure: Json
+          administrative_levels: Json
+          position_templates?: Json | null
+          is_verified?: boolean | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          country_code?: string
+          country_name?: string
+          governance_structure?: Json
+          administrative_levels?: Json
+          position_templates?: Json | null
+          is_verified?: boolean | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      election_cycles: {
+        Row: {
+          id: string
+          country_code: string
+          election_type: string
+          election_date: string
+          registration_deadline: string | null
+          results_announced: string | null
+          governance_level: string | null
+          is_active: boolean | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          country_code: string
+          election_type: string
+          election_date: string
+          registration_deadline?: string | null
+          results_announced?: string | null
+          governance_level?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          country_code?: string
+          election_type?: string
+          election_date?: string
+          registration_deadline?: string | null
+          results_announced?: string | null
+          governance_level?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      government_positions: {
+        Row: {
+          id: string
+          country_code: string
+          governance_level: string
+          jurisdiction_name: string
+          jurisdiction_code: string
+          title: string
+          term_years: number | null
+          term_limit: number | null
+          next_election_date: string | null
+          election_type: string | null
+          is_elected: boolean | null
+          responsibilities: string | null
+          authority_level: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          country_code: string
+          governance_level: string
+          jurisdiction_name: string
+          jurisdiction_code: string
+          title: string
+          term_years?: number | null
+          term_limit?: number | null
+          next_election_date?: string | null
+          election_type?: string | null
+          is_elected?: boolean | null
+          responsibilities?: string | null
+          authority_level?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          country_code?: string
+          governance_level?: string
+          jurisdiction_name?: string
+          jurisdiction_code?: string
+          title?: string
+          term_years?: number | null
+          term_limit?: number | null
+          next_election_date?: string | null
+          election_type?: string | null
+          is_elected?: boolean | null
+          responsibilities?: string | null
+          authority_level?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      office_holders: {
+        Row: {
+          id: string
+          position_id: string
+          user_id: string
+          term_start: string
+          term_end: string
+          is_active: boolean | null
+          verification_status: string | null
+          verification_method: string | null
+          verified_by: string | null
+          verified_at: string | null
+          rejection_notes: string | null
+          claimed_at: string | null
+          proof_documents: Json | null
+          is_historical: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          position_id: string
+          user_id: string
+          term_start: string
+          term_end: string
+          is_active?: boolean | null
+          verification_status?: string | null
+          verification_method?: string | null
+          verified_by?: string | null
+          verified_at?: string | null
+          rejection_notes?: string | null
+          claimed_at?: string | null
+          proof_documents?: Json | null
+          is_historical?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          position_id?: string
+          user_id?: string
+          term_start?: string
+          term_end?: string
+          is_active?: boolean | null
+          verification_status?: string | null
+          verification_method?: string | null
+          verified_by?: string | null
+          verified_at?: string | null
+          rejection_notes?: string | null
+          claimed_at?: string | null
+          proof_documents?: Json | null
+          is_historical?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_holders_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "government_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_holders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       civic_action_supporters: {
         Row: {
@@ -4113,27 +4451,27 @@ export type Database = {
     }
     Enums: {
       app_role:
-        | "admin"
-        | "moderator"
-        | "official"
-        | "expert"
-        | "journalist"
-        | "citizen"
+      | "admin"
+      | "moderator"
+      | "official"
+      | "expert"
+      | "journalist"
+      | "citizen"
       content_type: "text" | "video" | "image" | "poll" | "live"
       official_level:
-        | "executive"
-        | "governor"
-        | "senator"
-        | "mp"
-        | "women_rep"
-        | "mca"
+      | "executive"
+      | "governor"
+      | "senator"
+      | "mp"
+      | "women_rep"
+      | "mca"
       promise_status: "completed" | "ongoing" | "not_started" | "cancelled"
       user_persona:
-        | "active_citizen"
-        | "community_organizer"
-        | "civic_learner"
-        | "government_watcher"
-        | "professional"
+      | "active_citizen"
+      | "community_organizer"
+      | "civic_learner"
+      | "government_watcher"
+      | "professional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4147,116 +4485,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {
