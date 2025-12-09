@@ -108,7 +108,28 @@ const Community = () => {
     ...secondaryLevels
   ];
 
-  const currentLevel = [...primaryLevels, ...secondaryLevels].find(l => l.isActive) || { name: community?.displayName || 'Community', type: 'COMMUNITY' as const };
+  const currentLevel = (() => {
+    // First try to find active level from primary/secondary levels
+    const activeLevel = [...primaryLevels, ...secondaryLevels].find(l => l.isActive);
+    if (activeLevel) return activeLevel;
+
+    // For non-logged-in users OR when viewing a geographic community directly,
+    // derive the level type from the community's own locationType field
+    if (community?.locationType) {
+      const typeMap: Record<string, 'COUNTY' | 'CONSTITUENCY' | 'WARD'> = {
+        'county': 'COUNTY',
+        'constituency': 'CONSTITUENCY',
+        'ward': 'WARD'
+      };
+      return {
+        name: community.locationValue || community.displayName || 'Community',
+        type: typeMap[community.locationType] || 'COMMUNITY' as const
+      };
+    }
+
+    // Final fallback for non-geographic communities
+    return { name: community?.displayName || 'Community', type: 'COMMUNITY' as const };
+  })();
 
   useEffect(() => {
     if (communityName) {
@@ -182,16 +203,18 @@ const Community = () => {
       setRules(communityData.communityRules || []);
       setFlairs(communityData.communityFlairs || []);
 
-      // Revert to original hardcoded channels + logic
-      setChannels([
-        { id: 'announcements', name: 'announcements', category: 'INFO' },
-        { id: 'faqs', name: 'faqs', category: 'INFO' },
-        { id: 'projects-watch', name: 'projects-watch', category: 'MONITORING' },
-        { id: 'promises-watch', name: 'promises-watch', category: 'MONITORING' },
-        { id: 'our-leaders', name: 'our-leaders', category: 'MONITORING' },
-        { id: 'general-chat', name: 'general-chat', category: 'ENGAGEMENT' },
-        { id: 'town-hall', name: 'town-hall', category: 'ENGAGEMENT' },
-      ]);
+      // Use fetched channels from relation
+      if (communityData.channels && communityData.channels.length > 0) {
+        setChannels(communityData.channels);
+        // Set default active channel if current one not found
+        if (!communityData.channels.find((c: any) => c.id === activeChannelId)) {
+          // Prefer 'general-chat' or 'announcements' or first one
+          const defaultChannel = communityData.channels.find((c: any) => c.name === 'general-chat')
+            || communityData.channels.find((c: any) => c.name === 'announcements')
+            || communityData.channels[0];
+          setActiveChannelId(defaultChannel.id);
+        }
+      }
     } catch (error) {
       console.error('Error fetching community:', error);
     } finally {
@@ -336,9 +359,12 @@ const Community = () => {
   const fetchChannelData = async (channelId: string) => {
     if (!community?.id) return;
 
+    const channel = channels.find(c => c.id === channelId);
+    if (!channel) return;
+
     try {
-      // For text channels (general-chat, announcements, etc.), fetch posts
-      if (['general-chat', 'announcements', 'faqs', 'town-hall'].includes(channelId)) {
+      // 1. Text/Feed Channels -> Fetch Posts
+      if (channel.type === 'feed' || channel.type === 'text' || channel.type === 'announcement') {
         const { data: postsData } = await supabase
           .from('posts')
           .select(`
@@ -348,8 +374,13 @@ const Community = () => {
             post_media(*)
           `)
           .eq('community_id', community.id)
+          // Ideally filter by channel_id metadata if posts are linked to channels
+          // For now, existing logic fetches all community posts. 
+          // FUTURE TODO: Filter posts by channel_id logic if we move posts to channels table strict relationship
           .order('created_at', { ascending: false })
           .limit(20);
+
+        // Transform
         const camelCasePosts = toCamelCase(postsData) || [];
         const mappedPosts = camelCasePosts.map((p: any) => ({
           ...p,
@@ -358,8 +389,9 @@ const Community = () => {
         setPosts(mappedPosts);
       }
 
-      // For projects-watch, fetch projects
-      if (channelId === 'projects-watch') {
+      // 2. Projects Watch
+      // We check name OR category depending on robustness. Name 'projects-watch' is the convention.
+      if (channel.name === 'projects-watch') {
         if (community.locationType && community.locationValue) {
           const { data: projectsData } = await supabase
             .from('government_projects')
@@ -374,7 +406,7 @@ const Community = () => {
         }
       }
 
-      // For members sidebar, fetch members
+      // 3. Sidebars / Members
       const { data: membersData } = await supabase
         .from('community_members')
         .select(`
@@ -383,6 +415,7 @@ const Community = () => {
         `)
         .eq('community_id', community.id);
       setMembers(toCamelCase(membersData) || []);
+
     } catch (error) {
       console.error('Error fetching channel data:', error);
     }
@@ -504,6 +537,7 @@ const Community = () => {
             channel={channels.find(c => c.id === activeChannelId)}
             levelType={currentLevel.type}
             locationValue={currentLevel.name}
+            communityId={community.id}
             posts={posts}
             projects={projects}
             postsLoading={false}

@@ -3,12 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { FileText, PlusCircle, AlertCircle, Users } from 'lucide-react';
+import { FileText, PlusCircle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import VerificationPanel from '@/components/verification/VerificationPanel';
 import { useVerification } from '@/hooks/useVerification';
 
-interface Promise {
+interface PromiseItem {
     id: string;
     title: string;
     description: string;
@@ -34,7 +34,7 @@ interface PromisesGridProps {
 }
 
 const PromisesGrid: React.FC<PromisesGridProps> = ({ levelType, locationValue }) => {
-    const [promises, setPromises] = useState<Promise[]>([]);
+    const [promises, setPromises] = useState<PromiseItem[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -45,18 +45,50 @@ const PromisesGrid: React.FC<PromisesGridProps> = ({ levelType, locationValue })
     const fetchPromises = async () => {
         try {
             setLoading(true);
-            const levelColumn = levelType.toLowerCase();
 
-            const { data, error } = await supabase
+            // Note: Explicit foreign key relationship official:officials!official_id
+            let query = supabase
                 .from('development_promises')
                 .select(`
-          *,
-          official:officials(id, name, position, photo_url)
-        `)
-                .eq(levelColumn, locationValue)
+                    *,
+                    official:officials!official_id(id, name, position, photo_url)
+                `)
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            // Apply filter if possible. 
+            // The table has a 'location' column (text).
+            // We'll perform a text search or case-insensitive match on location.
+            // Since 'locationValue' is like "Nairobi", and 'location' might be "Nairobi County", textSearch is good.
+            if (locationValue) {
+                // Try text search configuration first
+                // query = query.textSearch('location', locationValue, { type: 'websearch', config: 'english' });
+                // Actually, simple ilike is safer if Full Text Search indexes aren't confirmed setup
+                query = query.ilike('location', `%${locationValue}%`);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.warn("Error fetching promises with filter, verify indexes:", error);
+
+                // Fallback: fetch without filter and filter client-side just in case
+                const { data: allData, error: backupError } = await supabase
+                    .from('development_promises')
+                    .select(`
+                        *,
+                        official:officials!official_id(id, name, position, photo_url)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (backupError) throw backupError;
+
+                const filtered = (allData || []).filter(p =>
+                    !locationValue || (p.location && p.location.toLowerCase().includes(locationValue.toLowerCase()))
+                );
+                setPromises(filtered);
+                return;
+            }
+
             setPromises(data || []);
         } catch (error) {
             console.error('Error fetching promises:', error);
@@ -66,15 +98,16 @@ const PromisesGrid: React.FC<PromisesGridProps> = ({ levelType, locationValue })
     };
 
     const getStatusColor = (status: string) => {
-        switch (status) {
+        switch (status?.toLowerCase()) {
             case 'completed':
-            case 'KEPT':
+            case 'kept':
                 return 'border-emerald-500 text-emerald-600 bg-emerald-50';
             case 'ongoing':
-            case 'IN_PROGRESS':
+            case 'in_progress':
                 return 'border-yellow-500 text-yellow-600 bg-yellow-50';
             case 'cancelled':
-            case 'BROKEN':
+            case 'broken':
+            case 'stalled':
                 return 'border-red-500 text-red-600 bg-red-50';
             default:
                 return 'border-slate-500 text-slate-600 bg-slate-50';
@@ -116,7 +149,7 @@ const PromisesGrid: React.FC<PromisesGridProps> = ({ levelType, locationValue })
                     <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
                     <h3 className="text-lg font-semibold mb-2">No Promises Tracked</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                        Be the first to log a campaign promise for your leaders.
+                        Be the first to log a campaign promise for your leaders in {locationValue}.
                     </p>
                     <Button>Log First Promise</Button>
                 </div>
@@ -166,6 +199,11 @@ const PromisesGrid: React.FC<PromisesGridProps> = ({ levelType, locationValue })
                                             <div className="flex items-center gap-1">
                                                 <Users className="h-3 w-3" />
                                                 <span>{promise.beneficiaries_count.toLocaleString()} beneficiaries</span>
+                                            </div>
+                                        )}
+                                        {promise.location && (
+                                            <div className="text-xs bg-slate-100 px-2 py-1 rounded">
+                                                {promise.location}
                                             </div>
                                         )}
                                     </div>

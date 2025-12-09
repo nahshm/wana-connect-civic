@@ -4,49 +4,127 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Users, Phone, Mail, ExternalLink } from 'lucide-react';
+import { Users, UserPlus, ShieldCheck, Vote, Calendar } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { GovernmentPosition, OfficeHolder } from '@/types/governance';
+import { ClaimPositionModal } from '@/components/governance/ClaimPositionModal';
 
-interface Official {
-    id: string;
-    name: string;
-    position: string;
-    photo_url?: string;
-    email?: string;
-    phone?: string;
-    office?: string;
-    party?: string;
+interface PositionWithHolder extends GovernmentPosition {
+    current_holder?: {
+        id: string;
+        user_id: string;
+        term_start: string;
+        term_end: string;
+        verification_status: string;
+        user?: {
+            id: string;
+            full_name: string;
+            avatar_url?: string;
+        };
+    } | null;
 }
 
 interface LeadersGridProps {
-    levelType: 'COUNTY' | 'CONSTITUENCY' | 'WARD';
+    levelType: 'COUNTY' | 'CONSTITUENCY' | 'WARD' | 'COMMUNITY';
     locationValue: string;
+    communityId?: string; // For membership validation in claim modal
 }
 
-const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue }) => {
-    const [officials, setOfficials] = useState<Official[]>([]);
+const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue, communityId }) => {
+    const [positions, setPositions] = useState<PositionWithHolder[]>([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    // Claim modal state
+    const [claimModalOpen, setClaimModalOpen] = useState(false);
+    const [selectedPosition, setSelectedPosition] = useState<{
+        id: string;
+        title: string;
+        governanceLevel: string;
+        jurisdictionName: string;
+        countryCode: string;
+    } | null>(null);
+
+    const handleClaimClick = (position: PositionWithHolder) => {
+        setSelectedPosition({
+            id: position.id,
+            title: position.title,
+            governanceLevel: position.governance_level,
+            jurisdictionName: position.jurisdiction_name,
+            countryCode: position.country_code,
+        });
+        setClaimModalOpen(true);
+    };
 
     useEffect(() => {
-        fetchOfficials();
+        fetchPositionsAndHolders();
     }, [levelType, locationValue]);
 
-    const fetchOfficials = async () => {
+    const fetchPositionsAndHolders = async () => {
         try {
             setLoading(true);
-            // Map level type to database column
-            const levelColumn = levelType.toLowerCase();
 
-            const { data, error } = await supabase
-                .from('officials')
+            // Map levelType to governance_level
+            const governanceLevel = levelType.toLowerCase();
+
+            // Clean locationValue: remove level suffixes and create flexible match pattern
+            const cleanedLocation = locationValue
+                .replace(/\s*(county|constituency|ward)\s*$/i, '')  // Remove level suffix
+                .trim();
+
+            const jurisdictionCode = cleanedLocation.toLowerCase().replace(/\s+/g, '-');
+
+            console.log('[LeadersGrid] Query params:', {
+                governanceLevel,
+                jurisdictionCode,
+                cleanedLocation,
+                originalLocationValue: locationValue
+            });
+
+            // Query positions - use flexible matching on jurisdiction_code or jurisdiction_name
+            const { data: positionsData, error: posError } = await supabase
+                .from('government_positions')
                 .select('*')
-                .eq(levelColumn, locationValue)
-                .order('position');
+                .eq('governance_level', governanceLevel)
+                .or(`jurisdiction_code.ilike.%${jurisdictionCode}%,jurisdiction_name.ilike.%${cleanedLocation}%`)
+                .order('authority_level', { ascending: false });
 
-            if (error) throw error;
-            setOfficials(data || []);
+            console.log('[LeadersGrid] Query result:', { count: positionsData?.length, posError, sample: positionsData?.[0]?.title });
+
+            if (posError) {
+                console.error('Error fetching positions:', posError);
+                throw posError;
+            }
+
+            // For each position, fetch the current active verified holder (if any)
+            const positionsWithHolders: PositionWithHolder[] = await Promise.all(
+                (positionsData || []).map(async (position) => {
+                    const { data: holderData } = await supabase
+                        .from('office_holders')
+                        .select(`
+                            id,
+                            user_id,
+                            term_start,
+                            term_end,
+                            verification_status,
+                            user:profiles!user_id(id, full_name, avatar_url)
+                        `)
+                        .eq('position_id', position.id)
+                        .eq('is_active', true)
+                        .eq('verification_status', 'verified')
+                        .single();
+
+                    return {
+                        ...position,
+                        current_holder: holderData || null
+                    };
+                })
+            );
+
+            setPositions(positionsWithHolders);
+
         } catch (error) {
-            console.error('Error fetching officials:', error);
+            console.error('Error fetching positions:', error);
         } finally {
             setLoading(false);
         }
@@ -61,32 +139,34 @@ const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue }) =
             .slice(0, 2);
     };
 
+    const formatDate = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString('en-KE', {
+            month: 'short',
+            year: 'numeric'
+        });
+    };
+
     if (loading) {
         return (
             <div className="p-6 space-y-4">
-                {[...Array(3)].map((_, i) => (
-                    <Card key={i} className="animate-pulse">
-                        <CardContent className="p-6">
-                            <div className="h-20 bg-slate-200 rounded" />
-                        </CardContent>
-                    </Card>
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
                 ))}
             </div>
         );
     }
 
-    if (officials.length === 0) {
+    if (positions.length === 0) {
         return (
-            <div className="p-6">
-                <Card>
-                    <CardContent className="text-center py-12">
-                        <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                        <h3 className="text-lg font-semibold mb-2">No Officials Found</h3>
-                        <p className="text-sm text-muted-foreground">
-                            No elected officials registered for this {levelType.toLowerCase()}.
-                        </p>
-                    </CardContent>
-                </Card>
+            <div className="p-12 text-center">
+                <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold">No Positions Found</h3>
+                <p className="text-muted-foreground">
+                    No government positions defined for {locationValue} yet.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                    Run the seed migration to populate positions.
+                </p>
             </div>
         );
     }
@@ -95,84 +175,102 @@ const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue }) =
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 flex items-center">
-                        <Users className="mr-3 h-8 w-8 text-blue-600" />
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                        <ShieldCheck className="h-6 w-6 text-primary" />
                         Our Leaders
                     </h2>
-                    <p className="text-slate-500 text-sm mt-1">
-                        Elected officials for {locationValue}
+                    <p className="text-muted-foreground text-sm">
+                        Government positions for <span className="font-semibold text-foreground">{locationValue}</span>
                     </p>
                 </div>
-                <Button variant="outline" size="sm">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View All Officials
-                </Button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {officials.map((official) => (
-                    <Card key={official.id} className="hover:shadow-md transition-shadow">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {positions.map((position) => (
+                    <Card
+                        key={position.id}
+                        className={`hover:shadow-md transition-shadow ${!position.current_holder ? 'border-dashed border-muted-foreground/40 bg-muted/30' : ''
+                            }`}
+                    >
                         <CardContent className="p-6">
-                            <div className="flex items-start gap-4">
-                                {/* Avatar */}
-                                <Avatar className="w-16 h-16">
-                                    <AvatarImage src={official.photo_url} />
-                                    <AvatarFallback className="bg-primary text-primary-foreground">
-                                        {getInitials(official.name)}
-                                    </AvatarFallback>
-                                </Avatar>
-
-                                {/* Info */}
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-lg text-slate-900 mb-1">{official.name}</h3>
-                                    <p className="text-sm text-slate-600 mb-2">{official.position}</p>
-
-                                    {official.party && (
-                                        <Badge variant="secondary" className="mb-3">{official.party}</Badge>
-                                    )}
-
-                                    {/* Contact Info */}
-                                    <div className="space-y-1 text-sm text-slate-600">
-                                        {official.email && (
-                                            <div className="flex items-center gap-2">
-                                                <Mail className="w-3 h-3" />
-                                                <span className="text-xs">{official.email}</span>
-                                            </div>
-                                        )}
-                                        {official.phone && (
-                                            <div className="flex items-center gap-2">
-                                                <Phone className="w-3 h-3" />
-                                                <span className="text-xs">{official.phone}</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Mock Approval Rating */}
-                                    <div className="mt-4">
-                                        <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-slate-500">Approval Rating</span>
-                                            <span className="font-bold">65%</span>
+                            {position.current_holder ? (
+                                /* OCCUPIED POSITION */
+                                <div className="flex items-start gap-4">
+                                    <Avatar className="w-14 h-14 border-2 border-primary/20">
+                                        <AvatarImage src={position.current_holder.user?.avatar_url} />
+                                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                                            {getInitials(position.current_holder.user?.full_name || 'UN')}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-primary font-bold uppercase tracking-wider mb-0.5">
+                                            {position.title}
+                                        </p>
+                                        <h3 className="font-bold text-lg truncate">
+                                            {position.current_holder.user?.full_name || 'Unknown'}
+                                        </h3>
+                                        <div className="flex gap-2 mt-2 flex-wrap">
+                                            <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400">
+                                                <ShieldCheck className="h-3 w-3 mr-1" />
+                                                Verified
+                                            </Badge>
+                                            <Badge variant="outline" className="text-[10px]">
+                                                <Calendar className="h-3 w-3 mr-1" />
+                                                {formatDate(position.current_holder.term_start)} - {formatDate(position.current_holder.term_end)}
+                                            </Badge>
                                         </div>
-                                        <Progress value={65} className="h-2" />
                                     </div>
-
-                                    {/* Actions */}
-                                    <div className="flex gap-2 mt-4">
-                                        <Button variant="outline" size="sm" className="flex-1 text-xs">
-                                            Log Promise
-                                        </Button>
-                                        <Button variant="outline" size="sm" className="flex-1 text-xs">
-                                            Review
+                                </div>
+                            ) : (
+                                /* VACANT POSITION */
+                                <div className="flex items-start gap-4">
+                                    <div className="w-14 h-14 rounded-full border-2 border-dashed border-muted-foreground/50 bg-muted/50 flex items-center justify-center">
+                                        <UserPlus className="h-6 w-6 text-muted-foreground" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
+                                            {position.title}
+                                        </p>
+                                        <h3 className="font-bold text-lg text-foreground/70">
+                                            Position Vacant
+                                        </h3>
+                                        <div className="flex gap-2 mt-2 flex-wrap items-center">
+                                            <Badge variant="outline" className="text-[10px] border-muted-foreground/40 text-muted-foreground">
+                                                Awaiting Claim
+                                            </Badge>
+                                            {position.next_election_date && (
+                                                <Badge variant="outline" className="text-[10px]">
+                                                    <Vote className="h-3 w-3 mr-1" />
+                                                    Next: {formatDate(position.next_election_date)}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            className="mt-3"
+                                            onClick={() => handleClaimClick(position)}
+                                        >
+                                            <UserPlus className="h-4 w-4 mr-1" />
+                                            Claim This Office
                                         </Button>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </CardContent>
                     </Card>
                 ))}
             </div>
+
+            {/* Claim Position Modal */}
+            <ClaimPositionModal
+                isOpen={claimModalOpen}
+                onClose={() => setClaimModalOpen(false)}
+                position={selectedPosition}
+                communityId={communityId}
+            />
         </div>
     );
 };
 
 export default LeadersGrid;
+

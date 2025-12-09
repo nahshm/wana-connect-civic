@@ -7,6 +7,7 @@ import LeadersGrid from './LeadersGrid';
 import ProjectsGrid from './ProjectsGrid';
 import PromisesGrid from './PromisesGrid';
 import { GovernmentProject } from '@/types';
+import { ChannelChatWindow } from '@/components/chat/ChannelChatWindow';
 
 interface ChannelContentProps {
     channelId: string;
@@ -17,6 +18,14 @@ interface ChannelContentProps {
     postsLoading: boolean;
     projectsLoading: boolean;
     isAdmin?: boolean;
+    communityId?: string; // For membership validation in LeadersGrid
+    // New prop for full channel object
+    channel?: {
+        id: string;
+        name: string;
+        type: string;
+        category: string;
+    };
 }
 
 const ChannelContent: React.FC<ChannelContentProps> = ({
@@ -28,35 +37,41 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     postsLoading,
     projectsLoading,
     isAdmin = false,
+    communityId,
+    channel
 }) => {
-    // Specialized channel views
-    if (channelId === 'our-leaders') {
-        if (levelType === 'COMMUNITY') {
-            return (
-                <div className="p-6 text-center text-muted-foreground">
-                    This feature is only available for geographic communities.
-                </div>
-            );
+    // 1. MONITORING CHANNELS (Grid Views)
+    // We must check by NAME because channelId is now a UUID from the DB
+    if (channel?.category === 'MONITORING' || ['our-leaders', 'projects-watch', 'promises-watch'].includes(channel?.name || '')) {
+        if (channel?.name === 'our-leaders') {
+            if (levelType === 'COMMUNITY') {
+                return <div className="p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
+            }
+            return <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />;
         }
-        return <LeadersGrid levelType={levelType} locationValue={locationValue} />;
-    }
-
-    if (channelId === 'projects-watch') {
-        return <ProjectsGrid projects={projects} loading={projectsLoading} />;
-    }
-
-    if (channelId === 'promises-watch') {
-        if (levelType === 'COMMUNITY') {
-            return (
-                <div className="p-6 text-center text-muted-foreground">
-                    This feature is only available for geographic communities.
-                </div>
-            );
+        if (channel?.name === 'projects-watch') {
+            return <ProjectsGrid projects={projects} loading={projectsLoading} />;
         }
-        return <PromisesGrid levelType={levelType} locationValue={locationValue} />;
+        if (channel?.name === 'promises-watch') {
+            if (levelType === 'COMMUNITY') return null;
+            return <PromisesGrid levelType={levelType} locationValue={locationValue} />;
+        }
     }
 
-    // Default post feed for text channels
+    // 2. CHAT CHANNELS (Text/Voice/Announcement)
+    // If it's explicitly a chat-type channel
+    if (channel?.type === 'text' || channel?.type === 'announcement' || channel?.type === 'voice') {
+        const isReadOnly = channel.type === 'announcement' && !isAdmin;
+        return (
+            <ChannelChatWindow
+                channelId={channel.id}
+                channelName={channel.name}
+                isReadOnly={isReadOnly}
+            />
+        );
+    }
+
+    // 3. FALLBACK: POST FEED (Feed type or Legacy)
     return (
         <div className="p-4 md:p-6">
             <CreatePostInput />

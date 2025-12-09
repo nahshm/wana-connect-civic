@@ -27,6 +27,7 @@ import ReportIssue from "./pages/Dashboard/ReportIssue";
 import ActionDetail from "./pages/Dashboard/ActionDetail";
 import Analytics from "./pages/Dashboard/Analytics";
 import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
+import { PositionVerification } from "./pages/admin/PositionVerification";
 import { SearchResults } from "./pages/SearchResults";
 import { CivicClipsPage } from "./pages/CivicClips";
 import Chat from "./pages/Chat";
@@ -34,6 +35,8 @@ import OfficialDetail from "./pages/OfficialDetail";
 import ProjectDetail from "./pages/ProjectDetail";
 import PromiseDetail from "./pages/PromiseDetail";
 import SubmitProject from "./pages/SubmitProject";
+import ClaimPositionPage from "./pages/ClaimPosition";
+import BuildGovernancePage from "./pages/BuildGovernance";
 import Quests from "./pages/Quests";
 import Leaderboards from "./pages/Leaderboards";
 import DiscoveryDashboard from "./pages/DiscoveryDashboard";
@@ -78,6 +81,8 @@ const App = () => (
                         <Route path="/officials/:officialId" element={<OfficialDetail />} />
                         <Route path="/projects" element={<Projects />} />
                         <Route path="/projects/submit" element={<SubmitProject />} />
+                        <Route path="/claim-position" element={<ClaimPositionPage />} />
+                        <Route path="/governance/build" element={<BuildGovernancePage />} />
                         <Route path="/projects/:projectId" element={<ProjectDetail />} />
                         <Route path="/promises/:promiseId" element={<PromiseDetail />} />
                         <Route path="/discover" element={<DiscoveryDashboard />} />
@@ -87,6 +92,7 @@ const App = () => (
                         <Route path="/leaderboards" element={<Leaderboards />} />
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
+                        <Route path="/admin/verification" element={<PositionVerification />} />
                         {/* Functional prefix routes - handled by PrefixRouter */}
                         <Route path="/g/:officialId" element={<PrefixRouter />} />
                         <Route path="/p/:projectId" element={<PrefixRouter />} />
