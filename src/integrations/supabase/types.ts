@@ -14,6 +14,130 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          read_by: string[] | null
+          recipient_role: string
+          severity: string | null
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          read_by?: string[] | null
+          recipient_role: string
+          severity?: string | null
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          read_by?: string[] | null
+          recipient_role?: string
+          severity?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      anonymous_reports: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          constituency_id: string | null
+          county_id: string | null
+          created_at: string | null
+          encrypted_content: string
+          escalated_at: string | null
+          escalated_to: string[] | null
+          evidence_count: number | null
+          id: string
+          is_identity_protected: boolean | null
+          location_text: string | null
+          report_id: string
+          risk_score: number | null
+          severity: string
+          status: string
+          title: string | null
+          updated_at: string | null
+          ward_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          constituency_id?: string | null
+          county_id?: string | null
+          created_at?: string | null
+          encrypted_content: string
+          escalated_at?: string | null
+          escalated_to?: string[] | null
+          evidence_count?: number | null
+          id?: string
+          is_identity_protected?: boolean | null
+          location_text?: string | null
+          report_id: string
+          risk_score?: number | null
+          severity?: string
+          status?: string
+          title?: string | null
+          updated_at?: string | null
+          ward_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          constituency_id?: string | null
+          county_id?: string | null
+          created_at?: string | null
+          encrypted_content?: string
+          escalated_at?: string | null
+          escalated_to?: string[] | null
+          evidence_count?: number | null
+          id?: string
+          is_identity_protected?: boolean | null
+          location_text?: string | null
+          report_id?: string
+          risk_score?: number | null
+          severity?: string
+          status?: string
+          title?: string | null
+          updated_at?: string | null
+          ward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anonymous_reports_constituency_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anonymous_reports_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anonymous_reports_ward_id_fkey"
+            columns: ["ward_id"]
+            isOneToOne: false
+            referencedRelation: "wards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badges: {
         Row: {
           category: string
@@ -241,40 +365,115 @@ export type Database = {
         }
         Relationships: []
       }
+      channels: {
+        Row: {
+          category: string | null
+          community_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_private: boolean | null
+          name: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          community_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          name: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          community_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channels_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
+          channel_id: string | null
           content: string
           created_at: string | null
           id: string
-          room_id: string
-          channel_id: string | null
+          room_id: string | null
           sender_id: string | null
           updated_at: string | null
         }
         Insert: {
+          channel_id?: string | null
           content: string
           created_at?: string | null
           id?: string
-          room_id: string
-          channel_id?: string | null
+          room_id?: string | null
           sender_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          channel_id?: string | null
           content?: string
           created_at?: string | null
           id?: string
-          room_id?: string
-          channel_id?: string | null
+          room_id?: string | null
           sender_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "chat_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "chat_messages_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -334,341 +533,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      channels: {
-        Row: {
-          id: string
-          community_id: string
-          name: string
-          type: string
-          category: string | null
-          description: string | null
-          is_default: boolean | null
-          created_by: string | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          community_id: string
-          name: string
-          type?: string
-          category?: string | null
-          description?: string | null
-          is_default?: boolean | null
-          created_by?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          community_id?: string
-          name?: string
-          type?: string
-          category?: string | null
-          description?: string | null
-          is_default?: boolean | null
-          created_by?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "channels_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      community_events: {
-        Row: {
-          id: string
-          community_id: string
-          title: string
-          description: string | null
-          event_date: string
-          location: string | null
-          created_by: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          community_id: string
-          title: string
-          description?: string | null
-          event_date: string
-          location?: string | null
-          created_by?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          community_id?: string
-          title?: string
-          description?: string | null
-          event_date?: string
-          location?: string | null
-          created_by?: string | null
-          created_at?: string | null
-        }
-        Relationships: []
-      }
-      community_polls: {
-        Row: {
-          id: string
-          community_id: string
-          question: string
-          options: Json
-          ends_at: string | null
-          created_by: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          community_id: string
-          question: string
-          options: Json
-          ends_at?: string | null
-          created_by?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          community_id?: string
-          question?: string
-          options?: Json
-          ends_at?: string | null
-          created_by?: string | null
-          created_at?: string | null
-        }
-        Relationships: []
-      }
-      community_poll_votes: {
-        Row: {
-          id: string
-          poll_id: string
-          user_id: string
-          option_index: number
-          voted_at: string | null
-        }
-        Insert: {
-          id?: string
-          poll_id: string
-          user_id: string
-          option_index: number
-          voted_at?: string | null
-        }
-        Update: {
-          id?: string
-          poll_id?: string
-          user_id?: string
-          option_index?: number
-          voted_at?: string | null
-        }
-        Relationships: []
-      }
-      country_governance_templates: {
-        Row: {
-          id: string
-          country_code: string
-          country_name: string
-          governance_structure: Json
-          administrative_levels: Json
-          position_templates: Json | null
-          is_verified: boolean | null
-          created_by: string | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          country_code: string
-          country_name: string
-          governance_structure: Json
-          administrative_levels: Json
-          position_templates?: Json | null
-          is_verified?: boolean | null
-          created_by?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          country_code?: string
-          country_name?: string
-          governance_structure?: Json
-          administrative_levels?: Json
-          position_templates?: Json | null
-          is_verified?: boolean | null
-          created_by?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      election_cycles: {
-        Row: {
-          id: string
-          country_code: string
-          election_type: string
-          election_date: string
-          registration_deadline: string | null
-          results_announced: string | null
-          governance_level: string | null
-          is_active: boolean | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          country_code: string
-          election_type: string
-          election_date: string
-          registration_deadline?: string | null
-          results_announced?: string | null
-          governance_level?: string | null
-          is_active?: boolean | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          country_code?: string
-          election_type?: string
-          election_date?: string
-          registration_deadline?: string | null
-          results_announced?: string | null
-          governance_level?: string | null
-          is_active?: boolean | null
-          created_at?: string | null
-        }
-        Relationships: []
-      }
-      government_positions: {
-        Row: {
-          id: string
-          country_code: string
-          governance_level: string
-          jurisdiction_name: string
-          jurisdiction_code: string
-          title: string
-          term_years: number | null
-          term_limit: number | null
-          next_election_date: string | null
-          election_type: string | null
-          is_elected: boolean | null
-          responsibilities: string | null
-          authority_level: number | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          country_code: string
-          governance_level: string
-          jurisdiction_name: string
-          jurisdiction_code: string
-          title: string
-          term_years?: number | null
-          term_limit?: number | null
-          next_election_date?: string | null
-          election_type?: string | null
-          is_elected?: boolean | null
-          responsibilities?: string | null
-          authority_level?: number | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          country_code?: string
-          governance_level?: string
-          jurisdiction_name?: string
-          jurisdiction_code?: string
-          title?: string
-          term_years?: number | null
-          term_limit?: number | null
-          next_election_date?: string | null
-          election_type?: string | null
-          is_elected?: boolean | null
-          responsibilities?: string | null
-          authority_level?: number | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      office_holders: {
-        Row: {
-          id: string
-          position_id: string
-          user_id: string
-          term_start: string
-          term_end: string
-          is_active: boolean | null
-          verification_status: string | null
-          verification_method: string | null
-          verified_by: string | null
-          verified_at: string | null
-          rejection_notes: string | null
-          claimed_at: string | null
-          proof_documents: Json | null
-          is_historical: boolean | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          position_id: string
-          user_id: string
-          term_start: string
-          term_end: string
-          is_active?: boolean | null
-          verification_status?: string | null
-          verification_method?: string | null
-          verified_by?: string | null
-          verified_at?: string | null
-          rejection_notes?: string | null
-          claimed_at?: string | null
-          proof_documents?: Json | null
-          is_historical?: boolean | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          position_id?: string
-          user_id?: string
-          term_start?: string
-          term_end?: string
-          is_active?: boolean | null
-          verification_status?: string | null
-          verification_method?: string | null
-          verified_by?: string | null
-          verified_at?: string | null
-          rejection_notes?: string | null
-          claimed_at?: string | null
-          proof_documents?: Json | null
-          is_historical?: boolean | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "office_holders_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "government_positions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "office_holders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
       }
       civic_action_supporters: {
         Row: {
@@ -1695,6 +1559,7 @@ export type Database = {
           avatar_url: string | null
           banner_url: string | null
           category: string
+          country: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1709,6 +1574,7 @@ export type Database = {
           member_count: number | null
           minimum_karma_to_post: number | null
           name: string
+          region_type: string | null
           search_vector: unknown
           sensitivity_level: string | null
           sidebar_content: string | null
@@ -1725,6 +1591,7 @@ export type Database = {
           avatar_url?: string | null
           banner_url?: string | null
           category: string
+          country?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1739,6 +1606,7 @@ export type Database = {
           member_count?: number | null
           minimum_karma_to_post?: number | null
           name: string
+          region_type?: string | null
           search_vector?: unknown
           sensitivity_level?: string | null
           sidebar_content?: string | null
@@ -1755,6 +1623,7 @@ export type Database = {
           avatar_url?: string | null
           banner_url?: string | null
           category?: string
+          country?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1769,6 +1638,7 @@ export type Database = {
           member_count?: number | null
           minimum_karma_to_post?: number | null
           name?: string
+          region_type?: string | null
           search_vector?: unknown
           sensitivity_level?: string | null
           sidebar_content?: string | null
@@ -1857,6 +1727,67 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_events: {
+        Row: {
+          community_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_time: string | null
+          id: string
+          location_data: Json | null
+          location_type: string | null
+          start_time: string
+          title: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location_data?: Json | null
+          location_type?: string | null
+          start_time: string
+          title: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location_data?: Json | null
+          location_type?: string | null
+          start_time?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1968,8 +1899,10 @@ export type Database = {
           added_by: string | null
           community_id: string
           id: string
+          is_temporary: boolean | null
           permissions: Json | null
           role: string | null
+          term_expires_at: string | null
           user_id: string
         }
         Insert: {
@@ -1977,8 +1910,10 @@ export type Database = {
           added_by?: string | null
           community_id: string
           id?: string
+          is_temporary?: boolean | null
           permissions?: Json | null
           role?: string | null
+          term_expires_at?: string | null
           user_id: string
         }
         Update: {
@@ -1986,8 +1921,10 @@ export type Database = {
           added_by?: string | null
           community_id?: string
           id?: string
+          is_temporary?: boolean | null
           permissions?: Json | null
           role?: string | null
+          term_expires_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2015,6 +1952,100 @@ export type Database = {
           {
             foreignKeyName: "community_moderators_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_poll_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          option_index?: number
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "community_polls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_poll_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_polls: {
+        Row: {
+          community_id: string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          options: Json
+          question: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          options: Json
+          question: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          options?: Json
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_polls_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_polls_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_polls_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2288,6 +2319,121 @@ export type Database = {
         }
         Relationships: []
       }
+      country_governance_templates: {
+        Row: {
+          country_code: string
+          country_name: string
+          created_at: string | null
+          flag_emoji: string | null
+          governance_system: Json
+          id: string
+          is_verified: boolean | null
+          submitted_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          country_code: string
+          country_name: string
+          created_at?: string | null
+          flag_emoji?: string | null
+          governance_system: Json
+          id?: string
+          is_verified?: boolean | null
+          submitted_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          country_code?: string
+          country_name?: string
+          created_at?: string | null
+          flag_emoji?: string | null
+          governance_system?: Json
+          id?: string
+          is_verified?: boolean | null
+          submitted_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_governance_templates_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crisis_reports: {
+        Row: {
+          anonymous_report_id: string | null
+          created_at: string | null
+          crisis_type: string
+          description: string | null
+          escalated_to_ngo: string[] | null
+          evidence_urls: string[] | null
+          id: string
+          latitude: number | null
+          location_text: string | null
+          longitude: number | null
+          report_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          response_actions: Json | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          anonymous_report_id?: string | null
+          created_at?: string | null
+          crisis_type: string
+          description?: string | null
+          escalated_to_ngo?: string[] | null
+          evidence_urls?: string[] | null
+          id?: string
+          latitude?: number | null
+          location_text?: string | null
+          longitude?: number | null
+          report_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          response_actions?: Json | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          anonymous_report_id?: string | null
+          created_at?: string | null
+          crisis_type?: string
+          description?: string | null
+          escalated_to_ngo?: string[] | null
+          evidence_urls?: string[] | null
+          id?: string
+          latitude?: number | null
+          location_text?: string | null
+          longitude?: number | null
+          report_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          response_actions?: Json | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crisis_reports_anonymous_report_id_fkey"
+            columns: ["anonymous_report_id"]
+            isOneToOne: false
+            referencedRelation: "anonymous_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       development_promises: {
         Row: {
           actual_completion_date: string | null
@@ -2361,6 +2507,141 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      election_cycles: {
+        Row: {
+          created_at: string | null
+          declared_candidates: Json | null
+          election_date: string
+          election_type: string | null
+          id: string
+          position_id: string | null
+          results_certified: boolean | null
+          winner_user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          declared_candidates?: Json | null
+          election_date: string
+          election_type?: string | null
+          id?: string
+          position_id?: string | null
+          results_certified?: boolean | null
+          winner_user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          declared_candidates?: Json | null
+          election_date?: string
+          election_type?: string | null
+          id?: string
+          position_id?: string | null
+          results_certified?: boolean | null
+          winner_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "election_cycles_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "government_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "election_cycles_winner_user_id_fkey"
+            columns: ["winner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      governance_hierarchies: {
+        Row: {
+          country: string
+          created_at: string | null
+          id: string
+          level_1_name: string | null
+          level_2_name: string | null
+          level_3_name: string | null
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          id?: string
+          level_1_name?: string | null
+          level_2_name?: string | null
+          level_3_name?: string | null
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          id?: string
+          level_1_name?: string | null
+          level_2_name?: string | null
+          level_3_name?: string | null
+        }
+        Relationships: []
+      }
+      government_positions: {
+        Row: {
+          authority_level: number | null
+          country_code: string
+          created_at: string | null
+          description: string | null
+          election_type: string | null
+          governance_level: string
+          id: string
+          is_elected: boolean | null
+          jurisdiction_code: string | null
+          jurisdiction_name: string
+          next_election_date: string | null
+          position_code: string
+          responsibilities: string | null
+          term_limit: number | null
+          term_years: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          authority_level?: number | null
+          country_code: string
+          created_at?: string | null
+          description?: string | null
+          election_type?: string | null
+          governance_level: string
+          id?: string
+          is_elected?: boolean | null
+          jurisdiction_code?: string | null
+          jurisdiction_name: string
+          next_election_date?: string | null
+          position_code: string
+          responsibilities?: string | null
+          term_limit?: number | null
+          term_years?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          authority_level?: number | null
+          country_code?: string
+          created_at?: string | null
+          description?: string | null
+          election_type?: string | null
+          governance_level?: string
+          id?: string
+          is_elected?: boolean | null
+          jurisdiction_code?: string | null
+          jurisdiction_name?: string
+          next_election_date?: string | null
+          position_code?: string
+          responsibilities?: string | null
+          term_limit?: number | null
+          term_years?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       government_projects: {
         Row: {
@@ -2664,6 +2945,133 @@ export type Database = {
           },
         ]
       }
+      ngo_partners: {
+        Row: {
+          avg_response_hours: number | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          description: string | null
+          hotline: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          reports_received: number | null
+          sla_hours: number | null
+          type: string
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          avg_response_hours?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          hotline?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          reports_received?: number | null
+          sla_hours?: number | null
+          type: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          avg_response_hours?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          hotline?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          reports_received?: number | null
+          sla_hours?: number | null
+          type?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      office_holders: {
+        Row: {
+          claimed_at: string | null
+          id: string
+          is_active: boolean | null
+          is_historical: boolean | null
+          position_id: string | null
+          proof_documents: Json | null
+          rejection_notes: string | null
+          term_end: string
+          term_start: string
+          user_id: string | null
+          verification_method: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_historical?: boolean | null
+          position_id?: string | null
+          proof_documents?: Json | null
+          rejection_notes?: string | null
+          term_end: string
+          term_start: string
+          user_id?: string | null
+          verification_method?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_historical?: boolean | null
+          position_id?: string | null
+          proof_documents?: Json | null
+          rejection_notes?: string | null
+          term_end?: string
+          term_start?: string
+          user_id?: string | null
+          verification_method?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_holders_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "government_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_holders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_holders_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       official_contacts: {
         Row: {
           contact_type: string
@@ -2891,6 +3299,52 @@ export type Database = {
           },
         ]
       }
+      position_communities: {
+        Row: {
+          access_level: string | null
+          auto_moderation: boolean | null
+          community_id: string | null
+          id: string
+          position_id: string | null
+        }
+        Insert: {
+          access_level?: string | null
+          auto_moderation?: boolean | null
+          community_id?: string | null
+          id?: string
+          position_id?: string | null
+        }
+        Update: {
+          access_level?: string | null
+          auto_moderation?: boolean | null
+          community_id?: string | null
+          id?: string
+          position_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "position_communities_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "position_communities_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "position_communities_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: true
+            referencedRelation: "government_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_media: {
         Row: {
           file_path: string
@@ -3054,6 +3508,7 @@ export type Database = {
           display_name: string | null
           expertise: string[] | null
           id: string
+          is_platform_admin: boolean | null
           is_private: boolean | null
           is_verified: boolean | null
           join_date: string | null
@@ -3090,6 +3545,7 @@ export type Database = {
           display_name?: string | null
           expertise?: string[] | null
           id: string
+          is_platform_admin?: boolean | null
           is_private?: boolean | null
           is_verified?: boolean | null
           join_date?: string | null
@@ -3126,6 +3582,7 @@ export type Database = {
           display_name?: string | null
           expertise?: string[] | null
           id?: string
+          is_platform_admin?: boolean | null
           is_private?: boolean | null
           is_verified?: boolean | null
           join_date?: string | null
@@ -3681,6 +4138,45 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+        }
+        Relationships: []
+      }
+      system_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          new_values: Json | null
+          old_values: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -4439,6 +4935,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       update_all_karma: { Args: never; Returns: undefined }
       update_community_active_status: {
         Args: { p_community_id: string; p_user_id: string }
@@ -4451,27 +4948,28 @@ export type Database = {
     }
     Enums: {
       app_role:
-      | "admin"
-      | "moderator"
-      | "official"
-      | "expert"
-      | "journalist"
-      | "citizen"
+        | "admin"
+        | "moderator"
+        | "official"
+        | "expert"
+        | "journalist"
+        | "citizen"
+        | "super_admin"
       content_type: "text" | "video" | "image" | "poll" | "live"
       official_level:
-      | "executive"
-      | "governor"
-      | "senator"
-      | "mp"
-      | "women_rep"
-      | "mca"
+        | "executive"
+        | "governor"
+        | "senator"
+        | "mp"
+        | "women_rep"
+        | "mca"
       promise_status: "completed" | "ongoing" | "not_started" | "cancelled"
       user_persona:
-      | "active_citizen"
-      | "community_organizer"
-      | "civic_learner"
-      | "government_watcher"
-      | "professional"
+        | "active_citizen"
+        | "community_organizer"
+        | "civic_learner"
+        | "government_watcher"
+        | "professional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4485,116 +4983,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
@@ -4606,6 +5104,7 @@ export const Constants = {
         "expert",
         "journalist",
         "citizen",
+        "super_admin",
       ],
       content_type: ["text", "video", "image", "poll", "live"],
       official_level: [

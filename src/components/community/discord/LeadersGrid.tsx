@@ -18,7 +18,7 @@ interface PositionWithHolder extends GovernmentPosition {
         verification_status: string;
         user?: {
             id: string;
-            full_name: string;
+            display_name: string;
             avatar_url?: string;
         };
     } | null;
@@ -107,7 +107,7 @@ const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue, com
                             term_start,
                             term_end,
                             verification_status,
-                            user:profiles!user_id(id, full_name, avatar_url)
+                            user:profiles!user_id(id, display_name, avatar_url)
                         `)
                         .eq('position_id', position.id)
                         .eq('is_active', true)
@@ -199,7 +199,7 @@ const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue, com
                                     <Avatar className="w-14 h-14 border-2 border-primary/20">
                                         <AvatarImage src={position.current_holder.user?.avatar_url} />
                                         <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                                            {getInitials(position.current_holder.user?.full_name || 'UN')}
+                                            {getInitials(position.current_holder.user?.display_name || 'UN')}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
@@ -207,7 +207,7 @@ const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue, com
                                             {position.title}
                                         </p>
                                         <h3 className="font-bold text-lg truncate">
-                                            {position.current_holder.user?.full_name || 'Unknown'}
+                                            {position.current_holder.user?.display_name || 'Unknown'}
                                         </h3>
                                         <div className="flex gap-2 mt-2 flex-wrap">
                                             <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400">

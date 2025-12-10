@@ -67,7 +67,8 @@ export const CommunityPollsWidget: React.FC<CommunityPollsWidgetProps> = ({ comm
 
                 const resultsMap: Record<string, number[]> = {};
                 pollsData.forEach(p => {
-                    resultsMap[p.id] = new Array(p.options.length).fill(0);
+                    const optionsArray = Array.isArray(p.options) ? p.options : [];
+                    resultsMap[p.id] = new Array(optionsArray.length).fill(0);
                 });
 
                 allVotes?.forEach((v: any) => {
@@ -155,7 +156,7 @@ export const CommunityPollsWidget: React.FC<CommunityPollsWidgetProps> = ({ comm
                                     {!hasVoted ? (
                                         <RadioGroup onValueChange={(val) => handleVote(poll.id, parseInt(val))}>
                                             <div className="space-y-2">
-                                                {poll.options.map((option: string, idx: number) => (
+                                                {(Array.isArray(poll.options) ? poll.options : []).map((option: string, idx: number) => (
                                                     <div key={idx} className="flex items-center space-x-2">
                                                         <RadioGroupItem value={idx.toString()} id={`poll-${poll.id}-${idx}`} />
                                                         <Label htmlFor={`poll-${poll.id}-${idx}`} className="text-sm cursor-pointer font-normal">
@@ -167,7 +168,7 @@ export const CommunityPollsWidget: React.FC<CommunityPollsWidgetProps> = ({ comm
                                         </RadioGroup>
                                     ) : (
                                         <div className="space-y-2">
-                                            {poll.options.map((option: string, idx: number) => {
+                                            {(Array.isArray(poll.options) ? poll.options : []).map((option: string, idx: number) => {
                                                 const count = pollResults[poll.id]?.[idx] || 0;
                                                 const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                                                 const isWinner = totalVotes > 0 && count === Math.max(...pollResults[poll.id]);
