@@ -28,6 +28,7 @@ import ActionDetail from "./pages/Dashboard/ActionDetail";
 import Analytics from "./pages/Dashboard/Analytics";
 import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
 import { PositionVerification } from "./pages/Admin/PositionVerification";
+import SuperAdminDashboard from "./pages/Admin/SuperAdminDashboard";
 import { SearchResults } from "./pages/SearchResults";
 import { CivicClipsPage } from "./pages/CivicClips";
 import Chat from "./pages/Chat";
@@ -93,6 +94,7 @@ const App = () => (
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
                         <Route path="/admin/verification" element={<PositionVerification />} />
+                        <Route path="/superadmin" element={<SuperAdminDashboard />} />
                         {/* Functional prefix routes - handled by PrefixRouter */}
                         <Route path="/g/:officialId" element={<PrefixRouter />} />
                         <Route path="/p/:projectId" element={<PrefixRouter />} />

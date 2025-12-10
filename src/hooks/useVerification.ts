@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Verification } from '@/types';
+import { Verification, VerificationStatus } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UseVerificationOptions {
@@ -44,8 +44,8 @@ export function useVerification({ contentId, contentType }: UseVerificationOptio
             return {
                 id: data.id,
                 contentId: data.content_id,
-                contentType: data.content_type,
-                status: data.status,
+                contentType: data.content_type as 'post' | 'comment' | 'project' | 'promise',
+                status: data.status as VerificationStatus,
                 truthScore: data.truth_score,
                 totalVotes: data.total_votes,
                 breakdown,

@@ -386,9 +386,9 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             </div>
           )}
 
-          {/* Sentiment Bar */}
-          {post.sentiment && (
-            <SentimentBar sentiment={post.sentiment} className="mb-3" />
+          {/* Sentiment Bar - only show if available */}
+          {(post as any).sentiment && (
+            <SentimentBar sentiment={(post as any).sentiment} className="mb-3" />
           )}
 
           {/* Verification Panel */}
