@@ -4935,6 +4935,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       update_all_karma: { Args: never; Returns: undefined }
       update_community_active_status: {
