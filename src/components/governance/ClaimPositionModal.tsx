@@ -43,6 +43,9 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [membershipVerified, setMembershipVerified] = useState<boolean | null>(null);
     const [existingClaim, setExistingClaim] = useState(false);
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
     const form = useForm<ClaimFormData>({
         resolver: zodResolver(claimSchema),
@@ -52,6 +55,50 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
             term_end_date: '',
         },
     });
+
+    // Handle file upload to Supabase storage
+    const handleFileUpload = async (file: File) => {
+        if (!user) {
+            toast.error('You must be logged in to upload files');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${position?.id}-${Date.now()}.${fileExt}`;
+
+            const { data, error } = await supabase.storage
+                .from('position-claims')
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (error) {
+                // If bucket doesn't exist, try the default bucket
+                if (error.message.includes('The resource was not found')) {
+                    toast.error('Storage bucket not configured. Please add URL manually.');
+                    return;
+                }
+                throw error;
+            }
+
+            // Get the public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('position-claims')
+                .getPublicUrl(fileName);
+
+            setUploadedUrl(publicUrl);
+            form.setValue('proof_document_url', publicUrl);
+            toast.success('Document uploaded successfully!');
+        } catch (error) {
+            console.error('Upload error:', error);
+            toast.error('Failed to upload file. You can enter a URL instead.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     // Verify community membership when modal opens
     useEffect(() => {
@@ -249,7 +296,7 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
                                 )}
                             />
 
-                            {/* Proof Upload (Placeholder) */}
+                            {/* Document Upload */}
                             {form.watch('verification_method') === 'document_upload' && (
                                 <FormField
                                     control={form.control}
@@ -259,11 +306,76 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
                                             <FormLabel className="flex items-center gap-1">
                                                 <Upload className="h-3 w-3" /> Proof Document
                                             </FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Document URL (file upload coming soon)" {...field} />
-                                            </FormControl>
+
+                                            {/* File Upload Zone */}
+                                            <div className="space-y-2">
+                                                {!uploadedUrl ? (
+                                                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                                                        <input
+                                                            type="file"
+                                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                                            className="hidden"
+                                                            id="proof-file-upload"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (file) {
+                                                                    setUploadedFile(file);
+                                                                    handleFileUpload(file);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor="proof-file-upload"
+                                                            className="flex flex-col items-center cursor-pointer"
+                                                        >
+                                                            <Upload className={`h-8 w-8 mb-2 ${isUploading ? 'animate-pulse text-primary' : 'text-muted-foreground'}`} />
+                                                            {isUploading ? (
+                                                                <span className="text-sm text-primary">Uploading...</span>
+                                                            ) : (
+                                                                <>
+                                                                    <span className="text-sm font-medium">Click to upload</span>
+                                                                    <span className="text-xs text-muted-foreground">PDF, JPG, PNG, DOC (max 5MB)</span>
+                                                                </>
+                                                            )}
+                                                        </label>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-medium text-green-900 truncate">{uploadedFile?.name || 'Document'}</p>
+                                                            <p className="text-xs text-green-700">Uploaded successfully</p>
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setUploadedUrl(null);
+                                                                setUploadedFile(null);
+                                                                form.setValue('proof_document_url', '');
+                                                            }}
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    </div>
+                                                )}
+
+                                                {/* Fallback URL Input */}
+                                                <div className="text-center text-xs text-muted-foreground">
+                                                    — or enter URL directly —
+                                                </div>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="https://drive.google.com/..."
+                                                        {...field}
+                                                        disabled={!!uploadedUrl}
+                                                    />
+                                                </FormControl>
+                                            </div>
+
                                             <FormDescription>
-                                                Upload appointment letter or election certificate.
+                                                Upload appointment letter, election certificate, or gazette notice.
                                             </FormDescription>
                                         </FormItem>
                                     )}

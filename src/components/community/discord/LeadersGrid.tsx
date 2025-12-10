@@ -210,10 +210,23 @@ const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue, com
                                             {position.current_holder.user?.display_name || 'Unknown'}
                                         </h3>
                                         <div className="flex gap-2 mt-2 flex-wrap">
-                                            <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400">
-                                                <ShieldCheck className="h-3 w-3 mr-1" />
-                                                Verified
-                                            </Badge>
+                                            {/* Verification Status Badge */}
+                                            {position.current_holder.verification_status === 'verified' ? (
+                                                <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400">
+                                                    <ShieldCheck className="h-3 w-3 mr-1" />
+                                                    Verified Official
+                                                </Badge>
+                                            ) : position.current_holder.verification_status === 'pending' ? (
+                                                <Badge variant="outline" className="text-[10px] border-yellow-500/40 text-yellow-600 dark:text-yellow-400">
+                                                    <ShieldCheck className="h-3 w-3 mr-1" />
+                                                    Pending Verification
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-[10px] border-muted-foreground/40 text-muted-foreground">
+                                                    <ShieldCheck className="h-3 w-3 mr-1" />
+                                                    Unverified
+                                                </Badge>
+                                            )}
                                             <Badge variant="outline" className="text-[10px]">
                                                 <Calendar className="h-3 w-3 mr-1" />
                                                 {formatDate(position.current_holder.term_start)} - {formatDate(position.current_holder.term_end)}
