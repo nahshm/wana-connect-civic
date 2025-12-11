@@ -29,13 +29,15 @@ interface FeedHeaderProps {
   onSortChange: (sort: 'hot' | 'new' | 'top' | 'rising') => void;
   viewMode: 'card' | 'compact';
   onViewModeChange: (mode: 'card' | 'compact') => void;
+  className?: string;
 }
 
 export const FeedHeader = ({
   sortBy,
   onSortChange,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  className
 }: FeedHeaderProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
