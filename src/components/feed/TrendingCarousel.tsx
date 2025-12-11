@@ -88,7 +88,7 @@ export function TrendingCarousel() {
     // Then check for image media
     const imageMedia = post.media.find((m) => m.file_type.startsWith('image'));
     if (imageMedia) {
-      const { data } = supabase.storage.from('post-media').getPublicUrl(imageMedia.file_path);
+      const { data } = supabase.storage.from('media').getPublicUrl(imageMedia.file_path);
       return data.publicUrl;
     }
     return null;
