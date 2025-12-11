@@ -25,7 +25,7 @@ export const Header = () => {
     await signOut();
   };
   return <header className="sticky top-0 z-10 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
-      <div className="w-full px-3 h-14 sm:h-16 flex items-center justify-between gap-2 sm:px-0">
+      <div className="w-full px-3 h-14 sm:h-16 flex items-center justify-between gap-2 sm:px-px">
         {/* Mobile Hamburger Menu */}
         <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground -ml-2 h-9 w-9">
           <Menu className="h-5 w-5" />
