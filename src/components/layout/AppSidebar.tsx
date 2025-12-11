@@ -44,7 +44,7 @@ export function AppSidebar() {
     isActive: boolean;
   }) => isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors';
   return <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarContent className="gap-0 py-2 bg-popover">
+      <SidebarContent className="gap-0 py-2 bg-popover px-[20px]">
         <SidebarGroup className="px-2">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
