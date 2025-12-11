@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FeedHeader } from '@/components/feed/FeedHeader';
+import { TrendingCarousel } from '@/components/feed/TrendingCarousel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -266,14 +267,14 @@ export default function Index() {
             </CardContent>
           </Card>}
 
-
+        {/* Trending Carousel */}
+        <TrendingCarousel />
 
         {/* Feed Header */}
-        {/* Feed Header */}
-        <FeedHeader sortBy={sortBy} onSortChange={setSortBy} viewMode={viewMode} onViewModeChange={setViewMode} className="py-0" />
+        <FeedHeader sortBy={sortBy} onSortChange={setSortBy} viewMode={viewMode} onViewModeChange={setViewMode} />
 
         {/* Posts Feed */}
-        <div className="space-y-4 -mt-7">
+        <div className="space-y-4">
           {posts.length === 0 ? <Card className="bg-gradient-to-br from-civic-green/5 to-civic-blue/5 border-civic-green/20">
               <CardContent className="py-12 px-8">
                 <div className="text-center mb-8">
