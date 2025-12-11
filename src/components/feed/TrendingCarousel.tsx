@@ -9,6 +9,7 @@ interface TrendingPost {
   id: string;
   title: string;
   content: string | null;
+  thumbnailUrl: string | null;
   community: {
     name: string;
     displayName: string;
@@ -38,7 +39,8 @@ export function TrendingCarousel() {
           upvotes,
           comment_count,
           communities!posts_community_id_fkey (name, display_name),
-          post_media!post_media_post_id_fkey (file_path, file_type)
+          post_media!post_media_post_id_fkey (file_path, file_type),
+          civic_clips!civic_clips_post_id_fkey (thumbnail_url)
         `)
         .order('upvotes', { ascending: false })
         .limit(10);
@@ -49,6 +51,7 @@ export function TrendingCarousel() {
         id: post.id,
         title: post.title,
         content: post.content,
+        thumbnailUrl: post.civic_clips?.thumbnail_url || null,
         community: post.communities ? {
           name: post.communities.name,
           displayName: post.communities.display_name,
@@ -78,6 +81,11 @@ export function TrendingCarousel() {
   };
 
   const getImageUrl = (post: TrendingPost): string | null => {
+    // First check for thumbnail from civic_clips
+    if (post.thumbnailUrl) {
+      return post.thumbnailUrl;
+    }
+    // Then check for image media
     const imageMedia = post.media.find((m) => m.file_type.startsWith('image'));
     if (imageMedia) {
       const { data } = supabase.storage.from('post-media').getPublicUrl(imageMedia.file_path);
