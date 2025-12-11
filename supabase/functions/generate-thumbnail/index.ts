@@ -116,10 +116,10 @@ serve(async (req) => {
         const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
         const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
-        // Upload to Supabase storage
+        // Upload to Supabase storage (media bucket)
         const fileName = `thumbnails/${post.id}_${Date.now()}.png`;
         const { error: uploadError } = await supabase.storage
-          .from('civic-clips')
+          .from('media')
           .upload(fileName, imageBuffer, {
             contentType: 'image/png',
             upsert: true,
@@ -133,7 +133,7 @@ serve(async (req) => {
 
         // Get public URL
         const { data: urlData } = supabase.storage
-          .from('civic-clips')
+          .from('media')
           .getPublicUrl(fileName);
 
         const thumbnailUrl = urlData.publicUrl;
