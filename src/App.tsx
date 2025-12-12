@@ -8,14 +8,39 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import PrefixRouter from "@/components/routing/PrefixRouter";
-import Index from "./pages/Index";
-import CreatePost from "./pages/CreatePost";
-import EditPost from "./pages/EditPost";
-import PostDetail from "./pages/PostDetail";
-import Communities from "./pages/Communities";
-import Community from "./pages/Community";
-import Officials from "./pages/Officials";
-import Projects from "./pages/Projects";
+
+// Feature-based imports - Governance
+import Officials from "@/features/governance/pages/Officials";
+import OfficialDetail from "@/features/governance/pages/OfficialDetail";
+import ClaimPositionPage from "@/features/governance/pages/ClaimPosition";
+import BuildGovernancePage from "@/features/governance/pages/BuildGovernance";
+
+// Feature-based imports - Accountability
+import Projects from "@/features/accountability/pages/Projects";
+import ProjectDetail from "@/features/accountability/pages/ProjectDetail";
+import SubmitProject from "@/features/accountability/pages/SubmitProject";
+import PromiseDetail from "@/features/accountability/pages/PromiseDetail";
+import ReportIssue from "@/features/accountability/pages/ReportIssue";
+import ActionDetail from "@/features/accountability/pages/ActionDetail";
+
+// Feature-based imports - Community
+import Communities from "@/features/community/pages/Communities";
+import Community from "@/features/community/pages/Community";
+import Chat from "@/features/community/pages/Chat";
+
+// Feature-based imports - Feed
+import Index from "@/features/feed/pages/Home";
+import CreatePost from "@/features/feed/pages/CreatePost";
+import EditPost from "@/features/feed/pages/EditPost";
+import PostDetail from "@/features/feed/pages/PostDetail";
+import { CivicClipsPage } from "@/features/feed/pages/CivicClips";
+
+// Feature-based imports - Admin
+import GeographicDataAdmin from "@/features/admin/pages/GeographicDataAdmin";
+import { PositionVerification } from "@/features/admin/pages/PositionVerification";
+import SuperAdminDashboard from "@/features/admin/pages/SuperAdminDashboard";
+
+// Legacy pages (not yet migrated to features)
 import SettingsPage from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
@@ -23,21 +48,8 @@ import NotFound from "./pages/NotFound";
 import OnboardingFlow from "./pages/Onboarding/OnboardingFlow";
 import WelcomeDashboard from "./pages/Onboarding/WelcomeDashboard";
 import CivicDashboard from "./pages/Dashboard/CivicDashboard";
-import ReportIssue from "./pages/Dashboard/ReportIssue";
-import ActionDetail from "./pages/Dashboard/ActionDetail";
 import Analytics from "./pages/Dashboard/Analytics";
-import GeographicDataAdmin from "./pages/Admin/GeographicDataAdmin";
-import { PositionVerification } from "./pages/Admin/PositionVerification";
-import SuperAdminDashboard from "./pages/Admin/SuperAdminDashboard";
 import { SearchResults } from "./pages/SearchResults";
-import { CivicClipsPage } from "./pages/CivicClips";
-import Chat from "./pages/Chat";
-import OfficialDetail from "./pages/OfficialDetail";
-import ProjectDetail from "./pages/ProjectDetail";
-import PromiseDetail from "./pages/PromiseDetail";
-import SubmitProject from "./pages/SubmitProject";
-import ClaimPositionPage from "./pages/ClaimPosition";
-import BuildGovernancePage from "./pages/BuildGovernance";
 import Quests from "./pages/Quests";
 import Leaderboards from "./pages/Leaderboards";
 import DiscoveryDashboard from "./pages/DiscoveryDashboard";

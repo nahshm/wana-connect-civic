@@ -1,12 +1,14 @@
 import React from 'react';
 import { Routes, Route, useParams, Navigate } from 'react-router-dom';
-import Community from '@/pages/Community';
+
+// Feature-based imports
+import Community from '@/features/community/pages/Community';
+import OfficialDetail from '@/features/governance/pages/OfficialDetail';
+import ProjectDetail from '@/features/accountability/pages/ProjectDetail';
+import PromiseDetail from '@/features/accountability/pages/PromiseDetail';
+
+// Legacy imports (not yet migrated)
 import Profile from '@/pages/Profile';
-import Officials from '@/pages/Officials';
-import OfficialDetail from '@/pages/OfficialDetail';
-import Projects from '@/pages/Projects';
-import ProjectDetail from '@/pages/ProjectDetail';
-import PromiseDetail from '@/pages/PromiseDetail';
 import NotFound from '@/pages/NotFound';
 
 // Prefix handler components
