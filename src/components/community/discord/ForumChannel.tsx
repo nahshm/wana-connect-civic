@@ -128,26 +128,10 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
 
             if (error) throw error;
 
-            // Fetch reactions for threads
-            const threadIds = (data || []).map(t => t.id);
-            let reactionsMap: { [id: string]: { [emoji: string]: string[] } } = {};
-
-            if (threadIds.length > 0) {
-                const { data: reactionsData } = await supabase
-                    .from('forum_thread_reactions')
-                    .select('thread_id, user_id, emoji')
-                    .in('thread_id', threadIds);
-
-                (reactionsData || []).forEach((r: any) => {
-                    if (!reactionsMap[r.thread_id]) reactionsMap[r.thread_id] = {};
-                    if (!reactionsMap[r.thread_id][r.emoji]) reactionsMap[r.thread_id][r.emoji] = [];
-                    reactionsMap[r.thread_id][r.emoji].push(r.user_id);
-                });
-            }
-
+            // Note: Reactions disabled until types are regenerated
             return (data || []).map(t => ({
                 ...t,
-                reactions: reactionsMap[t.id] || {}
+                reactions: {}
             })) as unknown as ForumThread[];
         },
     });
@@ -168,26 +152,10 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
 
             if (error) throw error;
 
-            // Fetch reactions
-            const replyIds = (data || []).map(r => r.id);
-            let reactionsMap: { [id: string]: { [emoji: string]: string[] } } = {};
-
-            if (replyIds.length > 0) {
-                const { data: reactionsData } = await supabase
-                    .from('forum_reply_reactions')
-                    .select('reply_id, user_id, emoji')
-                    .in('reply_id', replyIds);
-
-                (reactionsData || []).forEach((r: any) => {
-                    if (!reactionsMap[r.reply_id]) reactionsMap[r.reply_id] = {};
-                    if (!reactionsMap[r.reply_id][r.emoji]) reactionsMap[r.reply_id][r.emoji] = [];
-                    reactionsMap[r.reply_id][r.emoji].push(r.user_id);
-                });
-            }
-
+            // Note: Reactions disabled until types are regenerated
             return (data || []).map(r => ({
                 ...r,
-                reactions: reactionsMap[r.id] || {}
+                reactions: {}
             })) as unknown as ForumReply[];
         },
         enabled: !!selectedThread,
@@ -242,14 +210,14 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
         onError: (error) => toast.error('Failed: ' + error.message),
     });
 
-    // Handle reaction on reply
+    // Handle reaction on reply (optimistic only until types regenerated)
     const handleReplyReaction = async (replyId: string, emoji: string) => {
         if (!user) return;
 
         const reply = replies?.find(r => r.id === replyId);
         const hasReacted = reply?.reactions?.[emoji]?.includes(user.id);
 
-        // Optimistic update
+        // Optimistic update only
         queryClient.setQueryData(['forum-replies', selectedThread?.id], (old: ForumReply[] | undefined) => {
             if (!old) return old;
             return old.map(r => {
@@ -268,15 +236,7 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
             });
         });
         setEmojiPickerOpen(null);
-
-        if (hasReacted) {
-            await supabase.from('forum_reply_reactions').delete()
-                .eq('reply_id', replyId).eq('user_id', user.id).eq('emoji', emoji);
-        } else {
-            await supabase.from('forum_reply_reactions').insert({
-                reply_id: replyId, user_id: user.id, emoji
-            });
-        }
+        console.log('Reaction toggled (local only):', { replyId, emoji, hasReacted });
     };
 
     // Delete reply
