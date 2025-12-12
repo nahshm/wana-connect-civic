@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import LeadersGrid from './LeadersGrid';
 import ProjectsGrid from './ProjectsGrid';
 import PromisesGrid from './PromisesGrid';
+import ForumChannel from './ForumChannel';
 import { GovernmentProject } from '@/types';
 import { ChannelChatWindow } from '@/components/chat/ChannelChatWindow';
 
@@ -25,6 +26,7 @@ interface ChannelContentProps {
         name: string;
         type: string;
         category: string;
+        is_locked?: boolean;
     };
 }
 
@@ -58,9 +60,19 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
         }
     }
 
-    // 2. CHAT CHANNELS (Text/Voice/Announcement)
-    // If it's explicitly a chat-type channel
-    if (channel?.type === 'text' || channel?.type === 'announcement' || channel?.type === 'voice') {
+    // 2. FORUM CHANNELS (Thread-based discussions)
+    if (channel?.type === 'forum') {
+        return (
+            <ForumChannel
+                channelId={channel.id}
+                channelName={channel.name}
+                communityId={communityId || ''}
+            />
+        );
+    }
+
+    // 3. CHAT CHANNELS (Text/Voice/Announcement)
+    if (channel?.type === 'text' || channel?.type === 'announcement' || channel?.type === 'voice' || channel?.type === 'chat') {
         const isReadOnly = channel.type === 'announcement' && !isAdmin;
         return (
             <ChannelChatWindow
@@ -71,7 +83,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
         );
     }
 
-    // 3. FALLBACK: POST FEED (Feed type or Legacy)
+    // 4. FALLBACK: POST FEED (Feed type or Legacy)
     return (
         <div className="p-4 md:p-6">
             <CreatePostInput />
@@ -106,3 +118,4 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 };
 
 export default ChannelContent;
+
