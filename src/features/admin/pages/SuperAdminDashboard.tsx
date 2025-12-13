@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Shield, Users, Flag, TrendingUp, Settings, AlertTriangle, Lock, Eye, 
-  UserCheck, MessageSquare, BarChart3, FileText, Bell, ChevronDown, 
-  Search, Filter, Activity, Server, Brain, Sparkles, 
+import {
+  Shield, Users, Flag, TrendingUp, Settings, AlertTriangle, Lock, Eye,
+  UserCheck, MessageSquare, BarChart3, FileText, Bell, ChevronDown,
+  Search, Filter, Activity, Server, Brain, Sparkles,
   CheckCircle, XCircle, Clock, Briefcase, ShieldAlert, Radio, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -102,11 +102,10 @@ export default function SuperAdminDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setSelectedTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
-                  selectedTab === tab.id 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                }`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${selectedTab === tab.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span className="text-sm">{tab.label}</span>
@@ -134,7 +133,7 @@ export default function SuperAdminDashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <Button 
+            <Button
               onClick={() => setShowGrokChat(!showGrokChat)}
               className="bg-purple-600 hover:bg-purple-700"
             >
@@ -294,7 +293,7 @@ function UserManagementTab() {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
-      
+
       setUsers(data || []);
     };
 
@@ -362,7 +361,7 @@ function AnonymousReportsTab() {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
-      
+
       setReports(data || []);
     };
 
@@ -482,7 +481,7 @@ function NGOPartnersTab() {
         .from('ngo_partners')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       setPartners(data || []);
     };
 
@@ -538,12 +537,29 @@ function ModeratorsTab() {
         .from('community_moderators')
         .select(`
           *,
-          user:profiles!user_id(display_name, username, avatar_url),
           community:communities(name, display_name)
         `)
         .limit(50);
-      
-      setModerators(data || []);
+
+      // Fetch profiles separately
+      let modsWithProfiles = data || [];
+      if (modsWithProfiles.length > 0) {
+        const userIds = modsWithProfiles.map(m => m.user_id).filter(Boolean);
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, display_name, username, avatar_url')
+            .in('id', userIds);
+
+          const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+          modsWithProfiles = modsWithProfiles.map(m => ({
+            ...m,
+            user: profilesMap.get(m.user_id) || null
+          }));
+        }
+      }
+
+      setModerators(modsWithProfiles);
     };
 
     fetchModerators();
@@ -595,7 +611,7 @@ function OfficialsTab() {
         .select('*')
         .order('name', { ascending: true })
         .limit(50);
-      
+
       setOfficials(data || []);
     };
 
@@ -692,7 +708,7 @@ function SecurityTab() {
                 <span className="text-green-600 font-semibold">{metric.value}%</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
-                <div 
+                <div
                   className="bg-green-600 h-2 rounded-full"
                   style={{ width: `${metric.value}%` }}
                 />
@@ -820,11 +836,10 @@ function GrokAIAssistant({ onClose }: { onClose: () => void }) {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-3 rounded-lg ${
-              msg.role === 'user' 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-muted'
-            }`}>
+            <div className={`max-w-[80%] p-3 rounded-lg ${msg.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted'
+              }`}>
               <div className="text-sm">{msg.content}</div>
               <div className="text-xs opacity-70 mt-1">
                 {msg.timestamp.toLocaleTimeString()}

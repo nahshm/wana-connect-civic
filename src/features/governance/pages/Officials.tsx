@@ -105,15 +105,32 @@ const fetchPositionsPage = async (
       .select(`
                 id,
                 position_id,
+                user_id,
                 term_start,
                 term_end,
-                verification_status,
-                user:profiles!user_id(id, display_name, avatar_url)
+                verification_status
             `)
       .in('position_id', positionIds)
       .eq('is_active', true);
 
     holdersData = data || [];
+
+    // Fetch profiles for holders separately
+    if (holdersData.length > 0) {
+      const userIds = holdersData.map(h => h.user_id).filter(Boolean);
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name, avatar_url')
+          .in('id', userIds);
+
+        const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+        holdersData = holdersData.map(h => ({
+          ...h,
+          user: profilesMap.get(h.user_id) || null
+        }));
+      }
+    }
   }
 
   // Map holders to positions

@@ -41,18 +41,18 @@ export function PositionVerification() {
     useEffect(() => {
         const checkAdminAccess = async () => {
             if (!user) return;
-            
+
             // Use raw query to check for admin/super_admin roles
             const { data, error } = await supabase
                 .from('user_roles')
                 .select('role')
                 .eq('user_id', user.id);
-            
+
             if (!error && data && data.some(r => r.role === 'admin' || r.role === 'super_admin')) {
                 setIsSuperAdmin(true);
             }
         };
-        
+
         checkAdminAccess();
     }, [user]);
 
@@ -63,7 +63,7 @@ export function PositionVerification() {
 
     const fetchClaims = async () => {
         setIsLoading(true);
-        // Fetch pending claims with position and user profile info
+        // Fetch pending claims with position info
         const { data, error } = await supabase
             .from('office_holders')
             .select(`
@@ -74,8 +74,7 @@ export function PositionVerification() {
                 verification_method,
                 claimed_at,
                 proof_documents,
-                position:government_positions(title, country_code, jurisdiction_name),
-                user:profiles!user_id(id, display_name)
+                position:government_positions(title, country_code, jurisdiction_name)
             `)
             .eq('verification_status', 'pending')
             .order('claimed_at', { ascending: false });
@@ -83,9 +82,29 @@ export function PositionVerification() {
         if (error) {
             console.error('Fetch claims error:', error);
             toast.error('Failed to load claims');
-        } else {
-            setPendingClaims(data as unknown as ClaimRequest[]);
+            setIsLoading(false);
+            return;
         }
+
+        // Fetch profiles separately
+        let claimsWithProfiles = data || [];
+        if (claimsWithProfiles.length > 0) {
+            const userIds = claimsWithProfiles.map(c => c.user_id).filter(Boolean);
+            if (userIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, display_name')
+                    .in('id', userIds);
+
+                const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+                claimsWithProfiles = claimsWithProfiles.map(c => ({
+                    ...c,
+                    user: profilesMap.get(c.user_id) || null
+                }));
+            }
+        }
+
+        setPendingClaims(claimsWithProfiles as unknown as ClaimRequest[]);
         setIsLoading(false);
     };
 

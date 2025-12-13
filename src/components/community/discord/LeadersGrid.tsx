@@ -106,17 +106,30 @@ const LeadersGrid: React.FC<LeadersGridProps> = ({ levelType, locationValue, com
                             user_id,
                             term_start,
                             term_end,
-                            verification_status,
-                            user:profiles!user_id(id, display_name, avatar_url)
+                            verification_status
                         `)
                         .eq('position_id', position.id)
                         .eq('is_active', true)
                         .eq('verification_status', 'verified')
                         .single();
 
+                    // If we have a holder, fetch their profile separately
+                    let userProfile = null;
+                    if (holderData?.user_id) {
+                        const { data: profileData } = await supabase
+                            .from('profiles')
+                            .select('id, display_name, avatar_url')
+                            .eq('id', holderData.user_id)
+                            .single();
+                        userProfile = profileData;
+                    }
+
                     return {
                         ...position,
-                        current_holder: holderData || null
+                        current_holder: holderData ? {
+                            ...holderData,
+                            user: userProfile
+                        } : null
                     };
                 })
             );

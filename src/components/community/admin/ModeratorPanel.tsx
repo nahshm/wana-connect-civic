@@ -63,14 +63,27 @@ export function ModeratorPanel({ communityId, communityName, isAdmin }: Moderato
                     id,
                     user_id,
                     role,
-                    added_at,
-                    profile:profiles!user_id(display_name, avatar_url, username)
+                    added_at
                 `)
                 .eq('community_id', communityId)
                 .order('role', { ascending: true });
 
             if (error) throw error;
-            return data as unknown as Moderator[];
+
+            // Fetch profiles separately
+            if (!data || data.length === 0) return [];
+
+            const userIds = data.map(m => m.user_id).filter(Boolean);
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, display_name, avatar_url, username')
+                .in('id', userIds);
+
+            const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+            return data.map(m => ({
+                ...m,
+                profile: profilesMap.get(m.user_id) || null
+            })) as Moderator[];
         },
     });
 
