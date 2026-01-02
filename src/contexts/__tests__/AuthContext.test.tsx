@@ -421,18 +421,11 @@ describe('AuthContext', () => {
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      // Use fake timers to handle setTimeout in fetchProfile
-      jest.useFakeTimers();
-
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
 
-      // Run the setTimeout callback
-      await act(async () => {
-        jest.runAllTimers();
-      });
-
+      // Wait for the profile fetch to be triggered
       await waitFor(() => {
         expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       });
@@ -457,14 +450,13 @@ describe('AuthContext', () => {
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      jest.useFakeTimers();
-
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
 
-      await act(async () => {
-        jest.runAllTimers();
+      // Wait for profile fetch attempt
+      await waitFor(() => {
+        expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       });
 
       // Should not crash, profile should be null
@@ -495,14 +487,13 @@ describe('AuthContext', () => {
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      jest.useFakeTimers();
-
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
 
-      await act(async () => {
-        jest.runAllTimers();
+      // Wait for profile fetch attempt
+      await waitFor(() => {
+        expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       });
 
       // Should not crash
@@ -533,14 +524,13 @@ describe('AuthContext', () => {
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      jest.useFakeTimers();
-
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
 
-      await act(async () => {
-        jest.runAllTimers();
+      // Wait for initial profile fetch
+      await waitFor(() => {
+        expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       });
 
       // Clear previous calls
