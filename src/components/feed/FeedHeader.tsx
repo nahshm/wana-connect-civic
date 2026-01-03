@@ -11,6 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Flame,
@@ -20,26 +21,40 @@ import {
   Filter,
   MoreHorizontal,
   List,
-  SquareIcon
+  SquareIcon,
+  Check
 } from 'lucide-react';
-import { useState } from 'react';
+
+export type FeedFilter = 'all' | 'following' | 'governance' | 'accountability' | 'civic-education' | 'discussion';
 
 interface FeedHeaderProps {
   sortBy: 'hot' | 'new' | 'top' | 'rising';
   onSortChange: (sort: 'hot' | 'new' | 'top' | 'rising') => void;
   viewMode: 'card' | 'compact';
   onViewModeChange: (mode: 'card' | 'compact') => void;
+  filterBy?: FeedFilter;
+  onFilterChange?: (filter: FeedFilter) => void;
   className?: string;
 }
+
+const filterOptions: { value: FeedFilter; label: string }[] = [
+  { value: 'all', label: 'All Communities' },
+  { value: 'following', label: 'Following Only' },
+  { value: 'governance', label: 'Governance' },
+  { value: 'accountability', label: 'Accountability' },
+  { value: 'civic-education', label: 'Civic Education' },
+  { value: 'discussion', label: 'Discussion' },
+];
 
 export const FeedHeader = ({
   sortBy,
   onSortChange,
   viewMode,
   onViewModeChange,
+  filterBy = 'all',
+  onFilterChange,
   className
 }: FeedHeaderProps) => {
-  const [showFilters, setShowFilters] = useState(false);
 
   const sortOptions = [
     { value: 'hot', label: 'Hot', icon: Flame },
@@ -68,8 +83,8 @@ export const FeedHeader = ({
                 size="sm"
                 onClick={() => onSortChange(value)}
                 className={`h-8 px-3 ${sortBy === value
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                    : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
                   }`}
               >
                 <Icon className="w-4 h-4 mr-1" />
@@ -87,8 +102,8 @@ export const FeedHeader = ({
               size="sm"
               onClick={() => onViewModeChange('card')}
               className={`h-8 px-2 ${viewMode === 'card'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-muted-foreground hover:text-sidebar-foreground'
                 }`}
             >
               <SquareIcon className="w-4 h-4" />
@@ -98,8 +113,8 @@ export const FeedHeader = ({
               size="sm"
               onClick={() => onViewModeChange('compact')}
               className={`h-8 px-2 ${viewMode === 'compact'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-muted-foreground hover:text-sidebar-foreground'
                 }`}
             >
               <List className="w-4 h-4" />
@@ -113,27 +128,30 @@ export const FeedHeader = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 text-sidebar-muted-foreground hover:text-sidebar-foreground"
+                  className={`h-8 px-2 ${filterBy !== 'all'
+                    ? 'text-civic-green'
+                    : 'text-sidebar-muted-foreground hover:text-sidebar-foreground'}`}
                 >
                   <Filter className="w-4 h-4" />
+                  {filterBy !== 'all' && (
+                    <span className="ml-1 text-xs">
+                      {filterOptions.find(f => f.value === filterBy)?.label}
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-sidebar-background border-sidebar-border">
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  All Communities
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  Following Only
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  Government
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  Accountability
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  Civic Education
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="bg-sidebar-background border-sidebar-border min-w-[180px]">
+                {filterOptions.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    className={`text-sidebar-foreground hover:bg-sidebar-accent flex items-center justify-between cursor-pointer ${filterBy === option.value ? 'bg-sidebar-accent/50' : ''
+                      }`}
+                    onClick={() => onFilterChange?.(option.value)}
+                  >
+                    {option.label}
+                    {filterBy === option.value && <Check className="w-4 h-4 text-civic-green" />}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
 

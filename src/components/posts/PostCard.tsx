@@ -235,6 +235,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           <Button
             variant="ghost"
             size="sm"
+            aria-label={`Upvote post: ${post.title}`}
+            aria-pressed={post.userVote === 'up'}
             onClick={() => onVote(post.id, 'up')}
             className={`h-6 w-6 p-0 ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green'}`}
           >
@@ -246,6 +248,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           <Button
             variant="ghost"
             size="sm"
+            aria-label="Downvote post"
+            aria-pressed={post.userVote === 'down'}
             onClick={() => onVote(post.id, 'down')}
             className={`h-6 w-6 p-0 ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red'}`}
           >
@@ -406,6 +410,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 <Button
                   variant="ghost"
                   size="sm"
+                  aria-label={`Upvote post: ${post.title}`}
+                  aria-pressed={post.userVote === 'up'}
                   onClick={() => onVote(post.id, 'up')}
                   className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
                 >
@@ -417,6 +423,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 <Button
                   variant="ghost"
                   size="sm"
+                  aria-label="Downvote post"
+                  aria-pressed={post.userVote === 'down'}
                   onClick={() => onVote(post.id, 'down')}
                   className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
                 >
