@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Mail, Shield, Cake } from 'lucide-react';
+import { Mail, Cake, PenSquare } from 'lucide-react';
 import { CommunityProfile, CommunityRule, CommunityModerator, CommunityFlair } from '@/types/index';
 import { format } from 'date-fns';
 import { CommunityGuideModal } from './CommunityGuideModal';
@@ -17,12 +17,17 @@ import { RelatedCommunities } from './RelatedCommunities';
 import { CommunityEventsWidget } from './events/CommunityEventsWidget';
 import { CommunityPollsWidget } from './polls/CommunityPollsWidget';
 import { CommunitySettingsDialog } from './CommunitySettingsDialog';
+import { CreatePostModal } from './CreatePostModal';
+import { ModeratorsListModal } from './ModeratorsListModal';
+import { RulesManageDialog } from './RulesManageDialog';
 
 interface CommunitySidebarProps {
     community: CommunityProfile;
     rules: CommunityRule[];
     moderators: CommunityModerator[];
     flairs: CommunityFlair[];
+    onFilterByFlair?: (flairId: string | null) => void;
+    selectedFlairId?: string | null;
 }
 
 export const CommunitySidebar = ({
@@ -30,11 +35,14 @@ export const CommunitySidebar = ({
     rules,
     moderators,
     flairs,
-    isAdmin = false
+    isAdmin = false,
+    onFilterByFlair,
+    selectedFlairId,
 }: CommunitySidebarProps & { isAdmin?: boolean }) => {
     const { user } = useAuth();
     const [userProfile, setUserProfile] = useState<any>(null);
     const [isModMailOpen, setIsModMailOpen] = useState(false);
+    const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
 
     const fetchUserProfile = async () => {
         if (!user) return;
@@ -49,6 +57,13 @@ export const CommunitySidebar = ({
     useEffect(() => {
         fetchUserProfile();
     }, [user]);
+
+    const handleFlairClick = (flairId: string) => {
+        if (onFilterByFlair) {
+            // Toggle off if same flair clicked again
+            onFilterByFlair(selectedFlairId === flairId ? null : flairId);
+        }
+    };
 
     return (
         <div className="space-y-0">
@@ -133,22 +148,25 @@ export const CommunitySidebar = ({
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
                                 <div className="text-lg font-bold text-sidebar-foreground">
-                                    {new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format((community as any).member_count || 0)}
+                                    {new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format((community as any).weekly_visitors || 0)}
                                 </div>
-                                <div className="text-xs text-sidebar-muted-foreground">Members</div>
+                                <div className="text-xs text-sidebar-muted-foreground whitespace-nowrap">Visitors/wk</div>
                             </div>
                             <div>
-                                <div className="text-lg font-bold text-sidebar-foreground flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse" />
-                                    {new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format((community as any).online_count || 0)}
+                                <div className="text-lg font-bold text-sidebar-foreground">
+                                    {new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format((community as any).weekly_contributions || 0)}
                                 </div>
-                                <div className="text-xs text-sidebar-muted-foreground">Online</div>
+                                <div className="text-xs text-sidebar-muted-foreground whitespace-nowrap">Contributions/wk</div>
                             </div>
                         </div>
 
                         <div className="space-y-2 mt-4">
-                            <Button className="w-full rounded-full" asChild>
-                                <a href="/create-post">Create Post</a>
+                            <Button
+                                className="w-full rounded-full"
+                                onClick={() => setIsCreatePostOpen(true)}
+                            >
+                                <PenSquare className="w-4 h-4 mr-2" />
+                                Create Post
                             </Button>
                             <CommunityGuideModal
                                 community={community}
@@ -181,17 +199,29 @@ export const CommunitySidebar = ({
                 )}
 
                 {/* Bookmarks Widget */}
-                <CommunityBookmarks />
+                <CommunityBookmarks communityId={community.id} isAdmin={isAdmin} />
 
                 {/* Rules Widget */}
-                {rules.length > 0 && (
-                    <Card className="bg-sidebar-background border-sidebar-border">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-bold uppercase text-sidebar-muted-foreground">
-                                c/{community.name} Rules
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0">
+                <Card className="bg-sidebar-background border-sidebar-border">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-bold uppercase text-sidebar-muted-foreground flex items-center justify-between">
+                            c/{community.name} Rules
+                            {isAdmin && (
+                                <RulesManageDialog
+                                    communityId={community.id}
+                                    communityName={community.name}
+                                    rules={rules}
+                                    isAdmin={isAdmin}
+                                />
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        {rules.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                                No rules yet
+                            </p>
+                        ) : (
                             <div className="space-y-1">
                                 {rules.map((rule, index) => (
                                     <div key={rule.id} className="py-2 border-b border-sidebar-border last:border-0">
@@ -202,11 +232,11 @@ export const CommunitySidebar = ({
                                     </div>
                                 ))}
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        )}
+                    </CardContent>
+                </Card>
 
-                {/* Flairs Widget */}
+                {/* Flairs Filter Widget */}
                 {flairs.length > 0 && (
                     <Card className="bg-sidebar-background border-sidebar-border">
                         <CardHeader className="pb-3">
@@ -219,12 +249,23 @@ export const CommunitySidebar = ({
                                 {flairs.map((flair) => (
                                     <Badge
                                         key={flair.id}
-                                        variant="secondary"
-                                        className="cursor-pointer hover:bg-sidebar-accent transition-colors rounded-full px-3"
+                                        variant={selectedFlairId === flair.id ? "default" : "secondary"}
+                                        className={`cursor-pointer hover:bg-sidebar-accent transition-colors rounded-full px-3 ${selectedFlairId === flair.id ? 'ring-2 ring-primary' : ''
+                                            }`}
+                                        onClick={() => handleFlairClick(flair.id)}
                                     >
                                         {flair.name}
                                     </Badge>
                                 ))}
+                                {selectedFlairId && (
+                                    <Badge
+                                        variant="outline"
+                                        className="cursor-pointer hover:bg-destructive/10 transition-colors rounded-full px-3"
+                                        onClick={() => onFilterByFlair?.(null)}
+                                    >
+                                        Clear filter
+                                    </Badge>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -259,9 +300,12 @@ export const CommunitySidebar = ({
                                                 {mod.profiles?.display_name?.charAt(0) || mod.profiles?.username?.charAt(0)}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <span className="text-sm text-primary hover:underline cursor-pointer">
+                                        <a
+                                            href={`/u/${mod.profiles?.username}`}
+                                            className="text-sm text-primary hover:underline"
+                                        >
                                             u/{mod.profiles?.username}
-                                        </span>
+                                        </a>
                                     </div>
                                     {mod.role === 'admin' && (
                                         <Badge variant="secondary" className="text-[10px] h-5 px-1">Admin</Badge>
@@ -270,7 +314,10 @@ export const CommunitySidebar = ({
                             ))}
                         </div>
                         <div className="text-xs text-sidebar-muted-foreground text-center">
-                            <a href="#" className="hover:underline">View All Moderators</a>
+                            <ModeratorsListModal
+                                moderators={moderators}
+                                communityName={community.name}
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -280,6 +327,14 @@ export const CommunitySidebar = ({
                     onClose={() => setIsModMailOpen(false)}
                     communityId={community.id}
                     communityName={community.name}
+                />
+
+                <CreatePostModal
+                    isOpen={isCreatePostOpen}
+                    onClose={() => setIsCreatePostOpen(false)}
+                    communityId={community.id}
+                    communityName={community.name}
+                    flairs={flairs}
                 />
             </div>
         </div >

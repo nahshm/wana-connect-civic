@@ -11,7 +11,7 @@ export const CreatePostInput = () => {
     const { user } = useAuth();
 
     const handleFocus = () => {
-        navigate('/create-post');
+        navigate('/create');
     };
 
     return (

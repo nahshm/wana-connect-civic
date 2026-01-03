@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Hash, ChevronDown, ChevronRight, Users, Shield, FileText, Hammer, Plus, Megaphone, MessageSquare, Lock } from 'lucide-react';
+import { Hash, ChevronDown, ChevronRight, Users, Shield, FileText, Hammer, Plus, Megaphone, MessageSquare, Lock, Radio, Video, Rss } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -9,7 +9,7 @@ interface Channel {
     id: string;
     name: string;
     type: string;
-    category: 'INFO' | 'MONITORING' | 'ENGAGEMENT';
+    category: 'FEED' | 'INFO' | 'MONITORING' | 'ENGAGEMENT';
     is_locked?: boolean;
     description?: string;
     emoji_prefix?: string | null;
@@ -60,7 +60,9 @@ const ChannelList: React.FC<ChannelListProps> = ({
         });
     };
 
+    // Order matters: FEED first, then INFO, MONITORING, ENGAGEMENT
     const categories = {
+        FEED: { label: 'Feed', icon: Rss },
         INFO: { label: 'Information', icon: FileText },
         MONITORING: { label: 'Civic Watch', icon: Shield },
         ENGAGEMENT: { label: 'Community', icon: Users },
@@ -76,19 +78,28 @@ const ChannelList: React.FC<ChannelListProps> = ({
             case 'chat':
             case 'text':
                 return Hash;
+            case 'feed':
+                return Rss;
+            case 'audio':
+            case 'video':
+            case 'voice':
+                return Video;
             default:
                 // Fallback based on name
                 if (channel.name === 'projects-watch') return Hammer;
                 if (channel.name === 'our-leaders') return Users;
                 if (channel.name === 'promises-watch') return FileText;
+                if (channel.name === 'baraza') return Video;
                 return Hash;
         }
     };
 
+    // Group channels with FEED first
     const groupedChannels = {
-        INFO: channels.filter(c => c.category === 'INFO'),
-        MONITORING: channels.filter(c => c.category === 'MONITORING'),
-        ENGAGEMENT: channels.filter(c => c.category === 'ENGAGEMENT'),
+        FEED: channels.filter(c => c.category === 'FEED' || c.type === 'feed'),
+        INFO: channels.filter(c => c.category === 'INFO' && c.type !== 'feed'),
+        MONITORING: channels.filter(c => c.category === 'MONITORING' && c.type !== 'feed'),
+        ENGAGEMENT: channels.filter(c => c.category === 'ENGAGEMENT' && c.type !== 'feed'),
     };
 
     const renderChannelButton = (channel: Channel) => {

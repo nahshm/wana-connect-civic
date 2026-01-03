@@ -9,10 +9,10 @@ interface CivicClipsHeaderProps {
     className?: string
 }
 
-export const CivicClipsHeader = ({ 
-    onSearchClick, 
+export const CivicClipsHeader = ({
+    onSearchClick,
     onFilterClick,
-    className 
+    className
 }: CivicClipsHeaderProps) => {
     const navigate = useNavigate()
 
@@ -35,7 +35,7 @@ export const CivicClipsHeader = ({
                     >
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    
+
                     <Link to="/" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
                             <TrendingUp className="w-4 h-4 text-primary-foreground" />
@@ -56,7 +56,7 @@ export const CivicClipsHeader = ({
                     >
                         <Search className="h-4 w-4" />
                     </Button>
-                    
+
                     <Button
                         variant="ghost"
                         size="icon"
@@ -65,8 +65,8 @@ export const CivicClipsHeader = ({
                     >
                         <Filter className="h-4 w-4" />
                     </Button>
-                    
-                    <Link to="/create-post?type=civic-clip">
+
+                    <Link to="/create?type=civic-clip">
                         <Button
                             size="sm"
                             className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4 gap-1.5"

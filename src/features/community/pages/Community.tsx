@@ -1,72 +1,135 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { CommunityProfile, Post, CommunityModerator, CommunityRule, CommunityFlair, GovernmentProject } from '@/types/index';
-import DOMPurify from 'dompurify';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Users, Calendar, Shield, Settings, Plus, Minus, Crown, UserCheck, Flag, MessageSquare, MapPin, TrendingUp } from 'lucide-react';
-import { PostCard } from '@/components/posts/PostCard';
-import { CommunityHeader } from '@/components/community/CommunityHeader';
+import { CommunityProfile } from '@/types/index';
+
+// New optimized hooks
+import { useCommunity } from '@/hooks/useCommunity';
+import { useGeographicCommunities } from '@/hooks/useGeographicCommunities';
+import { useJoinedCommunities } from '@/hooks/useJoinedCommunities';
+import { useChannelContent } from '@/hooks/useChannelContent';
+
+// Components
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
-import { CreatePostInput } from '@/components/community/CreatePostInput';
+import { SectionErrorBoundary } from '@/components/community/CommunityErrorBoundary';
 import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';
-import { Menu, X } from 'lucide-react';
 import { CreateChannelDialog } from '@/components/community/discord/CreateChannelDialog';
+import { Menu, X } from 'lucide-react';
 
-// Utility function to convert snake_case keys to camelCase recursively
-function toCamelCase(obj: any): any {
-  if (Array.isArray(obj)) {
-    return obj.map(v => toCamelCase(v));
-  } else if (obj !== null && obj.constructor === Object) {
-    return Object.keys(obj).reduce((result: any, key: string) => {
-      const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
-      result[camelKey] = toCamelCase(obj[key]);
-      return result;
-    }, {});
-  }
-  return obj;
-}
+// Loading skeleton component
+const CommunityLoadingSkeleton = () => (
+  <div className="container mx-auto px-4 py-8">
+    <div className="animate-pulse">
+      <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+      <div className="h-20 bg-gray-200 rounded-lg"></div>
+    </div>
+  </div>
+);
+
+// Not found component
+const CommunityNotFound = () => (
+  <div className="container mx-auto px-4 py-8">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold mb-4">Community not found</h1>
+      <p className="text-gray-600">The community you're looking for doesn't exist.</p>
+    </div>
+  </div>
+);
 
 const Community = () => {
   const { communityName } = useParams<{ communityName: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [community, setCommunity] = useState<CommunityProfile | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [moderators, setModerators] = useState<CommunityModerator[]>([]);
-  const [rules, setRules] = useState<CommunityRule[]>([]);
-  const [flairs, setFlairs] = useState<CommunityFlair[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
-  const [projects, setProjects] = useState<GovernmentProject[]>([]);
-  const [isMember, setIsMember] = useState(false);
-  const [isModerator, setIsModerator] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [channels, setChannels] = useState<any[]>([]);
+
+  // State for UI interactions
+  const [activeChannelId, setActiveChannelId] = useState<string>('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
 
-  // Geographic communities for navigation
-  const [geoCommunities, setGeoCommunities] = useState<{
-    county?: CommunityProfile;
-    constituency?: CommunityProfile;
-    ward?: CommunityProfile;
-  }>({});
-  const [joinedCommunities, setJoinedCommunities] = useState<CommunityProfile[]>([]);
+  // Local channels for optimistic updates when new channel created
+  const [newChannels, setNewChannels] = useState<any[]>([]);
 
-  // Discord-style state
-  const [activeChannelId, setActiveChannelId] = useState('general-chat');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Data fetching with new optimized hooks
+  const {
+    community,
+    moderators,
+    rules,
+    flairs,
+    channels,
+    isMember,
+    isModerator,
+    isAdmin,
+    isLoading,
+    refetch,
+  } = useCommunity(communityName);
 
-  // Build levels from fetched geographic communities
-  const primaryLevels = [
+  const { geoCommunities } = useGeographicCommunities();
+  const { joinedCommunities } = useJoinedCommunities(geoCommunities);
+
+  // Combine fetched channels with optimistically added ones
+  const allChannels = useMemo(() => {
+    const combined = [...channels, ...newChannels];
+    // Dedupe by id
+    const seen = new Set<string>();
+    return combined.filter(c => {
+      if (seen.has(c.id)) return false;
+      seen.add(c.id);
+      return true;
+    });
+  }, [channels, newChannels]);
+
+  // Find active channel from combined list
+  const activeChannel = useMemo(() =>
+    allChannels.find(c => c.id === activeChannelId),
+    [allChannels, activeChannelId]
+  );
+
+  // Fetch channel-specific content
+  const { posts, projects } = useChannelContent(
+    community?.id,
+    activeChannel,
+    community ? {
+      id: community.id,
+      locationType: community.locationType,
+      locationValue: community.locationValue
+    } : undefined
+  );
+
+  // Track if we've set the initial channel (using ref to avoid re-renders)
+  const hasSetInitialChannel = useRef(false);
+
+  // Set default active channel when channels load
+  // Priority: feed/posts channels first (user content), then text channels, then announcements
+  React.useEffect(() => {
+    if (allChannels.length > 0 && !activeChannelId && !hasSetInitialChannel.current) {
+      const defaultChannel =
+        // First priority: feed-type channels (user posts)
+        allChannels.find((c: any) => c.type === 'feed') ||
+        allChannels.find((c: any) => c.name === 'posts' || c.name === 'feed') ||
+        // Second priority: text channels
+        allChannels.find((c: any) => c.type === 'text') ||
+        allChannels.find((c: any) => c.name === 'general-chat' || c.name === 'general') ||
+        // Third priority: announcements
+        allChannels.find((c: any) => c.type === 'announcement') ||
+        // Fallback: first channel
+        allChannels[0];
+      if (defaultChannel) {
+        hasSetInitialChannel.current = true;
+        setActiveChannelId(defaultChannel.id);
+      }
+    }
+  }, [allChannels.length, activeChannelId]);
+
+  // Reset the ref when community changes
+  React.useEffect(() => {
+    hasSetInitialChannel.current = false;
+    setActiveChannelId('');
+    setNewChannels([]);
+  }, [communityName]);
+
+  // Build levels for navigation
+  const primaryLevels = useMemo(() => [
     {
       id: 'county',
       name: geoCommunities.county?.displayName || 'County',
@@ -91,30 +154,32 @@ const Community = () => {
       communitySlug: geoCommunities.ward?.name,
       isActive: community?.id === geoCommunities.ward?.id
     },
-  ];
+  ], [geoCommunities, community?.id]);
 
-  const secondaryLevels = joinedCommunities.map(c => ({
-    id: c.id,
-    name: c.displayName,
-    type: 'COMMUNITY' as const,
-    avatarUrl: c.avatarUrl,
-    communitySlug: c.name,
-    isActive: community?.id === c.id
-  }));
+  const secondaryLevels = useMemo(() =>
+    joinedCommunities.map(c => ({
+      id: c.id,
+      name: c.displayName,
+      type: 'COMMUNITY' as const,
+      avatarUrl: c.avatarUrl,
+      communitySlug: c.name,
+      isActive: community?.id === c.id
+    })),
+    [joinedCommunities, community?.id]
+  );
 
-  const levels = [
+  const levels = useMemo(() => [
     ...primaryLevels.filter(l => l.communitySlug),
     ...(secondaryLevels.length > 0 ? [{ type: 'SEPARATOR' as const, id: 'sep-1', name: '', isActive: false }] : []),
     ...secondaryLevels
-  ];
+  ], [primaryLevels, secondaryLevels]);
 
-  const currentLevel = (() => {
-    // First try to find active level from primary/secondary levels
+  const currentLevel = useMemo(() => {
+    // Try to find active level from primary/secondary levels
     const activeLevel = [...primaryLevels, ...secondaryLevels].find(l => l.isActive);
     if (activeLevel) return activeLevel;
 
-    // For non-logged-in users OR when viewing a geographic community directly,
-    // derive the level type from the community's own locationType field
+    // For non-logged-in users OR when viewing a geographic community directly
     if (community?.locationType) {
       const typeMap: Record<string, 'COUNTY' | 'CONSTITUENCY' | 'WARD'> = {
         'county': 'COUNTY',
@@ -127,355 +192,29 @@ const Community = () => {
       };
     }
 
-    // Final fallback for non-geographic communities
+    // Final fallback
     return { name: community?.displayName || 'Community', type: 'COMMUNITY' as const };
-  })();
+  }, [primaryLevels, secondaryLevels, community]);
 
-  useEffect(() => {
-    if (communityName) {
-      setLoading(true);
-      fetchCommunityData();
-    }
-  }, [communityName, user?.id]);
-
-  // Separate effect for getting the user's hierarchy once
-  useEffect(() => {
-    if (user) {
-      fetchGeographicCommunities();
-    }
-  }, [user]);
-
-  // Fetch channel data when active channel changes
-  useEffect(() => {
-    if (activeChannelId) {
-      fetchChannelData(activeChannelId);
-    }
-  }, [activeChannelId, community?.id]);
-
-  const fetchCommunityData = async () => {
-    try {
-      if (!communityName) return;
-
-      const { data, error } = await supabase
-        .from('communities')
-        .select(`
-          *,
-          community_moderators (
-            id,
-            user_id,
-            role,
-            profiles!community_moderators_user_id_fkey (username, display_name, avatar_url)
-          ),
-          community_rules (*),
-          community_flairs (*),
-          channels (*)
-        `)
-        .eq('name', communityName)
-        .single();
-
-      if (error) throw error;
-      const communityData = toCamelCase(data);
-      setCommunity(communityData);
-
-      // Check membership and roles
-      if (user) {
-        const { data: membership } = await supabase
-          .from('community_members')
-          .select('*')
-          .eq('community_id', communityData.id)
-          .eq('user_id', user.id)
-          .single();
-
-        setIsMember(!!membership);
-
-        const { data: modData } = await supabase
-          .from('community_moderators')
-          .select('role')
-          .eq('community_id', communityData.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        setIsModerator(modData?.role === 'moderator');
-        setIsAdmin(modData?.role === 'admin');
-      }
-
-      setModerators(communityData.communityModerators || []);
-      setRules(communityData.communityRules || []);
-      setFlairs(communityData.communityFlairs || []);
-
-      // Use fetched channels from relation
-      if (communityData.channels && communityData.channels.length > 0) {
-        setChannels(communityData.channels);
-        // Set default active channel if current one not found
-        if (!communityData.channels.find((c: any) => c.id === activeChannelId)) {
-          // Prefer 'general-chat' or 'announcements' or first one
-          const defaultChannel = communityData.channels.find((c: any) => c.name === 'general-chat')
-            || communityData.channels.find((c: any) => c.name === 'announcements')
-            || communityData.channels[0];
-          setActiveChannelId(defaultChannel.id);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching community:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchGeographicCommunities = async () => {
-    try {
-      console.log('🔍 === fetchGeographicCommunities START ===');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('⚠️ No user logged in');
-        return;
-      }
-      console.log('👤 User ID:', user.id);
-
-      // 1. Fetch User Profile to get location IDs
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('county_id, constituency_id, ward_id')
-        .eq('id', user.id)
-        .single();
-
-      console.log('📋 Profile data:', profile);
-
-      const fetchedCommunities: {
-        county?: CommunityProfile;
-        constituency?: CommunityProfile;
-        ward?: CommunityProfile;
-      } = {};
-
-      // 2. Resolve Location Names & Fetch Communities
-      if (profile) {
-        // Fetch County
-        if (profile.county_id) {
-          console.log('🏛️ Fetching county for ID:', profile.county_id);
-          const { data: county } = await supabase.from('counties').select('name').eq('id', profile.county_id).single();
-          console.log('   County name:', county?.name);
-
-          if (county) {
-            const { data: countyComm, error: countyError } = await supabase
-              .from('communities')
-              .select('*')
-              .eq('type', 'location')
-              .eq('location_type', 'county')
-              .eq('location_value', county.name)
-              .maybeSingle();
-            console.log('   County community:', countyComm?.name, 'ID:', countyComm?.id, 'Error:', countyError);
-            if (countyComm) fetchedCommunities.county = toCamelCase(countyComm);
-          }
-        }
-
-        // Fetch Constituency
-        if (profile.constituency_id) {
-          console.log('🏢 Fetching constituency for ID:', profile.constituency_id);
-          const { data: constituency } = await supabase.from('constituencies').select('name').eq('id', profile.constituency_id).single();
-          console.log('   Constituency name:', constituency?.name);
-
-          if (constituency) {
-            const { data: constComm, error: constError } = await supabase
-              .from('communities')
-              .select('*')
-              .eq('type', 'location')
-              .eq('location_type', 'constituency')
-              .eq('location_value', constituency.name)
-              .maybeSingle();
-            console.log('   Constituency community:', constComm?.name, 'ID:', constComm?.id, 'Error:', constError);
-            if (constComm) fetchedCommunities.constituency = toCamelCase(constComm);
-          }
-        }
-
-        // Fetch Ward
-        if (profile.ward_id) {
-          console.log('🏘️ Fetching ward for ID:', profile.ward_id);
-          const { data: ward } = await supabase.from('wards').select('name').eq('id', profile.ward_id).single();
-          console.log('   Ward name:', ward?.name);
-
-          if (ward) {
-            const { data: wardComm, error: wardError } = await supabase
-              .from('communities')
-              .select('*')
-              .eq('type', 'location')
-              .eq('location_type', 'ward')
-              .eq('location_value', ward.name)
-              .maybeSingle();
-            console.log('   Ward community:', wardComm?.name, 'ID:', wardComm?.id, 'Error:', wardError);
-            if (wardComm) fetchedCommunities.ward = toCamelCase(wardComm);
-          }
-        }
-      }
-
-      console.log('✅ Final fetchedCommunities:', {
-        county: fetchedCommunities.county?.name,
-        constituency: fetchedCommunities.constituency?.name,
-        ward: fetchedCommunities.ward?.name
-      });
-
-      setGeoCommunities(fetchedCommunities);
-
-      // 3. Fetch Joined Communities
-      console.log('📥 Fetching joined communities...');
-      const { data: memberships } = await supabase
-        .from('community_members')
-        .select('community:communities(*)')
-        .eq('user_id', user.id);
-
-      console.log('   Raw memberships count:', memberships?.length);
-
-      if (memberships) {
-        const allJoined = memberships.map((m: any) => toCamelCase(m.community));
-        console.log('   All joined communities (detailed):', allJoined.map(c => ({
-          name: c.name,
-          displayName: c.displayName,
-          type: c.type,
-          locationType: c.locationType,
-          locationValue: c.locationValue,
-          id: c.id
-        })));
-
-        const joined = allJoined.filter((c: CommunityProfile) => {
-          // Exclude the geographic communities we just fetched
-          const isExcluded = (
-            c.id === fetchedCommunities.county?.id ||
-            c.id === fetchedCommunities.constituency?.id ||
-            c.id === fetchedCommunities.ward?.id
-          );
-          console.log(`   ${c.name} (${c.id}): ${isExcluded ? 'EXCLUDED' : 'INCLUDED'}`);
-          return !isExcluded;
-        });
-
-        console.log('   Final secondary communities:', joined.map(c => c.name));
-        setJoinedCommunities(joined);
-      }
-
-      console.log('🏁 === fetchGeographicCommunities END ===');
-    } catch (error) {
-      console.error('❌ Error fetching communities:', error);
-    }
-  };
-
-  const fetchChannelData = async (channelId: string) => {
-    if (!community?.id) return;
-
-    const channel = channels.find(c => c.id === channelId);
-    if (!channel) return;
-
-    try {
-      // 1. Text/Feed Channels -> Fetch Posts
-      if (channel.type === 'feed' || channel.type === 'text' || channel.type === 'announcement') {
-        const { data: postsData } = await supabase
-          .from('posts')
-          .select(`
-            *,
-            author:profiles(*),
-            community:communities(*),
-            post_media(*)
-          `)
-          .eq('community_id', community.id)
-          // Ideally filter by channel_id metadata if posts are linked to channels
-          // For now, existing logic fetches all community posts. 
-          // FUTURE TODO: Filter posts by channel_id logic if we move posts to channels table strict relationship
-          .order('created_at', { ascending: false })
-          .limit(20);
-
-        // Transform
-        const camelCasePosts = toCamelCase(postsData) || [];
-        const mappedPosts = camelCasePosts.map((p: any) => ({
-          ...p,
-          media: p.postMedia
-        }));
-        setPosts(mappedPosts);
-      }
-
-      // 2. Projects Watch
-      // We check name OR category depending on robustness. Name 'projects-watch' is the convention.
-      if (channel.name === 'projects-watch') {
-        if (community.locationType && community.locationValue) {
-          const { data: projectsData } = await supabase
-            .from('government_projects')
-            .select(`
-              *,
-              official:officials(id, name, position)
-            `)
-            .or(`${community.locationType}.eq.${community.locationValue}`)
-            .order('created_at', { ascending: false })
-            .limit(20);
-          setProjects(toCamelCase(projectsData) || []);
-        }
-      }
-
-      // 3. Sidebars / Members
-      const { data: membersData } = await supabase
-        .from('community_members')
-        .select(`
-          *,
-          profiles (username, display_name, avatar_url, role)
-        `)
-        .eq('community_id', community.id);
-      setMembers(toCamelCase(membersData) || []);
-
-    } catch (error) {
-      console.error('Error fetching channel data:', error);
-    }
-  };
-
-  const handleJoinLeave = async () => {
-    if (!user || !community) return;
-
-    try {
-      if (isMember) {
-        await supabase
-          .from('community_members')
-          .delete()
-          .eq('community_id', community.id)
-          .eq('user_id', user.id);
-        setIsMember(false);
-      } else {
-        await supabase
-          .from('community_members')
-          .insert({
-            community_id: community.id,
-            user_id: user.id
-          });
-        setIsMember(true);
-      }
-    } catch (error) {
-      console.error('Error updating membership:', error);
-    }
-  };
-
-  const handleChannelCreated = (newChannel: any) => {
-    // Optimistically update or re-fetch
-    setChannels(prev => [...prev, {
+  // Handle new channel creation (optimistic update)
+  const handleChannelCreated = useCallback((newChannel: any) => {
+    setNewChannels(prev => [...prev, {
       id: newChannel.id,
       name: newChannel.name,
       category: newChannel.type === 'announcement' ? 'INFO' : 'ENGAGEMENT',
       type: newChannel.type
     }]);
-  };
+    // Refetch to sync with server
+    refetch();
+  }, [refetch]);
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
-          <div className="h-20 bg-gray-200 rounded-lg"></div>
-        </div>
-      </div>
-    );
+  // Render states
+  if (isLoading) {
+    return <CommunityLoadingSkeleton />;
   }
 
   if (!community) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Community not found</h1>
-          <p className="text-gray-600">The community you're looking for doesn't exist.</p>
-        </div>
-      </div>
-    );
+    return <CommunityNotFound />;
   }
 
   return (
@@ -498,13 +237,11 @@ const Community = () => {
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
           {/* Level Selector Rail */}
-          <LevelSelector
-            levels={levels}
-          />
+          <LevelSelector levels={levels} />
 
           {/* Channel List */}
           <ChannelList
-            channels={channels}
+            channels={allChannels}
             activeChannel={activeChannelId}
             onChange={(channelId) => {
               setActiveChannelId(channelId);
@@ -526,15 +263,16 @@ const Community = () => {
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <h2 className="font-bold text-foreground">#{channels.find(c => c.id === activeChannelId)?.name}</h2>
+            <h2 className="font-bold text-foreground">
+              #{allChannels.find(c => c.id === activeChannelId)?.name}
+            </h2>
             <div className="w-10" /> {/* Spacer for centering */}
           </div>
 
           {/* Channel Content */}
           <ChannelContent
             channelId={activeChannelId}
-            // Pass full channel object if found
-            channel={channels.find(c => c.id === activeChannelId)}
+            channel={allChannels.find(c => c.id === activeChannelId)}
             levelType={currentLevel.type}
             locationValue={currentLevel.name}
             communityId={community.id}
@@ -548,13 +286,15 @@ const Community = () => {
 
         {/* Right Sidebar - Original CommunitySidebar */}
         <div className="hidden lg:block w-80 border-l border-sidebar-border bg-sidebar-background overflow-y-auto thin-scrollbar">
-          <CommunitySidebar
-            community={community}
-            rules={rules}
-            moderators={moderators}
-            flairs={flairs}
-            isAdmin={isAdmin}
-          />
+          <SectionErrorBoundary section="Community Sidebar">
+            <CommunitySidebar
+              community={community}
+              rules={rules}
+              moderators={moderators}
+              flairs={flairs}
+              isAdmin={isAdmin}
+            />
+          </SectionErrorBoundary>
         </div>
       </div>
 

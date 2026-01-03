@@ -67,7 +67,7 @@ export const WelcomeDashboard = () => {
       icon: MessageSquare,
       title: 'Create Your First Post',
       description: 'Share an issue or start a discussion in your community',
-      action: () => navigate('/create-post'),
+      action: () => navigate('/create'),
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',
     },

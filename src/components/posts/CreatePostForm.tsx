@@ -25,6 +25,7 @@ interface CreatePostFormProps {
   disabled?: boolean
   initialValues?: Partial<PostFormData & { title?: string; content?: string }>
   isEditing?: boolean
+  defaultCommunityId?: string
 }
 
 export interface PostFormData {
@@ -62,20 +63,23 @@ const POST_TYPES = [
 
 const DRAFT_STORAGE_KEY = 'wana_post_draft'
 
-export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues, isEditing }: CreatePostFormProps) => {
+export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues, isEditing, defaultCommunityId }: CreatePostFormProps) => {
   // Form state
   const [postType, setPostType] = useState<'text' | 'media' | 'link'>(initialValues?.postType || 'text')
   const [title, setTitle] = useState(initialValues?.title || '')
   const [content, setContent] = useState(initialValues?.content || '')
-  const [communityId, setCommunityId] = useState<string | undefined>(initialValues?.communityId)
+  const [communityId, setCommunityId] = useState<string | undefined>(initialValues?.communityId || defaultCommunityId)
   const [flairIds, setFlairIds] = useState<string[]>(initialValues?.flairIds || [])
   const [contentSensitivity, setContentSensitivity] = useState<ContentSensitivity>(initialValues?.contentSensitivity || 'public')
   const [files, setFiles] = useState<File[]>([])
   const [linkUrl, setLinkUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Load draft from localStorage on mount
+  // Load draft from localStorage on mount (skip if defaultCommunityId is provided for modal usage)
   useEffect(() => {
+    // Don't load draft when opened from community sidebar (defaultCommunityId set)
+    if (defaultCommunityId) return;
+
     const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY)
     if (savedDraft) {
       try {
@@ -91,7 +95,7 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
         console.error('Failed to load draft:', error)
       }
     }
-  }, [])
+  }, [defaultCommunityId])
 
   // Auto-save draft to localStorage
   useEffect(() => {
