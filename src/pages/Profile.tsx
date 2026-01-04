@@ -11,7 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, Calendar, MessageSquare, Heart, Bookmark, Settings, Edit, Share2, UserCog, Eye, UserPlus, UserMinus, Star } from 'lucide-react';
+import { MapPin, Calendar, MessageSquare, Heart, Bookmark, Settings, Edit, Share2, UserCog, Eye, UserPlus, UserMinus, Star, Shield, ExternalLink } from 'lucide-react';
+import { VerifiedBadge, OfficialPositionBadge } from '@/components/ui/verified-badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -698,8 +699,18 @@ const Profile = () => {
               {/* Title and Actions */}
               <div className="flex-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4 w-full min-w-0">
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold truncate">{profile.displayName || profile.username}</h1>
-                  <p className="text-muted-foreground text-sm sm:text-base truncate">@{profile.username}</p>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold truncate">{profile.displayName || profile.username}</h1>
+                    {profile.isVerified && (
+                      <VerifiedBadge size="lg" positionTitle={profile.officialPosition} />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-muted-foreground text-sm sm:text-base truncate">@{profile.username}</p>
+                    {profile.officialPosition && (
+                      <OfficialPositionBadge position={profile.officialPosition} />
+                    )}
+                  </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
                     <div className="flex items-center space-x-1">
                       <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />

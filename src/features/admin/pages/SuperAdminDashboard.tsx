@@ -6,7 +6,8 @@ import {
   Shield, Users, Flag, TrendingUp, Settings, AlertTriangle, Lock, Eye,
   UserCheck, MessageSquare, BarChart3, FileText, Bell, ChevronDown,
   Search, Filter, Activity, Server, Brain, Sparkles,
-  CheckCircle, XCircle, Clock, Briefcase, ShieldAlert, Radio, Send
+  CheckCircle, XCircle, Clock, Briefcase, ShieldAlert, Radio, Send,
+  Building, MapPin, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -600,48 +601,286 @@ function ModeratorsTab() {
   );
 }
 
-// Officials Tab
+// Officials Tab - Enhanced with Claim Approval
 function OfficialsTab() {
   const [officials, setOfficials] = useState<any[]>([]);
+  const [pendingClaims, setPendingClaims] = useState<any[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState<'pending' | 'verified' | 'all'>('pending');
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchOfficials = async () => {
-      const { data } = await supabase
-        .from('officials')
-        .select('*')
-        .order('name', { ascending: true })
-        .limit(50);
-
-      setOfficials(data || []);
-    };
-
-    fetchOfficials();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    // Fetch verified officials
+    const { data: officialsData, error: officialsError } = await supabase
+      .from('officials')
+      .select('*')
+      .order('name', { ascending: true })
+      .limit(50);
+
+    if (officialsError) {
+      console.error('Officials fetch error:', officialsError);
+    }
+    console.log('Officials data:', officialsData);
+    setOfficials(officialsData || []);
+
+    // Fetch pending claims from office_holders
+    // Note: Must specify FK name because office_holders has TWO FKs to profiles (user_id AND verified_by)
+    const { data: claimsData, error: claimsError } = await supabase
+      .from('office_holders')
+      .select(`
+        *,
+        profiles!office_holders_user_id_fkey(id, username, display_name, avatar_url),
+        government_positions(id, title, governance_level, country_code)
+      `)
+      .order('claimed_at', { ascending: false });
+
+    if (claimsError) {
+      console.error('Claims fetch error:', claimsError);
+    }
+    console.log('Claims data (raw):', claimsData);
+
+    // Transform data to expected format
+    const transformedClaims = (claimsData || []).map(claim => ({
+      ...claim,
+      profile: claim.profiles,
+      position: claim.government_positions
+    }));
+    console.log('Claims data (transformed):', transformedClaims);
+    setPendingClaims(transformedClaims);
+  };
+
+  const handleApproval = async (claimId: string, approved: boolean) => {
+    setProcessingId(claimId);
+    try {
+      // Find the claim to get user_id and position info
+      const claim = pendingClaims.find(c => c.id === claimId);
+      if (!claim) throw new Error('Claim not found');
+
+      // Get current admin user
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+
+      // Update office_holders status
+      const { error: updateError } = await supabase
+        .from('office_holders')
+        .update({
+          verification_status: approved ? 'verified' : 'rejected',
+          verified_at: approved ? new Date().toISOString() : null,
+          verified_by: approved ? adminUser?.id : null,
+        })
+        .eq('id', claimId);
+
+      if (updateError) throw updateError;
+
+      // If approved, also update the user's profile for immediate effect
+      // (DB trigger will also do this, but this ensures immediate sync)
+      if (approved && claim.user_id) {
+        const positionTitle = claim.position?.title || claim.government_positions?.title;
+        const positionId = claim.position?.id || claim.government_positions?.id;
+
+        await supabase
+          .from('profiles')
+          .update({
+            is_verified: true,
+            official_position: positionTitle,
+            official_position_id: positionId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', claim.user_id);
+      }
+
+      toast.success(approved ? 'Claim approved! Official is now verified.' : 'Claim rejected.');
+      fetchData();
+    } catch (error) {
+      console.error('Error processing claim:', error);
+      toast.error('Failed to process claim');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const pendingCount = pendingClaims.filter(c => c.verification_status === 'pending').length;
+  const verifiedCount = pendingClaims.filter(c => c.verification_status === 'verified').length;
 
   return (
     <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-orange-500">
+          <CardContent className="p-4">
+            <Clock className="text-orange-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{pendingCount}</div>
+            <div className="text-sm text-muted-foreground">Pending Claims</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <CheckCircle className="text-green-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{verifiedCount}</div>
+            <div className="text-sm text-muted-foreground">Verified Officials</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <Users className="text-blue-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{officials.length}</div>
+            <div className="text-sm text-muted-foreground">Officials in Database</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-purple-500">
+          <CardContent className="p-4">
+            <Shield className="text-purple-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{pendingClaims.length}</div>
+            <div className="text-sm text-muted-foreground">Total Claims</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-2 border-b pb-4">
+        <Button
+          variant={activeSubTab === 'pending' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveSubTab('pending')}
+          className="gap-2"
+        >
+          <Clock className="w-4 h-4" />
+          Pending ({pendingCount})
+        </Button>
+        <Button
+          variant={activeSubTab === 'verified' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveSubTab('verified')}
+          className="gap-2"
+        >
+          <CheckCircle className="w-4 h-4" />
+          Verified ({verifiedCount})
+        </Button>
+        <Button
+          variant={activeSubTab === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveSubTab('all')}
+          className="gap-2"
+        >
+          <Users className="w-4 h-4" />
+          All Claims
+        </Button>
+      </div>
+
+      {/* Claims List */}
       <Card>
         <CardHeader>
-          <CardTitle>Government Officials ({officials.length})</CardTitle>
+          <CardTitle>
+            {activeSubTab === 'pending' && 'Pending Position Claims'}
+            {activeSubTab === 'verified' && 'Verified Officials'}
+            {activeSubTab === 'all' && 'All Position Claims'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {officials.length === 0 ? (
+          {pendingClaims.filter(c =>
+            activeSubTab === 'all' ? true :
+              activeSubTab === 'pending' ? c.verification_status === 'pending' :
+                c.verification_status === 'verified'
+          ).length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No officials found in database.
+              No {activeSubTab === 'pending' ? 'pending claims' : activeSubTab === 'verified' ? 'verified officials' : 'claims found'}.
             </div>
           ) : (
-            <div className="space-y-2">
-              {officials.map((official) => (
-                <div key={official.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <div className="font-medium">{official.name}</div>
-                    <div className="text-sm text-muted-foreground">{official.position}</div>
+            <div className="space-y-3">
+              {pendingClaims
+                .filter(c =>
+                  activeSubTab === 'all' ? true :
+                    activeSubTab === 'pending' ? c.verification_status === 'pending' :
+                      c.verification_status === 'verified'
+                )
+                .map((claim) => (
+                  <div key={claim.id} className="p-4 border rounded-lg bg-muted/30">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-semibold">
+                          {claim.profile?.display_name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                          <div className="font-semibold">{claim.profile?.display_name || 'Unknown User'}</div>
+                          <div className="text-sm text-muted-foreground">@{claim.profile?.username}</div>
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Building className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-medium">{claim.position?.title || 'Unknown Position'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <MapPin className="w-4 h-4" />
+                              {claim.position?.governance_level} - {claim.position?.country_code}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              Term: {claim.term_start ? new Date(claim.term_start).toLocaleDateString() : 'N/A'} - {claim.term_end ? new Date(claim.term_end).toLocaleDateString() : 'N/A'}
+                            </div>
+                          </div>
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Submitted: {new Date(claim.created_at).toLocaleString()}
+                          </div>
+                          {claim.proof_documents && (
+                            <div className="mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                <FileText className="w-3 h-3 mr-1" />
+                                {claim.verification_method === 'document_upload' ? 'Document Uploaded' :
+                                  claim.verification_method === 'email_verification' ? 'Email Verification' :
+                                    'Official Link'}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant={
+                          claim.verification_status === 'verified' ? 'default' :
+                            claim.verification_status === 'rejected' ? 'destructive' :
+                              'secondary'
+                        }>
+                          {claim.verification_status}
+                        </Badge>
+
+                        {claim.verification_status === 'pending' && (
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => handleApproval(claim.id, true)}
+                              disabled={processingId === claim.id}
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-destructive border-destructive hover:bg-destructive/10"
+                              onClick={() => handleApproval(claim.id, false)}
+                              disabled={processingId === claim.id}
+                            >
+                              <XCircle className="w-4 h-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+
+                        {claim.verification_status === 'verified' && (
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={`/g/${claim.id}`} target="_blank" rel="noopener noreferrer">
+                              <Eye className="w-4 h-4 mr-1" />
+                              View Office
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <Badge variant={official.is_verified ? 'default' : 'secondary'}>
-                    {official.is_verified ? 'Verified' : 'Pending'}
-                  </Badge>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </CardContent>

@@ -1,9 +1,10 @@
 import React from 'react';
-import { Routes, Route, useParams, Navigate } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 
 // Feature-based imports
 import Community from '@/features/community/pages/Community';
 import OfficialDetail from '@/features/governance/pages/OfficialDetail';
+import OfficePage from '@/features/governance/pages/OfficePage';
 import ProjectDetail from '@/features/accountability/pages/ProjectDetail';
 import PromiseDetail from '@/features/accountability/pages/PromiseDetail';
 
@@ -11,66 +12,67 @@ import PromiseDetail from '@/features/accountability/pages/PromiseDetail';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 
-// Prefix handler components
-const CommunityPrefixHandler: React.FC = () => {
-  const { communityName } = useParams<{ communityName: string }>();
-  return <Community />;
-};
+// UUID regex pattern
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const UserPrefixHandler: React.FC = () => {
-  const { username } = useParams<{ username: string }>();
-  return <Profile />;
-};
-
-const GovernmentPrefixHandler: React.FC = () => {
-  const { officialId } = useParams<{ officialId: string }>();
-  // Route to official detail page
-  return <OfficialDetail />;
-};
-
-const ProjectPrefixHandler: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
-  // Route to project detail page
-  return <ProjectDetail />;
-};
-
-const PromisePrefixHandler: React.FC = () => {
-  const { promiseId } = useParams<{ promiseId: string }>();
-  // For now, redirect to PromiseDetail page - will be enhanced with promise details
-  return <PromiseDetail />;
-};
-
-const VerifiedUserPrefixHandler: React.FC = () => {
-  const { username } = useParams<{ username: string }>();
-  return <Profile />;
-};
-
-// Main prefix router component that handles all functional prefixes
+/**
+ * PrefixRouter - Renders the appropriate component based on the URL prefix
+ * 
+ * Route mapping:
+ * - /g/:id (UUID) → OfficePage (verified office holder's accountability hub)
+ * - /g/:username → Profile (verified government official's profile)
+ * - /u/:username → Profile (regular users)
+ * - /w/:username → Profile (verified users)
+ * - /c/:name → Community
+ * - /p/:id → ProjectDetail
+ * - /pr/:id → PromiseDetail
+ */
 const PrefixRouter: React.FC = () => {
-  return (
-    <Routes>
-      {/* Community prefix: c/communityName */}
-      <Route path="c/:communityName" element={<CommunityPrefixHandler />} />
+  const location = useLocation();
+  const pathname = location.pathname;
 
-      {/* User profile prefix: u/username */}
-      <Route path="u/:username" element={<UserPrefixHandler />} />
+  // Determine which prefix we're dealing with by checking the URL
+  if (pathname.startsWith('/g/')) {
+    // Extract the parameter after /g/
+    const param = pathname.split('/')[2];
 
-      {/* Government official prefix: g/officialId */}
-      <Route path="g/:officialId" element={<GovernmentPrefixHandler />} />
+    // If it's a UUID, route to OfficePage (office holder's accountability hub)
+    // If it's a username, route to Profile (government official's profile)
+    if (param && UUID_REGEX.test(param)) {
+      return <OfficePage />;
+    } else {
+      // Username - route to Profile for verified government official
+      return <Profile />;
+    }
+  }
 
-      {/* Project prefix: p/projectId */}
-      <Route path="p/:projectId" element={<ProjectPrefixHandler />} />
+  if (pathname.startsWith('/p/')) {
+    // Project detail page
+    return <ProjectDetail />;
+  }
 
-      {/* Promise prefix: pr/promiseId */}
-      <Route path="pr/:promiseId" element={<PromisePrefixHandler />} />
+  if (pathname.startsWith('/pr/')) {
+    // Promise detail page
+    return <PromiseDetail />;
+  }
 
-      {/* Verified user prefix: w/username */}
-      <Route path="w/:username" element={<VerifiedUserPrefixHandler />} />
+  if (pathname.startsWith('/w/')) {
+    // Verified user profile
+    return <Profile />;
+  }
 
-      {/* Fallback for unknown prefixes */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+  if (pathname.startsWith('/c/')) {
+    // Community page
+    return <Community />;
+  }
+
+  if (pathname.startsWith('/u/')) {
+    // User profile
+    return <Profile />;
+  }
+
+  // Fallback
+  return <NotFound />;
 };
 
 export default PrefixRouter;

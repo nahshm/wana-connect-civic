@@ -2,7 +2,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowUp, ArrowDown, MessageCircle, Share, Verified, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield } from 'lucide-react';
+import { VerifiedBadge, OfficialPositionBadge } from '@/components/ui/verified-badge';
 import { CIVIC_FLAIRS } from '@/config/flairs';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -327,13 +328,27 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 <span>by</span>
               </>
             ) : null}
-            <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
-              u/{post.author.displayName || post.author.username || 'Anonymous'}
+            <Link
+              to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || post.author.displayName || 'anonymous'}`}
+              className="hover:underline"
+            >
+              {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
             {post.author.isVerified && (
-              <Verified className="w-3 h-3 text-blue-500" />
+              <VerifiedBadge
+                size="xs"
+                positionTitle={post.author.officialPosition}
+              />
             )}
-            {post.author.role && (
+            {/* Show official position badge if verified and has position */}
+            {post.author.isVerified && post.author.officialPosition && (
+              <OfficialPositionBadge
+                position={post.author.officialPosition}
+                className="hidden sm:inline-flex"
+              />
+            )}
+            {/* Show role badge only if NOT a verified official (to avoid redundancy) */}
+            {post.author.role && !post.author.isVerified && (
               <Badge variant="outline" className={`text-xs px-1 py-0 ${getRoleColor(post.author.role)}`}>
                 {post.author.role}
               </Badge>

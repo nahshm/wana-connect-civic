@@ -181,6 +181,8 @@ export interface User {
   avatar?: string;
   bannerUrl?: string;
   isVerified?: boolean;
+  officialPosition?: string; // Title of government position if verified official
+  officialPositionId?: string; // Reference to government_positions
   role?: 'citizen' | 'official' | 'expert' | 'journalist' | 'admin';
   karma?: number;
   postKarma?: number;

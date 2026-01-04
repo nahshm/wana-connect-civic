@@ -113,6 +113,7 @@ export default function Index() {
             displayName: item.author.display_name,
             avatar: item.author.avatar_url,
             isVerified: item.author.is_verified,
+            officialPosition: item.author.official_position,
             role: item.author.role,
           },
           community: item.community ? {

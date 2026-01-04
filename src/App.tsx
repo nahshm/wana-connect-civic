@@ -108,7 +108,7 @@ const App = () => (
                         <Route path="/admin/verification" element={<PositionVerification />} />
                         <Route path="/superadmin" element={<SuperAdminDashboard />} />
                         {/* Functional prefix routes - handled by PrefixRouter */}
-                        <Route path="/g/:officialId" element={<PrefixRouter />} />
+                        <Route path="/g/:username" element={<PrefixRouter />} />
                         <Route path="/p/:projectId" element={<PrefixRouter />} />
                         <Route path="/pr/:promiseId" element={<PrefixRouter />} />
                         <Route path="/w/:username" element={<PrefixRouter />} />
