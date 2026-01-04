@@ -189,6 +189,19 @@ export default function Index() {
           isNgoVerified: post.isNgoVerified,
           media: post.media
         }} onVote={handleVote} />)}
+
+        {/* Infinite scroll sentinel */}
+        <div ref={loadMoreRef} className="py-8 flex justify-center">
+          {isFetchingNextPage && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span>Loading more posts...</span>
+            </div>
+          )}
+          {!hasNextPage && posts.length > 0 && (
+            <p className="text-muted-foreground text-sm">You've reached the end</p>
+          )}
+        </div>
         </div>
 
         {/* Live Baraza Spaces */}
