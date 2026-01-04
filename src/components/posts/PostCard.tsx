@@ -193,6 +193,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               <img
                 src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
                 alt="Post media"
+                loading="eager"
+                fetchPriority="high"
                 className="w-full h-auto max-h-96 object-cover"
               />
             ) : post.media[0].file_type?.startsWith('video/') ? (

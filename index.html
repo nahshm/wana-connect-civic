@@ -24,6 +24,30 @@
   <meta name="twitter:description"
     content="Empowering citizens through civic engagement, community discussions, and government accountability">
   <link rel="icon" type="image/png" href="/logo.png">
+
+  <!-- LCP Optimization: Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://supabase.co">
+
+  <!-- Inline critical CSS for skeleton loading -->
+  <style>
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .5;
+      }
+    }
+  </style>
 </head>
 
 <body>
