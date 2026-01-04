@@ -40,6 +40,9 @@ import GeographicDataAdmin from "@/features/admin/pages/GeographicDataAdmin";
 import { PositionVerification } from "@/features/admin/pages/PositionVerification";
 import SuperAdminDashboard from "@/features/admin/pages/SuperAdminDashboard";
 
+// Feature-based imports - Profile V2 (Civic Resume)
+import { ProfileV2 } from "@/features/profile";
+
 // Legacy pages (not yet migrated to features)
 import SettingsPage from "./pages/Settings";
 import Profile from "./pages/Profile";
@@ -107,6 +110,8 @@ const App = () => (
                         <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
                         <Route path="/admin/verification" element={<PositionVerification />} />
                         <Route path="/superadmin" element={<SuperAdminDashboard />} />
+                        {/* Profile V2 - New Civic Resume */}
+                        <Route path="/profile-v2/:username" element={<ProfileV2 />} />
                         {/* Functional prefix routes - handled by PrefixRouter */}
                         <Route path="/g/:username" element={<PrefixRouter />} />
                         <Route path="/p/:projectId" element={<PrefixRouter />} />
