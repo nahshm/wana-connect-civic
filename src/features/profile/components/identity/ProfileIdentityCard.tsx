@@ -121,128 +121,175 @@ const ProfileIdentityCardContent: React.FC<ProfileIdentityCardProps> = ({
 
     const impactRating = impactScore?.impactRating || 0;
 
+    // Get grade from rating
+    const getGrade = (rating: number): string => {
+        if (rating >= 90) return 'A+';
+        if (rating >= 80) return 'A';
+        if (rating >= 70) return 'B+';
+        if (rating >= 60) return 'B';
+        if (rating >= 50) return 'C';
+        if (rating >= 40) return 'D';
+        return 'F';
+    };
+
+    const getPercentile = (rating: number): string => {
+        if (rating >= 90) return 'Top 1%';
+        if (rating >= 80) return 'Top 5%';
+        if (rating >= 70) return 'Top 15%';
+        if (rating >= 60) return 'Top 30%';
+        if (rating >= 50) return 'Top 50%';
+        return 'Rising';
+    };
+
     return (
-        <Card className={cn(
-            'overflow-hidden border-0 shadow-lg',
-            className
-        )}>
-            {/* Compact Banner with gradient overlay */}
+        <Card className={cn('overflow-hidden', className)}>
+            {/* Compact Banner */}
             <div
-                className="h-32 bg-cover bg-center relative"
+                className="h-20 bg-cover bg-center"
                 style={{
                     backgroundImage: bannerUrl
                         ? `url(${bannerUrl})`
-                        : `linear-gradient(135deg, ${accentColor}20, ${accentColor}90, ${accentColor}60)`,
+                        : `linear-gradient(90deg, ${accentColor}, ${accentColor}80)`,
                 }}
-            >
-                {/* Lighter gradient - only fade at bottom for card transition */}
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+            />
 
-                {/* GOAT Badge positioned on banner */}
-                <div className="absolute top-3 left-3 z-10">
-                    <GoatBadge
-                        level={impactScore?.goatLevel || 1}
-                        title={impactScore?.goatTitle || 'Street Monitor'}
-                        xp={impactScore?.goatXp}
-                        size="md"
-                    />
-                </div>
+            {/* Main Content - Responsive Layout */}
+            <CardContent className="relative px-4 py-3">
+                <div className="flex flex-col md:flex-row md:items-start gap-3 md:gap-4">
+                    {/* Avatar - Overlapping Banner */}
+                    <Avatar className={cn(
+                        'w-20 h-20 -mt-12 border-4 border-background shadow-md flex-shrink-0',
+                        getFrameStyle(frameAnimation)
+                    )}>
+                        <AvatarImage src={avatarUrl} alt={displayName || username} className="object-cover" />
+                        <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/20 to-primary/5">
+                            {(displayName || username)?.charAt(0)?.toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
 
-                {/* XP Progress on banner */}
-                <div className="absolute bottom-0 left-0 right-0 px-3 pb-1 z-10">
-                    <Progress value={xpProgress.percent} className="h-1.5 bg-white/30" />
-                    <p className="text-[9px] text-white/90 mt-0.5 drop-shadow-sm">
-                        {xpProgress.current}/{xpProgress.required} XP to next level
-                    </p>
-                </div>
-            </div>
-
-            <CardContent className="relative px-4 pb-4 pt-2">
-                {/* Main Content Row - Avatar + Info + Stats */}
-                <div className="flex gap-4">
-                    {/* Avatar - Positioned to overlap banner */}
-                    <div className="-mt-14 flex-shrink-0">
-                        <Avatar className={cn(
-                            'w-24 h-24 rounded-xl border-4 border-background shadow-xl',
-                            getFrameStyle(frameAnimation)
-                        )}>
-                            <AvatarImage src={avatarUrl} alt={displayName || username} className="object-cover" />
-                            <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
-                                {(displayName || username)?.charAt(0)?.toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                    </div>
-
-                    {/* User Info - Compact */}
-                    <div className="flex-1 min-w-0 pt-1">
+                    {/* Middle: User Info */}
+                    <div className="flex-1 min-w-0">
                         {/* Name Row */}
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h2 className="text-xl font-bold truncate">
-                                {displayName || username}
-                            </h2>
+                            <h2 className="text-lg font-bold truncate">{displayName || username}</h2>
                             {isVerified && <VerifiedBadge size="sm" positionTitle={officialPosition} />}
                         </div>
 
-                        {/* Username + Trust */}
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-sm text-muted-foreground">@{username}</span>
-                            <TrustTier tier={trustTier} size="sm" showLabel={false} />
+                        {/* Username + Join Date */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5 flex-wrap">
+                            <span>@{username}</span>
+                            {joinDate && (
+                                <>
+                                    <span className="hidden sm:inline">•</span>
+                                    <span className="flex items-center gap-1">
+                                        <Calendar className="w-3 h-3" />
+                                        {joinDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                    </span>
+                                </>
+                            )}
                         </div>
 
-                        {/* Official Position */}
+                        {/* Official Position Badge */}
                         {officialPosition && (
-                            <div className="mt-1">
+                            <div className="mt-2">
                                 <OfficialPositionBadge position={officialPosition} />
                             </div>
                         )}
-                    </div>
 
-                    {/* Impact Score - Right Side */}
-                    <div className={cn(
-                        'flex-shrink-0 flex flex-col items-center justify-center px-4 py-2 rounded-xl -mt-8',
-                        getImpactColor(impactRating)
-                    )}>
-                        <span className="text-3xl font-bold">{impactRating}</span>
-                        <span className="text-[10px] uppercase tracking-wide opacity-80">/100 Impact</span>
-                    </div>
-                </div>
-
-                {/* Quick Stats Row */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                    {/* Left: Location + Join Date */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        {location && (
-                            <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                {location}
-                            </span>
-                        )}
-                        {joinDate && (
-                            <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                Joined {joinDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Right: Component Scores */}
-                    {impactScore && (
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-[10px] gap-1 py-0.5">
-                                <Zap className="w-2.5 h-2.5" />
-                                {impactScore.actionsScore} Actions
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px] gap-1 py-0.5">
-                                <Trophy className="w-2.5 h-2.5" />
-                                {impactScore.resolutionScore} Resolved
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px] gap-1 py-0.5">
-                                <Award className="w-2.5 h-2.5" />
-                                {impactScore.communityScore} Community
-                            </Badge>
+                        {/* GOAT Level + XP Progress */}
+                        <div className="mt-2 space-y-1">
+                            <GoatBadge
+                                level={impactScore?.goatLevel || 1}
+                                title={impactScore?.goatTitle || 'Street Monitor'}
+                                size="sm"
+                            />
+                            <div className="max-w-[200px]">
+                                <Progress value={getXpProgress().percent} className="h-1" />
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                    {getXpProgress().current}/{getXpProgress().required} XP to next level
+                                </p>
+                            </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* Right: Impact Rating Card - Stacks below on mobile */}
+                    <div className="w-full md:w-auto md:flex-shrink-0 relative overflow-hidden rounded-lg p-3 md:min-w-[160px] shadow-lg shadow-primary/20 ring-1 ring-border">
+                        {/* Animated gradient background - theme aware */}
+                        <div
+                            className="absolute inset-0 bg-gradient-to-br from-muted via-muted/80 to-muted dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
+                            style={{
+                                backgroundSize: '200% 200%',
+                                animation: 'gradient-shift 8s ease infinite',
+                            }}
+                        />
+                        {/* Subtle shimmer overlay */}
+                        <div
+                            className="absolute inset-0 opacity-20"
+                            style={{
+                                background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%)',
+                                backgroundSize: '200% 200%',
+                                animation: 'shimmer 3s ease-in-out infinite',
+                            }}
+                        />
+                        {/* Content */}
+                        <div className="relative z-10">
+                            <p className="text-[9px] uppercase tracking-wider text-muted-foreground/80 font-medium mb-1.5">Impact Rating</p>
+                            <div className="flex items-end justify-between mb-2">
+                                {/* Grade */}
+                                <span
+                                    className="text-4xl font-black text-foreground leading-none select-none"
+                                    style={{
+                                        textShadow: '0 0 15px rgba(59,130,246,0.5), 0 2px 4px rgba(0,0,0,0.3)',
+                                        filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.2))',
+                                    }}
+                                >{getGrade(impactRating)}</span>
+                                <div className="text-right ml-2">
+                                    <div className="text-[10px] font-bold text-primary uppercase">Lvl {impactScore?.goatLevel || 1}</div>
+                                    <div className="text-[9px] text-muted-foreground">{getPercentile(impactRating)}</div>
+                                </div>
+                            </div>
+                            {/* Progress bar */}
+                            <Progress value={impactRating} className="h-1.5 mb-1.5" />
+                            {/* XP and Goal */}
+                            <div className="flex justify-between items-center text-[9px] text-muted-foreground/80">
+                                <span className="text-primary font-medium">{impactScore?.goatXp || 0} XP</span>
+                                <span className="text-right uppercase tracking-wide text-[8px]">
+                                    {impactScore?.goatTitle || 'Next Level'}
+                                </span>
+                            </div>
+                        </div>
+                        {/* CSS Keyframes via style tag */}
+                        <style>{`
+                            @keyframes gradient-shift {
+                                0%, 100% { background-position: 0% 50%; }
+                                50% { background-position: 100% 50%; }
+                            }
+                            @keyframes shimmer {
+                                0% { background-position: -200% 0; }
+                                100% { background-position: 200% 0; }
+                            }
+                        `}</style>
+                    </div>
                 </div>
+
+                {/* Bottom Stats - Compact */}
+                {impactScore && (
+                    <div className="flex items-center gap-4 mt-3 pt-2 border-t text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5" />
+                            <strong className="text-foreground">{impactScore.actionsScore}</strong> Actions
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Trophy className="w-3.5 h-3.5" />
+                            <strong className="text-foreground">{impactScore.resolutionScore}</strong> Resolved
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Award className="w-3.5 h-3.5" />
+                            <strong className="text-foreground">{impactScore.communityScore}</strong> Community
+                        </span>
+                        <TrustTier tier={trustTier} size="sm" showLabel={false} />
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
