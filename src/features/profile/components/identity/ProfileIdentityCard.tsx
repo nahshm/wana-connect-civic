@@ -128,17 +128,18 @@ const ProfileIdentityCardContent: React.FC<ProfileIdentityCardProps> = ({
         )}>
             {/* Compact Banner with gradient overlay */}
             <div
-                className="h-24 bg-cover bg-center relative"
+                className="h-32 bg-cover bg-center relative"
                 style={{
                     backgroundImage: bannerUrl
                         ? `url(${bannerUrl})`
-                        : `linear-gradient(135deg, ${accentColor}60, ${accentColor}20, transparent)`,
+                        : `linear-gradient(135deg, ${accentColor}20, ${accentColor}90, ${accentColor}60)`,
                 }}
             >
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
+                {/* Lighter gradient - only fade at bottom for card transition */}
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
 
                 {/* GOAT Badge positioned on banner */}
-                <div className="absolute top-3 left-3">
+                <div className="absolute top-3 left-3 z-10">
                     <GoatBadge
                         level={impactScore?.goatLevel || 1}
                         title={impactScore?.goatTitle || 'Street Monitor'}
@@ -148,9 +149,9 @@ const ProfileIdentityCardContent: React.FC<ProfileIdentityCardProps> = ({
                 </div>
 
                 {/* XP Progress on banner */}
-                <div className="absolute bottom-0 left-0 right-0 px-3 pb-1">
-                    <Progress value={xpProgress.percent} className="h-1" />
-                    <p className="text-[9px] text-muted-foreground/80 mt-0.5">
+                <div className="absolute bottom-0 left-0 right-0 px-3 pb-1 z-10">
+                    <Progress value={xpProgress.percent} className="h-1.5 bg-white/30" />
+                    <p className="text-[9px] text-white/90 mt-0.5 drop-shadow-sm">
                         {xpProgress.current}/{xpProgress.required} XP to next level
                     </p>
                 </div>
