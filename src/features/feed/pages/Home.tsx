@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FeedHeader } from '@/components/feed/FeedHeader';
@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Community, Post, PostMedia } from '@/types';
 import { useFeatureToggle } from '@/hooks/useFeatureToggle';
+
 interface BarazaSpace {
   space_id: string;
   title: string;
@@ -21,53 +22,338 @@ interface BarazaSpace {
   participant_count: number;
   created_at: string;
 }
+
+// Skeleton component for loading state
+const PostSkeletonList = ({ count, viewMode }: { count: number; viewMode: 'card' | 'compact' }) => (
+  <>
+    {Array.from({ length: count }).map((_, i) => (
+      <Card key={i}>
+        <CardContent className="py-4">
+          <div className="flex gap-3 animate-pulse">
+            <div className="w-10 flex flex-col items-center gap-2">
+              <div className="w-6 h-6 bg-muted rounded"></div>
+              <div className="w-8 h-4 bg-muted rounded"></div>
+              <div className="w-6 h-6 bg-muted rounded"></div>
+            </div>
+            <div className="flex-1 space-y-3">
+              <div className="h-4 bg-muted rounded w-3/4"></div>
+              <div className="h-20 bg-muted rounded"></div>
+              <div className="h-4 bg-muted rounded w-1/4"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </>
+);
+
 export default function Index() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [barazaSpaces, setBarazaSpaces] = useState<BarazaSpace[]>([]);
   const barazaEnabled = useFeatureToggle('baraza');
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(true);
+  const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('hot');
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
-  // Posts fetched via usePosts hook
-  // handleVote now uses useVote hook defined above
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Fetch posts
+  const fetchPosts = useCallback(async (pageNum: number, sortType: string) => {
+    try {
+      const limit = 10;
+      const from = (pageNum - 1) * limit;
+      const to = from + limit - 1;
+
+      let query = supabase
+        .from('posts')
+        .select(`
+          *,
+          author:profiles(*),
+          community:communities(*),
+          media:post_media(*),
+          user_votes:votes(vote_type)
+        `)
+        .range(from, to);
+
+      // Apply sorting
+      switch (sortType) {
+        case 'new':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'top':
+          query = query.order('upvotes', { ascending: false });
+          break;
+        case 'hot':
+        case 'rising':
+        default:
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      if (data) {
+        const transformedPosts: Post[] = data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          author: {
+            id: item.author.id,
+            username: item.author.username,
+            displayName: item.author.display_name,
+            avatar: item.author.avatar_url,
+            isVerified: item.author.is_verified,
+            role: item.author.role,
+          },
+          community: item.community ? {
+            id: item.community.id,
+            name: item.community.name,
+            displayName: item.community.display_name,
+            description: item.community.description,
+            memberCount: item.community.member_count,
+            category: item.community.category,
+          } : undefined,
+          createdAt: new Date(item.created_at),
+          upvotes: item.upvotes || 0,
+          downvotes: item.downvotes || 0,
+          commentCount: item.comment_count || 0,
+          userVote: item.user_votes?.[0]?.vote_type,
+          tags: item.tags || [],
+          contentSensitivity: item.content_sensitivity,
+          isNgoVerified: item.is_ngo_verified,
+          media: item.media || [],
+        }));
+
+        if (pageNum === 1) {
+          setPosts(transformedPosts);
+        } else {
+          setPosts(prev => [...prev, ...transformedPosts]);
+        }
+
+        setHasNextPage(data.length === limit);
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load posts. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
+
+  // Fetch communities
+  const fetchCommunities = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('communities')
+        .select('*')
+        .order('member_count', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      if (data) {
+        const transformedCommunities: Community[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          displayName: item.display_name,
+          description: item.description,
+          memberCount: item.member_count,
+          category: item.category,
+        }));
+        setCommunities(transformedCommunities);
+      }
+    } catch (error) {
+      console.error('Error fetching communities:', error);
+    }
+  }, []);
+
+  // Fetch Baraza spaces
+  const fetchBarazaSpaces = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('baraza_spaces')
+        .select('*')
+        .eq('is_live', true)
+        .order('participant_count', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+
+      if (data) {
+        setBarazaSpaces(data);
+      }
+    } catch (error) {
+      console.error('Error fetching baraza spaces:', error);
+    }
+  }, []);
+
+  // Initial data fetch
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      await Promise.all([
+        fetchPosts(1, sortBy),
+        fetchCommunities(),
+        barazaEnabled ? fetchBarazaSpaces() : Promise.resolve(),
+      ]);
+      setIsLoading(false);
+    };
+
+    loadInitialData();
+  }, [sortBy, barazaEnabled, fetchPosts, fetchCommunities, fetchBarazaSpaces]);
+
+  // Load more posts for infinite scroll
+  const loadMorePosts = useCallback(async () => {
+    if (isFetchingNextPage || !hasNextPage) return;
+
+    setIsFetchingNextPage(true);
+    const nextPage = page + 1;
+    await fetchPosts(nextPage, sortBy);
+    setPage(nextPage);
+    setIsFetchingNextPage(false);
+  }, [isFetchingNextPage, hasNextPage, page, sortBy, fetchPosts]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingNextPage && hasNextPage) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [loadMorePosts, isFetchingNextPage, hasNextPage]);
+
+  // Handle vote
+  const handleVote = useCallback(async (postId: string, voteType: 'up' | 'down') => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to vote on posts.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Optimistic update
+    setPosts(prevPosts =>
+      prevPosts.map(post => {
+        if (post.id !== postId) return post;
+
+        let newUpvotes = post.upvotes;
+        let newDownvotes = post.downvotes;
+        let newUserVote: 'up' | 'down' | undefined = voteType;
+
+        // Remove previous vote
+        if (post.userVote === 'up') newUpvotes--;
+        if (post.userVote === 'down') newDownvotes--;
+
+        // Add new vote or toggle off
+        if (post.userVote === voteType) {
+          newUserVote = undefined;
+        } else {
+          if (voteType === 'up') newUpvotes++;
+          if (voteType === 'down') newDownvotes++;
+        }
+
+        return {
+          ...post,
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+          userVote: newUserVote,
+        };
+      })
+    );
+
+    try {
+      const currentPost = posts.find(p => p.id === postId);
+
+      if (currentPost?.userVote === voteType) {
+        // Remove vote
+        await supabase
+          .from('votes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+      } else {
+        // Upsert vote
+        await supabase
+          .from('votes')
+          .upsert({
+            post_id: postId,
+            user_id: user.id,
+            vote_type: voteType,
+          }, {
+            onConflict: 'post_id,user_id'
+          });
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to register vote. Please try again.',
+        variant: 'destructive',
+      });
+      // Revert optimistic update on error
+      await fetchPosts(1, sortBy);
+    }
+  }, [user, posts, toast, fetchPosts, sortBy]);
+
+  // Memoized sorted posts
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((a, b) => {
+      switch (sortBy) {
+        case 'new':
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        case 'top':
+          return (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes);
+        case 'rising':
+          const aScore = (a.upvotes - a.downvotes) / Math.max(1, Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60)));
+          const bScore = (b.upvotes - b.downvotes) / Math.max(1, Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60)));
+          return bScore - aScore;
+        case 'hot':
+        default:
+          const aHot = a.upvotes + a.commentCount - Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60));
+          const bHot = b.upvotes + b.commentCount - Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60));
+          return bHot - aHot;
+      }
+    });
+  }, [posts, sortBy]);
+
   if (isLoading) {
-    return <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
+    return (
+      <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
         <div className="flex-1 max-w-3xl space-y-6">
           <PostSkeletonList count={5} viewMode={viewMode} />
         </div>
-      </div>;
+      </div>
+    );
   }
-  const sortedPosts = posts.sort((a, b) => {
-    switch (sortBy) {
-      case 'new':
-        return b.createdAt.getTime() - a.createdAt.getTime();
-      case 'top':
-        return b.upvotes - b.downvotes - (a.upvotes - a.downvotes);
-      case 'rising':
-        // Simple rising algorithm: recent posts with good engagement
-        const aScore = (a.upvotes - a.downvotes) / Math.max(1, Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60)));
-        const bScore = (b.upvotes - b.downvotes) / Math.max(1, Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60)));
-        return bScore - aScore;
-      case 'hot':
-      default:
-        // Hot algorithm: balance of votes and recency
-        const aHot = a.upvotes + a.commentCount - Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60));
-        const bHot = b.upvotes + b.commentCount - Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60));
-        return bHot - aHot;
-    }
-  });
-  return <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
       {/* Main Content */}
       <div className="flex-1 max-w-3xl space-y-6">
         {/* Welcome Section */}
-        {!user && <Card className="bg-gradient-to-r from-civic-green/10 to-civic-blue/10 border-civic-green/20">
+        {!user && (
+          <Card className="bg-gradient-to-r from-civic-green/10 to-civic-blue/10 border-civic-green/20">
             <CardHeader>
               <CardTitle className="text-2xl">Welcome to ama</CardTitle>
               <CardDescription className="text-lg">
@@ -84,17 +370,24 @@ export default function Index() {
                 </Button>
               </div>
             </CardContent>
-          </Card>}
+          </Card>
+        )}
 
         {/* Trending Carousel */}
         <TrendingCarousel />
 
         {/* Feed Header */}
-        <FeedHeader sortBy={sortBy} onSortChange={setSortBy} viewMode={viewMode} onViewModeChange={setViewMode} />
+        <FeedHeader
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
 
         {/* Posts Feed */}
         <div className="space-y-4">
-          {posts.length === 0 ? <Card className="bg-gradient-to-br from-civic-green/5 to-civic-blue/5 border-civic-green/20">
+          {posts.length === 0 ? (
+            <Card className="bg-gradient-to-br from-civic-green/5 to-civic-blue/5 border-civic-green/20">
               <CardContent className="py-12 px-8">
                 <div className="text-center mb-8">
                   <MessageSquare className="h-16 w-16 text-civic-blue mx-auto mb-6" />
@@ -143,69 +436,54 @@ export default function Index() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  {user ? <Button asChild className="bg-civic-green hover:bg-civic-green/90">
+                  {user ? (
+                    <Button asChild className="bg-civic-green hover:bg-civic-green/90">
                       <Link to="/create" className="flex items-center gap-2">
                         <Plus className="h-4 w-4" />
                         Create Your First Post
                       </Link>
-                    </Button> : <Button asChild className="bg-civic-green hover:bg-civic-green/90">
+                    </Button>
+                  ) : (
+                    <Button asChild className="bg-civic-green hover:bg-civic-green/90">
                       <Link to="/auth" className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
                         Join ama Community
                       </Link>
-                    </Button>}
+                    </Button>
+                  )}
                   <Button variant="outline" asChild>
                     <Link to="/communities">Explore Communities</Link>
                   </Button>
                 </div>
               </CardContent>
-            </Card> : sortedPosts.map(post => <PostCard key={post.id} post={{
-          id: post.id,
-          title: post.title,
-          content: post.content,
-          author: {
-            id: post.author.id,
-            username: post.author.username,
-            displayName: post.author.displayName,
-            avatar: post.author.avatar,
-            isVerified: post.author.isVerified,
-            role: post.author.role as 'citizen' | 'official' | 'expert' | 'journalist'
-          },
-          community: post.community ? {
-            id: post.community.id,
-            name: post.community.name,
-            displayName: post.community.displayName,
-            description: post.community.description,
-            memberCount: post.community.memberCount,
-            category: post.community.category as 'governance' | 'civic-education' | 'accountability' | 'discussion'
-          } : undefined,
-          createdAt: post.createdAt,
-          upvotes: post.upvotes,
-          downvotes: post.downvotes,
-          commentCount: post.commentCount,
-          userVote: post.userVote,
-          tags: post.tags,
-          contentSensitivity: post.contentSensitivity,
-          isNgoVerified: post.isNgoVerified,
-          media: post.media
-        }} onVote={handleVote} />)}
+            </Card>
+          ) : (
+            sortedPosts.map(post => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onVote={handleVote}
+              />
+            ))
+          )}
 
-        {/* Infinite scroll sentinel */}
-        <div ref={loadMoreRef} className="py-8 flex justify-center">
-          {isFetchingNextPage && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              <span>Loading more posts...</span>
-            </div>
-          )}
-          {!hasNextPage && posts.length > 0 && (
-            <p className="text-muted-foreground text-sm">You've reached the end</p>
-          )}
-        </div>
+          {/* Infinite scroll sentinel */}
+          <div ref={loadMoreRef} className="py-8 flex justify-center">
+            {isFetchingNextPage && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <span>Loading more posts...</span>
+              </div>
+            )}
+            {!hasNextPage && posts.length > 0 && (
+              <p className="text-muted-foreground text-sm">You've reached the end</p>
+            )}
+          </div>
         </div>
 
         {/* Live Baraza Spaces */}
-        {barazaEnabled && barazaSpaces.length > 0 && <Card>
+        {barazaEnabled && barazaSpaces.length > 0 && (
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
@@ -216,7 +494,8 @@ export default function Index() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {barazaSpaces.map(space => <div key={space.space_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              {barazaSpaces.map(space => (
+                <div key={space.space_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div className="flex-1">
                     <p className="font-medium text-sm">{space.title}</p>
                     <p className="text-xs text-muted-foreground">
@@ -226,9 +505,11 @@ export default function Index() {
                   <Button size="sm" asChild>
                     <Link to={`/baraza/${space.space_id}`}>Join</Link>
                   </Button>
-                </div>)}
+                </div>
+              ))}
             </CardContent>
-          </Card>}
+          </Card>
+        )}
       </div>
 
       {/* Right Sidebar */}
@@ -245,7 +526,8 @@ export default function Index() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {communities.slice(0, 5).map(community => <div key={community.id} className="flex items-center justify-between">
+              {communities.slice(0, 5).map(community => (
+                <div key={community.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">{community.displayName}</p>
                     <p className="text-xs text-muted-foreground">
@@ -255,7 +537,8 @@ export default function Index() {
                   <Badge variant="outline" className="text-xs">
                     {community.category.replace('-', ' ')}
                   </Badge>
-                </div>)}
+                </div>
+              ))}
               <Button variant="outline" className="w-full" asChild>
                 <Link to="/communities" className="flex items-center gap-2">
                   View All
@@ -266,5 +549,6 @@ export default function Index() {
           </Card>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 }
