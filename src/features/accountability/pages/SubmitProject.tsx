@@ -31,7 +31,8 @@ const SubmitProject = () => {
         ward: '',
         official_id: '',
         planned_start_date: '',
-        planned_completion_date: ''
+        planned_completion_date: '',
+        project_level: 'county' as 'national' | 'county' | 'constituency' | 'ward'
     });
 
     // Media State
@@ -39,23 +40,77 @@ const SubmitProject = () => {
     const [documentFiles, setDocumentFiles] = useState<File[]>([]);
     const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
 
-    // Data Lists
+    // Data Lists from Database
     const [officials, setOfficials] = useState<{ id: string, name: string, position: string }[]>([]);
+    const [counties, setCounties] = useState<string[]>([]);
+    const [constituencies, setConstituencies] = useState<string[]>([]);
+    const [wards, setWards] = useState<string[]>([]);
 
-    // Mock Location Data (Replace with real data or API)
-    const counties = ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Uasin Gishu'];
-    const constituencies = ['Westlands', 'Langata', 'Kibra', 'Roysambu', 'Kasarani'];
-    const wards = ['Kitisuru', 'Parklands', 'Karura', 'Kangemi', 'Mountain View'];
-
+    // Fetch real geography data
     useEffect(() => {
-        fetchOfficials();
+        fetchCounties();
     }, []);
 
-    const fetchOfficials = async () => {
+    useEffect(() => {
+        if (formData.county) {
+            fetchConstituencies(formData.county);
+        }
+    }, [formData.county]);
+
+    useEffect(() => {
+        if (formData.constituency) {
+            fetchWards(formData.constituency);
+        }
+    }, [formData.constituency]);
+
+    // Fetch officials based on project level
+    useEffect(() => {
+        fetchOfficials();
+    }, [formData.project_level, formData.county, formData.constituency, formData.ward]);
+
+    const fetchCounties = async () => {
         const { data } = await supabase
-            .from('officials')
-            .select('id, name, position')
+            .from('counties')
+            .select('name')
             .order('name');
+        if (data) setCounties(data.map(c => c.name));
+    };
+
+    const fetchConstituencies = async (county: string) => {
+        const { data } = await supabase
+            .from('constituencies')
+            .select('name')
+            .eq('county', county)
+            .order('name');
+        if (data) setConstituencies(data.map(c => c.name));
+    };
+
+    const fetchWards = async (constituency: string) => {
+        const { data } = await supabase
+            .from('wards')
+            .select('name')
+            .eq('constituency', constituency)
+            .order('name');
+        if (data) setWards(data.map(w => w.name));
+    };
+
+    const fetchOfficials = async () => {
+        let query = supabase
+            .from('officials')
+            .select('id, name, position');
+
+        // Filter by project level
+        if (formData.project_level === 'national') {
+            query = query.eq('level', 'national');
+        } else if (formData.project_level === 'county' && formData.county) {
+            query = query.eq('county', formData.county);
+        } else if (formData.project_level === 'constituency' && formData.constituency) {
+            query = query.eq('constituency', formData.constituency);
+        } else if (formData.project_level === 'ward' && formData.ward) {
+            query = query.eq('ward', formData.ward);
+        }
+
+        const { data } = await query.order('name');
         if (data) setOfficials(data);
     };
 
@@ -124,17 +179,9 @@ const SubmitProject = () => {
 
         setLoading(true);
         try {
-            // 1. Upload Files (Mocking bucket existence check for now)
-            // Note: In a real scenario, ensure buckets 'project-media' and 'project-documents' exist
-            // For this demo, we might skip actual upload if buckets aren't set up, or assume they are.
-            // Let's assume we store URLs in the text array if upload fails or just proceed.
-
-            // const mediaUrls = await uploadFiles(mediaFiles, 'project-media');
-            // const docUrls = await uploadFiles(documentFiles, 'project-documents');
-
-            // MOCK URLs for demo if upload logic is complex to setup instantly
-            const mediaUrls = mediaFiles.map(() => `https://placehold.co/600x400?text=Project+Image`);
-            const docUrls = documentFiles.map(f => `https://example.com/docs/${f.name}`);
+            // 1. Upload Files to Supabase Storage
+            const mediaUrls = await uploadFiles(mediaFiles, 'project-media');
+            const docUrls = await uploadFiles(documentFiles, 'project-documents');
 
             // 2. Insert Project
             const { data, error } = await supabase
@@ -226,6 +273,24 @@ const SubmitProject = () => {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid w-full gap-1.5">
+                                    <Label htmlFor="projectScope">Project Scope *</Label>
+                                    <Select
+                                        value={formData.project_level}
+                                        onValueChange={(val: any) => handleSelectChange('project_level', val)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select scope" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="national">National</SelectItem>
+                                            <SelectItem value="county">County</SelectItem>
+                                            <SelectItem value="constituency">Constituency</SelectItem>
+                                            <SelectItem value="ward">Ward</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
                                 <div className="grid w-full gap-1.5">
                                     <Label htmlFor="category">Category</Label>
                                     <Select onValueChange={(val) => handleSelectChange('category', val)}>

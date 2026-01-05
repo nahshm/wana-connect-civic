@@ -15,6 +15,7 @@ import {
     Building2, FileText, Image as ImageIcon, Share2
 } from 'lucide-react';
 import { GovernmentProject, ProjectContractor, ProjectUpdate, Contractor } from '@/types';
+import { SubmitProjectUpdate } from '@/components/projects/SubmitProjectUpdate';
 
 interface ProjectWithDetails extends GovernmentProject {
     contractors: (ProjectContractor & { contractor: Contractor })[];
@@ -33,6 +34,7 @@ const ProjectDetail = () => {
     const [project, setProject] = useState<ProjectWithDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
+    const [updateModalOpen, setUpdateModalOpen] = useState(false);
 
     useEffect(() => {
         if (projectId) {
@@ -469,7 +471,11 @@ const ProjectDetail = () => {
                             <CardContent className="py-12 text-center">
                                 <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                                 <p className="text-muted-foreground">No updates reported for this project yet.</p>
-                                <Button className="mt-4" variant="outline">
+                                <Button
+                                    className="mt-4"
+                                    variant="outline"
+                                    onClick={() => setUpdateModalOpen(true)}
+                                >
                                     Submit Project Update
                                 </Button>
                             </CardContent>
@@ -589,6 +595,16 @@ const ProjectDetail = () => {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Submit Update Modal */}
+            {project && (
+                <SubmitProjectUpdate
+                    projectId={project.id}
+                    open={updateModalOpen}
+                    onOpenChange={setUpdateModalOpen}
+                    onSuccess={() => fetchProjectData()}
+                />
+            )}
         </div>
     );
 };

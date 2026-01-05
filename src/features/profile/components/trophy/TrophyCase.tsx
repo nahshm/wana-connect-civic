@@ -213,7 +213,6 @@ const TrophyCaseContent: React.FC<TrophyCaseProps> = ({
 
     return (
         <Card className={cn(
-            'overflow-hidden',
             // Glass shelf effect
             'bg-gradient-to-b from-background/80 to-background/40 backdrop-blur-sm',
             className

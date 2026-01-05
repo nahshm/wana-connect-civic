@@ -17,6 +17,9 @@ import { ExpertiseGrid } from '../components/expertise';
 import { TrophyCase } from '../components/trophy';
 import { ProfileStudio } from '../components/studio';
 import { ActionCenter } from './ActionCenter';
+import { ActivityTimeline } from '../components/activity/ActivityTimeline';
+import { StatsOverview } from '../components/stats/StatsOverview';
+import { ProfileSettings } from '../components/settings/ProfileSettings';
 
 interface UserProfile {
     id: string;
@@ -216,19 +219,13 @@ const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="activity" className="pt-4">
-                            <p className="text-sm text-muted-foreground">
-                                Recent activity will be shown here
-                            </p>
+                            <ActivityTimeline userId={profile.id} />
                         </TabsContent>
                         <TabsContent value="stats" className="pt-4">
-                            <p className="text-sm text-muted-foreground">
-                                Detailed stats will be shown here
-                            </p>
+                            <StatsOverview userId={profile.id} />
                         </TabsContent>
                         <TabsContent value="settings" className="pt-4">
-                            <p className="text-sm text-muted-foreground">
-                                Profile settings will be shown here
-                            </p>
+                            <ProfileSettings userId={profile.id} />
                         </TabsContent>
                     </Tabs>
                 </div>
