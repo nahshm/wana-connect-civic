@@ -27,14 +27,10 @@ async function fetchGeographicCommunities(
     userId: string,
     signal?: AbortSignal
 ): Promise<GeographicCommunities> {
-    // Step 1: Get user's location names in one optimized query
+    // Step 1: Get user's location names directly from profile text columns
     const { data: profile } = await supabase
         .from('profiles')
-        .select(`
-      county:counties(name),
-      constituency:constituencies(name),
-      ward:wards(name)
-    `)
+        .select('county, constituency, ward')
         .eq('id', userId)
         .abortSignal(signal)
         .single();
@@ -44,14 +40,14 @@ async function fetchGeographicCommunities(
     // Build a list of location values to search
     const locationFilters: Array<{ type: string; value: string }> = [];
 
-    if (profile.county?.name) {
-        locationFilters.push({ type: 'county', value: profile.county.name });
+    if (profile.county) {
+        locationFilters.push({ type: 'county', value: profile.county });
     }
-    if (profile.constituency?.name) {
-        locationFilters.push({ type: 'constituency', value: profile.constituency.name });
+    if (profile.constituency) {
+        locationFilters.push({ type: 'constituency', value: profile.constituency });
     }
-    if (profile.ward?.name) {
-        locationFilters.push({ type: 'ward', value: profile.ward.name });
+    if (profile.ward) {
+        locationFilters.push({ type: 'ward', value: profile.ward });
     }
 
     if (locationFilters.length === 0) return {};

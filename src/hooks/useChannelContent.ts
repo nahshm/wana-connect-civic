@@ -63,18 +63,86 @@ async function fetchChannelProjects(
         return [];
     }
 
-    const { data: projectsData } = await supabase
+    // 1. Fetch base projects
+    const { data: projectsData, error } = await supabase
         .from('government_projects')
-        .select(`
-      *,
-      official:officials(id, name, position)
-    `)
+        .select('*')
         .or(`${community.locationType}.eq.${community.locationValue}`)
         .order('created_at', { ascending: false })
         .limit(20)
         .abortSignal(signal);
 
-    return toCamelCase(projectsData) || [];
+    if (error) throw error;
+    if (!projectsData) return [];
+
+    // 2. Enrich projects with same logic as useProjects.ts
+    const enrichedProjects = await Promise.all(
+        projectsData.map(async (project) => {
+            let enriched: any = { ...project };
+
+            // Ensure camelCase conversion for base fields if needed, OR keep snake_case
+            // The existing code uses toCamelCase at the end, which caused the media_urls issue.
+            // Let's stick to the raw data structure as much as possible to match useProjects, 
+            // but we must respect the return type GovernmentProject which defined in types/index.ts.
+            // Wait, GovernmentProject interface in types/index.ts has snake_case keys for database fields?
+            // Checking types/index.ts...
+            // It has: budget_allocated, funding_source, media_urls
+            // So we DO NOT want toCamelCase everything blindly if the type implies snake_case.
+            // The previous code did `toCamelCase(projectsData)` which broke `media_urls`.
+            // Let's NOT use toCamelCase for the main object if possible, or handle it carefully.
+
+            // Fetch primary official
+            if (project.primary_official_id) {
+                const { data: official } = await supabase
+                    .from('government_positions')
+                    .select('id, title, governance_level, jurisdiction_name')
+                    .eq('id', project.primary_official_id)
+                    .single();
+                enriched.primary_official = official;
+            }
+
+            // Fetch primary institution
+            if (project.primary_institution_id) {
+                const { data: institution } = await supabase
+                    .from('government_institutions')
+                    .select('id, name, acronym, institution_type')
+                    .eq('id', project.primary_institution_id)
+                    .single();
+                enriched.primary_institution = institution;
+            }
+
+            // Fetch counts
+            try {
+                const [comments, verifications] = await Promise.all([
+                    supabase
+                        .from('project_comments')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('project_id', project.id)
+                        .then(r => r.count || 0)
+                        .catch(() => 0),
+                    supabase
+                        .from('project_verifications')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('project_id', project.id)
+                        .eq('is_verified', true)
+                        .then(r => r.count || 0)
+                        .catch(() => 0)
+                ]);
+
+                enriched.comments_count = comments;
+                enriched.verifications_count = verifications;
+                enriched.views_count = 0;
+            } catch (err) {
+                enriched.comments_count = 0;
+                enriched.verifications_count = 0;
+            }
+
+            return enriched;
+        })
+    );
+
+    // We do NOT use toCamelCase here because GovernmentProject type expects snake_case for DB fields
+    return enrichedProjects;
 }
 
 async function fetchChannelMembers(

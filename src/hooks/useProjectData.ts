@@ -133,31 +133,66 @@ export function useUserProfile(userId?: string) {
     });
 }
 
-// Fetch community location context
+// Fetch community location context with hierarchy
 export function useCommunityLocation(communityId?: string) {
     return useQuery({
         queryKey: ['community-location', communityId],
         queryFn: async () => {
             if (!communityId) return null;
 
-            const { data, error } = await supabase
+            // Get community location type and value
+            const { data: community, error } = await supabase
                 .from('communities')
-                .select('county_id, is_geography_based')
+                .select('type, location_type, location_value')
                 .eq('id', communityId)
                 .single();
 
             if (error) throw error;
+            if (!community || community.type !== 'location') return null;
 
-            if (!data.is_geography_based || !data.county_id) return null;
+            const result: {
+                location_type: string;
+                county?: string;
+                constituency?: string;
+                ward?: string;
+            } = {
+                location_type: community.location_type
+            };
 
-            // Get county name from county_id
-            const { data: countyData } = await supabase
-                .from('administrative_divisions')
-                .select('name')
-                .eq('id', data.county_id)
-                .single();
+            // Based on location type, populate the hierarchy
+            if (community.location_type === 'county') {
+                result.county = community.location_value;
+            } else if (community.location_type === 'constituency') {
+                // Need to lookup parent county
+                const { data: constData } = await supabase
+                    .from('constituencies')
+                    .select('name, county:counties(name)')
+                    .eq('name', community.location_value)
+                    .single();
 
-            return countyData ? { county: countyData.name } : null;
+                if (constData) {
+                    result.constituency = constData.name;
+                    result.county = (constData.county as any)?.name;
+                }
+            } else if (community.location_type === 'ward') {
+                // Need to lookup parent constituency and county
+                const { data: wardData } = await supabase
+                    .from('wards')
+                    .select('name, constituency:constituencies(name, county:counties(name))')
+                    .eq('name', community.location_value)
+                    .single();
+
+                if (wardData) {
+                    result.ward = wardData.name;
+                    const constituency = (wardData.constituency as any);
+                    if (constituency) {
+                        result.constituency = constituency.name;
+                        result.county = constituency.county?.name;
+                    }
+                }
+            }
+
+            return result;
         },
         enabled: !!communityId
     });

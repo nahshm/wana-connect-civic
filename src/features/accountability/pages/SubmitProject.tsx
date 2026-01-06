@@ -72,12 +72,24 @@ const SubmitProject = () => {
     const [counties, setCounties] = useState<{ id: string, name: string }[]>([]);
     const [constituencies, setConstituencies] = useState<{ id: string, name: string }[]>([]);
     const [wards, setWards] = useState<{ id: string, name: string }[]>([]);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Fetch user profile for auto-fill
     const { data: userProfile } = useUserProfile(user?.id);
 
     // Fetch community location for auto-fill
     const { data: communityLocation } = useCommunityLocation(communityId || undefined);
+
+    // Debug: Log data when it changes
+    useEffect(() => {
+        console.log('=== SUBMIT PROJECT DEBUG ===');
+        console.log('Community ID:', communityId);
+        console.log('Community Location Data:', communityLocation);
+        console.log('User Profile Data:', userProfile);
+        console.log('Current Form Data:', formData);
+        console.log('Is Initialized:', isInitialized);
+        console.log('===========================');
+    }, [communityLocation, userProfile, isInitialized]);
 
     // Fetch officials based on location
     const { data: officials = [], isLoading: officialsLoading } = useOfficialsByLocation(
@@ -93,19 +105,47 @@ const SubmitProject = () => {
         formData.county
     );
 
-    // Auto-fill location on mount
+    // Auto-fill location and scope based on community or user profile
     useEffect(() => {
-        if (communityLocation?.county && !formData.county) {
-            setFormData(prev => ({ ...prev, county: communityLocation.county }));
-        } else if (userProfile?.county && !formData.county) {
+        if (isInitialized) return; // Only autofill once
+
+        if (communityLocation) {
+            console.log('Autofilling from community:', communityLocation);
+
+            setFormData(prev => {
+                const updates: any = { ...prev };
+
+                // Set project scope and locations based on community type
+                if (communityLocation.location_type === 'county') {
+                    updates.project_level = 'county';
+                    updates.county = communityLocation.county || '';
+                } else if (communityLocation.location_type === 'constituency') {
+                    updates.project_level = 'constituency';
+                    updates.county = communityLocation.county || '';
+                    updates.constituency = communityLocation.constituency || '';
+                } else if (communityLocation.location_type === 'ward') {
+                    updates.project_level = 'ward';
+                    updates.county = communityLocation.county || '';
+                    updates.constituency = communityLocation.constituency || '';
+                    updates.ward = communityLocation.ward || '';
+                }
+
+                return updates;
+            });
+            setIsInitialized(true);
+        } else if (userProfile?.county && !isInitialized) {
+            console.log('Autofilling from user profile:', userProfile);
+
             setFormData(prev => ({
                 ...prev,
                 county: userProfile.county || '',
                 constituency: userProfile.constituency || '',
-                ward: userProfile.ward || ''
+                ward: userProfile.ward || '',
+                project_level: userProfile.ward ? 'ward' : userProfile.constituency ? 'constituency' : 'county'
             }));
+            setIsInitialized(true);
         }
-    }, [communityLocation, userProfile]);
+    }, [communityLocation, userProfile, isInitialized]);
 
     // Fetch counties
     useEffect(() => {

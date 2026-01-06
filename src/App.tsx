@@ -88,8 +88,8 @@ const App = () => (
                         <Route path="/submit" element={<CreatePost />} />
                         <Route path="/post/:id" element={<PostDetail />} />
                         <Route path="/edit-post/:id" element={<EditPost />} />
-                        <Route path="/u/:username" element={<Profile />} />
-                        <Route path="/profile/:username" element={<Profile />} />
+                        <Route path="/u/:username" element={<ProfileV2 />} />
+                        <Route path="/profile/:username" element={<ProfileV2 />} />
                         <Route path="/c/:communityName/post/:id" element={<PostDetail />} />
                         <Route path="/c/:communityName" element={<Community />} />
                         <Route path="/community/:communityName" element={<Community />} />
