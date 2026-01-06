@@ -3,6 +3,7 @@ import { FileText, MessageSquare, User, Users, Briefcase, Target, FolderKanban }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { SearchResults } from '@/hooks/useSearch'
+import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
 
 interface SearchQuickResultsProps {
     results?: SearchResults
@@ -69,7 +70,12 @@ export const SearchQuickResults = ({ results, query, onClose }: SearchQuickResul
                             onClick={onClose}
                             className="block px-3 py-2 hover:bg-accent rounded-md"
                         >
-                            <div className="text-sm line-clamp-2">{comment.content}</div>
+                            <SafeContentRenderer
+                                content={comment.content || ''}
+                                className="text-sm"
+                                truncate={true}
+                                maxLength={80}
+                            />
                             <div className="text-xs text-muted-foreground">
                                 by {comment.author?.username || 'Unknown'} on {comment.post?.title}
                             </div>

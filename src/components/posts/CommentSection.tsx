@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CommentAwardDisplay } from './CommentAwardDisplay';
 import { CommentAwardButton } from './CommentAwardButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { SafeContentRenderer } from './SafeContentRenderer';
 import type { Comment, User } from '@/types';
 
 interface CommentSectionProps {
@@ -109,9 +110,10 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
         {!isCollapsed && (
           <>
             {/* Comment Content */}
-            <div className="mb-1.5 text-sm leading-snug">
-              <p className="whitespace-pre-wrap">{comment.content}</p>
-            </div>
+            <SafeContentRenderer
+              content={comment.content || ''}
+              className="mb-1.5 text-sm leading-snug"
+            />
 
             {/* Comment Awards Display */}
             {comment.awards && comment.awards.length > 0 && (
@@ -133,8 +135,8 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
 
               {/* Vote Score */}
               <span className={`text-xs font-medium min-w-[24px] text-center ${comment.userVote === 'up' ? 'text-civic-green' :
-                  comment.userVote === 'down' ? 'text-civic-red' :
-                    'text-foreground'
+                comment.userVote === 'down' ? 'text-civic-red' :
+                  'text-foreground'
                 }`}>
                 {getVoteScore()}
               </span>

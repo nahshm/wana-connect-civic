@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield } from 'lucide-react';
 import { VerifiedBadge, OfficialPositionBadge } from '@/components/ui/verified-badge';
 import { CIVIC_FLAIRS } from '@/config/flairs';
+import { SafeContentRenderer } from './SafeContentRenderer';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
@@ -369,9 +370,10 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               {renderMedia()}
 
               {/* Description */}
-              <div className="text-sidebar-foreground text-sm mb-4">
-                {post.content}
-              </div>
+              <SafeContentRenderer
+                content={post.content || ''}
+                className="text-sidebar-foreground text-sm mb-4"
+              />
             </div>
           ) : (
             <div>

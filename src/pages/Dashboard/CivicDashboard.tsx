@@ -10,6 +10,7 @@ import { MapPin, TrendingUp, Users, FileText, CheckCircle2, BarChart3, Graduatio
 import { Link } from 'react-router-dom';
 import { MyActions } from '@/components/dashboard/MyActions';
 import { GamificationWidgets } from '@/components/gamification/GamificationWidgets';
+import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer';
 
 interface DashboardData {
   countyName: string;
@@ -403,9 +404,12 @@ const CivicDashboard = () => {
                       {post.upvotes} votes
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {post.content}
-                  </p>
+                  <SafeContentRenderer
+                    content={post.content || ''}
+                    className="text-xs text-muted-foreground"
+                    truncate={true}
+                    maxLength={100}
+                  />
                 </Link>
               ))
             ) : (
@@ -436,9 +440,12 @@ const CivicDashboard = () => {
                       {post.comment_count} comments
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {post.content}
-                  </p>
+                  <SafeContentRenderer
+                    content={post.content || ''}
+                    className="text-xs text-muted-foreground"
+                    truncate={true}
+                    maxLength={100}
+                  />
                 </Link>
               ))
             ) : (

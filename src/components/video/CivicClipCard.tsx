@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { formatDistanceToNow } from 'date-fns'
 import { CivicClipAccountabilityBadge } from './CivicClipAccountabilityBadge'
 import { CivicClipProgressIndicator } from './CivicClipProgressIndicator'
+import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
 
 interface CivicClipCardProps {
     clip: any
@@ -116,7 +117,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
 
     const handleView = async (duration: number, percentage: number) => {
         setProgress(percentage)
-        
+
         if (!user) return
 
         try {
@@ -254,9 +255,12 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
 
                             {/* Description */}
                             {post?.content && (
-                                <p className="text-white/90 text-sm line-clamp-2 mb-3">
-                                    {post.content}
-                                </p>
+                                <SafeContentRenderer
+                                    content={post.content}
+                                    className="text-white/90 text-sm mb-3"
+                                    truncate={true}
+                                    maxLength={150}
+                                />
                             )}
 
                             {/* Hashtags */}

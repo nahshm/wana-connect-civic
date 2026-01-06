@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
 
 export const SearchResults = () => {
     const [searchParams] = useSearchParams()
@@ -76,7 +77,7 @@ export const SearchResults = () => {
                             <div className="space-y-2">
                                 <h3 className="text-lg font-semibold">Posts</h3>
                                 {data.posts.map((post: any) => (
-                                    <PostCard key={post.id} post={post} onVote={() => {}} viewMode="card" />
+                                    <PostCard key={post.id} post={post} onVote={() => { }} viewMode="card" />
                                 ))}
                             </div>
                         )}
@@ -167,7 +168,7 @@ export const SearchResults = () => {
                     <TabsContent value="posts" className="space-y-4">
                         {data?.posts && data.posts.length > 0 ? (
                             data.posts.map((post: any) => (
-                                <PostCard key={post.id} post={post} onVote={() => {}} viewMode="card" />
+                                <PostCard key={post.id} post={post} onVote={() => { }} viewMode="card" />
                             ))
                         ) : (
                             <div className="text-center text-muted-foreground py-8">
@@ -185,7 +186,12 @@ export const SearchResults = () => {
                                             <div className="flex items-start gap-2">
                                                 <MessageSquare className="h-4 w-4 mt-1 text-muted-foreground" />
                                                 <div className="flex-1">
-                                                    <div className="text-sm">{comment.content}</div>
+                                                    <SafeContentRenderer
+                                                        content={comment.content || ''}
+                                                        className="text-sm"
+                                                        truncate={true}
+                                                        maxLength={100}
+                                                    />
                                                     <div className="text-xs text-muted-foreground mt-2">
                                                         by {comment.author?.username} on {comment.post?.title}
                                                     </div>
