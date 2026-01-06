@@ -1,21 +1,44 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Upload, X, FileText, Image as ImageIcon, Film } from 'lucide-react';
+import { ArrowLeft, Upload, X, FileText, Image as ImageIcon, Film, AlertCircle, Loader2, Plus } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PROJECT_CATEGORIES_2026, PROJECT_LEVELS, PROJECT_STATUSES, PROJECT_PRIORITIES } from '@/constants/projectConstants';
+import { useOfficialsByLocation, useInstitutionsByJurisdiction, useUserProfile, useCommunityLocation } from '@/hooks/useProjectData';
+
+type ResponsibleType = 'official' | 'institution';
+type ProjectLevel = 'national' | 'county' | 'constituency' | 'ward';
+
+interface CollaboratingOfficial {
+    id: string;
+    name: string;
+}
+
+interface CollaboratingInstitution {
+    id: string;
+    name: string;
+    acronym: string | null;
+}
 
 const SubmitProject = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const communityId = searchParams.get('community');
+
     const [loading, setLoading] = useState(false);
+    const [primaryResponsibleType, setPrimaryResponsibleType] = useState<ResponsibleType>('official');
 
     // Form State
     const [formData, setFormData] = useState({
@@ -29,89 +52,135 @@ const SubmitProject = () => {
         county: '',
         constituency: '',
         ward: '',
-        official_id: '',
         planned_start_date: '',
         planned_completion_date: '',
-        project_level: 'county' as 'national' | 'county' | 'constituency' | 'ward'
+        project_level: 'county' as ProjectLevel,
+        primary_official_id: '',
+        primary_institution_id: ''
     });
+
+    // Collaborators state
+    const [collaboratingOfficials, setCollaboratingOfficials] = useState<CollaboratingOfficial[]>([]);
+    const [collaboratingInstitutions, setCollaboratingInstitutions] = useState<CollaboratingInstitution[]>([]);
 
     // Media State
     const [mediaFiles, setMediaFiles] = useState<File[]>([]);
     const [documentFiles, setDocumentFiles] = useState<File[]>([]);
     const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
 
-    // Data Lists from Database
-    const [officials, setOfficials] = useState<{ id: string, name: string, position: string }[]>([]);
-    const [counties, setCounties] = useState<string[]>([]);
-    const [constituencies, setConstituencies] = useState<string[]>([]);
-    const [wards, setWards] = useState<string[]>([]);
+    // Geography data
+    const [counties, setCounties] = useState<{ id: string, name: string }[]>([]);
+    const [constituencies, setConstituencies] = useState<{ id: string, name: string }[]>([]);
+    const [wards, setWards] = useState<{ id: string, name: string }[]>([]);
 
-    // Fetch real geography data
+    // Fetch user profile for auto-fill
+    const { data: userProfile } = useUserProfile(user?.id);
+
+    // Fetch community location for auto-fill
+    const { data: communityLocation } = useCommunityLocation(communityId || undefined);
+
+    // Fetch officials based on location
+    const { data: officials = [], isLoading: officialsLoading } = useOfficialsByLocation(
+        formData.project_level,
+        formData.county,
+        formData.constituency,
+        formData.ward
+    );
+
+    // Fetch institutions based on jurisdiction
+    const { data: institutions = [], isLoading: institutionsLoading } = useInstitutionsByJurisdiction(
+        formData.project_level,
+        formData.county
+    );
+
+    // Auto-fill location on mount
+    useEffect(() => {
+        if (communityLocation?.county && !formData.county) {
+            setFormData(prev => ({ ...prev, county: communityLocation.county }));
+        } else if (userProfile?.county && !formData.county) {
+            setFormData(prev => ({
+                ...prev,
+                county: userProfile.county || '',
+                constituency: userProfile.constituency || '',
+                ward: userProfile.ward || ''
+            }));
+        }
+    }, [communityLocation, userProfile]);
+
+    // Fetch counties
     useEffect(() => {
         fetchCounties();
     }, []);
 
+    // Fetch constituencies when county changes
     useEffect(() => {
         if (formData.county) {
             fetchConstituencies(formData.county);
+        } else {
+            setConstituencies([]);
+            setWards([]);
         }
     }, [formData.county]);
 
+    // Fetch wards when constituency changes
     useEffect(() => {
         if (formData.constituency) {
             fetchWards(formData.constituency);
+        } else {
+            setWards([]);
         }
     }, [formData.constituency]);
 
-    // Fetch officials based on project level
-    useEffect(() => {
-        fetchOfficials();
-    }, [formData.project_level, formData.county, formData.constituency, formData.ward]);
-
     const fetchCounties = async () => {
         const { data } = await supabase
-            .from('counties')
-            .select('name')
+            .from('administrative_divisions')
+            .select('id, name')
+            .eq('country_code', 'KE')
+            .eq('governance_level', 'county')
             .order('name');
-        if (data) setCounties(data.map(c => c.name));
+        if (data) setCounties(data);
     };
 
     const fetchConstituencies = async (county: string) => {
+        const { data: countyData } = await supabase
+            .from('administrative_divisions')
+            .select('id')
+            .eq('country_code', 'KE')
+            .eq('governance_level', 'county')
+            .eq('name', county)
+            .single();
+
+        if (!countyData) return;
+
         const { data } = await supabase
-            .from('constituencies')
-            .select('name')
-            .eq('county', county)
+            .from('administrative_divisions')
+            .select('id, name')
+            .eq('country_code', 'KE')
+            .eq('governance_level', 'constituency')
+            .eq('parent_id', countyData.id)
             .order('name');
-        if (data) setConstituencies(data.map(c => c.name));
+        if (data) setConstituencies(data);
     };
 
     const fetchWards = async (constituency: string) => {
+        const { data: constituencyData } = await supabase
+            .from('administrative_divisions')
+            .select('id')
+            .eq('country_code', 'KE')
+            .eq('governance_level', 'constituency')
+            .eq('name', constituency)
+            .single();
+
+        if (!constituencyData) return;
+
         const { data } = await supabase
-            .from('wards')
-            .select('name')
-            .eq('constituency', constituency)
+            .from('administrative_divisions')
+            .select('id, name')
+            .eq('country_code', 'KE')
+            .eq('governance_level', 'ward')
+            .eq('parent_id', constituencyData.id)
             .order('name');
-        if (data) setWards(data.map(w => w.name));
-    };
-
-    const fetchOfficials = async () => {
-        let query = supabase
-            .from('officials')
-            .select('id, name, position');
-
-        // Filter by project level
-        if (formData.project_level === 'national') {
-            query = query.eq('level', 'national');
-        } else if (formData.project_level === 'county' && formData.county) {
-            query = query.eq('county', formData.county);
-        } else if (formData.project_level === 'constituency' && formData.constituency) {
-            query = query.eq('constituency', formData.constituency);
-        } else if (formData.project_level === 'ward' && formData.ward) {
-            query = query.eq('ward', formData.ward);
-        }
-
-        const { data } = await query.order('name');
-        if (data) setOfficials(data);
+        if (data) setWards(data);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -123,28 +192,65 @@ const SubmitProject = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'media' | 'document') => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newFiles = Array.from(e.target.files);
-
-            if (type === 'media') {
-                setMediaFiles(prev => [...prev, ...newFiles]);
-                // Create previews
-                const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-                setMediaPreviews(prev => [...prev, ...newPreviews]);
-            } else {
-                setDocumentFiles(prev => [...prev, ...newFiles]);
-            }
+    // Add collaborating official
+    const addCollaboratingOfficial = (officialId: string) => {
+        const official = officials.find(o => o.id === officialId);
+        if (official && !collaboratingOfficials.find(o => o.id === officialId)) {
+            setCollaboratingOfficials(prev => [...prev, { id: official.id, name: official.name }]);
         }
     };
 
-    const removeFile = (index: number, type: 'media' | 'document') => {
-        if (type === 'media') {
-            setMediaFiles(prev => prev.filter((_, i) => i !== index));
-            setMediaPreviews(prev => prev.filter((_, i) => i !== index));
-        } else {
-            setDocumentFiles(prev => prev.filter((_, i) => i !== index));
+    // Remove collaborating official
+    const removeCollaboratingOfficial = (officialId: string) => {
+        setCollaboratingOfficials(prev => prev.filter(o => o.id !== officialId));
+    };
+
+    // Add collaborating institution
+    const addCollaboratingInstitution = (institutionId: string) => {
+        const institution = institutions.find(i => i.id === institutionId);
+        if (institution && !collaboratingInstitutions.find(i => i.id === institutionId)) {
+            setCollaboratingInstitutions(prev => [...prev, {
+                id: institution.id,
+                name: institution.name,
+                acronym: institution.acronym
+            }]);
         }
+    };
+
+    // Remove collaborating institution
+    const removeCollaboratingInstitution = (institutionId: string) => {
+        setCollaboratingInstitutions(prev => prev.filter(i => i.id !== institutionId));
+    };
+
+    const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            setMediaFiles(prev => [...prev, ...files]);
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setMediaPreviews(prev => [...prev, reader.result as string]);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    };
+
+    const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            setDocumentFiles(prev => [...prev, ...files]);
+        }
+    };
+
+    const removeMedia = (index: number) => {
+        setMediaFiles(prev => prev.filter((_, i) => i !== index));
+        setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeDocument = (index: number) => {
+        setDocumentFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     const uploadFiles = async (files: File[], bucket: 'project-media' | 'project-documents') => {
@@ -156,7 +262,7 @@ const SubmitProject = () => {
             const filePath = `${user?.id}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from(bucket) // Ensure these buckets exist!
+                .from(bucket)
                 .upload(filePath, file);
 
             if (uploadError) {
@@ -179,12 +285,11 @@ const SubmitProject = () => {
 
         setLoading(true);
         try {
-            // 1. Upload Files to Supabase Storage
             const mediaUrls = await uploadFiles(mediaFiles, 'project-media');
             const docUrls = await uploadFiles(documentFiles, 'project-documents');
 
-            // 2. Insert Project
-            const { data, error } = await supabase
+            // Insert main project
+            const { data: project, error: projectError } = await supabase
                 .from('government_projects')
                 .insert({
                     title: formData.title,
@@ -194,14 +299,17 @@ const SubmitProject = () => {
                     priority: formData.priority,
                     budget_allocated: formData.budget_allocated ? parseFloat(formData.budget_allocated) : null,
                     funding_source: formData.funding_source,
-                    county: formData.county,
-                    constituency: formData.constituency,
-                    ward: formData.ward,
-                    official_id: formData.official_id || null,
+                    project_level: formData.project_level,
+                    county: formData.project_level !== 'national' ? formData.county : null,
+                    constituency: (formData.project_level === 'constituency' || formData.project_level === 'ward') ? formData.constituency : null,
+                    ward: formData.project_level === 'ward' ? formData.ward : null,
+                    primary_responsible_type: primaryResponsibleType,
+                    primary_official_id: primaryResponsibleType === 'official' ? formData.primary_official_id || null : null,
+                    primary_institution_id: primaryResponsibleType === 'institution' ? formData.primary_institution_id || null : null,
                     planned_start_date: formData.planned_start_date || null,
                     planned_completion_date: formData.planned_completion_date || null,
                     created_by: user.id,
-                    is_verified: false, // Explicitly unverified
+                    is_verified: false,
                     media_urls: mediaUrls,
                     documents_urls: docUrls,
                     progress_percentage: 0
@@ -209,14 +317,42 @@ const SubmitProject = () => {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (projectError) throw projectError;
+
+            // Insert collaborating officials
+            if (collaboratingOfficials.length > 0) {
+                const { error: officialsError } = await supabase
+                    .from('project_collaborating_officials')
+                    .insert(
+                        collaboratingOfficials.map(official => ({
+                            project_id: project.id,
+                            official_id: official.id
+                        }))
+                    );
+
+                if (officialsError) console.error('Error adding collaborating officials:', officialsError);
+            }
+
+            // Insert collaborating institutions
+            if (collaboratingInstitutions.length > 0) {
+                const { error: institutionsError } = await supabase
+                    .from('project_collaborating_institutions')
+                    .insert(
+                        collaboratingInstitutions.map(institution => ({
+                            project_id: project.id,
+                            institution_id: institution.id
+                        }))
+                    );
+
+                if (institutionsError) console.error('Error adding collaborating institutions:', institutionsError);
+            }
 
             toast({
                 title: 'Project Submitted!',
                 description: 'Your project has been posted and is pending community verification.',
             });
 
-            navigate(`/projects/${data.id}`);
+            navigate(`/projects/${project.id}`);
 
         } catch (error: any) {
             console.error('Error submitting project:', error);
@@ -230,6 +366,19 @@ const SubmitProject = () => {
         }
     };
 
+    const locationRequired = formData.project_level !== 'national';
+
+    // Filter out already selected collaborators and primary from available options
+    const availableOfficials = officials.filter(o =>
+        o.id !== formData.primary_official_id &&
+        !collaboratingOfficials.find(co => co.id === o.id)
+    );
+
+    const availableInstitutions = institutions.filter(i =>
+        i.id !== formData.primary_institution_id &&
+        !collaboratingInstitutions.find(ci => ci.id === i.id)
+    );
+
     return (
         <div className="container mx-auto px-4 py-8 max-w-3xl">
             <Button variant="ghost" onClick={() => navigate('/projects')} className="mb-6">
@@ -239,7 +388,7 @@ const SubmitProject = () => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Submit a Project</CardTitle>
+                    <CardTitle>Submit a Government Project</CardTitle>
                     <CardDescription>
                         Report a government project in your area. Provide as much evidence as possible.
                     </CardDescription>
@@ -269,54 +418,42 @@ const SubmitProject = () => {
                                     onChange={handleInputChange}
                                     placeholder="Describe the project details, scope, and current status..."
                                     required
+                                    rows={4}
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="projectScope">Project Scope *</Label>
-                                    <Select
-                                        value={formData.project_level}
-                                        onValueChange={(val: any) => handleSelectChange('project_level', val)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select scope" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="national">National</SelectItem>
-                                            <SelectItem value="county">County</SelectItem>
-                                            <SelectItem value="constituency">Constituency</SelectItem>
-                                            <SelectItem value="ward">Ward</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="category">Category</Label>
-                                    <Select onValueChange={(val) => handleSelectChange('category', val)}>
+                                    <Label htmlFor="category">Category *</Label>
+                                    <Select value={formData.category} onValueChange={(val) => handleSelectChange('category', val)} required>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Infrastructure">Infrastructure</SelectItem>
-                                            <SelectItem value="Education">Education</SelectItem>
-                                            <SelectItem value="Health">Health</SelectItem>
-                                            <SelectItem value="Water">Water</SelectItem>
-                                            <SelectItem value="Energy">Energy</SelectItem>
-                                            <SelectItem value="Transport">Transport</SelectItem>
+                                            {PROJECT_CATEGORIES_2026.map(cat => (
+                                                <SelectItem key={cat.value} value={cat.value}>
+                                                    {cat.icon} {cat.label}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="official">Responsible Official (Optional)</Label>
-                                    <Select onValueChange={(val) => handleSelectChange('official_id', val)}>
+                                    <Label htmlFor="projectScope">Project Scope *</Label>
+                                    <Select
+                                        value={formData.project_level}
+                                        onValueChange={(val: ProjectLevel) => handleSelectChange('project_level', val)}
+                                        required
+                                    >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select official" />
+                                            <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {officials.map(off => (
-                                                <SelectItem key={off.id} value={off.id}>{off.name} ({off.position})</SelectItem>
+                                            {PROJECT_LEVELS.map(level => (
+                                                <SelectItem key={level.value} value={level.value}>
+                                                    {level.label}
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -324,181 +461,381 @@ const SubmitProject = () => {
                             </div>
                         </div>
 
-                        {/* Location */}
-                        <div className="space-y-4 border-t pt-4">
-                            <h3 className="text-lg font-semibold">Location</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Location Section - Conditional */}
+                        {locationRequired && (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <AlertCircle className="w-4 h-4" />
+                                    <span>Location helps filter relevant officials and institutions</span>
+                                </div>
+
                                 <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="county">County</Label>
-                                    <Select onValueChange={(val) => handleSelectChange('county', val)}>
+                                    <Label htmlFor="county">County *</Label>
+                                    <Select
+                                        value={formData.county}
+                                        onValueChange={(val) => {
+                                            handleSelectChange('county', val);
+                                            setFormData(prev => ({ ...prev, constituency: '', ward: '' }));
+                                        }}
+                                        required={locationRequired}
+                                    >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select County" />
+                                            <SelectValue placeholder="Select county" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {counties.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                            {counties.map(c => (
+                                                <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="constituency">Constituency</Label>
-                                    <Select onValueChange={(val) => handleSelectChange('constituency', val)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Constituency" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {constituencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="ward">Ward</Label>
-                                    <Select onValueChange={(val) => handleSelectChange('ward', val)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Ward" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {wards.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+
+                                {(formData.project_level === 'constituency' || formData.project_level === 'ward') && (
+                                    <div className="grid w-full gap-1.5">
+                                        <Label htmlFor="constituency">Constituency *</Label>
+                                        <Select
+                                            value={formData.constituency}
+                                            onValueChange={(val) => {
+                                                handleSelectChange('constituency', val);
+                                                setFormData(prev => ({ ...prev, ward: '' }));
+                                            }}
+                                            disabled={!formData.county}
+                                            required
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select constituency" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {constituencies.map(c => (
+                                                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                {formData.project_level === 'ward' && (
+                                    <div className="grid w-full gap-1.5">
+                                        <Label htmlFor="ward">Ward *</Label>
+                                        <Select
+                                            value={formData.ward}
+                                            onValueChange={(val) => handleSelectChange('ward', val)}
+                                            disabled={!formData.constituency}
+                                            required
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select ward" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {wards.map(w => (
+                                                    <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
                             </div>
+                        )}
+
+                        {/* Primary Responsible Entity Section */}
+                        <div className="space-y-4 border-t pt-4">
+                            <div>
+                                <Label className="text-base font-semibold">Primary Responsible Entity</Label>
+                                <p className="text-sm text-muted-foreground mb-3">Who is primarily accountable for this project?</p>
+                                <RadioGroup value={primaryResponsibleType} onValueChange={(val: ResponsibleType) => setPrimaryResponsibleType(val)} className="flex gap-4">
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="official" id="primary-official" />
+                                        <Label htmlFor="primary-official" className="font-normal cursor-pointer">Individual Official</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="institution" id="primary-institution" />
+                                        <Label htmlFor="primary-institution" className="font-normal cursor-pointer">Government Institution</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+
+                            {primaryResponsibleType === 'official' ? (
+                                <div className="grid w-full gap-1.5">
+                                    <Label htmlFor="primary-official-select">Select Primary Official</Label>
+                                    {officialsLoading ? (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Loading officials...
+                                        </div>
+                                    ) : (
+                                        <Select
+                                            value={formData.primary_official_id}
+                                            onValueChange={(val) => handleSelectChange('primary_official_id', val)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={officials.length === 0 ? "No officials found" : "Select primary official"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {officials.map(off => (
+                                                    <SelectItem key={off.id} value={off.id}>
+                                                        {off.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="grid w-full gap-1.5">
+                                    <Label htmlFor="primary-institution-select">Select Primary Institution</Label>
+                                    {institutionsLoading ? (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Loading institutions...
+                                        </div>
+                                    ) : (
+                                        <Select
+                                            value={formData.primary_institution_id}
+                                            onValueChange={(val) => handleSelectChange('primary_institution_id', val)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={institutions.length === 0 ? "No institutions found" : "Select primary institution"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {institutions.map(inst => (
+                                                    <SelectItem key={inst.id} value={inst.id}>
+                                                        {inst.name} {inst.acronym && `(${inst.acronym})`}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Financials & Dates */}
+                        {/* Collaborators Section */}
                         <div className="space-y-4 border-t pt-4">
-                            <h3 className="text-lg font-semibold">Details</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="budget">Estimated Budget (KES)</Label>
-                                    <Input
-                                        id="budget"
-                                        name="budget_allocated"
-                                        type="number"
-                                        value={formData.budget_allocated}
-                                        onChange={handleInputChange}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                                <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="funding">Funding Source</Label>
-                                    <Input
-                                        id="funding"
-                                        name="funding_source"
-                                        value={formData.funding_source}
-                                        onChange={handleInputChange}
-                                        placeholder="e.g. CDF, County Gov"
-                                    />
-                                </div>
-                                <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="start_date">Planned Start</Label>
-                                    <Input
-                                        id="start_date"
-                                        name="planned_start_date"
-                                        type="date"
-                                        value={formData.planned_start_date}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
-                                <div className="grid w-full gap-1.5">
-                                    <Label htmlFor="end_date">Planned Completion</Label>
-                                    <Input
-                                        id="end_date"
-                                        name="planned_completion_date"
-                                        type="date"
-                                        value={formData.planned_completion_date}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
+                            <div>
+                                <Label className="text-base font-semibold">Collaborating Entities (Optional)</Label>
+                                <p className="text-sm text-muted-foreground">Add other officials or institutions involved in this project</p>
                             </div>
-                        </div>
 
-                        {/* Evidence Upload */}
-                        <div className="space-y-4 border-t pt-4">
-                            <h3 className="text-lg font-semibold">Evidence & Documents</h3>
-
-                            {/* Media Upload */}
+                            {/* Collaborating Officials */}
                             <div className="space-y-2">
-                                <Label>Photos & Videos</Label>
-                                <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer relative">
-                                    <input
-                                        type="file"
-                                        multiple
-                                        accept="image/*,video/*"
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        onChange={(e) => handleFileChange(e, 'media')}
-                                    />
-                                    <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                                    <p className="text-sm text-muted-foreground">Drag & drop photos/videos or click to browse</p>
-                                </div>
+                                <Label>Collaborating Officials</Label>
+                                {collaboratingOfficials.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {collaboratingOfficials.map(official => (
+                                            <Badge key={official.id} variant="secondary" className="gap-1">
+                                                {official.name}
+                                                <X
+                                                    className="w-3 h-3 cursor-pointer hover:text-destructive"
+                                                    onClick={() => removeCollaboratingOfficial(official.id)}
+                                                />
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )}
+                                <Select onValueChange={addCollaboratingOfficial} disabled={officialsLoading || availableOfficials.length === 0}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={availableOfficials.length === 0 ? "No more officials available" : "Add an official"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableOfficials.map(off => (
+                                            <SelectItem key={off.id} value={off.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <Plus className="w-3 h-3" />
+                                                    {off.name}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                                {/* Previews */}
+                            {/* Collaborating Institutions */}
+                            <div className="space-y-2">
+                                <Label>Collaborating Institutions</Label>
+                                {collaboratingInstitutions.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {collaboratingInstitutions.map(institution => (
+                                            <Badge key={institution.id} variant="secondary" className="gap-1">
+                                                {institution.name} {institution.acronym && `(${institution.acronym})`}
+                                                <X
+                                                    className="w-3 h-3 cursor-pointer hover:text-destructive"
+                                                    onClick={() => removeCollaboratingInstitution(institution.id)}
+                                                />
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )}
+                                <Select onValueChange={addCollaboratingInstitution} disabled={institutionsLoading || availableInstitutions.length === 0}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={availableInstitutions.length === 0 ? "No more institutions available" : "Add an institution"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableInstitutions.map(inst => (
+                                            <SelectItem key={inst.id} value={inst.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <Plus className="w-3 h-3" />
+                                                    {inst.name} {inst.acronym && `(${inst.acronym})`}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Project Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid w-full gap-1.5">
+                                <Label htmlFor="status">Status</Label>
+                                <Select value={formData.status} onValueChange={(val) => handleSelectChange('status', val)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {PROJECT_STATUSES.map(status => (
+                                            <SelectItem key={status.value} value={status.value}>
+                                                {status.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid w-full gap-1.5">
+                                <Label htmlFor="priority">Priority</Label>
+                                <Select value={formData.priority} onValueChange={(val) => handleSelectChange('priority', val)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {PROJECT_PRIORITIES.map(priority => (
+                                            <SelectItem key={priority.value} value={priority.value}>
+                                                {priority.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid w-full gap-1.5">
+                                <Label htmlFor="budget">Budget Allocated (KES)</Label>
+                                <Input
+                                    id="budget"
+                                    name="budget_allocated"
+                                    type="number"
+                                    value={formData.budget_allocated}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g., 5000000"
+                                />
+                            </div>
+
+                            <div className="grid w-full gap-1.5">
+                                <Label htmlFor="funding">Funding Source</Label>
+                                <Input
+                                    id="funding"
+                                    name="funding_source"
+                                    value={formData.funding_source}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g., County Budget 2026"
+                                />
+                            </div>
+
+                            <div className="grid w-full gap-1.5">
+                                <Label htmlFor="start_date">Planned Start Date</Label>
+                                <Input
+                                    id="start_date"
+                                    name="planned_start_date"
+                                    type="date"
+                                    value={formData.planned_start_date}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+
+                            <div className="grid w-full gap-1.5">
+                                <Label htmlFor="completion_date">Planned Completion</Label>
+                                <Input
+                                    id="completion_date"
+                                    name="planned_completion_date"
+                                    type="date"
+                                    value={formData.planned_completion_date}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Media Upload */}
+                        <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="media">Photos/Videos</Label>
+                                <Input
+                                    id="media"
+                                    type="file"
+                                    accept="image/*,video/*"
+                                    multiple
+                                    onChange={handleMediaChange}
+                                    className="cursor-pointer"
+                                />
                                 {mediaPreviews.length > 0 && (
                                     <div className="grid grid-cols-3 gap-2 mt-2">
-                                        {mediaPreviews.map((url, idx) => (
-                                            <div key={idx} className="relative aspect-video bg-muted rounded-md overflow-hidden group">
-                                                <img src={url} alt="Preview" className="w-full h-full object-cover" />
-                                                <button
+                                        {mediaPreviews.map((preview, idx) => (
+                                            <div key={idx} className="relative">
+                                                <img src={preview} alt={`Preview ${idx}`} className="w-full h-24 object-cover rounded" />
+                                                <Button
                                                     type="button"
-                                                    onClick={() => removeFile(idx, 'media')}
-                                                    className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="absolute top-1 right-1 h-6 w-6 p-0"
+                                                    onClick={() => removeMedia(idx)}
                                                 >
-                                                    <X className="w-4 h-4" />
-                                                </button>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Document Upload */}
-                            <div className="space-y-2">
-                                <Label>Documents (Plans, Gazetted Notices)</Label>
-                                <div className="flex items-center gap-2">
-                                    <Button type="button" variant="outline" className="relative">
-                                        <input
-                                            type="file"
-                                            multiple
-                                            accept=".pdf,.doc,.docx"
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            onChange={(e) => handleFileChange(e, 'document')}
-                                        />
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Upload Documents
-                                    </Button>
-                                    <span className="text-sm text-muted-foreground">
-                                        {documentFiles.length} files selected
-                                    </span>
-                                </div>
+                            <div>
+                                <Label htmlFor="documents">Documents (PDFs, etc.)</Label>
+                                <Input
+                                    id="documents"
+                                    type="file"
+                                    accept=".pdf,.doc,.docx"
+                                    multiple
+                                    onChange={handleDocumentChange}
+                                    className="cursor-pointer"
+                                />
                                 {documentFiles.length > 0 && (
-                                    <ul className="text-sm space-y-1 mt-2">
+                                    <div className="space-y-2 mt-2">
                                         {documentFiles.map((file, idx) => (
-                                            <li key={idx} className="flex items-center justify-between bg-muted p-2 rounded">
-                                                <span className="flex items-center truncate">
-                                                    <FileText className="w-4 h-4 mr-2" />
-                                                    {file.name}
-                                                </span>
-                                                <button type="button" onClick={() => removeFile(idx, 'document')} className="text-muted-foreground hover:text-destructive">
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </li>
+                                            <div key={idx} className="flex items-center justify-between p-2 border rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <FileText className="h-4 w-4" />
+                                                    <span className="text-sm">{file.name}</span>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => removeDocument(idx)}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         ))}
-                                    </ul>
+                                    </div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-4 pt-4">
-                            <Button type="button" variant="outline" onClick={() => navigate('/projects')}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading ? 'Submitting...' : 'Submit Project'}
-                            </Button>
-                        </div>
+                        <Button type="submit" disabled={loading} className="w-full">
+                            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Submit Project
+                        </Button>
                     </form>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 };
 

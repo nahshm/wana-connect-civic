@@ -9,7 +9,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
-export function CountiesManager() {
+interface CountiesManagerProps {
+  countryCode: string;
+}
+
+export function CountiesManager({ countryCode }: CountiesManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -18,11 +22,12 @@ export function CountiesManager() {
   const [formData, setFormData] = useState({ name: "", population: "" });
 
   const { data: counties, isLoading } = useQuery({
-    queryKey: ["counties"],
+    queryKey: ["counties", countryCode],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("counties")
         .select("*")
+        .eq("country", countryCode)
         .order("name");
       if (error) throw error;
       return data;
@@ -31,11 +36,11 @@ export function CountiesManager() {
 
   const addMutation = useMutation({
     mutationFn: async (newCounty: { name: string; population: number }) => {
-      const { error } = await supabase.from("counties").insert([newCounty]);
+      const { error } = await supabase.from("counties").insert([{ ...newCounty, country: countryCode }]);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["counties"] });
+      queryClient.invalidateQueries({ queryKey: ["counties", countryCode] });
       toast({ title: "County added successfully" });
       setIsAddOpen(false);
       setFormData({ name: "", population: "" });

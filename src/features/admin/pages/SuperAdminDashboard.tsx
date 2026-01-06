@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Shield, Users, Flag, TrendingUp, Settings, AlertTriangle, Lock, Eye,
   UserCheck, MessageSquare, BarChart3, FileText, Bell, ChevronDown,
   Search, Filter, Activity, Server, Brain, Sparkles,
   CheckCircle, XCircle, Clock, Briefcase, ShieldAlert, Radio, Send,
-  Building, MapPin, Calendar
+  Building, MapPin, Calendar, Map, Check, X, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { AdministrativeDivisionManager } from './components/AdministrativeDivisionManager';
+import { InstitutionsManager } from './components/InstitutionsManager';
 
 // Tab configuration
 const mainTabs = [
@@ -25,7 +30,11 @@ const mainTabs = [
   { id: 'ngo', label: 'NGO Partners', icon: Briefcase },
   { id: 'moderators', label: 'Moderator Oversight', icon: Shield },
   { id: 'officials', label: 'Officials', icon: UserCheck },
+  { id: 'verification', label: 'Position Verification', icon: Check },
+  { id: 'geo-data', label: 'Geographic Data', icon: Map },
+  { id: 'institutions', label: 'Government Institutions', icon: Building },
   { id: 'ai-insights', label: 'AI Insights', icon: Brain },
+  { id: 'feature-flags', label: 'Feature Flags', icon: Settings },
   { id: 'security', label: 'Security', icon: Lock },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'system', label: 'System Health', icon: Server }
@@ -72,6 +81,45 @@ export default function SuperAdminDashboard() {
           <ShieldAlert className="w-16 h-16 mx-auto mb-4 text-primary animate-pulse" />
           <p className="text-muted-foreground">Verifying Super Admin access...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Institutions Tab - Government Institutions Manager
+  function InstitutionsTab() {
+    const [selectedCountry, setSelectedCountry] = useState('KE');
+
+    const SUPPORTED_COUNTRIES = [
+      { code: 'KE', name: 'Kenya', flag: '🇰🇪' },
+      { code: 'US', name: 'United States', flag: '🇺🇸' },
+      { code: 'NG', name: 'Nigeria', flag: '🇳🇬' },
+      { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
+      { code: 'ZA', name: 'South Africa', flag: '🇿🇦' },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <Label>Country:</Label>
+              <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                <SelectTrigger className="w-[300px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_COUNTRIES.map(country => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.flag} {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <InstitutionsManager countryCode={selectedCountry} />
       </div>
     );
   }
@@ -160,7 +208,11 @@ export default function SuperAdminDashboard() {
           {selectedTab === 'ngo' && <NGOPartnersTab />}
           {selectedTab === 'moderators' && <ModeratorsTab />}
           {selectedTab === 'officials' && <OfficialsTab />}
+          {selectedTab === 'verification' && <PositionVerificationTab />}
+          {selectedTab === 'geo-data' && <GeographicDataTab />}
+          {selectedTab === 'institutions' && <InstitutionsTab />}
           {selectedTab === 'ai-insights' && <AIInsightsTab />}
+          {selectedTab === 'feature-flags' && <FeatureFlagsTab />}
           {selectedTab === 'security' && <SecurityTab />}
           {selectedTab === 'analytics' && <AnalyticsTab />}
           {selectedTab === 'system' && <SystemHealthTab />}
@@ -1010,6 +1062,430 @@ function SystemHealthTab() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// Feature Flags Tab
+function FeatureFlagsTab() {
+  const { toast } = useToast();
+  const [flags, setFlags] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFlags();
+  }, []);
+
+  const fetchFlags = async () => {
+    const { data, error } = await supabase
+      .from('feature_flags')
+      .select('*')
+      .order('category', { ascending: true })
+      .order('feature_name', { ascending: true });
+
+    if (!error && data) setFlags(data);
+    setLoading(false);
+  };
+
+  const toggleFlag = async (id: string, enabled: boolean) => {
+    const { error } = await supabase
+      .from('feature_flags')
+      .update({ is_enabled: enabled, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to update feature flag');
+    } else {
+      toast.success('Feature flag updated');
+      fetchFlags();
+    }
+  };
+
+  // Group flags by category
+  const groupedFlags = flags.reduce((acc, flag) => {
+    if (!acc[flag.category]) acc[flag.category] = [];
+    acc[flag.category].push(flag);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  return (
+    <div className="space-y-6">
+      {/* Warning */}
+      <Card className="border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+        <CardContent className="p-4">
+          <div className="flex gap-3">
+            <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-orange-900 dark:text-orange-100">
+                Platform-Wide Feature Control
+              </p>
+              <p className="text-sm text-orange-800 dark:text-orange-200">
+                Changes take effect immediately for all users. Toggle carefully.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Feature Flags */}
+      {Object.entries(groupedFlags).map(([category, categoryFlags]) => (
+        <Card key={category}>
+          <CardHeader>
+            <CardTitle className="capitalize">{category} Features</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {categoryFlags.map((flag: any) => (
+              <div
+                key={flag.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
+                <div className="flex-1">
+                  <div className="font-semibold">{flag.feature_name}</div>
+                  <p className="text-sm text-muted-foreground">{flag.description}</p>
+                  <code className="text-xs bg-muted px-2 py-0.5 rounded mt-1 inline-block">
+                    {flag.feature_key}
+                  </code>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant={flag.is_enabled ? 'default' : 'secondary'}>
+                    {flag.is_enabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={flag.is_enabled}
+                      onChange={(e) => toggleFlag(flag.id, e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
+
+      {flags.length === 0 && !loading && (
+        <Card>
+          <CardContent className="p-12 text-center text-muted-foreground">
+            No feature flags configured yet.
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Geographic Data Tab - Template-Driven
+function GeographicDataTab() {
+  const [selectedCountry, setSelectedCountry] = useState('KE'); // Default to Kenya
+
+  // Supported countries list (can be expanded)
+  const SUPPORTED_COUNTRIES = [
+    { code: 'KE', name: 'Kenya', flag: '🇰🇪' },
+    { code: 'UG', name: 'Uganda', flag: '🇺🇬' },
+    { code: 'TZ', name: 'Tanzania', flag: '🇹🇿' },
+    { code: 'RW', name: 'Rwanda', flag: '🇷🇼' },
+    { code: 'NG', name: 'Nigeria', flag: '🇳🇬' },
+    { code: 'GH', name: 'Ghana', flag: '🇬🇭' },
+    { code: 'ZA', name: 'South Africa', flag: '🇿🇦' },
+    { code: 'ET', name: 'Ethiopia', flag: '🇪🇹' },
+    { code: 'US', name: 'United States', flag: '🇺🇸' },
+    { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
+  ];
+
+  // Fetch governance template for selected country
+  const { data: templateData, isLoading: templateLoading } = useQuery({
+    queryKey: ['governance-template', selectedCountry],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('country_governance_templates')
+        .select('governance_system')
+        .eq('country_code', selectedCountry)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Template fetch error:', error);
+        return null;
+      }
+      return data?.governance_system;
+    }
+  });
+
+  // Parse levels from template
+  const levels: string[] = templateData?.levels || [];
+  const defaultTab = levels[0] || 'county'; // Fallback to 'county' if no template
+
+  // Helper to get level metadata
+  const getLevelMeta = (level: string, index: number) => {
+    const meta = templateData?.[level] || {};
+    return {
+      label: meta.label || capitalize(level),
+      labelPlural: meta.label_plural || `${meta.label || capitalize(level)}s`,
+      count: meta.count,
+      parentLevel: index > 0 ? levels[index - 1] : null
+    };
+  };
+
+  // Capitalize helper
+  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+
+  return (
+    <div className="space-y-6">
+      {/* Country Selector */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <Label className="text-base font-semibold">Select Country:</Label>
+            <select
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              className="flex h-10 w-[280px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {SUPPORTED_COUNTRIES.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.flag} {country.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex-1">
+              {templateLoading ? (
+                <p className="text-sm text-muted-foreground">Loading governance structure...</p>
+              ) : levels.length > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Managing {levels.length}-level hierarchy for{' '}
+                  {SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name}
+                </p>
+              ) : (
+                <p className="text-sm text-orange-600">
+                  ⚠ No governance template found for {selectedCountry}
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Template-Driven Tabs */}
+      {templateLoading ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
+            <p className="text-muted-foreground">Loading governance template...</p>
+          </CardContent>
+        </Card>
+      ) : levels.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-orange-500" />
+            <h3 className="font-semibold text-lg mb-2">No Template Available</h3>
+            <p className="text-muted-foreground mb-4">
+              No governance template exists for {SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name}.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Please create a governance template for this country in the database first.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className={`grid w-full grid-cols-${Math.min(levels.length, 5)}`}>
+            {levels.map((level, index) => {
+              const meta = getLevelMeta(level, index);
+              return (
+                <TabsTrigger key={level} value={level} className="flex items-center gap-2">
+                  {index === 0 && <Building className="h-4 w-4" />}
+                  {index === 1 && <MapPin className="h-4 w-4" />}
+                  {index === 2 && <Map className="h-4 w-4" />}
+                  {index === 3 && <MapPin className="h-4 w-4" />}
+                  {index === 4 && <Map className="h-4 w-4" />}
+                  {meta.labelPlural}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {levels.map((level, index) => {
+            const meta = getLevelMeta(level, index);
+            const parentMeta = meta.parentLevel ? getLevelMeta(meta.parentLevel, index - 1) : null;
+
+            return (
+              <TabsContent key={level} value={level}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{meta.labelPlural} Management</CardTitle>
+                    <CardDescription>
+                      Manage {meta.labelPlural.toLowerCase()} for{' '}
+                      {SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name}
+                      {meta.count && ` (Expected: ~${meta.count})`}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AdministrativeDivisionManager
+                      countryCode={selectedCountry}
+                      governanceLevel={level}
+                      levelIndex={index + 1}
+                      levelLabel={meta.label}
+                      levelLabelPlural={meta.labelPlural}
+                      parentLevelLabel={parentMeta?.label}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+      )}
+    </div>
+  );
+}
+
+// Position Verification Tab
+function PositionVerificationTab() {
+  const { user } = useAuth();
+  const [pendingClaims, setPendingClaims] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchClaims();
+  }, []);
+
+  const fetchClaims = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('office_holders')
+      .select(`
+        id,
+        user_id,
+        position_id,
+        verification_status,
+        verification_method,
+        claimed_at,
+        proof_documents,
+        position:government_positions(title, country_code, jurisdiction_name)
+      `)
+      .eq('verification_status', 'pending')
+      .order('claimed_at', { ascending: false });
+
+    if (!error && data) {
+      // Fetch profiles separately
+      const userIds = data.map((c: any) => c.user_id).filter(Boolean);
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', userIds);
+
+        const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+        const claimsWithProfiles = data.map((c: any) => ({
+          ...c,
+          user: profilesMap.get(c.user_id) || null
+        }));
+        setPendingClaims(claimsWithProfiles);
+      } else {
+        setPendingClaims(data);
+      }
+    }
+    setIsLoading(false);
+  };
+
+  const handleVerdict = async (claimId: string, verdict: 'verified' | 'rejected') => {
+    const { error } = await supabase
+      .from('office_holders')
+      .update({
+        verification_status: verdict,
+        verified_by: user?.id,
+        verified_at: new Date().toISOString(),
+        is_active: verdict === 'verified',
+      })
+      .eq('id', claimId);
+
+    if (error) {
+      toast.error('Failed to update claim');
+    } else {
+      toast.success(`Claim ${verdict} successfully`);
+      fetchClaims();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold">Position Claims</h3>
+          <p className="text-sm text-muted-foreground">Review and verify official position claims</p>
+        </div>
+        <Button onClick={fetchClaims} variant="outline" size="sm">
+          Refresh
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <Card>
+          <CardContent className="p-8 text-center">Loading claims...</CardContent>
+        </Card>
+      ) : pendingClaims.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            No pending claims to review.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {pendingClaims.map((claim: any) => (
+            <Card key={claim.id}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{claim.position?.title || 'Unknown Position'}</CardTitle>
+                    <CardDescription>
+                      {claim.position?.jurisdiction_name || 'Unknown'} • Applicant: <span className="font-semibold">{claim.user?.display_name || 'Unknown'}</span>
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline">{claim.position?.country_code || 'N/A'}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Method:</span> {claim.verification_method || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Date:</span> {claim.claimed_at ? new Date(claim.claimed_at).toLocaleDateString() : 'N/A'}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Proof:</span>
+                    {claim.proof_documents?.document_url ? (
+                      <a href={claim.proof_documents.document_url} target="_blank" rel="noreferrer" className="text-blue-600 underline ml-2">
+                        View Document
+                      </a>
+                    ) : (
+                      <span className="ml-2 italic text-muted-foreground">No document provided</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={() => handleVerdict(claim.id, 'rejected')}
+                  >
+                    <X className="w-4 h-4 mr-2" /> Reject
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => handleVerdict(claim.id, 'verified')}
+                  >
+                    <Check className="w-4 h-4 mr-2" /> Approve & Verify
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

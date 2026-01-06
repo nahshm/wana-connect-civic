@@ -35,11 +35,11 @@ const Step1Location = ({ onNext, initialData }: Step1LocationProps) => {
   const [counties, setCounties] = useState<County[]>([]);
   const [constituencies, setConstituencies] = useState<Constituency[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
-  
+
   const [selectedCounty, setSelectedCounty] = useState(initialData.countyId);
   const [selectedConstituency, setSelectedConstituency] = useState(initialData.constituencyId);
   const [selectedWard, setSelectedWard] = useState(initialData.wardId);
-  
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -65,36 +65,42 @@ const Step1Location = ({ onNext, initialData }: Step1LocationProps) => {
 
   const loadCounties = async () => {
     const { data } = await supabase
-      .from('counties')
+      .from('administrative_divisions')
       .select('id, name')
+      .eq('country_code', 'KE')  // TODO: Make dynamic based on user's country
+      .eq('governance_level', 'county')
       .order('name');
-    
+
     if (data) setCounties(data);
   };
 
   const loadConstituencies = async (countyId: string) => {
     const { data } = await supabase
-      .from('constituencies')
+      .from('administrative_divisions')
       .select('id, name')
-      .eq('county_id', countyId)
+      .eq('country_code', 'KE')
+      .eq('governance_level', 'constituency')
+      .eq('parent_id', countyId)  // Filter by parent county
       .order('name');
-    
+
     if (data) setConstituencies(data);
   };
 
   const loadWards = async (constituencyId: string) => {
     const { data } = await supabase
-      .from('wards')
+      .from('administrative_divisions')
       .select('id, name')
-      .eq('constituency_id', constituencyId)
+      .eq('country_code', 'KE')
+      .eq('governance_level', 'ward')
+      .eq('parent_id', constituencyId)  // Filter by parent constituency
       .order('name');
-    
+
     if (data) setWards(data);
   };
 
   const handleSubmit = async () => {
     if (!selectedCounty || !selectedConstituency || !selectedWard) return;
-    
+
     setLoading(true);
     onNext({
       countyId: selectedCounty,

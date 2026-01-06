@@ -10,7 +10,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
-export function WardsManager() {
+interface WardsManagerProps {
+  countryCode: string;
+}
+
+export function WardsManager({ countryCode }: WardsManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -19,11 +23,12 @@ export function WardsManager() {
   const [formData, setFormData] = useState({ name: "", constituencyId: "", population: "" });
 
   const { data: constituencies } = useQuery({
-    queryKey: ["constituencies"],
+    queryKey: ["constituencies", countryCode],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("constituencies")
-        .select("*, counties(name)")
+        .select("*, counties!inner(name, country)")
+        .eq("counties.country", countryCode)
         .order("name");
       if (error) throw error;
       return data;
@@ -31,11 +36,12 @@ export function WardsManager() {
   });
 
   const { data: wards, isLoading } = useQuery({
-    queryKey: ["wards"],
+    queryKey: ["wards", countryCode],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wards")
-        .select("*, constituencies(name, counties(name))")
+        .select("*, constituencies!inner(name, counties!inner(name, country))")
+        .eq("constituencies.counties.country", countryCode)
         .order("name");
       if (error) throw error;
       return data;
@@ -48,7 +54,7 @@ export function WardsManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wards"] });
+      queryClient.invalidateQueries({ queryKey: ["wards", countryCode] });
       toast({ title: "Ward added successfully" });
       setIsAddOpen(false);
       setFormData({ name: "", constituencyId: "", population: "" });

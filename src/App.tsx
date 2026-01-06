@@ -37,6 +37,7 @@ import { CivicClipsPage } from "@/features/feed/pages/CivicClips";
 
 // Feature-based imports - Admin
 import GeographicDataAdmin from "@/features/admin/pages/GeographicDataAdmin";
+import FeatureFlagsManager from "@/features/admin/pages/FeatureFlagsManager";
 import { PositionVerification } from "@/features/admin/pages/PositionVerification";
 import SuperAdminDashboard from "@/features/admin/pages/SuperAdminDashboard";
 
@@ -107,8 +108,6 @@ const App = () => (
                         <Route path="/quests" element={<Quests />} />
                         <Route path="/leaderboards" element={<Leaderboards />} />
                         <Route path="/chat" element={<Chat />} />
-                        <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
-                        <Route path="/admin/verification" element={<PositionVerification />} />
                         <Route path="/superadmin" element={<SuperAdminDashboard />} />
                         {/* Profile V2 - New Civic Resume */}
                         <Route path="/profile-v2/:username" element={<ProfileV2 />} />
