@@ -1,21 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = "http://127.0.0.1:54321";
-const SUPABASE_SERVICE_ROLE_KEY = "sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpwY3pwbGtiZG1tb3ZscnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDQyNTMsImV4cCI6MjA3MzI4MDI1M30.NOgtKdqBtqZXFaTkypW0dTfYuPNW-nge7aiqmSeft20";
+// SECURITY: Use environment variables for all secrets
+const SUPABASE_URL = process.env.SUPABASE_URL || "http://127.0.0.1:54321";
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+
+if (!SUPABASE_ANON_KEY) {
+  console.error('ERROR: SUPABASE_ANON_KEY environment variable is required');
+  console.log('Set it using: export SUPABASE_ANON_KEY="your-anon-key"');
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Test user ID - let's create a new user directly in the database
-const testUserId = '550e8400-e29b-41d4-a716-446655440000';
 
 async function testCreatePostAndVote() {
   try {
     console.log('Testing post creation and voting functionality...\n');
-
-    // First, try to find existing test user or create a new one
-    console.log('Looking for existing test user...');
-    let actualUserId = null;
 
     // Try to sign up a user directly (this will work with anon key)
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -26,12 +25,14 @@ async function testCreatePostAndVote() {
       }
     });
 
+    let actualUserId = null;
+
     if (signUpError && !signUpError.message.includes('already registered')) {
       console.error('Error signing up user:', signUpError);
       return;
     }
 
-    if (signUpData.user) {
+    if (signUpData?.user) {
       console.log('User signed up successfully with ID:', signUpData.user.id);
       actualUserId = signUpData.user.id;
     } else {

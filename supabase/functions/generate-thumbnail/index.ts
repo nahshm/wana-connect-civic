@@ -6,15 +6,104 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+function validateInput(data: unknown): { valid: true; postId?: string; generateAll?: boolean } | { valid: false; error: string } {
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: 'Invalid request body' };
+  }
+
+  const { postId, generateAll } = data as Record<string, unknown>;
+
+  // Must provide either postId or generateAll
+  if (postId === undefined && generateAll === undefined) {
+    return { valid: false, error: 'Must provide either postId or generateAll' };
+  }
+
+  // Validate postId if provided
+  if (postId !== undefined) {
+    if (typeof postId !== 'string' || !isValidUUID(postId)) {
+      return { valid: false, error: 'postId must be a valid UUID' };
+    }
+  }
+
+  // Validate generateAll if provided
+  if (generateAll !== undefined && typeof generateAll !== 'boolean') {
+    return { valid: false, error: 'generateAll must be a boolean' };
+  }
+
+  return { valid: true, postId: postId as string | undefined, generateAll: generateAll as boolean | undefined };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Validate Content-Type
+  const contentType = req.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return new Response(
+      JSON.stringify({ error: 'Content-Type must be application/json' }),
+      { status: 415, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
-    const { postId, generateAll } = await req.json();
-    
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the JWT token
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getUser(token);
+    
+    if (claimsError || !claimsData?.user) {
+      console.error('Auth error:', claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.user.id;
+    
+    // Parse and validate input
+    let rawInput: unknown;
+    try {
+      rawInput = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validation = validateInput(rawInput);
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { postId, generateAll } = validation;
+    
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
@@ -24,7 +113,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let postsToProcess: any[] = [];
+    // For generateAll, require admin role
+    if (generateAll) {
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (!userRole) {
+        return new Response(
+          JSON.stringify({ error: 'Admin access required for batch thumbnail generation' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    let postsToProcess: { id: string; title: string; content: string; civic_clips: { id: string; thumbnail_url: string } | null; post_media: { file_type: string }[] | null; author_id: string }[] = [];
 
     if (generateAll) {
       // Get all posts with videos that don't have thumbnails
@@ -34,6 +140,7 @@ serve(async (req) => {
           id,
           title,
           content,
+          author_id,
           civic_clips!civic_clips_post_id_fkey (id, thumbnail_url),
           post_media!post_media_post_id_fkey (file_type)
         `)
@@ -43,13 +150,13 @@ serve(async (req) => {
       if (error) throw error;
 
       // Filter posts that have video media but no thumbnail
-      postsToProcess = (posts || []).filter((post: any) => {
-        const hasVideo = post.post_media?.some((m: any) => m.file_type?.startsWith('video'));
+      postsToProcess = ((posts || []) as unknown as typeof postsToProcess).filter((post) => {
+        const hasVideo = post.post_media?.some((m) => m.file_type?.startsWith('video'));
         const hasThumbnail = post.civic_clips?.thumbnail_url;
         return hasVideo && !hasThumbnail;
       });
 
-      console.log(`Found ${postsToProcess.length} posts needing thumbnails`);
+      console.log(`Found ${postsToProcess.length} posts needing thumbnails (admin: ${userId})`);
     } else if (postId) {
       const { data: post, error } = await supabase
         .from('posts')
@@ -57,6 +164,7 @@ serve(async (req) => {
           id,
           title,
           content,
+          author_id,
           civic_clips!civic_clips_post_id_fkey (id, thumbnail_url),
           post_media!post_media_post_id_fkey (file_type)
         `)
@@ -64,7 +172,25 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
-      if (post) postsToProcess = [post];
+      
+      // Verify user owns the post or is admin
+      if ((post as unknown as typeof postsToProcess[0]).author_id !== userId) {
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        if (!userRole) {
+          return new Response(
+            JSON.stringify({ error: 'You can only generate thumbnails for your own posts' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+      
+      if (post) postsToProcess = [post as unknown as typeof postsToProcess[0]];
     }
 
     if (postsToProcess.length === 0) {
@@ -74,11 +200,11 @@ serve(async (req) => {
       );
     }
 
-    const results: any[] = [];
+    const results: { postId: string; thumbnailUrl?: string; error?: string; success?: boolean; status?: number }[] = [];
 
     for (const post of postsToProcess) {
       try {
-        console.log(`Generating thumbnail for post: ${post.id}`);
+        console.log(`Generating thumbnail for post: ${post.id} (requested by: ${userId})`);
 
         // Generate image using Lovable AI
         const prompt = `Create a professional news thumbnail image for this headline: "${post.title}". Style: Clean, modern, editorial news graphic. 16:9 aspect ratio. No text in the image.`;

@@ -19,32 +19,145 @@ interface ModerationResult {
   suggested_action: 'approve' | 'review' | 'reject';
 }
 
+// Input validation
+function validateInput(data: unknown): { valid: true; data: ModerationRequest } | { valid: false; error: string } {
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: 'Invalid request body' };
+  }
+
+  const { content, type, author_id } = data as Record<string, unknown>;
+
+  if (typeof content !== 'string' || content.length === 0) {
+    return { valid: false, error: 'Content must be a non-empty string' };
+  }
+
+  if (content.length > 50000) {
+    return { valid: false, error: 'Content exceeds maximum length of 50000 characters' };
+  }
+
+  if (type !== 'post' && type !== 'comment') {
+    return { valid: false, error: 'Type must be "post" or "comment"' };
+  }
+
+  if (typeof author_id !== 'string' || !isValidUUID(author_id)) {
+    return { valid: false, error: 'author_id must be a valid UUID' };
+  }
+
+  return { valid: true, data: { content, type, author_id } };
+}
+
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  // Validate Content-Type
+  const contentType = req.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return new Response(
+      JSON.stringify({ error: 'Content-Type must be application/json' }),
+      { status: 415, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  }
 
-    const { content, type, author_id }: ModerationRequest = await req.json();
+  try {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the JWT token
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getUser(token);
+    
+    if (claimsError || !claimsData?.user) {
+      console.error('Auth error:', claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.user.id;
+
+    // Parse and validate input
+    let rawInput: unknown;
+    try {
+      rawInput = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validation = validateInput(rawInput);
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { content, type, author_id } = validation.data;
+
+    // Verify the author_id matches the authenticated user (or user is admin)
+    if (author_id !== userId) {
+      // Check if user is admin for elevated permissions
+      const supabaseService = createClient(
+        supabaseUrl,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      const { data: userRole } = await supabaseService
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (!userRole) {
+        return new Response(
+          JSON.stringify({ error: 'author_id must match authenticated user' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Simple content moderation logic
     const result = await moderateContent(content, type);
 
     // Log moderation result
-    console.log(`Moderation result for ${type}:`, result);
+    console.log(`Moderation result for ${type} by user ${userId}:`, result);
 
-    // If content is flagged, we might want to store it for review
+    // If content is flagged, store it for review using service role
     if (!result.is_safe) {
-      await supabase
+      const supabaseService = createClient(
+        supabaseUrl,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      await supabaseService
         .from('moderation_logs')
         .insert({
-          content,
+          content: content.slice(0, 10000), // Limit stored content
           content_type: type,
           author_id,
           moderation_result: result,

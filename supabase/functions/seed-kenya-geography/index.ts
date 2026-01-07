@@ -353,8 +353,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify authentication - require admin role for seeding
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the JWT token
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getUser(token);
+    
+    if (claimsError || !claimsData?.user) {
+      console.error('Auth error:', claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.user.id;
+
+    // Use service role for admin check and data operations
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         auth: {
@@ -363,6 +394,23 @@ Deno.serve(async (req) => {
         },
       }
     );
+
+    // Check if user is admin
+    const { data: userRole } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle();
+    
+    if (!userRole) {
+      return new Response(
+        JSON.stringify({ error: 'Admin access required for geographic data seeding' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Admin ${userId} initiating geographic data seeding`);
 
     // Check if data already exists and prevent duplicate seeding
     const { data: existingCounties, count } = await supabaseClient
@@ -412,7 +460,7 @@ Deno.serve(async (req) => {
     );
 
     // Insert constituencies
-    const constituencyInserts: any[] = [];
+    const constituencyInserts: { name: string; county_id: string }[] = [];
     for (const [countyName, constituencies] of Object.entries(kenyaData.constituencies)) {
       const countyId = countyMap.get(countyName);
       if (countyId) {
@@ -438,13 +486,13 @@ Deno.serve(async (req) => {
     );
 
     // Insert wards
-    const wardInserts: any[] = [];
+    const wardInserts: { name: string; constituency_id: string }[] = [];
     for (const [constituencyName, wards] of Object.entries(kenyaData.wards)) {
       const constituencyId = constituencyMap.get(constituencyName);
       if (constituencyId) {
-        wards.forEach(wardName => {
+        wards.forEach(ward => {
           wardInserts.push({
-            name: wardName,
+            name: ward.name,
             constituency_id: constituencyId,
           });
         });
@@ -457,6 +505,8 @@ Deno.serve(async (req) => {
       .select();
 
     if (wardError) throw wardError;
+
+    console.log(`Geographic data seeded successfully by admin ${userId}`);
 
     return new Response(
       JSON.stringify({
