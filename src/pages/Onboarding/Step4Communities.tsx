@@ -64,10 +64,10 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
   const getGeographicCommunityNames = async () => {
     const names: Community[] = [];
 
-    // Get county name
+    // Get county name from administrative_divisions (global system)
     const { data: county } = await supabase
-      .from('counties')
-      .select('name')
+      .from('administrative_divisions')
+      .select('id, name')
       .eq('id', onboardingData.countyId)
       .single();
 
@@ -82,10 +82,10 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       });
     }
 
-    // Get constituency name
+    // Get constituency name from administrative_divisions
     const { data: constituency } = await supabase
-      .from('constituencies')
-      .select('name')
+      .from('administrative_divisions')
+      .select('id, name')
       .eq('id', onboardingData.constituencyId)
       .single();
 
@@ -100,10 +100,10 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       });
     }
 
-    // Get ward name
+    // Get ward name from administrative_divisions
     const { data: ward } = await supabase
-      .from('wards')
-      .select('name')
+      .from('administrative_divisions')
+      .select('id, name')
       .eq('id', onboardingData.wardId)
       .single();
 
@@ -136,7 +136,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
 
     try {
       // 1. Create geographic communities if they don't exist
-      const geoCommunities = await createGeographicCommunities();
+      const { mapping: geoCommunities, names: locationNames } = await createGeographicCommunities();
 
       // Check if community creation was successful
       const hasValidCommunities = Object.keys(geoCommunities).length > 0;
@@ -147,12 +147,20 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       }
 
       // 2. Update profile with location and persona
+      // Populate BOTH TEXT and UUID fields for global compatibility
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
+          // UUID fields (references to administrative_divisions)
           county_id: onboardingData.countyId,
           constituency_id: onboardingData.constituencyId,
           ward_id: onboardingData.wardId,
+
+          // TEXT fields (for direct access)
+          county: locationNames.county,
+          constituency: locationNames.constituency,
+          ward: locationNames.ward,
+
           persona: onboardingData.persona as 'active_citizen' | 'community_organizer' | 'civic_learner' | 'government_watcher' | 'professional',
           onboarding_completed: true,
         })
@@ -213,7 +221,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         }
       }
 
-      // 5. Update onboarding progress
+      // 5. Update onboarding progress (with onConflict to avoid 409 errors)
       await supabase
         .from('onboarding_progress')
         .upsert({
@@ -224,6 +232,8 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           persona_set: true,
           communities_joined: selectedCommunities.length,
           completed_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',  // Specify conflict column to fix 409 error
         });
 
       // Refresh profile to update onboarding status in context
@@ -239,33 +249,42 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
     }
   };
 
-  const createGeographicCommunities = async (): Promise<Record<string, string>> => {
+  const createGeographicCommunities = async (): Promise<{
+    mapping: Record<string, string>;
+    names: { county: string | null; constituency: string | null; ward: string | null };
+  }> => {
     const mapping: Record<string, string> = {};
+    const names = { county: null as string | null, constituency: null as string | null, ward: null as string | null };
 
     try {
-      // Get location names
+      // Get location names from administrative_divisions (global system)
       const { data: county } = await supabase
-        .from('counties')
-        .select('name')
+        .from('administrative_divisions')
+        .select('id, name')
         .eq('id', onboardingData.countyId)
         .maybeSingle();
 
       const { data: constituency } = await supabase
-        .from('constituencies')
-        .select('name')
+        .from('administrative_divisions')
+        .select('id, name')
         .eq('id', onboardingData.constituencyId)
         .maybeSingle();
 
       const { data: ward } = await supabase
-        .from('wards')
-        .select('name')
+        .from('administrative_divisions')
+        .select('id, name')
         .eq('id', onboardingData.wardId)
         .maybeSingle();
+
+      // Store names for profile TEXT fields
+      if (county) names.county = county.name;
+      if (constituency) names.constituency = constituency.name;
+      if (ward) names.ward = ward.name;
 
       // Create or get county community
       if (county) {
         const communityName = county.name.replace(/\s+/g, '');
-        const { data: existing, error: existingError } = await supabase
+        const { data: existing } = await supabase
           .from('communities')
           .select('id')
           .eq('name', communityName)
@@ -274,21 +293,20 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         if (existing) {
           mapping[`geo-county-${onboardingData.countyId}`] = existing.id;
         } else {
-          const { data: newCommunity, error: insertError } = await supabase
-            .from('communities')
-            .insert({
-              name: communityName,
-              display_name: `${county.name} County`,
-              description: `Community for ${county.name} County residents`,
-              category: 'governance',
-            })
-            .select('id')
-            .single();
+          // Use RPC function to create community with channels (bypasses RLS)
+          const { data: newCommunityId, error: insertError } = await supabase
+            .rpc('create_community_with_channels' as any, {
+              p_name: communityName,
+              p_display_name: `${county.name} County`,
+              p_description: `Community for ${county.name} County residents`,
+              p_category: 'governance',
+              p_user_id: user!.id,
+            });
 
           if (insertError) {
             console.error('Error creating county community:', insertError.message, insertError);
-          } else if (newCommunity) {
-            mapping[`geo-county-${onboardingData.countyId}`] = newCommunity.id;
+          } else if (newCommunityId) {
+            mapping[`geo-county-${onboardingData.countyId}`] = newCommunityId as string;
           }
         }
       }
@@ -296,7 +314,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       // Create or get constituency community
       if (constituency) {
         const communityName = constituency.name.replace(/\s+/g, '');
-        const { data: existing, error: existingError } = await supabase
+        const { data: existing } = await supabase
           .from('communities')
           .select('id')
           .eq('name', communityName)
@@ -305,21 +323,20 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         if (existing) {
           mapping[`geo-constituency-${onboardingData.constituencyId}`] = existing.id;
         } else {
-          const { data: newCommunity, error: insertError } = await supabase
-            .from('communities')
-            .insert({
-              name: communityName,
-              display_name: `${constituency.name} Constituency`,
-              description: `Community for ${constituency.name} Constituency residents`,
-              category: 'governance',
-            })
-            .select('id')
-            .single();
+          // Use RPC function to create community with channels (bypasses RLS)
+          const { data: newCommunityId, error: insertError } = await supabase
+            .rpc('create_community_with_channels' as any, {
+              p_name: communityName,
+              p_display_name: `${constituency.name} Constituency`,
+              p_description: `Community for ${constituency.name} Constituency residents`,
+              p_category: 'governance',
+              p_user_id: user!.id,
+            });
 
           if (insertError) {
             console.error('Error creating constituency community:', insertError.message, insertError);
-          } else if (newCommunity) {
-            mapping[`geo-constituency-${onboardingData.constituencyId}`] = newCommunity.id;
+          } else if (newCommunityId) {
+            mapping[`geo-constituency-${onboardingData.constituencyId}`] = newCommunityId as string;
           }
         }
       }
@@ -327,7 +344,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       // Create or get ward community
       if (ward) {
         const communityName = ward.name.replace(/\s+/g, '');
-        const { data: existing, error: existingError } = await supabase
+        const { data: existing } = await supabase
           .from('communities')
           .select('id')
           .eq('name', communityName)
@@ -336,21 +353,20 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         if (existing) {
           mapping[`geo-ward-${onboardingData.wardId}`] = existing.id;
         } else {
-          const { data: newCommunity, error: insertError } = await supabase
-            .from('communities')
-            .insert({
-              name: communityName,
-              display_name: `${ward.name} Ward`,
-              description: `Community for ${ward.name} Ward residents`,
-              category: 'governance',
-            })
-            .select('id')
-            .single();
+          // Use RPC function to create community with channels (bypasses RLS)
+          const { data: newCommunityId, error: insertError } = await supabase
+            .rpc('create_community_with_channels' as any, {
+              p_name: communityName,
+              p_display_name: `${ward.name} Ward`,
+              p_description: `Community for ${ward.name} Ward residents`,
+              p_category: 'governance',
+              p_user_id: user!.id,
+            });
 
           if (insertError) {
             console.error('Error creating ward community:', insertError.message, insertError);
-          } else if (newCommunity) {
-            mapping[`geo-ward-${onboardingData.wardId}`] = newCommunity.id;
+          } else if (newCommunityId) {
+            mapping[`geo-ward-${onboardingData.wardId}`] = newCommunityId as string;
           }
         }
       }
@@ -358,7 +374,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
       console.error('Error creating geographic communities:', error);
     }
 
-    return mapping;
+    return { mapping, names };
   };
 
   return (

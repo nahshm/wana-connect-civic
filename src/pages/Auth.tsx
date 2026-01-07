@@ -20,6 +20,8 @@ export default function Auth() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [signUpEmail, setSignUpEmail] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [rateLimitSeconds, setRateLimitSeconds] = useState<number | null>(null);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -29,6 +31,16 @@ export default function Auth() {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // Countdown timer for rate limiting
+  useEffect(() => {
+    if (rateLimitSeconds && rateLimitSeconds > 0) {
+      const timer = setInterval(() => {
+        setRateLimitSeconds((prev) => (prev && prev > 1 ? prev - 1 : null));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [rateLimitSeconds]);
 
   // Sign In Form
   const signInForm = useForm<SignInFormData>({
@@ -46,6 +58,12 @@ export default function Auth() {
     if (!error) {
       navigate('/');
     } else {
+      // Check for rate limiting
+      const errorMsg = error.message?.toLowerCase() || '';
+      if (errorMsg.includes('too many') || errorMsg.includes('rate limit')) {
+        setRateLimitSeconds(60); // 60 second cooldown
+      }
+
       signInForm.setError('root', {
         message: getAuthErrorMessage(error),
       });
