@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,9 @@ import {
     ThumbsDown
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+// UUID validation regex for security
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface OfficeHolderData {
     id: string;
@@ -76,8 +79,16 @@ interface Question {
 }
 
 export default function OfficePage() {
-    const { officialId: id } = useParams<{ officialId: string }>();
+    const location = useLocation();
     const { user } = useAuth();
+
+    // Securely extract and validate ID from pathname
+    const id = useMemo(() => {
+        const rawId = location.pathname.split('/')[2];
+        // Validate UUID format to prevent injection attempts
+        return rawId && UUID_REGEX.test(rawId) ? rawId : null;
+    }, [location.pathname]);
+
     const [officeHolder, setOfficeHolder] = useState<OfficeHolderData | null>(null);
     const [promises, setPromises] = useState<Promise[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -89,9 +100,13 @@ export default function OfficePage() {
 
     useEffect(() => {
         const fetchOfficeData = async () => {
-            if (!id) return;
+            if (!id) {
+                setLoading(false);
+                return;
+            }
 
             try {
+
                 // Fetch office holder with profile and position
                 // Note: Must specify FK name because office_holders has TWO FKs to profiles (user_id AND verified_by)
                 const { data: holderData, error: holderError } = await supabase
@@ -104,7 +119,16 @@ export default function OfficePage() {
                     .eq('id', id)
                     .single();
 
-                if (holderError) throw holderError;
+                if (holderError) {
+                    // Differentiate between not found vs other errors
+                    if (holderError.code === 'PGRST116') {
+                        // Record not found - this is expected for invalid IDs
+                        setOfficeHolder(null);
+                    } else {
+                        throw holderError;
+                    }
+                    return;
+                }
 
                 // Transform to expected format
                 const transformed = holderData ? {
@@ -120,7 +144,7 @@ export default function OfficePage() {
 
             } catch (error) {
                 console.error('Error fetching office data:', error);
-                toast.error('Failed to load office page');
+                toast.error('Failed to load office page. Please try again.');
             } finally {
                 setLoading(false);
             }
@@ -151,6 +175,24 @@ export default function OfficePage() {
         );
     }
 
+    // Show error for invalid UUID format
+    if (!id) {
+        return (
+            <div className="container max-w-5xl mx-auto py-8 px-4">
+                <Card>
+                    <CardContent className="py-16 text-center">
+                        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h2 className="text-xl font-semibold mb-2">Invalid Office ID</h2>
+                        <p className="text-muted-foreground mb-4">The office page URL is not valid.</p>
+                        <Button asChild>
+                            <Link to="/officials">Browse Officials</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     if (!officeHolder) {
         return (
             <div className="container max-w-5xl mx-auto py-8 px-4">
@@ -158,8 +200,8 @@ export default function OfficePage() {
                     <CardContent className="py-16 text-center">
                         <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <h2 className="text-xl font-semibold mb-2">Office Not Found</h2>
-                        <p className="text-muted-foreground">This office page doesn't exist or has been removed.</p>
-                        <Button asChild className="mt-4">
+                        <p className="text-muted-foreground mb-4">This office page doesn't exist or has been removed.</p>
+                        <Button asChild>
                             <Link to="/officials">Browse Officials</Link>
                         </Button>
                     </CardContent>

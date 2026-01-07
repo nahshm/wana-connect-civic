@@ -95,6 +95,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         commentKarma: data.comment_karma,
         badges: data.badges || [],
         location: data.location,
+
+        // Geographic location fields for community navigation
+        county: data.county,
+        constituency: data.constituency,
+        ward: data.ward,
+
         website: data.website,
         socialLinks: data.social_links as any,
         expertise: data.expertise || [],

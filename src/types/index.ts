@@ -188,27 +188,31 @@ export interface User {
   postKarma?: number;
   commentKarma?: number;
   location?: string;
+
+  // Geographic location fields
   county?: string;
   constituency?: string;
   ward?: string;
-  expertise?: string[];
-  bio?: string;
+
   website?: string;
   socialLinks?: {
     twitter?: string;
     facebook?: string;
-    linkedin?: string;
     instagram?: string;
+    linkedin?: string;
   };
+  expertise?: string[];
+  bio?: string;
   badges?: string[];
-  lastActivity?: Date;
   isPrivate?: boolean;
   activityStats?: {
-    postCount: number;
-    commentCount: number;
-    upvoteCount: number;
+    postsCreated: number;
+    commentsCreated: number;
+    upvotesGiven: number;
+    upvotesReceived: number;
     joinDate: Date;
   };
+  lastActivity?: Date;
   // Additional fields for sidebar stats
   followersCount?: number;
   contributionsCount?: number;

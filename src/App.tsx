@@ -27,6 +27,7 @@ import ActionDetail from "@/features/accountability/pages/ActionDetail";
 import Communities from "@/features/community/pages/Communities";
 import Community from "@/features/community/pages/Community";
 import Chat from "@/features/community/pages/Chat";
+import { MyCommunitiesPage } from "@/features/community/pages/MyCommunitiesPage";
 
 // Feature-based imports - Feed
 import Index from "@/features/feed/pages/Home";
@@ -94,6 +95,7 @@ const App = () => (
                         <Route path="/c/:communityName" element={<Community />} />
                         <Route path="/community/:communityName" element={<Community />} />
                         <Route path="/communities" element={<Communities />} />
+                        <Route path="/my-communities" element={<MyCommunitiesPage />} />
                         <Route path="/officials" element={<Officials />} />
                         <Route path="/officials/:officialId" element={<OfficialDetail />} />
                         <Route path="/projects" element={<Projects />} />
