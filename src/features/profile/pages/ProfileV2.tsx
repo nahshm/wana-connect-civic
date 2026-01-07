@@ -1,10 +1,11 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, RefreshCw, Settings, User, Award, BarChart3, Zap } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Settings, User, Award, BarChart3, Zap, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,8 +64,22 @@ const ProfileSkeleton: React.FC = () => (
  * Displays Identity Card, Scorecard (for officials), Expertise, and Trophy Case
  */
 const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
-    const { username } = useParams<{ username: string }>();
+    const location = useLocation();
+    const navigate = useNavigate();
     const { user: currentUser } = useAuth();
+
+    // Extract username from pathname (for PrefixRouter compatibility)
+    // Examples: /u/john_doe → "john_doe", /w/jane → "jane", /g/official → "official"
+    const username = useMemo(() => {
+        const parts = location.pathname.split('/');
+        return parts[2] || null; // Index 2 is username in /u/username, /w/username, /g/username
+    }, [location.pathname]);
+
+    // Extract current prefix from URL
+    const currentPrefix = useMemo(() => {
+        const parts = location.pathname.split('/');
+        return parts[1]; // 'u', 'w', or 'g'
+    }, [location.pathname]);
 
     // Fetch profile data
     const {
@@ -109,9 +124,54 @@ const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
 
     const isOwnProfile = currentUser?.id === profile?.id;
     const isOfficial = profile?.isVerified && profile?.officialPosition;
-    const location = [profile?.ward, profile?.constituency, profile?.county]
+    // Build display location string from profile
+    const userLocation = [profile?.ward, profile?.constituency, profile?.county]
         .filter(Boolean)
         .join(', ') || undefined;
+
+    // Determine correct prefix based on user's actual status
+    const correctPrefix = useMemo(() => {
+        if (!profile) return null;
+
+        // Government officials -> /g/
+        if (profile.officialPosition || profile.officialPositionId) {
+            return 'g';
+        }
+
+        // Verified users (journalists, experts) -> /w/
+        if (profile.isVerified) {
+            return 'w';
+        }
+
+        // Regular users -> /u/
+        return 'u';
+    }, [profile]);
+
+    // Auto-correct URL if prefix doesn't match user type
+    useEffect(() => {
+        if (!profile || !correctPrefix || !username) return;
+
+        if (currentPrefix !== correctPrefix) {
+            const correctUrl = `/${correctPrefix}/${username}`;
+            // Use replace: true so back button doesn't go to wrong URL
+            navigate(correctUrl, { replace: true });
+        }
+    }, [profile, correctPrefix, currentPrefix, username, navigate]);
+
+    // Show error if no username provided in URL
+    if (!username) {
+        return (
+            <div className="container max-w-5xl mx-auto py-8 px-4">
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Invalid Profile URL</AlertTitle>
+                    <AlertDescription>
+                        No username provided in the URL. Profile URLs should be in the format /u/username
+                    </AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return <ProfileSkeleton />;
@@ -156,7 +216,7 @@ const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
                 bannerUrl={profile.bannerUrl || undefined}
                 isVerified={profile.isVerified}
                 officialPosition={profile.officialPosition || undefined}
-                location={location}
+                location={userLocation}
                 joinDate={new Date(profile.createdAt)}
             />
 

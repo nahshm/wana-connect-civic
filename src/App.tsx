@@ -49,6 +49,7 @@ import { ProfileV2 } from "@/features/profile";
 import SettingsPage from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import OnboardingFlow from "./pages/Onboarding/OnboardingFlow";
 import WelcomeDashboard from "./pages/Onboarding/WelcomeDashboard";
@@ -74,6 +75,7 @@ const App = () => (
               <OnboardingGuard>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/onboarding" element={<OnboardingFlow />} />
                   <Route path="/welcome" element={<WelcomeDashboard />} />
                   <Route path="/civic-clips" element={<CivicClipsPage />} />
@@ -89,8 +91,6 @@ const App = () => (
                         <Route path="/submit" element={<CreatePost />} />
                         <Route path="/post/:id" element={<PostDetail />} />
                         <Route path="/edit-post/:id" element={<EditPost />} />
-                        <Route path="/u/:username" element={<Profile />} />
-                        <Route path="/profile/:username" element={<Profile />} />
                         <Route path="/c/:communityName/post/:id" element={<PostDetail />} />
                         <Route path="/c/:communityName" element={<Community />} />
                         <Route path="/community/:communityName" element={<Community />} />
@@ -111,13 +111,13 @@ const App = () => (
                         <Route path="/leaderboards" element={<Leaderboards />} />
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/superadmin" element={<SuperAdminDashboard />} />
-                        {/* Profile V2 - New Civic Resume */}
-                        <Route path="/profile-v2/:username" element={<ProfileV2 />} />
+
                         {/* Functional prefix routes - handled by PrefixRouter */}
-                        <Route path="/g/:username" element={<PrefixRouter />} />
-                        <Route path="/p/:projectId" element={<PrefixRouter />} />
-                        <Route path="/pr/:promiseId" element={<PrefixRouter />} />
-                        <Route path="/w/:username" element={<PrefixRouter />} />
+                        <Route path="/u/*" element={<PrefixRouter />} />
+                        <Route path="/w/*" element={<PrefixRouter />} />
+                        <Route path="/g/*" element={<PrefixRouter />} />
+                        <Route path="/p/*" element={<PrefixRouter />} />
+                        <Route path="/pr/*" element={<PrefixRouter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </AppLayout>
