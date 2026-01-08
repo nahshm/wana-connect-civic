@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { SELECT_FIELDS } from '@/lib/select-fields';
 import { Community, Post, PostMedia } from '@/types';
 import { useFeatureToggle } from '@/hooks/useFeatureToggle';
 import { FeedErrorBoundary } from '@/components/feed/FeedErrorBoundary';
@@ -158,7 +159,7 @@ export default function Index() {
     try {
       const { data, error } = await supabase
         .from('communities')
-        .select('*')
+        .select(SELECT_FIELDS.COMMUNITY_CARD) // Selective fields
         .order('member_count', { ascending: false })
         .limit(5);
 
@@ -185,7 +186,7 @@ export default function Index() {
     try {
       const { data, error } = await supabase
         .from('baraza_spaces')
-        .select('*')
+        .select('space_id,title,description,host_user_id,participant_count,created_at') // Only needed fields
         .eq('is_live', true)
         .order('participant_count', { ascending: false })
         .limit(3);

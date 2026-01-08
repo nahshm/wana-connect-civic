@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SELECT_FIELDS } from '@/lib/select-fields';
 
 const CreatePost = () => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ const CreatePost = () => {
     const fetchCommunities = async () => {
       const { data } = await supabase
         .from('communities')
-        .select('*')
+        .select(SELECT_FIELDS.COMMUNITY_CARD)
         .order('member_count', { ascending: false });
       setCommunities(data || []);
     };
