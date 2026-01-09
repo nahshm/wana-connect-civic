@@ -8,6 +8,7 @@ import { useCommunity } from '@/hooks/useCommunity';
 import { useGeographicCommunities } from '@/hooks/useGeographicCommunities';
 import { useJoinedCommunities } from '@/hooks/useJoinedCommunities';
 import { useChannelContent } from '@/hooks/useChannelContent';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Components
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
@@ -16,7 +17,7 @@ import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';
 import { CreateChannelDialog } from '@/components/community/discord/CreateChannelDialog';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Loader2 } from 'lucide-react';
 
 // Loading skeleton component
 const CommunityLoadingSkeleton = () => (
@@ -38,9 +39,28 @@ const CommunityNotFound = () => (
   </div>
 );
 
+// Error state component
+const CommunityErrorState = ({ error, onRetry }: { error: any; onRetry: () => void }) => (
+  <div className="container mx-auto px-4 py-8">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold mb-4 text-destructive">Failed to load community</h1>
+      <p className="text-muted-foreground mb-4">
+        {error?.message || 'An error occurred while loading the community'}
+      </p>
+      <button
+        onClick={onRetry}
+        className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+      >
+        Try Again
+      </button>
+    </div>
+  </div>
+);
+
 const Community = () => {
   const { communityName } = useParams<{ communityName: string }>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // State for UI interactions
   const [activeChannelId, setActiveChannelId] = useState<string>('');
@@ -61,6 +81,7 @@ const Community = () => {
     isModerator,
     isAdmin,
     isLoading,
+    error,
     refetch,
   } = useCommunity(communityName);
 
@@ -85,15 +106,21 @@ const Community = () => {
     [allChannels, activeChannelId]
   );
 
+  // Memoize community object for useChannelContent to prevent undefined communityId
+  const channelContentCommunity = useMemo(() => {
+    if (!community?.id) return undefined;
+    return {
+      id: community.id,
+      locationType: community.locationType,
+      locationValue: community.locationValue
+    };
+  }, [community?.id, community?.locationType, community?.locationValue]);
+
   // Fetch channel-specific content
   const { posts, projects } = useChannelContent(
     community?.id,
     activeChannel,
-    community ? {
-      id: community.id,
-      locationType: community.locationType,
-      locationValue: community.locationValue
-    } : undefined
+    channelContentCommunity
   );
 
   // Track if we've set the initial channel (using ref to avoid re-renders)
@@ -121,12 +148,17 @@ const Community = () => {
     }
   }, [allChannels.length, activeChannelId]);
 
-  // Reset the ref when community changes
+  // Reset the ref when community changes + CLEAR CACHE
   React.useEffect(() => {
     hasSetInitialChannel.current = false;
     setActiveChannelId('');
     setNewChannels([]);
-  }, [communityName]);
+
+    // Clear all channel-related queries for clean slate
+    queryClient.removeQueries({ queryKey: ['channelPosts'] });
+    queryClient.removeQueries({ queryKey: ['channelProjects'] });
+    queryClient.removeQueries({ queryKey: ['channelMembers'] });
+  }, [communityName, queryClient]);
 
   // Build levels for navigation
   const primaryLevels = useMemo(() => [
@@ -213,6 +245,10 @@ const Community = () => {
     return <CommunityLoadingSkeleton />;
   }
 
+  if (error) {
+    return <CommunityErrorState error={error} onRetry={() => refetch()} />;
+  }
+
   if (!community) {
     return <CommunityNotFound />;
   }
@@ -270,18 +306,27 @@ const Community = () => {
           </div>
 
           {/* Channel Content */}
-          <ChannelContent
-            channelId={activeChannelId}
-            channel={allChannels.find(c => c.id === activeChannelId)}
-            levelType={currentLevel.type}
-            locationValue={currentLevel.name}
-            communityId={community.id}
-            posts={posts}
-            projects={projects}
-            postsLoading={false}
-            projectsLoading={false}
-            isAdmin={isAdmin}
-          />
+          {activeChannelId && !activeChannel ? (
+            <div className="flex items-center justify-center p-8 h-full">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+                <span className="text-sm text-muted-foreground">Loading channel...</span>
+              </div>
+            </div>
+          ) : (
+            <ChannelContent
+              channelId={activeChannelId}
+              channel={allChannels.find(c => c.id === activeChannelId)}
+              levelType={currentLevel.type}
+              locationValue={currentLevel.name}
+              communityId={community.id}
+              posts={posts}
+              projects={projects}
+              postsLoading={false}
+              projectsLoading={false}
+              isAdmin={isAdmin}
+            />
+          )}
         </div>
 
         {/* Right Sidebar - Original CommunitySidebar */}
