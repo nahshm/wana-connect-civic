@@ -9,6 +9,7 @@ import PromisesGrid from './PromisesGrid';
 import ForumChannel from './ForumChannel';
 import { GovernmentProject } from '@/types';
 import { ChannelChatWindow } from '@/components/chat/ChannelChatWindow';
+import { SectionErrorBoundary } from '@/components/community/CommunityErrorBoundary';
 
 interface ChannelContentProps {
     channelId: string;
@@ -42,6 +43,18 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     communityId,
     channel
 }) => {
+    // Early return if channel data hasn't loaded yet
+    if (!channel && channelId) {
+        return (
+            <div className="flex items-center justify-center p-8 h-full">
+                <div className="text-center">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading channel...</span>
+                </div>
+            </div>
+        );
+    }
+
     // 1. MONITORING CHANNELS (Grid Views)
     // We must check by NAME because channelId is now a UUID from the DB
     if (channel?.category === 'MONITORING' || ['our-leaders', 'projects-watch', 'promises-watch'].includes(channel?.name || '')) {
@@ -49,14 +62,26 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
             if (levelType === 'COMMUNITY') {
                 return <div className="p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
             }
-            return <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />;
+            return (
+                <SectionErrorBoundary section="Leaders Grid">
+                    <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />
+                </SectionErrorBoundary>
+            );
         }
         if (channel?.name === 'projects-watch') {
-            return <ProjectsGrid projects={projects} loading={projectsLoading} />;
+            return (
+                <SectionErrorBoundary section="Projects Watch">
+                    <ProjectsGrid projects={projects} loading={projectsLoading} />
+                </SectionErrorBoundary>
+            );
         }
         if (channel?.name === 'promises-watch') {
             if (levelType === 'COMMUNITY') return null;
-            return <PromisesGrid levelType={levelType} locationValue={locationValue} />;
+            return (
+                <SectionErrorBoundary section="Promises Watch">
+                    <PromisesGrid levelType={levelType} locationValue={locationValue} />
+                </SectionErrorBoundary>
+            );
         }
     }
 

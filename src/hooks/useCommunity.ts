@@ -133,7 +133,7 @@ export const useCommunity = (communityName: string | undefined) => {
         queryFn: ({ signal }) => fetchCommunityByName(communityName!, user?.id, signal),
         enabled: !!communityName,
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 2,
+        retry: false, // Don't retry - prevents stale data from old communities
     });
 
     // Membership toggle with optimistic updates

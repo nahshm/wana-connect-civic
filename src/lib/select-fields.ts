@@ -70,8 +70,8 @@ export const PROFILE_WITH_STATS = `
 // COMMUNITIES
 // ==========================================
 
-/** Minimal community for cards/lists */
-export const COMMUNITY_CARD = 'id,name,display_name,icon_url,member_count,category' as const;
+/** Minimal community for cards/lists - FIXED: Using actual DB columns */
+export const COMMUNITY_CARD = 'id,name,display_name,category' as const;
 
 /** Community list with description */
 export const COMMUNITY_LIST = 'id,name,display_name,description,icon_url,banner_url,member_count,category,created_at' as const;
@@ -148,38 +148,38 @@ export const VOTE_MINIMAL = 'user_id,post_id,vote_type' as const;
  * Backward compatible object for easier migration
  */
 export const SELECT_FIELDS = {
-    // Posts
-    POST_LIST,
-    POST_DETAIL,
-    POST_WITH_AUTHOR,
-    POST_WITH_RELATIONS,
-    POST_FULL,
+  // Posts
+  POST_LIST,
+  POST_DETAIL,
+  POST_WITH_AUTHOR,
+  POST_WITH_RELATIONS,
+  POST_FULL,
 
-    // Profiles
-    PROFILE_CARD,
-    PROFILE_LIST,
-    PROFILE_FULL,
-    PROFILE_WITH_STATS,
+  // Profiles
+  PROFILE_CARD,
+  PROFILE_LIST,
+  PROFILE_FULL,
+  PROFILE_WITH_STATS,
 
-    // Communities
-    COMMUNITY_CARD,
-    COMMUNITY_LIST,
-    COMMUNITY_FULL,
+  // Communities
+  COMMUNITY_CARD,
+  COMMUNITY_LIST,
+  COMMUNITY_FULL,
 
-    // Comments
-    COMMENT_LIST,
-    COMMENT_WITH_AUTHOR,
+  // Comments
+  COMMENT_LIST,
+  COMMENT_WITH_AUTHOR,
 
-    // Channels
-    CHANNEL_LIST,
-    CHANNEL_FULL,
+  // Channels
+  CHANNEL_LIST,
+  CHANNEL_FULL,
 
-    // Notifications
-    NOTIFICATION_LIST,
-    NOTIFICATION_WITH_ACTOR,
+  // Notifications
+  NOTIFICATION_LIST,
+  NOTIFICATION_WITH_ACTOR,
 
-    // Votes
-    VOTE_MINIMAL,
+  // Votes
+  VOTE_MINIMAL,
 } as const;
 
 /** Default export for convenience */

@@ -175,9 +175,9 @@ export const useChannelContent = (
         isLoading: postsLoading,
         refetch: refetchPosts,
     } = useQuery({
-        queryKey: ['channelPosts', communityId, channel?.id],
+        queryKey: ['channelPosts', communityId, channel?.id || 'none', channel?.name, channel?.type],
         queryFn: ({ signal }) => fetchChannelPosts(communityId!, channel!.id, signal),
-        enabled: !!communityId && !!channel && isTextChannel,
+        enabled: Boolean(communityId) && Boolean(channel?.id) && isTextChannel,
         staleTime: 2 * 60 * 1000, // 2 minutes
     });
 
@@ -186,9 +186,9 @@ export const useChannelContent = (
         data: projects,
         isLoading: projectsLoading,
     } = useQuery({
-        queryKey: ['channelProjects', communityId, channel?.id],
+        queryKey: ['channelProjects', communityId, channel?.id || 'none', channel?.name],
         queryFn: ({ signal }) => fetchChannelProjects(community!, signal),
-        enabled: !!communityId && !!channel && !!community && isProjectsChannel,
+        enabled: Boolean(communityId) && Boolean(channel?.id) && Boolean(community) && isProjectsChannel,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
