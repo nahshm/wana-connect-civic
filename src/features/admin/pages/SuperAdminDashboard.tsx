@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
 import { AdministrativeDivisionManager } from './components/AdministrativeDivisionManager';
 import { InstitutionsManager } from './components/InstitutionsManager';
+import PerformanceMonitoringTab from '../components/PerformanceMonitoringTab';
 
 // Tab configuration
 const mainTabs = [
@@ -37,6 +38,7 @@ const mainTabs = [
   { id: 'feature-flags', label: 'Feature Flags', icon: Settings },
   { id: 'security', label: 'Security', icon: Lock },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'performance', label: 'Performance Monitoring', icon: Activity },
   { id: 'system', label: 'System Health', icon: Server }
 ];
 
@@ -215,6 +217,7 @@ export default function SuperAdminDashboard() {
           {selectedTab === 'feature-flags' && <FeatureFlagsTab />}
           {selectedTab === 'security' && <SecurityTab />}
           {selectedTab === 'analytics' && <AnalyticsTab />}
+          {selectedTab === 'performance' && <PerformanceMonitoringTab />}
           {selectedTab === 'system' && <SystemHealthTab />}
         </div>
       </div>
