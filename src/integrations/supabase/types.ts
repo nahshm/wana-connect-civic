@@ -4798,6 +4798,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          action: string
+          request_count: number | null
+          user_id: string
+          window_start: string | null
+        }
+        Insert: {
+          action: string
+          request_count?: number | null
+          user_id: string
+          window_start?: string | null
+        }
+        Update: {
+          action?: string
+          request_count?: number | null
+          user_id?: string
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       saved_items: {
         Row: {
           created_at: string | null
@@ -5772,6 +5793,18 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_stats: {
+        Row: {
+          action: string | null
+          avg_requests_per_user: number | null
+          earliest_window: string | null
+          latest_window: string | null
+          max_requests: number | null
+          total_requests: number | null
+          unique_users: number | null
+        }
+        Relationships: []
+      }
       wards: {
         Row: {
           constituencies: Json | null
@@ -5825,8 +5858,49 @@ export type Database = {
       calculate_impact_rating: { Args: { p_user_id: string }; Returns: number }
       calculate_post_karma: { Args: { user_uuid: string }; Returns: number }
       calculate_user_karma: { Args: { user_uuid: string }; Returns: number }
+      check_rate_limit: {
+        Args: {
+          p_action: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       cleanup_stale_active_members: { Args: never; Returns: number }
       compute_leaderboard_scores: { Args: never; Returns: undefined }
+      create_comment_ratelimited: {
+        Args: { p_content: string; p_parent_id?: string; p_post_id: string }
+        Returns: string
+      }
+      create_community_ratelimited: {
+        Args: {
+          p_category: string
+          p_description: string
+          p_display_name: string
+          p_name: string
+        }
+        Returns: string
+      }
+      create_community_with_channels: {
+        Args: {
+          p_category: string
+          p_description: string
+          p_display_name: string
+          p_name: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      create_post_ratelimited: {
+        Args: {
+          p_community_id: string
+          p_content: string
+          p_tags?: string[]
+          p_title: string
+        }
+        Returns: string
+      }
       get_channel_analytics: {
         Args: { p_channel_id: string }
         Returns: {
@@ -5890,6 +5964,15 @@ export type Database = {
           username: string
         }[]
       }
+      get_rate_limit_status: {
+        Args: { p_action?: string }
+        Returns: {
+          action: string
+          request_count: number
+          time_until_reset: number
+          window_start: string
+        }[]
+      }
       get_weekly_contributions: {
         Args: { community_uuid: string }
         Returns: number
@@ -5932,8 +6015,25 @@ export type Database = {
         Args: { p_community_id: string; p_user_id: string }
         Returns: undefined
       }
+      update_profile_ratelimited: {
+        Args: {
+          p_avatar_url?: string
+          p_banner_url?: string
+          p_bio?: string
+          p_display_name?: string
+        }
+        Returns: boolean
+      }
       user_is_room_participant: {
         Args: { room_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      vote_ratelimited: {
+        Args: {
+          p_target_id: string
+          p_target_type: string
+          p_vote_type: string
+        }
         Returns: boolean
       }
     }
