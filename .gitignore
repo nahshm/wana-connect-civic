@@ -30,3 +30,20 @@ coverage/
 .env
 .env.local
 .env.*.local
+
+# Temporary migration files
+supabase/.temp/
+supabase/migrations/*_optimize.sql
+supabase/migrations/minified_*.sql
+supabase/migrations/prod_*.sql
+supabase/migrations_backup/
+
+# Backup and analysis files
+backups/
+prod_policies_*.json
+rls_policy_analysis.txt
+*.backup.sql
+
+# Temporary scripts
+stage_monitoring.sh
+COMMIT_MSG.md
