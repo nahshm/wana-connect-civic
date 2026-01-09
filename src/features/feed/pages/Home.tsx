@@ -537,11 +537,11 @@ export default function Index() {
                   <div>
                     <p className="font-medium text-sm">{community.displayName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {community.memberCount.toLocaleString()} members
+                      {(community.memberCount ?? 0).toLocaleString()} members
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {community.category.replace('-', ' ')}
+                    {(community.category ?? '').replace('-', ' ')}
                   </Badge>
                 </div>
               ))}

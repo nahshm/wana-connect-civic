@@ -93,15 +93,54 @@ const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
         queryFn: async (): Promise<UserProfile | null> => {
             if (!username) return null;
 
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('username', username)
-                .maybeSingle();
+            // Detect if username is actually a UUID
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(username);
 
-            if (error) throw error;
-            if (!data) return null;
+            let profileQuery;
 
+            if (isUUID) {
+                // First, try to find it as a user_id in profiles
+                const { data: directProfile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', username)
+                    .maybeSingle();
+
+                if (directProfile) {
+                    profileQuery = { data: directProfile, error: null };
+                } else {
+                    // If not found, it might be an office_holders.id
+                    // Look up the user_id from office_holders table
+                    const { data: officeHolder } = await supabase
+                        .from('office_holders')
+                        .select('user_id')
+                        .eq('id', username)
+                        .maybeSingle();
+
+                    if (officeHolder?.user_id) {
+                        // Fetch profile using the user_id
+                        profileQuery = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', officeHolder.user_id)
+                            .maybeSingle();
+                    } else {
+                        profileQuery = { data: null, error: null };
+                    }
+                }
+            } else {
+                // Normal username lookup
+                profileQuery = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('username', username)
+                    .maybeSingle();
+            }
+
+            if (profileQuery.error) throw profileQuery.error;
+            if (!profileQuery.data) return null;
+
+            const data = profileQuery.data;
             return {
                 id: data.id,
                 username: data.username,

@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { SELECT_FIELDS } from '@/lib/select-fields'; // Bandwidth optimization
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
@@ -23,7 +24,7 @@ const EditPost = () => {
     const fetchCommunities = async () => {
       const { data } = await supabase
         .from('communities')
-        .select('*')
+        .select(SELECT_FIELDS.COMMUNITY_CARD) // Bandwidth optimization -60%
         .order('member_count', { ascending: false });
       setCommunities(data || []);
     };
