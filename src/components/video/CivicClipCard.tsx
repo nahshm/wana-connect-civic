@@ -211,12 +211,12 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                         </div>
                     </div>
 
-                    {/* Accountability Badge */}
-                    {showAccountability && (
+                    {/* Accountability Badge - hidden until columns exist */}
+                    {showAccountability && false && (
                         <CivicClipAccountabilityBadge
-                            factCheckStatus={clip.fact_check_status || 'unverified'}
-                            officialResponse={clip.official_response_status || 'none'}
-                            hasSourceCitation={clip.has_sources || false}
+                            factCheckStatus={'unverified'}
+                            officialResponse={'none'}
+                            hasSourceCitation={false}
                         />
                     )}
                 </div>

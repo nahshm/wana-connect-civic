@@ -1,20 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { VideoFeed } from '@/components/video/VideoFeed'
+import { VideoFeedErrorBoundary } from '@/components/video/VideoFeedErrorBoundary'
 import { CivicClipsHeader } from '@/components/video/CivicClipsHeader'
 import { CivicClipsCategoryTabs, CivicCategory } from '@/components/video/CivicClipsCategoryTabs'
 import { SwipeHint } from '@/components/video/SwipeHint'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
-import { X, Search } from 'lucide-react'
+import { X, Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { initCivicClipsMonitoring } from '@/lib/civic-clips-monitoring'
 
 export const CivicClipsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
-    
+
     const categoryParam = searchParams.get('category') as CivicCategory | null
     const hashtag = searchParams.get('hashtag') || undefined
-    
+
     const [activeCategory, setActiveCategory] = useState<CivicCategory | null>(categoryParam)
     const [showSwipeHint, setShowSwipeHint] = useState(true)
     const [showSearch, setShowSearch] = useState(false)
@@ -35,9 +37,15 @@ export const CivicClipsPage = () => {
         }
     }, [])
 
+    // Performance monitoring
+    useEffect(() => {
+        const cleanup = initCivicClipsMonitoring()
+        return cleanup
+    }, [])
+
     const handleCategoryChange = (category: CivicCategory | null) => {
         setActiveCategory(category)
-        
+
         // Update URL params
         if (category) {
             setSearchParams({ category })
@@ -65,9 +73,9 @@ export const CivicClipsPage = () => {
     return (
         <div className="fixed inset-0 bg-black">
             {/* Header */}
-            <CivicClipsHeader 
+            <CivicClipsHeader
                 onSearchClick={() => setShowSearch(true)}
-                onFilterClick={() => {/* TODO: open filter modal */}}
+                onFilterClick={() => {/* TODO: open filter modal */ }}
             />
 
             {/* Category Tabs */}
@@ -100,7 +108,7 @@ export const CivicClipsPage = () => {
                                 <X className="w-5 h-5 text-white/60" />
                             </button>
                         </div>
-                        
+
                         {/* Quick Search Suggestions */}
                         <div className="mt-6 flex flex-wrap gap-2 justify-center max-w-md">
                             {['#CDF', '#Accountability', '#ProjectWatch', '#Promise2027', '#CountyBudget'].map(tag => (
@@ -120,12 +128,28 @@ export const CivicClipsPage = () => {
                 </div>
             )}
 
-            {/* Video Feed */}
-            <VideoFeed 
-                category={activeCategory === 'trending' ? undefined : activeCategory || undefined} 
-                hashtag={hashtag}
-                trending={activeCategory === 'trending'}
-            />
+            {/* Video Feed with Error Boundary */}
+            <VideoFeedErrorBoundary
+                onReset={() => {
+                    // Reset state on error
+                    setActiveCategory(null)
+                    window.location.reload()
+                }}
+            >
+                <Suspense
+                    fallback={
+                        <div className="flex items-center justify-center h-screen bg-black">
+                            <Loader2 className="h-12 w-12 text-white animate-spin" />
+                        </div>
+                    }
+                >
+                    <VideoFeed
+                        category={activeCategory === 'trending' ? undefined : activeCategory || undefined}
+                        hashtag={hashtag}
+                        trending={activeCategory === 'trending'}
+                    />
+                </Suspense>
+            </VideoFeedErrorBoundary>
 
             {/* Swipe Hint (first visit only) */}
             <SwipeHint show={showSwipeHint && isFirstVisit} />

@@ -4,6 +4,7 @@ import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2 } from 'luci
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
+import { getVideoUrlsWithFallback, loadVideoWithRetry, getPreloadStrategy } from '@/lib/video-utils'
 
 interface VideoPlayerProps {
     videoUrl: string
@@ -49,6 +50,9 @@ export const VideoPlayer = ({
     const [hasStarted, setHasStarted] = useState(false)
     const [isLoaded, setIsLoaded] = useState(!lazyLoad) // If not lazy loading, consider it loaded
     const [isBuffering, setIsBuffering] = useState(false)
+    const [loadError, setLoadError] = useState<Error | null>(null)
+    const [retryCount, setRetryCount] = useState(0)
+    const maxRetries = 3
 
     // Intersection Observer for lazy loading
     const { ref: inViewRef, inView } = useInView({
@@ -65,10 +69,40 @@ export const VideoPlayer = ({
 
     // Start loading video when it comes into view
     useEffect(() => {
-        if (inView && lazyLoad && !isLoaded) {
+        if (inView && lazyLoad && !isLoaded && !loadError) {
             setIsLoaded(true)
         }
-    }, [inView, lazyLoad, isLoaded])
+    }, [inView, lazyLoad, isLoaded, loadError])
+
+    // Handle video loading with retry on error
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video || !isLoaded || !videoUrl) return
+
+        const handleLoadError = async () => {
+            console.warn('Video load error, attempting fallback...', { url: videoUrl, attempt: retryCount })
+            setLoadError(new Error('Video failed to load'))
+
+            // Try with fallback URLs
+            if (retryCount < maxRetries) {
+                setRetryCount(prev => prev + 1)
+                setIsBuffering(true)
+
+                try {
+                    const fallbackUrls = getVideoUrlsWithFallback(videoUrl)
+                    await loadVideoWithRetry(video, fallbackUrls, 2)
+                    setLoadError(null)
+                    setIsBuffering(false)
+                } catch (error) {
+                    console.error('All video load attempts failed:', error)
+                    setIsBuffering(false)
+                }
+            }
+        }
+
+        video.addEventListener('error', handleLoadError)
+        return () => video.removeEventListener('error', handleLoadError)
+    }, [isLoaded, videoUrl, retryCount, maxRetries])
 
     useEffect(() => {
         const video = videoRef.current
@@ -174,6 +208,31 @@ export const VideoPlayer = ({
         handlePlayPause()
     }, [isActive])
 
+    // Pause video when tab/window is not visible (Page Visibility API)
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video) return
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // Tab is hidden - pause video
+                if (!video.paused) {
+                    video.pause()
+                }
+            } else {
+                // Tab is visible again - resume if this video is active
+                if (isActive && video.paused && autoPlay) {
+                    video.play().catch(() => {
+                        // Silently handle play errors
+                    })
+                }
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }, [isActive, autoPlay])
+
     const togglePlay = () => {
         if (videoRef.current) {
             if (playing) {
@@ -258,8 +317,8 @@ export const VideoPlayer = ({
         >
             {/* Thumbnail placeholder shown before video loads */}
             {(!isLoaded || !videoUrl) && thumbnailUrl && (
-                <img 
-                    src={thumbnailUrl} 
+                <img
+                    src={thumbnailUrl}
                     alt="Video thumbnail"
                     className="absolute inset-0 w-full h-full object-cover"
                 />
@@ -282,8 +341,9 @@ export const VideoPlayer = ({
                 muted={muted}
                 loop={loop}
                 playsInline
-                preload={isLoaded ? 'auto' : 'none'}
+                preload={isLoaded ? getPreloadStrategy() : 'none'}
                 onClick={togglePlay}
+                crossOrigin="anonymous"
             />
 
             {/* Play/Pause Overlay */}

@@ -29,7 +29,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useVerification } from '@/hooks/useVerification';
 import VerificationPanel from '@/components/verification/VerificationPanel';
 import SentimentBar from '@/components/verification/SentimentBar';
@@ -44,8 +44,11 @@ interface PostCardProps {
 export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card' }: PostCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [showFullImage, setShowFullImage] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const secondVideoRef = useRef<HTMLVideoElement>(null);
 
   // Verification system  
   const { verification, castVote, isCastingVote } = useVerification({
@@ -117,6 +120,27 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
       setIsDeleting(false);
     }
   };
+
+  // Auto-pause videos when tab/window is not visible
+  useEffect(() => {
+    const videos = [videoRef.current, secondVideoRef.current].filter(Boolean) as HTMLVideoElement[]
+    if (videos.length === 0) return
+
+    const handleVisibilityChange = () => {
+      videos.forEach(video => {
+        if (document.hidden) {
+          // Tab hidden - pause all videos
+          if (!video.paused) {
+            video.pause()
+          }
+        }
+        // Note: Don't auto-resume on visible - let user click play
+      })
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   // Handle community data that might be under 'community' or 'community_id' alias
   const communityData = post.community || (post as any).community_id;
@@ -201,6 +225,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               />
             ) : post.media[0].file_type?.startsWith('video/') ? (
               <video
+                ref={videoRef}
                 src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
                 controls
                 className="w-full h-auto max-h-96"
@@ -219,6 +244,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                   />
                 ) : media.file_type?.startsWith('video/') ? (
                   <video
+                    ref={index === 0 ? secondVideoRef : undefined}
                     src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
                     className="w-full h-32 object-cover"
                   />

@@ -27,6 +27,10 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false }: Video
         isLoading
     } = useInfiniteQuery({
         queryKey: ['civic-clips', category, hashtag, userId, trending],
+        staleTime: 2 * 60 * 1000, // 2 minutes - data stays fresh
+        gcTime: 10 * 60 * 1000, // 10 minutes - cache time (renamed from cacheTime)
+        refetchOnWindowFocus: false, // Don't refetch on tab focus
+        refetchOnReconnect: true, // Refetch on network reconnect
         queryFn: async ({ pageParam = 0 }) => {
             let query = supabase
                 .from('civic_clips')
@@ -58,7 +62,7 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false }: Video
             } else {
                 query = query.order('created_at', { ascending: false })
             }
-            
+
             query = query.range(pageParam * 10, (pageParam + 1) * 10 - 1)
 
             // Apply filters
@@ -81,7 +85,9 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false }: Video
             if (lastPage.length < 10) return undefined
             return pages.length
         },
-        initialPageParam: 0
+        initialPageParam: 0,
+        retry: 2, // Retry failed requests twice
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     })
 
     // Load more when scrolling to bottom
@@ -155,17 +161,35 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false }: Video
             className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth pt-24"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-            {allClips.map((clip, index) => (
-                <div key={clip.id} data-video-card data-index={index}>
-                    <CivicClipCard
-                        clip={clip}
-                        isActive={index === currentIndex}
-                        isMuted={isMuted}
-                        onMuteToggle={setIsMuted}
-                        showAccountability={true}
-                    />
-                </div>
-            ))}
+            {allClips.map((clip, index) => {
+                // Virtual rendering: only render current video +/- 1
+                const shouldRender = Math.abs(index - currentIndex) <= 1
+                const isActive = index === currentIndex
+
+                return (
+                    <div
+                        key={clip.id}
+                        data-video-card
+                        data-index={index}
+                        className="h-screen snap-start snap-always"
+                    >
+                        {shouldRender ? (
+                            <CivicClipCard
+                                clip={clip}
+                                isActive={isActive}
+                                isMuted={isMuted}
+                                onMuteToggle={setIsMuted}
+                                showAccountability={true}
+                            />
+                        ) : (
+                            // Placeholder for non-rendered videos
+                            <div className="h-full w-full bg-black flex items-center justify-center">
+                                <Loader2 className="h-8 w-8 animate-spin text-white/20" />
+                            </div>
+                        )}
+                    </div>
+                )
+            })}
 
             {/* Load more trigger */}
             <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
