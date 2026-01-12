@@ -127,10 +127,8 @@ const App = () => (
                             <Route path="/promises/:promiseId" element={<PromiseDetail />} />
                             <Route path="/discover" element={<DiscoveryDashboard />} />
 
-                            {/* Profile Routes - specific routes first */}
-                            <Route path="/u/:username" element={<ProfileV2 />} />
-                            <Route path="/w/:username" element={<ProfileV2 />} />
-                            <Route path="/g/:username" element={<ProfileV2 />} />
+                            {/* Profile Routes - handled by PrefixRouter for /u/, /w/, /g/ */}
+                            {/* PrefixRouter detects UUIDs vs usernames and routes to OfficePage vs ProfileV2 */}
                             <Route path="/profile/:username" element={<ProfileV2 />} />
                             <Route path="/profile" element={<ProfileV2 />} />
 
