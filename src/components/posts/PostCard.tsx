@@ -271,14 +271,14 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 alt="Post media"
                 loading="eager"
                 fetchPriority="high"
-                className="w-full h-auto max-h-[512px] object-cover"
+                className="w-full h-auto max-h-[512px] object-contain bg-black"
               />
             ) : post.media[0].file_type?.startsWith('video/') ? (
               <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
                 <video
                   ref={videoRef}
                   src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-                  className="w-full h-auto max-h-[512px] object-cover"
+                  className="w-full h-auto max-h-[512px] object-contain bg-black"
                   playsInline
                 />
                 {!isPlaying && (
