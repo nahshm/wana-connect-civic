@@ -56,6 +56,7 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '🔥', '💡', '👀', '✅'];
 
@@ -251,8 +252,7 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
     };
 
     const handleCopy = (content: string) => {
-        navigator.clipboard.writeText(content);
-        toast.success('Copied!');
+        copyToClipboard(content, 'Copied!');
     };
 
     const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);

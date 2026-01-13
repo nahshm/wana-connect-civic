@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
 import { formatDistanceToNow } from 'date-fns'
+import { copyToClipboard } from '@/lib/clipboard-utils'
 import { CivicClipAccountabilityBadge } from './CivicClipAccountabilityBadge'
 import { CivicClipProgressIndicator } from './CivicClipProgressIndicator'
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
@@ -110,8 +111,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                 // User cancelled or error
             }
         } else {
-            navigator.clipboard.writeText(url)
-            toast({ title: 'Link copied to clipboard' })
+            copyToClipboard(url, 'Link copied to clipboard')
         }
     }
 
@@ -212,15 +212,14 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                     </div>
 
                     {/* Accountability Badge - hidden until columns exist */}
-                    {/* TODO: Uncomment when database columns are ready
+                    {/* Accountability Badge */}
                     {showAccountability && (
                         <CivicClipAccountabilityBadge
-                            factCheckStatus={'unverified'}
-                            officialResponse={'none'}
-                            hasSourceCitation={false}
+                            factCheckStatus={clip.fact_check_status || 'unverified'}
+                            officialResponse={clip.official_response || 'none'}
+                            hasSourceCitation={!!clip.source_citation_url}
                         />
                     )}
-                    */}
                 </div>
 
                 {/* Bottom Content */}

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 import {
     ArrowLeft, MapPin, DollarSign, Calendar, Share2, Bookmark, Plus, AlertCircle, CheckSquare,
     Building2, FileText, Download, TrendingUp, CheckCircle,
@@ -253,7 +254,7 @@ const ProjectDetail = () => {
                 url: window.location.href
             }).catch(() => { });
         } else {
-            navigator.clipboard.writeText(window.location.href);
+            copyToClipboard(window.location.href, 'Link copied to clipboard');
         }
     };
 

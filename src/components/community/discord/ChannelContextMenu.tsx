@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -131,8 +132,7 @@ export function ChannelContextMenu({
 
     const handleCopyLink = () => {
         const url = `${window.location.origin}/c/${communityId}?channel=${channel.id}`;
-        navigator.clipboard.writeText(url);
-        toast.success('Channel link copied!');
+        copyToClipboard(url, 'Channel link copied!');
     };
 
     const handleTogglePrivate = () => {

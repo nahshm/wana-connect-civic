@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGeoLocation, SUPPORTED_COUNTRIES } from '@/hooks/useGeoLocation';
 import { ClaimPositionModal } from '@/components/governance/ClaimPositionModal';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 import {
   Search, Eye, Share2, MapPin, ShieldCheck, UserPlus,
   Globe, Loader2, ChevronRight, Building2, Landmark, Users
@@ -443,7 +444,7 @@ const Officials = () => {
                               size="sm"
                               onClick={() => {
                                 const url = `${window.location.origin}/g/${position.id}`;
-                                navigator.clipboard.writeText(url);
+                                copyToClipboard(url, 'Link copied to clipboard');
                               }}
                             >
                               <Share2 className="w-4 h-4" />

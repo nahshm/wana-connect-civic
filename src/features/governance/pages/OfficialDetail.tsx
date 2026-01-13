@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 import {
     ArrowLeft, MapPin, Users, Target, TrendingUp, Calendar,
     DollarSign, Phone, Mail, Globe, Share2, AlertTriangle,
@@ -129,11 +130,7 @@ const OfficialDetail = () => {
 
     const handleShare = () => {
         const url = `${window.location.origin}/g/${officialId}`;
-        navigator.clipboard.writeText(url);
-        toast({
-            title: 'Link copied!',
-            description: 'Official profile link copied to clipboard'
-        });
+        copyToClipboard(url, 'Official profile link copied to clipboard');
     };
 
     if (loading) {

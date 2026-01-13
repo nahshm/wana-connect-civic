@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -273,8 +274,7 @@ export function ChannelChatWindow({
     };
 
     const handleCopyMessage = (content: string) => {
-        navigator.clipboard.writeText(content);
-        toast.success('Message copied');
+        copyToClipboard(content, 'Message copied');
     };
 
     const handleReply = (msg: Message) => {

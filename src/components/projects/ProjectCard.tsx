@@ -9,6 +9,7 @@ import { EntityList } from './EntityBadge';
 import { EngagementBar } from './EngagementBar';
 import { PROJECT_CATEGORIES_2026 } from '@/constants/projectConstants';
 import { cn } from '@/lib/utils';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 
 interface ProjectCardProps {
     project: any; // Will be typed from useProjects hook
@@ -44,8 +45,7 @@ export function ProjectCard({ project, compact = false, onClick }: ProjectCardPr
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        // TODO: Implement share modal
-        navigator.clipboard.writeText(`${window.location.origin}/projects/${project.id}`);
+        copyToClipboard(`${window.location.origin}/projects/${project.id}`, 'Link copied to clipboard');
     };
 
     const handleComment = (e: React.MouseEvent) => {

@@ -21,10 +21,13 @@ async function logAPIMetric(metric: APIMetric) {
             console.log(`${emoji} API ${metric.operation}: ${metric.duration_ms.toFixed(2)}ms (${metric.status})`);
         }
 
-        // Only log to database in production to avoid dev clutter
-        if (import.meta.env.PROD) {
+        // Log to database if in production or explicitly enabled
+        const shouldLog = import.meta.env.PROD || import.meta.env.VITE_ENABLE_API_LOGGING === 'true';
+
+        if (shouldLog) {
             const { data: { user } } = await supabase.auth.getUser();
 
+            // @ts-expect-error - Table exists but types are outdated
             await supabase.from('api_metrics').insert({
                 operation: metric.operation,
                 duration_ms: metric.duration_ms,

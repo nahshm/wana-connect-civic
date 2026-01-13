@@ -801,7 +801,7 @@ const PostDetail = () => {
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-1">
                     <Users className="w-3 h-3" />
-                    <span>{post.community.memberCount.toLocaleString()}</span>
+                    <span>{post.community.memberCount?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-3 h-3" />

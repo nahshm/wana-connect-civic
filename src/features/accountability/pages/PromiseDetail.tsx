@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 import {
   ArrowLeft, MapPin, DollarSign, Calendar, TrendingUp,
   AlertTriangle, CheckCircle, Clock, XCircle, Users,
@@ -177,11 +178,7 @@ const PromiseDetail = () => {
 
   const handleShare = () => {
     const url = `${window.location.origin}/pr/${promiseId}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: 'Link copied!',
-      description: 'Promise link copied to clipboard'
-    });
+    copyToClipboard(url, 'Promise link copied to clipboard');
   };
 
   const getInitials = (name: string) => {
