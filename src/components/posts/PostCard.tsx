@@ -53,6 +53,21 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   const secondVideoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isSecondPlaying, setIsSecondPlaying] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [showSavedTooltip, setShowSavedTooltip] = useState(false)
+
+  // Handle bookmark/save with tooltip
+  const handleSave = () => {
+    setIsSaved(true)
+    setShowSavedTooltip(true)
+    setTimeout(() => setShowSavedTooltip(false), 2000)
+    
+    toast({
+      title: '🔖 Saved!',
+      description: 'Post saved to your collection.',
+      duration: 2000,
+    })
+  }
 
   // Safe date formatting helper
   const formatPostDate = (date: any): string => {
@@ -617,10 +632,26 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 <span className="hidden sm:inline text-sm font-medium">Share</span>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-civic-orange hover:bg-civic-orange/10 rounded-lg transition-all duration-200 hover:scale-105">
-                <Bookmark className="w-5 h-5" strokeWidth={2} />
-                <span className="hidden sm:inline text-sm font-medium">Save</span>
-              </Button>
+              <div className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`h-9 px-3 sm:px-4 gap-2 rounded-lg transition-all duration-200 hover:scale-105 ${
+                    isSaved 
+                      ? 'text-civic-orange bg-civic-orange/10' 
+                      : 'text-muted-foreground hover:text-civic-orange hover:bg-civic-orange/10'
+                  }`}
+                  onClick={handleSave}
+                >
+                  <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-civic-orange' : ''}`} strokeWidth={2} />
+                  <span className="hidden sm:inline text-sm font-medium">Save</span>
+                </Button>
+                {showSavedTooltip && (
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-civic-green text-white text-xs px-3 py-1.5 rounded-lg shadow-lg animate-fade-in whitespace-nowrap">
+                    Saved! 🔖
+                  </div>
+                )}
+              </div>
             </div>
 
             <DropdownMenu>
