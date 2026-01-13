@@ -74,21 +74,45 @@ export const FeedHeader = ({
     <div className="bg-sidebar-background border-b border-sidebar-border px-4 py-3 sticky top-16 z-40">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
         <div className="flex items-center space-x-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
-          {/* Sort Buttons */}
-          <div className="flex items-center space-x-1 bg-background rounded-lg p-1 min-w-max">
+          {/* Sort Buttons with Sliding Underline */}
+          <div className="relative flex items-center space-x-1 bg-background rounded-lg p-1 min-w-max">
             {sortOptions.map(({ value, label, icon: Icon }) => (
               <Button
                 key={value}
                 variant={sortBy === value ? "default" : "ghost"}
                 size="sm"
                 onClick={() => onSortChange(value)}
-                className={`h-8 px-3 ${sortBy === value
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
-                  }`}
+                className={`relative h-8 px-3 transition-all duration-200 ${
+                  sortBy === value
+                    ? 'text-sidebar-accent-foreground'
+                    : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
+                }`}
               >
-                <Icon className="w-4 h-4 mr-1" />
+                <Icon className={`w-4 h-4 mr-1 transition-colors duration-200 ${
+                  sortBy === value ? 'text-civic-green' : ''
+                }`} />
                 {label}
+                {sortBy === value && (
+                  <>
+                    {/* Sliding underline */}
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-civic-green to-civic-blue rounded-full animate-slide-in" />
+                    {/* Live activity indicator */}
+                    {value === 'hot' && (
+                      <span className="ml-1.5 flex items-center gap-1 text-[10px] text-civic-orange">
+                        <span className="animate-pulse">🔥</span>
+                        234
+                      </span>
+                    )}
+                    {value === 'rising' && (
+                      <span className="ml-1.5 flex items-center gap-1 text-[10px] text-civic-green">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-civic-green opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-civic-green"></span>
+                        </span>
+                      </span>
+                    )}
+                  </>
+                )}
               </Button>
             ))}
           </div>
