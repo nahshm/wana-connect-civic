@@ -265,8 +265,9 @@ export default function Index() {
 
     try {
       const currentPost = posts.find(p => p.id === postId);
+      const wasVoted = currentPost?.userVote === voteType;
 
-      if (currentPost?.userVote === voteType) {
+      if (wasVoted) {
         // Remove vote
         await supabase
           .from('votes')
@@ -284,6 +285,21 @@ export default function Index() {
           }, {
             onConflict: 'post_id,user_id'
           });
+        
+        // Show success toast for new vote
+        if (voteType === 'up') {
+          toast({
+            title: '✅ Upvoted!',
+            description: 'Your upvote has been recorded.',
+            duration: 2000,
+          });
+        } else {
+          toast({
+            title: 'Downvoted',
+            description: 'Your feedback has been recorded.',
+            duration: 2000,
+          });
+        }
       }
     } catch (error) {
       console.error('Error voting:', error);
