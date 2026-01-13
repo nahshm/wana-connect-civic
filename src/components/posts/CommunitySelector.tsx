@@ -105,7 +105,7 @@ export const CommunitySelector = ({
                                         <div className="flex flex-col">
                                             <span className="font-medium">c/{community.name}</span>
                                             <span className="text-xs text-muted-foreground">
-                                                {community.display_name} · {community.member_count.toLocaleString()} members
+                                                {community.display_name} · {(community.member_count ?? 0).toLocaleString()} members
                                             </span>
                                         </div>
                                     </CommandItem>

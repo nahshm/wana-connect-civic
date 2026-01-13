@@ -44,11 +44,14 @@ interface PostCardProps {
 export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card' }: PostCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false)
   const [showFullImage, setShowFullImage] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const secondVideoRef = useRef<HTMLVideoElement>(null);
+  const secondVideoRef = useRef<HTMLVideoElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isSecondPlaying, setIsSecondPlaying] = useState(false)
 
   // Verification system  
   const { verification, castVote, isCastingVote } = useVerification({
@@ -121,26 +124,72 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
     }
   };
 
-  // Auto-pause videos when tab/window is not visible
+  // Auto-pause videos when scrolled out of view OR tab is hidden
   useEffect(() => {
-    const videos = [videoRef.current, secondVideoRef.current].filter(Boolean) as HTMLVideoElement[]
+    const videos = [
+      { ref: videoRef, setPlaying: setIsPlaying },
+      { ref: secondVideoRef, setPlaying: setIsSecondPlaying }
+    ].filter(v => v.ref.current)
+
     if (videos.length === 0) return
 
+    // Tab visibility handler
     const handleVisibilityChange = () => {
-      videos.forEach(video => {
-        if (document.hidden) {
-          // Tab hidden - pause all videos
-          if (!video.paused) {
-            video.pause()
+      if (document.hidden) {
+        videos.forEach(({ ref, setPlaying }) => {
+          if (ref.current && !ref.current.paused) {
+            ref.current.pause()
+            setPlaying(false)
           }
-        }
-        // Note: Don't auto-resume on visible - let user click play
-      })
+        })
+      }
     }
 
+    // Intersection Observer - pause when scrolled out of view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          videos.forEach(({ ref, setPlaying }) => {
+            if (ref.current && ref.current.contains(entry.target as Node)) {
+              if (!entry.isIntersecting && !ref.current.paused) {
+                // Video scrolled out of view - pause it
+                ref.current.pause()
+                setPlaying(false)
+              }
+            }
+          })
+        })
+      },
+      { threshold: 0.5 } // Pause when less than 50% visible
+    )
+
+    // Observe all videos
+    videos.forEach(({ ref }) => {
+      if (ref.current) {
+        observer.observe(ref.current)
+      }
+    })
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
+
+  // Toggle play/pause on video click
+  const toggleVideoPlay = (videoElement: HTMLVideoElement | null, setPlaying: (playing: boolean) => void) => {
+    if (!videoElement) return
+
+    if (videoElement.paused) {
+      videoElement.play()
+      setPlaying(true)
+    } else {
+      videoElement.pause()
+      setPlaying(false)
+    }
+  }
 
   // Handle community data that might be under 'community' or 'community_id' alias
   const communityData = post.community || (post as any).community_id;
@@ -224,12 +273,23 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 className="w-full h-auto max-h-96 object-cover"
               />
             ) : post.media[0].file_type?.startsWith('video/') ? (
-              <video
-                ref={videoRef}
-                src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-                controls
-                className="w-full h-auto max-h-96"
-              />
+              <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
+                <video
+                  ref={videoRef}
+                  src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+                  className="w-full h-auto max-h-96"
+                  playsInline
+                />
+                {!isPlaying && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <div className="bg-white/90 rounded-full p-4">
+                      <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : null}
           </div>
         ) : (
@@ -243,11 +303,23 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                     className="w-full h-32 object-cover"
                   />
                 ) : media.file_type?.startsWith('video/') ? (
-                  <video
-                    ref={index === 0 ? secondVideoRef : undefined}
-                    src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
-                    className="w-full h-32 object-cover"
-                  />
+                  <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
+                    <video
+                      ref={index === 0 ? secondVideoRef : undefined}
+                      src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
+                      className="w-full h-32 object-cover"
+                      playsInline
+                    />
+                    {index === 0 && !isSecondPlaying && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="bg-white/90 rounded-full p-2">
+                          <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : null}
               </div>
             ))}
