@@ -245,7 +245,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
     if (post.isNgoVerified) {
       badges.push(
         <Badge key="verified" variant="outline" className="flex items-center gap-1">
-          <Verified className="w-3 h-3 text-blue-500" />
+          <BadgeCheck className="w-3 h-3 text-blue-500" />
           NGO VERIFIED
         </Badge>
       );

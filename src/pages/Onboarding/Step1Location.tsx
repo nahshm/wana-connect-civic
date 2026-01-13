@@ -53,7 +53,7 @@ const Step1Location = ({ onNext, initialData }: Step1LocationProps) => {
         .from('administrative_divisions')
         .select('id, name, governance_level')
         .eq('country_code', detectedCountry) // Dynamic country!
-        .eq('level_index', 0) // Top level (county/state/province)
+        .eq('level_index', 1) // Top level (county/state/province)
         .order('name');
       return data || [];
     },
@@ -71,7 +71,7 @@ const Step1Location = ({ onNext, initialData }: Step1LocationProps) => {
         .select('id, name, governance_level')
         .eq('country_code', detectedCountry)
         .eq('parent_id', selectedCounty) // Child of selected county/state
-        .eq('level_index', 1) // Second level
+        .eq('level_index', 2) // Second level
         .order('name');
       return data || [];
     },
@@ -89,7 +89,7 @@ const Step1Location = ({ onNext, initialData }: Step1LocationProps) => {
         .select('id, name, governance_level')
         .eq('country_code', detectedCountry)
         .eq('parent_id', selectedConstituency) // Child of selected constituency/county
-        .eq('level_index', 2) // Third level
+        .eq('level_index', 3) // Third level
         .order('name');
       return data || [];
     },

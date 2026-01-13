@@ -105,9 +105,9 @@ const ActionDetail = () => {
                 .select(`
           *,
           profiles:user_id(username, display_name, avatar_url),
-          wards:ward_id(name),
-          constituencies:constituency_id(name),
-          counties:county_id(name)
+          wards!civic_actions_ward_id_fkey(name),
+          constituencies!civic_actions_constituency_id_fkey(name),
+          counties!civic_actions_county_id_fkey(name)
         `)
                 .eq('id', id)
                 .single();

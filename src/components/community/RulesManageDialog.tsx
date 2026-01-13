@@ -43,7 +43,7 @@ export const RulesManageDialog: React.FC<RulesManageDialogProps> = ({
     const createMutation = useMutation({
         mutationFn: async () => {
             const nextPosition = rules.length > 0
-                ? Math.max(...rules.map(r => r.position || 0)) + 1
+                ? Math.max(...rules.map(r => r.priority || 0)) + 1
                 : 0;
 
             const { error } = await supabase
@@ -52,7 +52,7 @@ export const RulesManageDialog: React.FC<RulesManageDialogProps> = ({
                     community_id: communityId,
                     title: newRuleTitle,
                     description: newRuleDescription,
-                    position: nextPosition,
+                    priority: nextPosition,
                 });
             if (error) throw error;
         },
@@ -116,9 +116,9 @@ export const RulesManageDialog: React.FC<RulesManageDialogProps> = ({
             const currentRule = rules[currentIndex];
             const swapRule = rules[swapIndex];
 
-            // Swap positions
-            await supabase.from('community_rules').update({ position: swapRule.position }).eq('id', currentRule.id);
-            await supabase.from('community_rules').update({ position: currentRule.position }).eq('id', swapRule.id);
+            // Swap priorities
+            await supabase.from('community_rules').update({ priority: swapRule.priority }).eq('id', currentRule.id);
+            await supabase.from('community_rules').update({ priority: currentRule.priority }).eq('id', swapRule.id);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['community'] });

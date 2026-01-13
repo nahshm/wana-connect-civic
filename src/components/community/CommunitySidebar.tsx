@@ -334,7 +334,6 @@ export const CommunitySidebar = ({
                     onClose={() => setIsCreatePostOpen(false)}
                     communityId={community.id}
                     communityName={community.name}
-                    flairs={flairs}
                 />
             </div>
         </div >
