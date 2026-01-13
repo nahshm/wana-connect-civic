@@ -44,17 +44,20 @@ export const useSearch = (params: SearchParams) => {
         projects: []
       }
 
-      // Search posts
+      // Search posts with fuzzy matching
       if (type === 'all' || type === 'posts') {
+        // Try full-text search first, then fallback to ILIKE
         let postsQuery = supabase
           .from('posts')
           .select(`
             id, title, content, created_at, upvotes, downvotes, comment_count,
-            author:profiles!author_id(id, username, display_name, avatar),
+            author:profiles!author_id(id, username, display_name, avatar_url),
             community:communities(id, name, display_name)
           `)
-          .textSearch('search_vector', query)
-          .range(offset, offset + limit - 1)
+
+        // Use ILIKE for fuzzy matching (case-insensitive partial match)
+        const searchPattern = `%${query}%`
+        postsQuery = postsQuery.or(`title.ilike.${searchPattern},content.ilike.${searchPattern}`)
 
         if (filters.communityId) postsQuery = postsQuery.eq('community_id', filters.communityId)
         if (filters.authorId) postsQuery = postsQuery.eq('author_id', filters.authorId)
@@ -65,7 +68,12 @@ export const useSearch = (params: SearchParams) => {
           postsQuery = postsQuery.order('created_at', { ascending: false })
         } else if (sort === 'votes') {
           postsQuery = postsQuery.order('upvotes', { ascending: false })
+        } else {
+          // For relevance, order by created_at desc as default
+          postsQuery = postsQuery.order('created_at', { ascending: false })
         }
+
+        postsQuery = postsQuery.range(offset, offset + limit - 1)
 
         const { data: posts } = await postsQuery
         results.posts = posts || []

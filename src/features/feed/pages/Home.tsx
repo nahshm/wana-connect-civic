@@ -3,6 +3,7 @@ import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FeedHeader } from '@/components/feed/FeedHeader';
 import { TrendingCarousel } from '@/components/feed/TrendingCarousel';
+import { PostSkeletonList, InlinePostSkeleton } from '@/components/feed/PostSkeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,30 +26,6 @@ interface BarazaSpace {
   participant_count: number;
   created_at: string;
 }
-
-// Skeleton component for loading state
-const PostSkeletonList = ({ count, viewMode }: { count: number; viewMode: 'card' | 'compact' }) => (
-  <>
-    {Array.from({ length: count }).map((_, i) => (
-      <Card key={i}>
-        <CardContent className="py-4">
-          <div className="flex gap-3 animate-pulse">
-            <div className="w-10 flex flex-col items-center gap-2">
-              <div className="w-6 h-6 bg-muted rounded"></div>
-              <div className="w-8 h-4 bg-muted rounded"></div>
-              <div className="w-6 h-6 bg-muted rounded"></div>
-            </div>
-            <div className="flex-1 space-y-3">
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-20 bg-muted rounded"></div>
-              <div className="h-4 bg-muted rounded w-1/4"></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    ))}
-  </>
-);
 
 export default function Index() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -475,15 +452,10 @@ export default function Index() {
             )}
 
             {/* Infinite scroll sentinel */}
-            <div ref={loadMoreRef} className="py-8 flex justify-center">
-              {isFetchingNextPage && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  <span>Loading more posts...</span>
-                </div>
-              )}
+            <div ref={loadMoreRef}>
+              {isFetchingNextPage && <InlinePostSkeleton />}
               {!hasNextPage && posts.length > 0 && (
-                <p className="text-muted-foreground text-sm">You've reached the end</p>
+                <p className="text-center text-muted-foreground text-sm py-8">You've reached the end</p>
               )}
             </div>
           </div>

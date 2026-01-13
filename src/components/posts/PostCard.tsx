@@ -54,6 +54,19 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   const [isPlaying, setIsPlaying] = useState(false)
   const [isSecondPlaying, setIsSecondPlaying] = useState(false)
 
+  // Safe date formatting helper
+  const formatPostDate = (date: any): string => {
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (isNaN(dateObj.getTime())) {
+        return 'recently';
+      }
+      return formatDistanceToNow(dateObj);
+    } catch {
+      return 'recently';
+    }
+  };
+
   // Verification system  
   const { verification, castVote, isCastingVote } = useVerification({
     contentId: post.id,
@@ -269,8 +282,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               <img
                 src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
                 alt="Post media"
-                loading="eager"
-                fetchPriority="high"
+                loading="lazy"
                 className="w-full h-auto max-h-[512px] object-contain bg-black"
               />
             ) : post.media[0].file_type?.startsWith('video/') ? (
@@ -301,6 +313,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                   <img
                     src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
                     alt={`Post media ${index + 1}`}
+                    loading="lazy"
                     className="w-full h-32 object-cover"
                   />
                 ) : media.file_type?.startsWith('video/') ? (
@@ -376,7 +389,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               u/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
             <span>•</span>
-            <span>{formatDistanceToNow(post.createdAt)} ago</span>
+            <span>{formatPostDate(post.createdAt)} ago</span>
           </div>
 
           {renderSpecialBadges()}
@@ -409,7 +422,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   }
 
   return (
-    <Card className="mb-2 bg-card rounded-2xl shadow-md shadow-black/5 dark:shadow-black/20 border border-border/50 hover:border-primary/30 transition-all duration-200 max-w-[640px] mx-auto">
+    <Card className="mb-2 bg-card/95 backdrop-blur-lg rounded-2xl border border-border/50 hover:border-primary/30 transition-all duration-200 max-w-[640px] mx-auto shadow-md shadow-black/5 dark:shadow-black/20 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/30 hover:scale-[1.01]">
       <div className="flex flex-col">
         {/* Main Content */}
         <CardContent className="flex-1 p-5 min-w-0">
@@ -454,7 +467,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
               </Badge>
             )}
             <span>•</span>
-            <span>{formatDistanceToNow(post.createdAt)} ago</span>
+            <span>{formatPostDate(post.createdAt)} ago</span>
           </div>
 
           {renderSpecialBadges()}
@@ -558,14 +571,18 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           <div className="flex items-center justify-between pt-3 border-t border-border/50">
             <div className="flex items-center gap-6">
               {/* Voting Buttons moved here */}
-              <div className="flex items-center bg-sidebar-accent/50 rounded-full px-1.5 mr-2">
+              <div className="flex items-center bg-sidebar-accent/30 rounded-full px-1.5 mr-2 border border-border/30">
                 <Button
                   variant="ghost"
                   size="sm"
                   aria-label={`Upvote post: ${post.title}`}
                   aria-pressed={post.userVote === 'up'}
                   onClick={() => onVote(post.id, 'up')}
-                  className={`h-9 w-9 p-0 rounded-full transition-colors duration-200 ${post.userVote === 'up' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'hover:text-green-600 hover:bg-green-50/80 dark:hover:bg-green-900/20'}`}
+                  className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${
+                    post.userVote === 'up' 
+                      ? 'text-white bg-gradient-to-br from-civic-green to-civic-green/80 shadow-lg shadow-civic-green/30 animate-bounce-subtle' 
+                      : 'hover:text-civic-green hover:bg-civic-green/10 hover:scale-110'
+                  }`}
                 >
                   <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
                 </Button>
@@ -578,25 +595,29 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                   aria-label="Downvote post"
                   aria-pressed={post.userVote === 'down'}
                   onClick={() => onVote(post.id, 'down')}
-                  className={`h-9 w-9 p-0 rounded-full transition-colors duration-200 ${post.userVote === 'down' ? 'text-red-600 bg-red-50 dark:bg-red-900/20' : 'hover:text-red-600 hover:bg-red-50/80 dark:hover:bg-red-900/20'}`}
+                  className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${
+                    post.userVote === 'down' 
+                      ? 'text-white bg-gradient-to-br from-civic-red to-civic-red/80 shadow-lg shadow-civic-red/30' 
+                      : 'hover:text-civic-red hover:bg-civic-red/10 hover:scale-110'
+                  }`}
                 >
                   <ArrowDown className="w-5 h-5" strokeWidth={2.5} />
                 </Button>
               </div>
 
-              <Button variant="ghost" size="sm" className="h-9 px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-accent/80 rounded-lg transition-colors duration-200" asChild>
+              <Button variant="ghost" size="sm" className="h-9 px-4 gap-2 text-muted-foreground hover:text-civic-blue hover:bg-civic-blue/10 rounded-lg transition-all duration-200 hover:scale-105" asChild>
                 <Link to={getPostLink()}>
                   <MessageCircle className="w-5 h-5" strokeWidth={2} />
                   <span className="text-sm font-medium">{post.commentCount}</span>
                 </Link>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-accent/80 rounded-lg transition-colors duration-200">
-                <Share className="w-5 h-5" strokeWidth={2} />
+              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all duration-200 hover:scale-105 group">
+                <Share className="w-5 h-5 group-hover:rotate-12 transition-transform duration-200" strokeWidth={2} />
                 <span className="hidden sm:inline text-sm font-medium">Share</span>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-accent/80 rounded-lg transition-colors duration-200">
+              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-civic-orange hover:bg-civic-orange/10 rounded-lg transition-all duration-200 hover:scale-105">
                 <Bookmark className="w-5 h-5" strokeWidth={2} />
                 <span className="hidden sm:inline text-sm font-medium">Save</span>
               </Button>
