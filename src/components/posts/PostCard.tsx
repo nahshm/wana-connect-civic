@@ -271,14 +271,14 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                 alt="Post media"
                 loading="eager"
                 fetchPriority="high"
-                className="w-full h-auto max-h-96 object-cover"
+                className="w-full h-auto max-h-[512px] object-cover"
               />
             ) : post.media[0].file_type?.startsWith('video/') ? (
               <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
                 <video
                   ref={videoRef}
                   src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-                  className="w-full h-auto max-h-96"
+                  className="w-full h-auto max-h-[512px] object-cover"
                   playsInline
                 />
                 {!isPlaying && (
@@ -409,13 +409,13 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   }
 
   return (
-    <Card className="mb-2 bg-sidebar-background border-sidebar-border hover:border-sidebar-ring transition-colors max-w-[640px] mx-auto">
+    <Card className="mb-2 bg-card rounded-2xl shadow-md shadow-black/5 dark:shadow-black/20 border border-border/50 hover:border-primary/30 transition-all duration-200 max-w-[640px] mx-auto">
       <div className="flex flex-col">
         {/* Main Content */}
-        <CardContent className="flex-1 p-3 min-w-0">
+        <CardContent className="flex-1 p-5 min-w-0">
           {/* Header */}
-          <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-1.5">
-            <Avatar className="h-6 w-6">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+            <Avatar className="h-10 w-10 ring-2 ring-border/30">
               <AvatarImage src={post.author.avatar} />
               <AvatarFallback className="text-[10px]">{(post.author.displayName || post.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -463,7 +463,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           {isDetailView ? (
             <div>
               {/* Detail View: Title -> Media -> Description */}
-              <h1 className="font-semibold text-xl mb-3 text-sidebar-foreground leading-tight">{post.title}</h1>
+              <h1 className="font-bold text-2xl mb-4 leading-tight hover:text-destructive transition-colors">{post.title}</h1>
 
               {/* Media between title and description */}
               {renderMedia()}
@@ -478,7 +478,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             <div>
               {/* Feed View: Title + Content Preview + Expand/Collapse */}
               <Link to={getPostLink()} className="block group">
-                <h2 className="font-semibold text-lg mb-2 text-sidebar-foreground group-hover:text-primary leading-tight">
+                <h2 className="font-bold text-xl mb-3 group-hover:text-primary leading-tight">
                   {post.title}
                 </h2>
               </Link>
@@ -555,8 +555,8 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
           />
 
           {/* Actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between pt-3 border-t border-border/50">
+            <div className="flex items-center gap-6">
               {/* Voting Buttons moved here */}
               <div className="flex items-center bg-sidebar-accent/50 rounded-full px-1.5 mr-2">
                 <Button
@@ -565,9 +565,9 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                   aria-label={`Upvote post: ${post.title}`}
                   aria-pressed={post.userVote === 'up'}
                   onClick={() => onVote(post.id, 'up')}
-                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green hover:bg-civic-green/10'}`}
+                  className={`h-9 w-9 p-0 rounded-full transition-colors duration-200 ${post.userVote === 'up' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'hover:text-green-600 hover:bg-green-50/80 dark:hover:bg-green-900/20'}`}
                 >
-                  <ArrowUp className="w-4 h-4" />
+                  <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
                 </Button>
                 <span className="text-xs font-medium text-sidebar-foreground px-1.5 min-w-[1.5rem] text-center">
                   {formatNumber(getVoteScore())}
@@ -578,34 +578,34 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
                   aria-label="Downvote post"
                   aria-pressed={post.userVote === 'down'}
                   onClick={() => onVote(post.id, 'down')}
-                  className={`h-8 w-8 p-0 rounded-full ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red hover:bg-civic-red/10'}`}
+                  className={`h-9 w-9 p-0 rounded-full transition-colors duration-200 ${post.userVote === 'down' ? 'text-red-600 bg-red-50 dark:bg-red-900/20' : 'hover:text-red-600 hover:bg-red-50/80 dark:hover:bg-red-900/20'}`}
                 >
-                  <ArrowDown className="w-4 h-4" />
+                  <ArrowDown className="w-5 h-5" strokeWidth={2.5} />
                 </Button>
               </div>
 
-              <Button variant="ghost" size="sm" className="h-8 px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full" asChild>
+              <Button variant="ghost" size="sm" className="h-9 px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-accent/80 rounded-lg transition-colors duration-200" asChild>
                 <Link to={getPostLink()}>
-                  <MessageCircle className="w-4 h-4 mr-1.5" />
-                  <span className="text-xs">{post.commentCount}</span>
+                  <MessageCircle className="w-5 h-5" strokeWidth={2} />
+                  <span className="text-sm font-medium">{post.commentCount}</span>
                 </Link>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Share className="w-4 h-4 sm:mr-1.5" />
-                <span className="hidden sm:inline text-xs">Share</span>
+              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-accent/80 rounded-lg transition-colors duration-200">
+                <Share className="w-5 h-5" strokeWidth={2} />
+                <span className="hidden sm:inline text-sm font-medium">Share</span>
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-8 px-2 sm:px-3 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                <Bookmark className="w-4 h-4 sm:mr-1.5" />
-                <span className="hidden sm:inline text-xs">Save</span>
+              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-accent/80 rounded-lg transition-colors duration-200">
+                <Bookmark className="w-5 h-5" strokeWidth={2} />
+                <span className="hidden sm:inline text-sm font-medium">Save</span>
               </Button>
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-sidebar-muted-foreground hover:bg-sidebar-accent rounded-full">
-                  <MoreHorizontal className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:text-primary hover:bg-accent/80 rounded-lg transition-colors duration-200">
+                  <MoreHorizontal className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-sidebar-background border-sidebar-border">
