@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PostCard } from '@/components/posts/PostCard';
 import { CommentSection } from '@/components/posts/CommentSection';
+import { VotingColumn } from '@/components/posts/VotingColumn';
+import { AboutPostCard } from '@/components/posts/AboutPostCard';
+import { CommunityInfoCard } from '@/components/posts/CommunityInfoCard';
+import { RelatedPostsCard } from '@/components/posts/RelatedPostsCard';
 import { useCommunityData } from '@/hooks/useCommunityData';
 import { RightSidebar } from '@/components/layout/RightSidebar';
 import { Button } from '@/components/ui/button';
@@ -11,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useVerification } from '@/hooks/useVerification';
 import type { Comment, Post, CommentAward } from '@/types';
 
 const PostDetail = () => {
@@ -24,6 +29,12 @@ const PostDetail = () => {
   const [isHidden, setIsHidden] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Get verification data
+  const { verification } = useVerification({
+    contentId: id || '',
+    contentType: 'post'
+  });
 
   // Fetch post data from Supabase
   useEffect(() => {
@@ -740,110 +751,115 @@ const PostDetail = () => {
     );
   }
 
+  // Get verification data
+  // Toggle save/hide handlers
+  const handleToggleSave = async () => {
+    if (!user || !post) return;
+
+    try {
+      if (isSaved) {
+        await supabase
+          .from('saved_items')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_type', 'post')
+          .eq('item_id', post.id);
+        setIsSaved(false);
+        toast({ title: 'Removed from saved' });
+      } else {
+        await supabase
+          .from('saved_items')
+          .insert({
+            user_id: user.id,
+            item_type: 'post',
+            item_id: post.id
+          });
+        setIsSaved(true);
+        toast({ title: 'Saved successfully' });
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      toast({ title: 'Error', description: 'Failed to update save status', variant: 'destructive' });
+    }
+  };
+
   return (
-    <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
-      {/* Main Content */}
-      <div className="flex-1 max-w-2xl">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-[1400px] mx-auto px-4 py-6">
         {/* Back Navigation */}
         <Button variant="ghost" asChild className="mb-4 text-muted-foreground hover:text-foreground">
           <Link to={post.community ? `/c/${post.community.name}` : "/"} className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
-            {post.community ? `Back to r/${post.community.name}` : "Back to Feed"}
+            {post.community ? `Back to c/${post.community.name}` : "Back to Feed"}
           </Link>
         </Button>
 
-        {/* Post */}
-        <div className="mb-6">
-          <PostCard
-            post={post}
-            onVote={handleVote}
-            isDetailView={true}
-          />
-        </div>
-
-        {/* Comments */}
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-20 w-full ml-6" />
-            <Skeleton className="h-24 w-full" />
+        {/* Three-Column Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[80px_1fr_350px] gap-6">
+          
+          {/* LEFT COLUMN: Voting Actions (Desktop only, sticky) */}
+          <div className="hidden lg:block">
+            <div className="sticky top-20">
+              <VotingColumn
+                post={post}
+                onVote={handleVote}
+                isSaved={isSaved}
+                onToggleSave={handleToggleSave}
+              />
+            </div>
           </div>
-        ) : (
-          <CommentSection
-            postId={post.id}
-            comments={comments}
-            onAddComment={handleAddComment}
-            onVoteComment={handleVoteComment}
-          />
-        )}
-      </div>
 
-      {/* Right Sidebar */}
-      <div className="hidden lg:block w-80">
-        <div className="sticky top-24 space-y-4">
-          {/* Community Info Card */}
-          {post.community && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center">
-                  <Users className="w-4 h-4 mr-2" />
-                  About Community
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <h3 className="font-semibold">r/{post.community.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {post.community.description}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-1">
-                    <Users className="w-3 h-3" />
-                    <span>{post.community.memberCount?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>Created 2y ago</span>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => toggleCommunityFollow(post.community.id)}
-                  className="w-full"
-                  variant={post.community.isFollowing ? "outline" : "default"}
-                >
-                  {post.community.isFollowing ? 'Following' : 'Join Community'}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {/* MAIN CONTENT */}
+          <div className="min-w-0">
+            {/* Post Content */}
+            <div className="mb-6">
+              <PostCard
+                post={post}
+                onVote={handleVote}
+                isDetailView={true}
+              />
+            </div>
 
-          {/* Community Rules */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center">
-                <Shield className="w-4 h-4 mr-2" />
-                Community Rules
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {[
-                'Be respectful and civil',
-                'No harassment or hate speech',
-                'Stay on topic',
-                'No spam or self-promotion',
-                'Follow factual reporting standards'
-              ].map((rule, index) => (
-                <div key={index} className="text-sm text-muted-foreground p-2 bg-accent/20 rounded">
-                  {index + 1}. {rule}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+            {/* Comments Section */}
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-20 w-full ml-6" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ) : (
+              <CommentSection
+                postId={post.id}
+                comments={comments}
+                onAddComment={handleAddComment}
+                onVoteComment={handleVoteComment}
+              />
+            )}
+          </div>
 
-          {/* Other Sidebar Content */}
-          <RightSidebar />
+          {/* RIGHT SIDEBAR: Metadata & Related Content (sticky) */}
+          <div className="hidden lg:block">
+            <div className="sticky top-20 space-y-4">
+              {/* About Post Card */}
+              <AboutPostCard
+                post={post}
+                verification={verification}
+              />
+
+              {/* Community Info Card */}
+              {post.community && (
+                <CommunityInfoCard community={post.community} />
+              )}
+
+              {/* Related Posts */}
+              <RelatedPostsCard
+                postId={post.id}
+                communityId={post.community?.id}
+                tags={post.tags}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

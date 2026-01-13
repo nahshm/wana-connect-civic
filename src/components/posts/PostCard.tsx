@@ -48,6 +48,7 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false)
   const [showFullImage, setShowFullImage] = useState(false)
+  const [isContentExpanded, setIsContentExpanded] = useState(isDetailView)
   const videoRef = useRef<HTMLVideoElement>(null)
   const secondVideoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -475,14 +476,48 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
             </div>
           ) : (
             <div>
-              {/* Feed View: Title only, no description */}
+              {/* Feed View: Title + Content Preview + Expand/Collapse */}
               <Link to={getPostLink()} className="block group">
-                <h2 className="font-semibold text-base mb-2 text-sidebar-foreground group-hover:text-primary leading-snug line-clamp-3">
+                <h2 className="font-semibold text-lg mb-2 text-sidebar-foreground group-hover:text-primary leading-tight">
                   {post.title}
                 </h2>
               </Link>
 
-              {/* Media shown in feed view - outside Link so it's clickable */}
+              {/* Content Preview with Expand/Collapse */}
+              {post.content && (
+                <div className="mb-3">
+                  <div className={`text-sm text-sidebar-muted-foreground ${!isContentExpanded ? 'line-clamp-3' : ''}`}>
+                    <SafeContentRenderer content={post.content} />
+                  </div>
+                  {post.content.length > 300 && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsContentExpanded(!isContentExpanded);
+                      }}
+                      className="text-primary hover:underline text-sm font-medium mt-1.5 inline-flex items-center gap-1"
+                    >
+                      {isContentExpanded ? (
+                        <>
+                          Show less
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </>
+                      ) : (
+                        <>
+                          Read more
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Media shown in feed view */}
               {renderMedia()}
             </div>
           )}
