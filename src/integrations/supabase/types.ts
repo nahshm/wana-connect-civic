@@ -200,6 +200,33 @@ export type Database = {
         }
         Relationships: []
       }
+      api_metrics: {
+        Row: {
+          created_at: string | null
+          duration_ms: number
+          id: string
+          operation: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms: number
+          id?: string
+          operation: string
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number
+          id?: string
+          operation?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           category: string
@@ -238,6 +265,53 @@ export type Database = {
           tier?: string
         }
         Relationships: []
+      }
+      baraza_spaces: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          host_user_id: string
+          is_live: boolean | null
+          participant_count: number | null
+          scheduled_end: string | null
+          scheduled_start: string | null
+          space_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          host_user_id: string
+          is_live?: boolean | null
+          participant_count?: number | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          space_id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          host_user_id?: string
+          is_live?: boolean | null
+          participant_count?: number | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          space_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "baraza_spaces_host_user_id_fkey"
+            columns: ["host_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_promises: {
         Row: {
@@ -923,6 +997,7 @@ export type Database = {
           civic_type: string | null
           created_at: string | null
           duration: number | null
+          fact_check_status: string | null
           featured_at: string | null
           featured_by: string | null
           file_size: number | null
@@ -931,10 +1006,12 @@ export type Database = {
           height: number | null
           id: string
           is_featured: boolean | null
+          official_response: string | null
           post_id: string | null
           processing_error: string | null
           processing_status: string | null
           quality: string | null
+          source_citation_url: string | null
           thumbnail_url: string | null
           transcript: string | null
           updated_at: string | null
@@ -952,6 +1029,7 @@ export type Database = {
           civic_type?: string | null
           created_at?: string | null
           duration?: number | null
+          fact_check_status?: string | null
           featured_at?: string | null
           featured_by?: string | null
           file_size?: number | null
@@ -960,10 +1038,12 @@ export type Database = {
           height?: number | null
           id?: string
           is_featured?: boolean | null
+          official_response?: string | null
           post_id?: string | null
           processing_error?: string | null
           processing_status?: string | null
           quality?: string | null
+          source_citation_url?: string | null
           thumbnail_url?: string | null
           transcript?: string | null
           updated_at?: string | null
@@ -981,6 +1061,7 @@ export type Database = {
           civic_type?: string | null
           created_at?: string | null
           duration?: number | null
+          fact_check_status?: string | null
           featured_at?: string | null
           featured_by?: string | null
           file_size?: number | null
@@ -989,10 +1070,12 @@ export type Database = {
           height?: number | null
           id?: string
           is_featured?: boolean | null
+          official_response?: string | null
           post_id?: string | null
           processing_error?: string | null
           processing_status?: string | null
           quality?: string | null
+          source_citation_url?: string | null
           thumbnail_url?: string | null
           transcript?: string | null
           updated_at?: string | null
@@ -2697,6 +2780,42 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          component_name: string | null
+          created_at: string | null
+          error_message: string
+          error_stack: string | null
+          id: string
+          page_url: string | null
+          severity: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          component_name?: string | null
+          created_at?: string | null
+          error_message: string
+          error_stack?: string | null
+          id?: string
+          page_url?: string | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          component_name?: string | null
+          created_at?: string | null
+          error_message?: string
+          error_stack?: string | null
+          id?: string
+          page_url?: string | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       expertise_endorsements: {
         Row: {
           created_at: string | null
@@ -3939,6 +4058,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      performance_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_name: string
+          page_url: string | null
+          rating: string | null
+          user_agent: string | null
+          user_id: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_name: string
+          page_url?: string | null
+          rating?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          value: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_name?: string
+          page_url?: string | null
+          rating?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          value?: number
+        }
+        Relationships: []
       }
       position_communities: {
         Row: {
