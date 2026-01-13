@@ -328,15 +328,17 @@ export default function Index() {
           return b.createdAt.getTime() - a.createdAt.getTime();
         case 'top':
           return (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes);
-        case 'rising':
+        case 'rising': {
           const aScore = (a.upvotes - a.downvotes) / Math.max(1, Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60)));
           const bScore = (b.upvotes - b.downvotes) / Math.max(1, Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60)));
           return bScore - aScore;
+        }
         case 'hot':
-        default:
+        default: {
           const aHot = a.upvotes + a.commentCount - Math.floor((Date.now() - a.createdAt.getTime()) / (1000 * 60 * 60));
           const bHot = b.upvotes + b.commentCount - Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60));
           return bHot - aHot;
+        }
       }
     });
   }, [posts, sortBy]);

@@ -212,13 +212,15 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                     </div>
 
                     {/* Accountability Badge - hidden until columns exist */}
-                    {showAccountability && false && (
+                    {/* TODO: Uncomment when database columns are ready
+                    {showAccountability && (
                         <CivicClipAccountabilityBadge
                             factCheckStatus={'unverified'}
                             officialResponse={'none'}
                             hasSourceCitation={false}
                         />
                     )}
+                    */}
                 </div>
 
                 {/* Bottom Content */}

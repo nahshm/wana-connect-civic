@@ -28,18 +28,19 @@ export class VideoFeedErrorBoundary extends Component<Props, State> {
 
         // Log to error tracking system
         if (typeof window !== 'undefined') {
-            try {
-                const { logError } = require('@/lib/error-tracking')
-                logError({
-                    message: error.message,
-                    stack: error.stack,
-                    componentName: 'VideoFeed',
-                    severity: 'high',
-                    additionalData: errorInfo
+            import('@/lib/error-tracking')
+                .then(({ logError }) => {
+                    logError({
+                        message: error.message,
+                        stack: error.stack,
+                        componentName: 'VideoFeed',
+                        severity: 'high',
+                        additionalData: errorInfo
+                    })
                 })
-            } catch (e) {
-                // Silently fail if error tracking not available
-            }
+                .catch(() => {
+                    // Silently fail if error tracking not available
+                })
         }
     }
 
