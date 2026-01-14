@@ -586,9 +586,9 @@ export default function Index() {
         )}
       </div>
 
-      {/* Right Sidebar */}
-      <div className="hidden lg:block w-80">
-        <div className="sticky top-24 space-y-6">
+      {/* Right Sidebar - Shows at 1280px+ */}
+      <div className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
+        <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto space-y-6 pr-4">
           <RightSidebar />
 
           {/* Popular Communities */}
