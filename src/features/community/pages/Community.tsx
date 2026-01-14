@@ -291,8 +291,8 @@ const Community = () => {
           />
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto bg-background thin-scrollbar">
+        {/* Main Content Area - ScrollArea for auto-hiding scrollbars */}
+        <ScrollArea className="flex-1 bg-background">
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
             <button
@@ -329,12 +329,13 @@ const Community = () => {
               isAdmin={isAdmin}
             />
           )}
-        </div>
+        </ScrollArea>
 
         {/* Right Sidebar - Fixed + Responsive */}
         <aside className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
-          <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] overflow-y-auto border-l border-sidebar-border bg-sidebar-background">
-            <div className="p-4 space-y-4 sm:space-y-6">
+          <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] border-l border-sidebar-border bg-sidebar-background">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-4 sm:space-y-6">
               <SectionErrorBoundary section="Community Sidebar">
                 <CommunitySidebar
                   community={community}
@@ -344,7 +345,8 @@ const Community = () => {
                   isAdmin={isAdmin}
                 />
               </SectionErrorBoundary>
-            </div>
+              </div>
+            </ScrollArea>
           </div>
         </aside>
       </div>

@@ -161,8 +161,9 @@ const ChannelList: React.FC<ChannelListProps> = ({
                     )}
                 </div>
 
-                {/* Channels */}
-                <div className="flex-1 overflow-y-auto p-2">
+                {/* Channels - ScrollArea for auto-hiding scrollbars */}
+                <ScrollArea className="flex-1">
+                    <div className="p-2 space-y-3">
                     {Object.entries(groupedChannels).map(([category, categoryChannels]) => {
                         if (categoryChannels.length === 0) return null;
                         const isCollapsed = collapsedCategories.has(category);
@@ -216,7 +217,8 @@ const ChannelList: React.FC<ChannelListProps> = ({
                             </div>
                         );
                     })}
-                </div>
+                    </div>
+                </ScrollArea>
             </div>
         </TooltipProvider>
     );

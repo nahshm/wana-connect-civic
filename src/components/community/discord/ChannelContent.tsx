@@ -111,7 +111,9 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     // 4. FALLBACK: POST FEED (Feed type or Legacy)
     return (
         <div className="p-4 md:p-6">
-            <CreatePostInput />
+            {/* Max-width container for readability on ultra-wide screens */}
+            <div className="max-w-4xl mx-auto">
+                <CreatePostInput />
 
             <div className="mt-4 space-y-4">
                 {postsLoading ? (
@@ -137,6 +139,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
                         </CardContent>
                     </Card>
                 )}
+            </div>
             </div>
         </div>
     );
