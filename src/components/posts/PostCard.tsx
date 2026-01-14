@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield, ChevronDown, ChevronUp, Smile, Eye, ThumbsUp, ThumbsDown, Play, Pause, Volume2, VolumeX, Maximize2, Image as ImageIcon, Film, FileText, ExternalLink, Bell, EyeOff, X, Flag } from 'lucide-react';
 import { VerifiedBadge, OfficialPositionBadge } from '@/components/ui/verified-badge';
 import { CIVIC_FLAIRS } from '@/config/flairs';
 import { SafeContentRenderer } from './SafeContentRenderer';
@@ -13,6 +13,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -39,9 +40,18 @@ interface PostCardProps {
   onVote: (postId: string, vote: 'up' | 'down') => void;
   isDetailView?: boolean;
   viewMode?: 'card' | 'compact';
+  isMember?: boolean; // NEW: Is user a member of this post's community?
+  onJoinCommunity?: (communityId: string, communityName: string) => void; // NEW: Callback to join community
 }
 
-export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card' }: PostCardProps) => {
+export const PostCard = ({ 
+  post, 
+  onVote, 
+  isDetailView = false, 
+  viewMode = 'card',
+  isMember = true, // Default true for backwards compatibility
+  onJoinCommunity
+}: PostCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -69,18 +79,33 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
     })
   }
 
-  // Safe date formatting helper
-  const formatPostDate = (date: any): string => {
-    try {
-      const dateObj = date instanceof Date ? date : new Date(date);
-      if (isNaN(dateObj.getTime())) {
-        return 'recently';
-      }
-      return formatDistanceToNow(dateObj);
-    } catch {
-      return 'recently';
-    }
-  };
+  // Safe date formatting helper to prevent "Invalid time value" errors
+const formatPostDate = (dateInput: Date | string | undefined): string => {
+  if (!dateInput) return 'Unknown time';
+  
+  try {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return 'Unknown time';
+    
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+    
+    // Compact format like Reddit/Twitter
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'}`;
+    if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? '' : 's'}`;
+    if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'}`;
+    if (diffMonths < 12) return `${diffMonths} mo${diffMonths === 1 ? '' : 's'}`;
+    return `${diffYears} yr${diffYears === 1 ? '' : 's'}`;
+  } catch {
+    return 'Unknown time';
+  }
+};
 
   // Verification system  
   const { verification, castVote, isCastingVote } = useVerification({
@@ -441,51 +466,143 @@ export const PostCard = ({ post, onVote, isDetailView = false, viewMode = 'card'
       <div className="flex flex-col">
         {/* Main Content */}
         <CardContent className="flex-1 p-5 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-            <Avatar className="h-10 w-10 ring-2 ring-border/30">
-              <AvatarImage src={post.author.avatar} />
-              <AvatarFallback className="text-[10px]">{(post.author.displayName || post.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
+          {/* Clean Compact Header */}
+          <div className="flex items-start gap-3 mb-3">
+            {/* Left: Avatar */}
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarImage src={communityData?.icon || post.author.avatar} />
+              <AvatarFallback className="text-sm bg-civic-green/10 text-civic-green font-semibold">
+                {(communityData?.name || post.author.displayName || 'U')[0]?.toUpperCase()}
+              </AvatarFallback>
             </Avatar>
-            {communityData ? (
-              <>
-                <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
-                  c/{communityData.name}
-                </Link>
-                <span>•</span>
-                <span>by</span>
-              </>
-            ) : null}
-            <Link
-              to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || post.author.displayName || 'anonymous'}`}
-              className="hover:underline"
-            >
-              {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
-            </Link>
-            {post.author.isVerified && (
-              <VerifiedBadge
-                size="xs"
-                positionTitle={post.author.officialPosition}
-              />
-            )}
-            {/* Show official position badge if verified and has position */}
-            {post.author.isVerified && post.author.officialPosition && (
-              <OfficialPositionBadge
-                position={post.author.officialPosition}
-                className="hidden sm:inline-flex"
-              />
-            )}
-            {/* Show role badge only if NOT a verified official (to avoid redundancy) */}
-            {post.author.role && !post.author.isVerified && (
-              <Badge variant="outline" className={`text-xs px-1 py-0 ${getRoleColor(post.author.role)}`}>
-                {post.author.role}
-              </Badge>
-            )}
-            <span>•</span>
-            <span>{formatPostDate(post.createdAt)} ago</span>
+
+            {/* Center: Content */}
+            <div className="flex-1 min-w-0">
+              {/* Community Post Layout */}
+              {communityData ? (
+                <div className="flex flex-col gap-0.5">
+                  {/* Line 1: c/name */}
+                  <Link 
+                    to={`/c/${communityData.name}`} 
+                    className="font-semibold text-sm hover:underline text-foreground"
+                  >
+                    c/{communityData.name}
+                  </Link>
+                  
+                  {/* Line 2: Prefix/username • time • suggestion */}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                    <Link
+                      to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`}
+                      className="hover:underline"
+                    >
+                      {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
+                    </Link>
+                    <span>•</span>
+                    <span>{formatPostDate(post.createdAt)} ago</span>
+                    {/* Suggestion reason - example */}
+                    <span className="hidden sm:inline">• Suggested for you</span>
+                  </div>
+                </div>
+              ) : (
+                /* User Post Layout (no community) */
+                <div className="flex flex-col gap-0.5">
+                  {/* Line 1: Prefix/username + verification */}
+                  <div className="flex items-center gap-1.5">
+                    <Link
+                      to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`}
+                      className="font-semibold text-sm hover:underline text-foreground"
+                    >
+                      {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
+                    </Link>
+                    
+                    {/* Verified badge inline */}
+                    {post.author.isVerified && (
+                      <VerifiedBadge
+                        size="xs"
+                        positionTitle={post.author.officialPosition}
+                      />
+                    )}
+                    
+                    {/* Title icon with hover - if has position */}
+                    {post.author.officialPosition && (
+                      <Badge 
+                        variant="outline"
+                        className="text-xs px-1.5 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate"
+                        title={post.author.officialPosition}
+                      >
+                        {post.author.officialPosition}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Line 2: time • suggestion */}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>{formatPostDate(post.createdAt)} ago</span>
+                    <span className="hidden sm:inline">• Popular near you</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Join Button + Three Dots Menu */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Join button - only for community posts and non-members */}
+              {communityData && !isMember && onJoinCommunity && (
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onJoinCommunity(post.community!.id, post.community!.name);
+                  }}
+                  size="sm"
+                  className="h-7 px-4 text-xs font-semibold bg-civic-blue hover:bg-civic-blue/90 text-white rounded-full"
+                >
+                  Join
+                </Button>
+              )}
+
+              {/* Three dots menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 hover:bg-accent"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem>
+                    <Bell className="mr-2 h-4 w-4" />
+                    Follow post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Show fewer posts like this
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSave}>
+                    <Bookmark className="mr-2 h-4 w-4" />
+                    {isSaved ? 'Unsave' : 'Save'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <X className="mr-2 h-4 w-4" />
+                    Hide
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive">
+                    <Flag className="mr-2 h-4 w-4" />
+                    Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
-          {renderSpecialBadges()}
+          {/* Special Badges Row (Flair, Content Warning, etc.) */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            {renderSpecialBadges()}
+          </div>
 
           {/* Title and Content */}
           {isDetailView ? (

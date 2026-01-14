@@ -11,6 +11,8 @@ import {
   ArrowUp
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TrendingPost {
   id: string;
@@ -27,58 +29,68 @@ interface Community {
   description: string;
 }
 
-const trendingPosts: TrendingPost[] = [
-  {
-    id: '1',
-    title: '📊 Kenya Budget 2024: Analysis & Impact',
-    community: 'c/BudgetWatch',
-    upvotes: 1245,
-    comments: 89
-  },
-  {
-    id: '2', 
-    title: '🏛️ Nairobi County Assembly News',
-    community: 'c/NairobiCounty',
-    upvotes: 892,
-    comments: 67
-  },
-  {
-    id: '3',
-    title: '📚 Public Participation Guide',
-    community: 'c/CivicEducation',
-    upvotes: 678,
-    comments: 45
-  }
-];
-
-const suggestedCommunities: Community[] = [
-  {
-    id: '1',
-    name: 'c/BudgetWatch',
-    members: 45200,
-    description: 'Track and analyze government spending and budgets'
-  },
-  {
-    id: '2',
-    name: 'c/PromiseTracker',
-    members: 28400,
-    description: 'Monitor campaign promises and their implementation'
-  },
-  {
-    id: '3',
-    name: 'c/CivicEducation',
-    members: 19800,
-    description: 'Learn about civic duties and democratic processes'
-  },
-  {
-    id: '4',
-    name: 'c/YouthCivics',
-    members: 15600,
-    description: 'Civic engagement for young Kenyans'
-  }
-];
-
 export const RightSidebar = () => {
+  const [trendingPosts, setTrendingPosts] = useState<TrendingPost[]>([]);
+  const [suggestedCommunities, setSuggestedCommunities] = useState<Community[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch dynamic trending posts
+  useEffect(() => {
+    const fetchTrendingPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select('id, title, upvotes, comment_count, community:communities(name)')
+          .order('upvotes', { ascending: false })
+          .limit(3);
+
+        if (error) throw error;
+
+        if (data) {
+          const formatted: TrendingPost[] = data.map((post: any) => ({
+            id: post.id,
+            title: post.title,
+            community: post.community?.name ? `c/${post.community.name}` : 'General',
+            upvotes: post.upvotes || 0,
+            comments: post.comment_count || 0
+          }));
+          setTrendingPosts(formatted);
+        }
+      } catch (error) {
+        console.error('Error fetching trending posts:', error);
+      }
+    };
+
+    const fetchSuggestedCommunities = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('communities')
+          .select('id, name, member_count, description')
+          .order('member_count', { ascending: false })
+          .limit(4);
+
+        if (error) throw error;
+
+        if (data) {
+          const formatted: Community[] = data.map((comm: any) => ({
+            id: comm.id,
+            name: `c/${comm.name}`,
+            members: comm.member_count || 0,
+            description: comm.description || 'Join this community'
+          }));
+          setSuggestedCommunities(formatted);
+        }
+      } catch (error) {
+        console.error('Error fetching communities:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrendingPosts();
+    fetchSuggestedCommunities();
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* Trending Posts */}

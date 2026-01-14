@@ -17,6 +17,7 @@ import { Community, Post, PostMedia } from '@/types';
 import { useFeatureToggle } from '@/hooks/useFeatureToggle';
 import { FeedErrorBoundary } from '@/components/feed/FeedErrorBoundary';
 import { useQueryClient } from '@tanstack/react-query';
+import { CommunityJoinDialog } from '@/components/community/CommunityJoinDialog';
 
 interface BarazaSpace {
   space_id: string;
@@ -42,6 +43,14 @@ export default function Index() {
   const { user } = useAuth();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // NEW: Track user's community memberships for hybrid feed
+  const [userCommunityIds, setUserCommunityIds] = useState<string[]>([]);
+  const [joinDialogState, setJoinDialogState] = useState<{
+    isOpen: boolean;
+    communityId: string;
+    communityName: string;
+  } | null>(null);
 
   // Fetch posts
   const fetchPosts = useCallback(async (pageNum: number, sortType: string) => {
@@ -178,6 +187,30 @@ export default function Index() {
     }
   }, []);
 
+  // NEW: Fetch user's community memberships for hybrid feed
+  const fetchUserCommunities = useCallback(async () => {
+    if (!user) {
+      setUserCommunityIds([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('community_members')
+        .select('community_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (data) {
+        const communityIds = data.map(item => item.community_id);
+        setUserCommunityIds(communityIds);
+      }
+    } catch (error) {
+      console.error('Error fetching user communities:', error);
+    }
+  }, [user]);
+
   // Initial data fetch
   useEffect(() => {
     const loadInitialData = async () => {
@@ -186,6 +219,7 @@ export default function Index() {
         fetchPosts(1, sortBy),
         fetchCommunities(),
         barazaEnabled ? fetchBarazaSpaces() : Promise.resolve(),
+        fetchUserCommunities(), // NEW: Fetch user's communities
       ]);
       setIsLoading(false);
     };
@@ -221,6 +255,48 @@ export default function Index() {
 
     return () => observer.disconnect();
   }, [loadMorePosts, isFetchingNextPage, hasNextPage]);
+
+  // NEW: Handle community join request
+  const handleJoinCommunity = useCallback((communityId: string, communityName: string) => {
+    setJoinDialogState({ isOpen: true, communityId, communityName });
+  }, []);
+
+  // NEW: Execute community join
+  const handleJoinConfirm = useCallback(async () => {
+    if (!user || !joinDialogState) return;
+
+    try {
+      const { error } = await supabase
+        .from('community_members')
+        .insert({
+          user_id: user.id,
+          community_id: joinDialogState.communityId,
+          role: 'member'
+        });
+
+      if (error) throw error;
+
+      // Update local state
+      setUserCommunityIds(prev => [...prev, joinDialogState.communityId]);
+      
+      toast({
+        title: '✅ Joined!',
+        description: `Welcome to c/${joinDialogState.communityName}!`,
+        duration: 3000,
+      });
+
+      // Fetch updated communities
+      await fetchUserCommunities();
+    } catch (error) {
+      console.error('Error joining community:', error);
+      toast({
+        title: 'Failed to join',
+        description: 'Could not join community. Please try again.',
+        variant: 'destructive',
+      });
+      throw error; // Re-throw for dialog to handle
+    }
+  }, [user, joinDialogState, toast, fetchUserCommunities]);
 
   // Handle vote
   const handleVote = useCallback(async (postId: string, voteType: 'up' | 'down') => {
@@ -463,6 +539,8 @@ export default function Index() {
                   key={post.id}
                   post={post}
                   onVote={handleVote}
+                  isMember={!post.community || userCommunityIds.includes(post.community.id)}
+                  onJoinCommunity={handleJoinCommunity}
                 />
               ))
             )}
@@ -545,6 +623,16 @@ export default function Index() {
           </Card>
         </div>
       </div>
+
+      {/* Community Join Dialog */}
+      {joinDialogState && (
+        <CommunityJoinDialog
+          isOpen={joinDialogState.isOpen}
+          onClose={() => setJoinDialogState(null)}
+          communityName={joinDialogState.communityName}
+          onJoin={handleJoinConfirm}
+        />
+      )}
     </div>
   );
 }
