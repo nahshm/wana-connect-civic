@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 // Components
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
 import { SectionErrorBoundary } from '@/components/community/CommunityErrorBoundary';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';

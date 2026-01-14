@@ -3,6 +3,7 @@ import { Hash, ChevronDown, ChevronRight, Users, Shield, FileText, Hammer, Plus,
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChannelContextMenu } from './ChannelContextMenu';
 
 interface Channel {
