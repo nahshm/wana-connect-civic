@@ -90,7 +90,7 @@ function transformPost(post: RawPostData, userVote: 'up' | 'down' | null = null)
             url: m.url,
             type: m.type as 'image' | 'video' | 'document',
             caption: m.caption || undefined,
-        })),
+        })) as any,
     };
 }
 

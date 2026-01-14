@@ -194,10 +194,10 @@ export const YourCommunitiesWidget = () => {
                   {/* Activity badges - responsive */}
                   <div className="hidden sm:flex items-center gap-1">
                     {community.has_quests && (
-                      <Target className="w-4 h-4 text-amber-500" title="Quest available" />
+                      <Target className="w-4 h-4 text-amber-500" aria-label="Quest available" />
                     )}
                     {community.has_accountability_updates && (
-                      <AlertCircle className="w-4 h-4 text-orange-500" title="Update available" />
+                      <AlertCircle className="w-4 h-4 text-orange-500" aria-label="Update available" />
                     )}
                   </div>
                 </Link>

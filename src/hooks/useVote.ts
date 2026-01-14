@@ -82,7 +82,7 @@ export function useVote({ itemType, onOptimisticUpdate }: UseVoteOptions) {
 
                 const { error: insertError } = await supabase
                     .from('votes')
-                    .insert(insertData);
+                    .insert(insertData as any);
 
                 if (insertError) throw insertError;
                 action = 'added';

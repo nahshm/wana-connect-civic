@@ -49,8 +49,8 @@ export function WardsManager({ countryCode }: WardsManagerProps) {
   });
 
   const addMutation = useMutation({
-    mutationFn: async (newWard: any) => {
-      const { error } = await supabase.from("wards").insert([newWard]);
+    mutationFn: async (newWard: { name: string; constituency_id: string; population: number | null }) => {
+      const { error } = await supabase.from("wards").insert([newWard] as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -59,14 +59,14 @@ export function WardsManager({ countryCode }: WardsManagerProps) {
       setIsAddOpen(false);
       setFormData({ name: "", constituencyId: "", population: "" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Error adding ward", description: error.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const { error } = await supabase.from("wards").update(data).eq("id", id);
+    mutationFn: async (params: any) => {
+      const { error } = await supabase.from("wards").update(params.data).eq("id", params.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -75,7 +75,7 @@ export function WardsManager({ countryCode }: WardsManagerProps) {
       setIsEditOpen(false);
       setEditingWard(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Error updating ward", description: error.message, variant: "destructive" });
     },
   });

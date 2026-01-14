@@ -36,13 +36,13 @@ export const useUserStats = (userId: string) => {
             const { count: postsCount } = await supabase
                 .from('posts')
                 .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId);
+                .eq('author_id', userId) as { count: number | null };
 
             // Fetch total comments
             const { count: commentsCount } = await supabase
                 .from('comments')
                 .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId);
+                .eq('author_id', userId) as { count: number | null };
 
             // Fetch total civic actions
             const { count: actionsCount } = await supabase

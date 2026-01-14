@@ -37,16 +37,9 @@ export const WelcomeDashboard = () => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select(`
-          county_id,
-          constituency_id,
-          ward_id,
-          counties (name),
-          constituencies (name),
-          wards (name)
-        `)
+        .select(`*`)
         .eq('id', user.id)
-        .single();
+        .single() as { data: any };
 
       if (profile) {
         setLocation({

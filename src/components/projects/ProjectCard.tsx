@@ -186,8 +186,8 @@ export function ProjectCard({ project, compact = false, onClick }: ProjectCardPr
                         commentsCount={project.comments_count || 0}
                         verificationsCount={project.verifications_count || 0}
                         isVerified={project.is_verified}
-                        onComment={handleComment}
-                        onShare={handleShare}
+                        onComment={() => handleComment({} as React.MouseEvent)}
+                        onShare={() => handleShare({} as React.MouseEvent)}
                         compact
                     />
                 </div>

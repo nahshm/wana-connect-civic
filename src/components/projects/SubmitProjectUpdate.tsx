@@ -81,19 +81,16 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
             // Upload photos
             const photoUrls = await uploadPhotos();
 
-            // Insert update
+            // Insert update - using columns that exist in the schema
             const { error } = await supabase
                 .from('project_updates')
                 .insert({
-                    project_id: projectId,
-                    update_type: updateType,
+                    created_by: user.id,
                     title,
                     description,
-                    photos: photoUrls,
-                    status: 'pending',
-                    reporter_name: user.user_metadata?.display_name || user.email,
-                    created_at: new Date().toISOString()
-                });
+                    media_urls: photoUrls,
+                    update_type: updateType
+                } as any);
 
             if (error) throw error;
 
