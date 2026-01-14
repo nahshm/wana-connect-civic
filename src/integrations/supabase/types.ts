@@ -601,6 +601,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "channels_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "channels_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -1097,6 +1104,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: true
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "civic_clips_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "trending_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -1759,6 +1773,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "comments_referenced_project_id_fkey"
             columns: ["referenced_project_id"]
             isOneToOne: false
@@ -1918,6 +1939,13 @@ export type Database = {
             referencedRelation: "communities_with_stats"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "community_active_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
         ]
       }
       community_bookmarks: {
@@ -1964,6 +1992,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_bookmarks_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -2028,6 +2063,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "community_events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -2086,6 +2128,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_flairs_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "community_flairs_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -2126,6 +2175,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -2191,6 +2247,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_moderators_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -2288,6 +2351,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_polls_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "community_polls_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -2343,6 +2413,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_rules_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "community_rules_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -2386,6 +2463,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_visits_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -3090,6 +3174,13 @@ export type Database = {
             referencedRelation: "communities_with_stats"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "forum_threads_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
         ]
       }
       goat_levels: {
@@ -3645,6 +3736,13 @@ export type Database = {
             referencedRelation: "communities_with_stats"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mod_mail_threads_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ngo_partners: {
@@ -4130,6 +4228,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "position_communities_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "position_communities_position_id_fkey"
             columns: ["position_id"]
             isOneToOne: true
@@ -4172,6 +4277,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -4260,6 +4372,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -5690,6 +5809,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "votes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -5844,6 +5970,19 @@ export type Database = {
           },
         ]
       }
+      popular_communities: {
+        Row: {
+          activity_score: number | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string | null
+          id: string | null
+          member_count: number | null
+          name: string | null
+        }
+        Relationships: []
+      }
       public_community_moderators: {
         Row: {
           added_at: string | null
@@ -5868,6 +6007,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_moderators_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -5956,6 +6102,50 @@ export type Database = {
           unique_users: number | null
         }
         Relationships: []
+      }
+      trending_posts: {
+        Row: {
+          author_id: string | null
+          comment_count: number | null
+          community_id: string | null
+          created_at: string | null
+          downvotes: number | null
+          hot_score: number | null
+          id: string | null
+          rising_score: number | null
+          title: string | null
+          upvotes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wards: {
         Row: {
@@ -6162,6 +6352,8 @@ export type Database = {
           weekly_visitors: number
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_all_karma: { Args: never; Returns: undefined }
       update_community_active_status: {
         Args: { p_community_id: string; p_user_id: string }
