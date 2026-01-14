@@ -254,8 +254,8 @@ const Community = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background relative">
+    <div className="h-screen bg-background overflow-hidden">
+      <div className="flex h-full w-full overflow-hidden bg-background relative">
 
         {/* Mobile Backdrop */}
         {mobileMenuOpen && (
@@ -268,9 +268,10 @@ const Community = () => {
         {/* Left Navigation (Level Rail + Channel List) */}
         <div className={`
           flex h-full z-40 transition-transform duration-300 ease-in-out bg-background
-          md:relative md:translate-x-0
+          md:relative md:translate-x-0 md:flex-shrink-0
           absolute inset-y-0 left-0 shadow-2xl md:shadow-none
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+          max-w-[300px] md:max-w-none
         `}>
           {/* Level Selector Rail */}
           <LevelSelector levels={levels} />

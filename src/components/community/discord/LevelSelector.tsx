@@ -36,7 +36,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ levels }) => {
     };
 
     return (
-        <div className="w-[60px] bg-sidebar-background flex flex-col items-center py-4 space-y-3 border-r border-sidebar-border">
+        <div className="w-14 min-w-14 md:w-[60px] bg-sidebar-background flex flex-col items-center py-4 space-y-3 border-r border-sidebar-border flex-shrink-0">
             {levels.map((level) => {
                 if (level.type === 'SEPARATOR') {
                     return (
