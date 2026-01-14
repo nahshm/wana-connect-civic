@@ -426,27 +426,6 @@ export default function Index() {
     <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
       {/* Main Content */}
       <div className="flex-1 max-w-3xl space-y-6">
-        {/* Welcome Section */}
-        {!user && (
-          <Card className="bg-gradient-to-r from-civic-green/10 to-civic-blue/10 border-civic-green/20">
-            <CardHeader>
-              <CardTitle className="text-2xl">Welcome to ama</CardTitle>
-              <CardDescription className="text-lg">
-                Your civic engagement platform. Join discussions, track government promises, and participate in democracy.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4">
-                <Button asChild className="bg-civic-green hover:bg-civic-green/90">
-                  <Link to="/auth">Get Started</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/communities">Browse Communities</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Trending Carousel */}
         <TrendingCarousel />
