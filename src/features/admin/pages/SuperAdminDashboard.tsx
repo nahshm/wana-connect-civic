@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -134,8 +135,8 @@ export default function SuperAdminDashboard() {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-64 bg-sidebar-background border-r border-sidebar-border">
-        <div className="p-6 border-b border-sidebar-border">
+      <div className="w-64 bg-sidebar-background border-r border-sidebar-border flex flex-col">
+        <div className="p-6 border-b border-sidebar-border flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-destructive rounded-lg flex items-center justify-center">
               <ShieldAlert className="w-6 h-6 text-destructive-foreground" />
@@ -147,7 +148,8 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <ScrollArea className="flex-1">
+          <nav className="p-4 space-y-1">
           {mainTabs.map(tab => {
             const Icon = tab.icon;
             return (
@@ -164,9 +166,10 @@ export default function SuperAdminDashboard() {
               </button>
             );
           })}
-        </nav>
+          </nav>
+        </ScrollArea>
 
-        <div className="absolute bottom-0 left-0 w-64 p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border flex-shrink-0">
           <div className="text-xs text-sidebar-muted-foreground mb-2">System Status</div>
           <div className="flex items-center gap-2 text-sm text-sidebar-foreground">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -176,7 +179,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
         <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
@@ -203,7 +206,8 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        <div className="p-6">
+        <ScrollArea className="flex-1">
+          <div className="p-6">
           {selectedTab === 'overview' && <OverviewTab />}
           {selectedTab === 'users' && <UserManagementTab />}
           {selectedTab === 'anonymous' && <AnonymousReportsTab />}
@@ -221,6 +225,7 @@ export default function SuperAdminDashboard() {
           {selectedTab === 'performance' && <PerformanceMonitoringTab />}
           {selectedTab === 'system' && <SystemHealthTab />}
         </div>
+        </ScrollArea>
       </div>
 
       {/* Grok AI Chat */}

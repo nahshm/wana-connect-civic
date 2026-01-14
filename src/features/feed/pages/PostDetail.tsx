@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { PostCard } from '@/components/posts/PostCard';
 import { CommentSection } from '@/components/posts/CommentSection';
 import { VotingColumn } from '@/components/posts/VotingColumn';
@@ -838,9 +839,11 @@ const PostDetail = () => {
             )}
           </div>
 
-          {/* RIGHT SIDEBAR: Metadata & Related Content (sticky) */}
-          <div className="hidden lg:block">
-            <div className="sticky top-20 space-y-4">
+          {/* RIGHT SIDEBAR: Metadata & Related Content (fixed + responsive) */}
+          <aside className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0">
+            <div className="fixed top-16 right-0 lg:w-80 xl:w-96 h-[calc(100vh-4rem)] border-l border-border bg-background">
+              <ScrollArea className="h-full">
+                <div className="p-4 space-y-4">
               {/* About Post Card */}
               <AboutPostCard
                 post={post}
@@ -858,10 +861,12 @@ const PostDetail = () => {
                 communityId={post.community?.id}
                 tags={post.tags}
               />
+                </div>
+              </ScrollArea>
             </div>
-          </div>
-        </div>
+        </aside>
       </div>
+    </div>
     </div>
   );
 };

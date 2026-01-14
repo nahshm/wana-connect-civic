@@ -568,8 +568,10 @@ export default function Index() {
 
       {/* Right Sidebar - Fixed positioning with responsive height */}
       <aside className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
-        <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] overflow-y-auto border-l border-border bg-background">
-          <div className="p-4 space-y-4 sm:space-y-6">
+        <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] border-l border-border bg-background">
+          <ScrollArea className="h-full">
+
+            <div className="p-4 space-y-4 sm:space-y-6">
             <RightSidebar />
 
           {/* Popular Communities */}
@@ -603,6 +605,7 @@ export default function Index() {
             </CardContent>
           </Card>
           </div>
+          </ScrollArea>
         </div>
       </aside>
 
