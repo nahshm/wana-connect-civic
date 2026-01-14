@@ -253,12 +253,31 @@ const Profile = () => {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       const queryField = uuidRegex.test(username || '') ? 'id' : 'username';
 
+      // First, fetch basic profile to determine ownership
+      const { data: basicData, error: basicError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq(queryField, username)
+        .single();
+
+      if (basicError) throw basicError;
+
+      // Check if this is the current user's profile
+      const isOwner = user?.id === basicData.id;
+
+      // Select fields based on ownership - sensitive fields only for owner
+      // Public fields: basic identity, karma, badges, location regions
+      // Private fields: social_links, website, expertise, location (precise), privacy_settings
+      const selectFields = isOwner 
+        ? '*, user_privacy_settings (*)'
+        : `id, username, display_name, avatar_url, banner_url, bio, role, is_verified, 
+           karma, post_karma, comment_karma, badges, created_at, updated_at,
+           official_position, official_position_id, county, constituency, ward,
+           followers_count, following_count, user_privacy_settings (*)`;
+
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_privacy_settings (*)
-        `)
+        .select(selectFields)
         .eq(queryField, username)
         .single();
 

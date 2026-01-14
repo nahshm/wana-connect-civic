@@ -96,13 +96,18 @@ const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
             // Detect if username is actually a UUID
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(username);
 
+            // Public profile fields - excludes sensitive info like social_links, website, expertise, location
+            const publicFields = `id, username, display_name, avatar_url, banner_url, bio, 
+                is_verified, official_position, official_position_id, 
+                county, constituency, ward, created_at, role, karma, badges`;
+
             let profileQuery;
 
             if (isUUID) {
                 // First, try to find it as a user_id in profiles
                 const { data: directProfile } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select(currentUser?.id === username ? '*' : publicFields)
                     .eq('id', username)
                     .maybeSingle();
 
@@ -118,10 +123,11 @@ const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
                         .maybeSingle();
 
                     if (officeHolder?.user_id) {
+                        const isOwner = currentUser?.id === officeHolder.user_id;
                         // Fetch profile using the user_id
                         profileQuery = await supabase
                             .from('profiles')
-                            .select('*')
+                            .select(isOwner ? '*' : publicFields)
                             .eq('id', officeHolder.user_id)
                             .maybeSingle();
                     } else {
@@ -129,10 +135,19 @@ const ProfileV2Content: React.FC<ProfileV2Props> = ({ className }) => {
                     }
                 }
             } else {
-                // Normal username lookup
+                // First check if this is the current user's profile
+                const { data: checkProfile } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('username', username)
+                    .maybeSingle();
+                
+                const isOwner = currentUser?.id === checkProfile?.id;
+                
+                // Normal username lookup with appropriate fields
                 profileQuery = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select(isOwner ? '*' : publicFields)
                     .eq('username', username)
                     .maybeSingle();
             }
