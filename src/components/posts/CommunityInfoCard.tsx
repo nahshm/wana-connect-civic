@@ -54,22 +54,17 @@ export function CommunityInfoCard({ community }: CommunityInfoCardProps) {
 
         if (postError) throw postError;
 
-        // Fetch online members (last active within 15 minutes)
-        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-        const { count: onlineCount, error: onlineError } = await supabase
-          .from('community_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('community_id', community.id)
-          .gte('last_seen', fifteenMinutesAgo);
-
-        if (onlineError) throw onlineError;
+        // Fetch online members count
+        // Note: community_members table doesn't have last_seen field yet
+        // Set to 0 until we implement real-time presence tracking
+        const onlineCount = 0;
 
         setStats({
           member_count: communityData.member_count || 0,
           created_at: communityData.created_at,
           description: communityData.description,
           post_count: postCount || 0,
-          online_count: onlineCount || 0,
+          online_count: onlineCount,
         });
       } catch (error) {
         console.error('Error fetching community stats:', error);
