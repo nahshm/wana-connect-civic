@@ -218,7 +218,8 @@ serve(async (req) => {
   }
 });
 
-async function sendEmailNotification(supabase: ReturnType<typeof createClient>, notification: NotificationRequest) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendEmailNotification(supabase: any, notification: NotificationRequest) {
   try {
     // Get recipient email
     const { data: profile } = await supabase
@@ -227,7 +228,7 @@ async function sendEmailNotification(supabase: ReturnType<typeof createClient>, 
       .eq('id', notification.recipient_id)
       .single();
 
-    if (!profile) return;
+    if (!profile?.username) return;
 
     // Here you would integrate with your email service
     console.log(`Email notification would be sent to user ${profile.username}`);
