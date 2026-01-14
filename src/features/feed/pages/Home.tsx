@@ -586,10 +586,11 @@ export default function Index() {
         )}
       </div>
 
-      {/* Right Sidebar - Shows at 1280px+ */}
-      <div className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
-        <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto space-y-6 pr-4">
-          <RightSidebar />
+      {/* Right Sidebar - Fixed positioning with responsive height */}
+      <aside className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
+        <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] overflow-y-auto border-l border-border bg-background">
+          <div className="p-4 space-y-4 sm:space-y-6">
+            <RightSidebar />
 
           {/* Popular Communities */}
           <Card>
@@ -621,8 +622,9 @@ export default function Index() {
               </Button>
             </CardContent>
           </Card>
+          </div>
         </div>
-      </div>
+      </aside>
 
       {/* Community Join Dialog */}
       {joinDialogState && (
