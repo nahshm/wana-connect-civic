@@ -133,11 +133,12 @@ export default function OfficePage() {
                 // Transform to expected format
                 const transformed = holderData ? {
                     ...holderData,
+                    created_at: holderData.claimed_at, // Use claimed_at as fallback
                     profile: holderData.profiles,
                     position: holderData.government_positions
                 } : null;
 
-                setOfficeHolder(transformed);
+                setOfficeHolder(transformed as any);
 
                 // TODO: Fetch promises when table exists
                 // TODO: Fetch questions when table exists

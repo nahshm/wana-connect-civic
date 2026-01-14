@@ -59,7 +59,7 @@ export function useCivicImpact({ userId, enabled = true }: UseCivicImpactParams)
             return {
                 userId: data.user_id,
                 impactRating: data.impact_rating,
-                trustTier: data.trust_tier,
+                trustTier: (data.trust_tier || 'resident') as CivicImpactScore['trustTier'],
                 goatLevel: data.goat_level,
                 goatTitle: data.goat_title,
                 goatXp: data.goat_xp,

@@ -844,7 +844,7 @@ const PostDetail = () => {
               {/* About Post Card */}
               <AboutPostCard
                 post={post}
-                verification={verification}
+                verification={verification as any}
               />
 
               {/* Community Info Card */}

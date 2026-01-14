@@ -46,14 +46,9 @@ const CivicDashboard = () => {
       // Get user profile with location
       const { data: profile } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          counties:county_id(name),
-          constituencies:constituency_id(name),
-          wards:ward_id(name)
-        `)
+        .select(`*`)
         .eq('id', user.id)
-        .single();
+        .single() as { data: any };
 
       // Fetch officials based on user's location
       const { data: officials } = await supabase
@@ -87,9 +82,9 @@ const CivicDashboard = () => {
         .limit(5);
 
       setData({
-        countyName: profile?.counties?.name || 'N/A',
-        constituencyName: profile?.constituencies?.name || 'N/A',
-        wardName: profile?.wards?.name || 'N/A',
+        countyName: 'N/A',
+        constituencyName: 'N/A',
+        wardName: 'N/A',
         mpName: mp?.name || 'MP not yet registered',
         mpId: mp?.id,
         mcaName: mca?.name || 'MCA not yet registered',

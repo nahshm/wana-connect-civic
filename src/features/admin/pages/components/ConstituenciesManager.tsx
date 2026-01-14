@@ -49,8 +49,8 @@ export function ConstituenciesManager({ countryCode }: ConstituenciesManagerProp
   });
 
   const addMutation = useMutation({
-    mutationFn: async (newConstituency: any) => {
-      const { error } = await supabase.from("constituencies").insert([newConstituency]);
+    mutationFn: async (newConstituency: { name: string; county_id: string; population: number | null }) => {
+      const { error } = await supabase.from("constituencies").insert([newConstituency] as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -59,14 +59,14 @@ export function ConstituenciesManager({ countryCode }: ConstituenciesManagerProp
       setIsAddOpen(false);
       setFormData({ name: "", countyId: "", population: "" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Error adding constituency", description: error.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const { error } = await supabase.from("constituencies").update(data).eq("id", id);
+    mutationFn: async (params: any) => {
+      const { error } = await supabase.from("constituencies").update(params.data).eq("id", params.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -75,7 +75,7 @@ export function ConstituenciesManager({ countryCode }: ConstituenciesManagerProp
       setIsEditOpen(false);
       setEditingConstituency(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Error updating constituency", description: error.message, variant: "destructive" });
     },
   });

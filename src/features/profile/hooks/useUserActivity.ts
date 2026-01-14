@@ -23,9 +23,9 @@ export const useUserActivity = (userId: string) => {
             const { data: posts } = await supabase
                 .from('posts')
                 .select('id, title, created_at, content')
-                .eq('user_id', userId)
+                .eq('author_id', userId)
                 .order('created_at', { ascending: false })
-                .limit(10);
+                .limit(10) as { data: any[] | null };
 
             if (posts) {
                 posts.forEach(post => activities.push({

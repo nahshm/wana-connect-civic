@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, TrendingUp, Users, FileText, X } from 'lucide-react';
-import { Link } from 'router-dom';
+import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +13,9 @@ export const QuickSearchDropdown = () => {
   const debouncedQuery = useDebounce(query, 300);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const { results, isLoading } = useSearch({
+  const { data: results, isLoading } = useSearch({
     query: debouncedQuery,
     type: 'all',
-    enabled: debouncedQuery.length > 0,
   });
 
   // Close dropdown when clicking outside
@@ -32,9 +31,9 @@ export const QuickSearchDropdown = () => {
   }, []);
 
   const categorizedResults = {
-    posts: results.posts?.slice(0, 3) || [],
-    users: results.users?.slice(0, 2) || [],
-    communities: results.communities?.slice(0, 2) || [],
+    posts: results?.posts?.slice(0, 3) || [],
+    users: results?.users?.slice(0, 2) || [],
+    communities: results?.communities?.slice(0, 2) || [],
   };
 
   const hasResults = Object.values(categorizedResults).some(arr => arr.length > 0);

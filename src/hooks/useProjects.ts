@@ -266,14 +266,12 @@ export function useProjects(filters?: {
                                 .from('project_collaborating_officials')
                                 .select('id', { count: 'exact', head: true })
                                 .eq('project_id', project.id)
-                                .then(r => ({ count: r.count || 0 }))
-                                .catch(() => ({ count: 0 })),
+                                .then(r => ({ count: r.count || 0 })),
                             supabase
                                 .from('project_collaborating_institutions')
                                 .select('id', { count: 'exact', head: true })
                                 .eq('project_id', project.id)
                                 .then(r => ({ count: r.count || 0 }))
-                                .catch(() => ({ count: 0 }))
                         ]);
 
                         enriched.collaborating_officials = [{ count: officialsCount.count }];
@@ -291,15 +289,13 @@ export function useProjects(filters?: {
                                 .from('project_comments')
                                 .select('id', { count: 'exact', head: true })
                                 .eq('project_id', project.id)
-                                .then(r => r.count || 0)
-                                .catch(() => 0),
+                                .then(r => r.count || 0),
                             supabase
                                 .from('project_verifications')
                                 .select('id', { count: 'exact', head: true })
                                 .eq('project_id', project.id)
                                 .eq('is_verified', true)
                                 .then(r => r.count || 0)
-                                .catch(() => 0)
                         ]);
 
                         enriched.comments_count = comments;

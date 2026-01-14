@@ -37,7 +37,7 @@ export function trackVideoLoad(clipId: string, startTime: number) {
     }
 
     // Track custom mark
-    trackPerformance(`video-load-${clipId}`, loadTime)
+    trackPerformance(`video-load-${clipId}`)
 
     return loadTime
 }
@@ -71,7 +71,7 @@ export function trackPageLoad(pageName: string) {
             const measure = performance.getEntriesByName(`${pageName}-duration`)[0]
             if (measure) {
                 console.log(`📊 ${pageName} load time: ${measure.duration.toFixed(0)}ms`)
-                trackPerformance(pageName, measure.duration)
+                trackPerformance(pageName)
             }
         } catch (e) {
             // Measurement failed, ignore

@@ -608,10 +608,11 @@ function ModeratorsTab() {
             .select('id, display_name, username, avatar_url')
             .in('id', userIds);
 
-          const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+          const profilesMap: Record<string, { avatar_url: string; display_name: string; id: string; username: string }> = {};
+          (profiles || []).forEach(p => { profilesMap[p.id] = p; });
           modsWithProfiles = modsWithProfiles.map(m => ({
             ...m,
-            user: profilesMap.get(m.user_id) || null
+            user: profilesMap[m.user_id] || null
           }));
         }
       }
@@ -1098,9 +1099,9 @@ function FeatureFlagsTab() {
       .eq('id', id);
 
     if (error) {
-      toast.error('Failed to update feature flag');
+      toast({ title: 'Failed to update feature flag', variant: 'destructive' });
     } else {
-      toast.success('Feature flag updated');
+      toast({ title: 'Feature flag updated' });
       fetchFlags();
     }
   };
@@ -1138,7 +1139,7 @@ function FeatureFlagsTab() {
             <CardTitle className="capitalize">{category} Features</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {categoryFlags.map((flag: any) => (
+            {(categoryFlags as any[]).map((flag: any) => (
               <div
                 key={flag.id}
                 className="flex items-center justify-between p-3 border rounded-lg"
@@ -1218,7 +1219,7 @@ function GeographicDataTab() {
   });
 
   // Parse levels from template
-  const levels: string[] = templateData?.levels || [];
+  const levels: string[] = (templateData as any)?.levels || [];
   const defaultTab = levels[0] || 'county'; // Fallback to 'county' if no template
 
   // Helper to get level metadata
@@ -1381,10 +1382,11 @@ function PositionVerificationTab() {
           .select('id, display_name')
           .in('id', userIds);
 
-        const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+        const profilesMap: Record<string, { display_name: string; id: string }> = {};
+        (profiles || []).forEach(p => { profilesMap[p.id] = p; });
         const claimsWithProfiles = data.map((c: any) => ({
           ...c,
-          user: profilesMap.get(c.user_id) || null
+          user: profilesMap[c.user_id] || null
         }));
         setPendingClaims(claimsWithProfiles);
       } else {

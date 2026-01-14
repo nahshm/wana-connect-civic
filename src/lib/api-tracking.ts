@@ -27,7 +27,6 @@ async function logAPIMetric(metric: APIMetric) {
         if (shouldLog) {
             const { data: { user } } = await supabase.auth.getUser();
 
-            // @ts-expect-error - Table exists but types are outdated
             await supabase.from('api_metrics').insert({
                 operation: metric.operation,
                 duration_ms: metric.duration_ms,

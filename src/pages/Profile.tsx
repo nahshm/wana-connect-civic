@@ -714,11 +714,11 @@ const Profile = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
                     <div className="flex items-center space-x-1">
                       <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="text-xs sm:text-sm">{profile.activityStats?.postCount || 0} posts</span>
+                      <span className="text-xs sm:text-sm">{profile.activityStats?.postsCreated || 0} posts</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="text-xs sm:text-sm">{profile.activityStats?.commentCount || 0} comments</span>
+                      <span className="text-xs sm:text-sm">{profile.activityStats?.commentsCreated || 0} comments</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -803,15 +803,15 @@ const Profile = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between">
                       <span>Total Posts</span>
-                      <span className="font-semibold">{profile.activityStats?.postCount || 0}</span>
+                      <span className="font-semibold">{profile.activityStats?.postsCreated || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Total Comments</span>
-                      <span className="font-semibold">{profile.activityStats?.commentCount || 0}</span>
+                      <span className="font-semibold">{profile.activityStats?.commentsCreated || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Upvotes Given</span>
-                      <span className="font-semibold">{profile.activityStats?.upvoteCount || 0}</span>
+                      <span className="font-semibold">{profile.activityStats?.upvotesGiven || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Karma</span>

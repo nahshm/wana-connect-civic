@@ -76,7 +76,7 @@ async function fetchCommunityByName(
     if (userId) {
         supabase.rpc('log_community_visit', {
             p_community_id: communityData.id
-        }).then(() => { }).catch(() => { }); // Fire and forget
+        }).then(() => { }); // Fire and forget
     }
 
     // Check membership and roles if user is logged in

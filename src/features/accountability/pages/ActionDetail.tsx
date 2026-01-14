@@ -104,16 +104,21 @@ const ActionDetail = () => {
                 .from('civic_actions')
                 .select(`
           *,
-          profiles:user_id(username, display_name, avatar_url),
-          wards!civic_actions_ward_id_fkey(name),
-          constituencies!civic_actions_constituency_id_fkey(name),
-          counties!civic_actions_county_id_fkey(name)
+          profiles:user_id(username, display_name, avatar_url)
         `)
                 .eq('id', id)
                 .single();
 
             if (actionError) throw actionError;
-            setAction(actionData);
+            
+            // Add placeholder data for related entities
+            const enrichedData = {
+                ...actionData,
+                wards: null,
+                constituencies: null,
+                counties: null
+            };
+            setAction(enrichedData as ActionDetail);
 
             // Fetch status updates
             const { data: updatesData } = await supabase
