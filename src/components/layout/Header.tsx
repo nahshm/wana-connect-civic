@@ -58,9 +58,16 @@ export const Header = () => {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Logo */}
+      {/* Logo - explicit dimensions prevent CLS */}
       <Link to="/" className="flex-shrink-0">
-        <img src="/logo.png" alt="ama Logo" className="h-8 sm:h-10 w-auto" />
+        <img 
+          src="/logo.png" 
+          alt="ama Logo" 
+          width={42}
+          height={40}
+          className="h-8 sm:h-10 w-auto" 
+          fetchPriority="high"
+        />
       </Link>
 
       {/* Centered Search */}
