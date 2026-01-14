@@ -65,8 +65,11 @@ export function ConstituenciesManager({ countryCode }: ConstituenciesManagerProp
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (params: any) => {
-      const { error } = await supabase.from("constituencies").update(params.data).eq("id", params.id);
+    mutationFn: async (params: { id: string; data: Record<string, unknown> }) => {
+      const { error } = await supabase
+        .from("administrative_divisions")
+        .update(params.data)
+        .eq("id", params.id);
       if (error) throw error;
     },
     onSuccess: () => {
