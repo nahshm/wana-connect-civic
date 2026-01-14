@@ -329,18 +329,22 @@ const Community = () => {
           )}
         </div>
 
-        {/* Right Sidebar - Original CommunitySidebar */}
-        <div className="hidden lg:block w-80 border-l border-sidebar-border bg-sidebar-background overflow-y-auto thin-scrollbar">
-          <SectionErrorBoundary section="Community Sidebar">
-            <CommunitySidebar
-              community={community}
-              rules={rules}
-              moderators={moderators}
-              flairs={flairs}
-              isAdmin={isAdmin}
-            />
-          </SectionErrorBoundary>
-        </div>
+        {/* Right Sidebar - Fixed + Responsive */}
+        <aside className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
+          <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] overflow-y-auto border-l border-sidebar-border bg-sidebar-background">
+            <div className="p-4 space-y-4 sm:space-y-6">
+              <SectionErrorBoundary section="Community Sidebar">
+                <CommunitySidebar
+                  community={community}
+                  rules={rules}
+                  moderators={moderators}
+                  flairs={flairs}
+                  isAdmin={isAdmin}
+                />
+              </SectionErrorBoundary>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {/* Create Channel Dialog */}
