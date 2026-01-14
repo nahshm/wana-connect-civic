@@ -562,12 +562,12 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
               )}
 
               {/* Three dots menu */}
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0 hover:bg-accent"
+                    className="h-7 w-7 p-0 bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border/50"
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -701,9 +701,9 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-border/50">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
               {/* Voting Buttons moved here */}
-              <div className="flex items-center bg-sidebar-accent/30 rounded-full px-1.5 mr-2 border border-border/30">
+              <div className="flex items-center bg-sidebar-accent/30 rounded-full px-1.5 border border-border/30">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -750,9 +750,9 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
               </Button>
             </div>
 
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:text-primary bg-accent/50 hover:bg-accent rounded-lg transition-colors duration-200">
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-foreground bg-sidebar-accent hover:bg-sidebar-accent/80 rounded-lg transition-colors duration-200 border border-border/50">
                   <MoreHorizontal className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
