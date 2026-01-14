@@ -137,7 +137,7 @@ const ChannelList: React.FC<ChannelListProps> = ({
 
     return (
         <TooltipProvider>
-            <div className="w-52 min-w-52 max-w-60 md:w-60 bg-sidebar-background flex flex-col overflow-hidden border-r border-sidebar-border flex-shrink-0">>
+            <div className="w-52 min-w-52 max-w-60 md:w-60 bg-sidebar-background flex flex-col overflow-hidden border-r border-sidebar-border flex-shrink-0">
                 {/* Level Header */}
                 <div className="p-4 border-b border-sidebar-border bg-sidebar-background flex items-center justify-between group">
                     <button className="flex-1 flex items-center justify-between text-left hover:bg-sidebar-accent/50 rounded px-2 py-1 transition-colors mr-2">
