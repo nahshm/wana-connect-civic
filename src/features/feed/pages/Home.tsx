@@ -432,7 +432,7 @@ export default function Index() {
             <CardHeader>
               <CardTitle className="text-2xl">Welcome to ama</CardTitle>
               <CardDescription className="text-lg">
-                Kenya's premier civic engagement platform. Join discussions, track government promises, and participate in democracy.
+                Your civic engagement platform. Join discussions, track government promises, and participate in democracy.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -469,7 +469,7 @@ export default function Index() {
                     <MessageSquare className="h-16 w-16 text-civic-blue mx-auto mb-6" />
                     <h2 className="text-2xl font-bold mb-4 text-civic-blue">Welcome to ama!</h2>
                     <p className="text-lg text-muted-foreground mb-6">
-                      Kenya's premier civic engagement platform. Here's what you can do:
+                      Your civic engagement platform. Here's what you can do:
                     </p>
                   </div>
 
