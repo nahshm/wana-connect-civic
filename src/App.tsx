@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthModalProvider } from "@/contexts/AuthModalContext";
+import { AuthModal } from "@/components/auth/AuthModal";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Suspense, lazy } from "react";
 
@@ -85,10 +87,12 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="wanaiq-ui-theme">
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <SidebarProvider>
+        <AuthModalProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <AuthModal />
+            <SidebarProvider>
             <BrowserRouter>
               <OnboardingGuard>
                 <Suspense fallback={<LoadingFallback />}>
@@ -160,8 +164,9 @@ const App = () => (
                 </Suspense>
               </OnboardingGuard>
             </BrowserRouter>
-          </SidebarProvider>
-        </TooltipProvider>
+            </SidebarProvider>
+          </TooltipProvider>
+        </AuthModalProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

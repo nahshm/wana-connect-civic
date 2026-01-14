@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { FEED_CONFIG } from '@/constants/feed';
 
@@ -22,6 +23,7 @@ interface VoteResult {
 
 export function useVote({ itemType, onOptimisticUpdate }: UseVoteOptions) {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -102,11 +104,7 @@ export function useVote({ itemType, onOptimisticUpdate }: UseVoteOptions) {
             console.error('Vote error:', error);
 
             if (error.message === 'Authentication required') {
-                toast({
-                    title: "Sign in required",
-                    description: `Please sign in to vote on ${itemType}s`,
-                    variant: "destructive",
-                });
+                authModal.open('login');
             } else {
                 toast({
                     title: "Error",
@@ -131,11 +129,7 @@ export function useVote({ itemType, onOptimisticUpdate }: UseVoteOptions) {
 
     const vote = useCallback((itemId: string, voteType: VoteType) => {
         if (!user) {
-            toast({
-                title: "Sign in required",
-                description: `Please sign in to vote on ${itemType}s`,
-                variant: "destructive",
-            });
+            authModal.open('login');
             return;
         }
 

@@ -14,6 +14,10 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, username?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithApple: () => Promise<{ error: any }>;
+  signInWithGithub: () => Promise<{ error: any }>;
+  sendMagicLink: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -205,6 +209,135 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Google sign in failed",
+          description: error.message
+        });
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast({
+        variant: "destructive",
+        title: "Google sign in failed",
+        description: message
+      });
+      return { error: { message } };
+    }
+  };
+
+  const signInWithApple = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Apple sign in failed",
+          description: error.message
+        });
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast({
+        variant: "destructive",
+        title: "Apple sign in failed",
+        description: message
+      });
+      return { error: { message } };
+    }
+  };
+
+  const signInWithGithub = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "GitHub sign in failed",
+          description: error.message
+        });
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast({
+        variant: "destructive",
+        title: "GitHub sign in failed",
+        description: message
+      });
+      return { error: { message } };
+    }
+  };
+
+  const sendMagicLink = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Magic link failed",
+          description: error.message
+        });
+        return { error };
+      }
+
+      toast({
+        title: "Check your email",
+        description: "We've sent you a magic link to sign in."
+      });
+
+      return { error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast({
+        variant: "destructive",
+        title: "Magic link failed",
+        description: message
+      });
+      return { error: { message } };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -238,6 +371,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
+    signInWithApple,
+    signInWithGithub,
+    sendMagicLink,
     signOut,
     refreshProfile,
   };
