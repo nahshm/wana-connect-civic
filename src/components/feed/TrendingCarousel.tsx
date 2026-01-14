@@ -161,12 +161,15 @@ export function TrendingCarousel() {
                 to={`/post/${post.id}`}
                 className="flex-shrink-0 w-[220px] h-[180px] rounded-xl overflow-hidden relative group/card"
               >
-                {/* Background */}
+              {/* Background */}
                 {imageUrl ? (
                   <img
                     src={imageUrl}
                     alt={post.title}
                     className="absolute inset-0 w-full h-full object-cover"
+                    // Prioritize first visible images for LCP optimization
+                    fetchPriority={index < 2 ? 'high' : 'auto'}
+                    loading={index < 4 ? 'eager' : 'lazy'}
                   />
                 ) : (
                   <div className={`absolute inset-0 bg-gradient-to-br ${getGradientColor(index)}`} />
