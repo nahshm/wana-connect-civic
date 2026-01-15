@@ -2,7 +2,7 @@
 import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
 import { FeedHeader } from '@/components/feed/FeedHeader';
-import { TrendingCarousel } from '@/components/feed/TrendingCarousel';
+
 import { PostSkeletonList, InlinePostSkeleton } from '@/components/feed/PostSkeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -428,8 +428,6 @@ export default function Index() {
       {/* Main Content */}
       <div className="flex-1 max-w-3xl space-y-6">
 
-        {/* Trending Carousel */}
-        <TrendingCarousel />
 
         {/* Feed Header */}
         <FeedHeader
