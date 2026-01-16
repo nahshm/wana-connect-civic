@@ -98,6 +98,7 @@ export default {
     		},
     		fontFamily: {
     			sans: [
+    				'Roboto',
     				'ui-sans-serif',
     				'system-ui',
     				'sans-serif',
