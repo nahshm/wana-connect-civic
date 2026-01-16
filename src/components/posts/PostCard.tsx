@@ -462,16 +462,16 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
   }
 
   return (
-    <Card className="mb-2 bg-card/95 backdrop-blur-lg rounded-2xl border border-border/50 hover:border-primary/30 transition-all duration-200 max-w-[640px] mx-auto shadow-md shadow-black/5 dark:shadow-black/20 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/30 hover:scale-[1.01]">
+    <article className="hover:bg-muted/30 transition-colors">
       <div className="flex flex-col">
         {/* Main Content */}
-        <CardContent className="flex-1 p-5 min-w-0">
+        <div className="flex-1 px-4 py-3 min-w-0">
           {/* Clean Compact Header */}
-          <div className="flex items-start gap-3 mb-3">
-            {/* Left: Avatar */}
-            <Avatar className="h-10 w-10 flex-shrink-0">
+          <div className="flex items-start gap-2.5 mb-2">
+            {/* Left: Avatar - smaller like Reddit */}
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarImage src={communityData?.icon || post.author.avatar} />
-              <AvatarFallback className="text-sm bg-civic-green/10 text-civic-green font-semibold">
+              <AvatarFallback className="text-xs bg-civic-green/10 text-civic-green font-semibold">
                 {(communityData?.name || post.author.displayName || 'U')[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -699,68 +699,75 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
             isLoading={isCastingVote}
           />
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-border/50">
-            <div className="flex items-center gap-1.5">
-              {/* Voting Buttons moved here */}
-              <div className="flex items-center bg-sidebar-accent/30 rounded-full px-1.5 border border-border/30">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Upvote post: ${post.title}`}
-                  aria-pressed={post.userVote === 'up'}
-                  onClick={() => onVote(post.id, 'up')}
-                  className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${
-                    post.userVote === 'up' 
-                      ? 'text-white bg-gradient-to-br from-civic-green to-civic-green/80 shadow-lg shadow-civic-green/30 animate-bounce-subtle' 
-                      : 'hover:text-civic-green hover:bg-civic-green/10 hover:scale-110'
-                  }`}
-                >
-                  <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
-                </Button>
-                <span className="text-xs font-medium text-sidebar-foreground px-1.5 min-w-[1.5rem] text-center">
-                  {formatNumber(getVoteScore())}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Downvote post"
-                  aria-pressed={post.userVote === 'down'}
-                  onClick={() => onVote(post.id, 'down')}
-                  className={`h-9 w-9 p-0 rounded-full transition-all duration-300 ${
-                    post.userVote === 'down' 
-                      ? 'text-white bg-gradient-to-br from-civic-red to-civic-red/80 shadow-lg shadow-civic-red/30' 
-                      : 'hover:text-civic-red hover:bg-civic-red/10 hover:scale-110'
-                  }`}
-                >
-                  <ArrowDown className="w-5 h-5" strokeWidth={2.5} />
-                </Button>
-              </div>
-
-              <Button variant="ghost" size="sm" className="h-9 px-4 gap-2 text-muted-foreground hover:text-civic-blue hover:bg-civic-blue/10 rounded-lg transition-all duration-200 hover:scale-105" asChild>
-                <Link to={getPostLink()}>
-                  <MessageCircle className="w-5 h-5" strokeWidth={2} />
-                  <span className="text-sm font-medium">{post.commentCount}</span>
-                </Link>
-              </Button>
-
-              <Button variant="ghost" size="sm" className="h-9 px-3 sm:px-4 gap-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all duration-200 hover:scale-105 group">
-                <Share className="w-5 h-5 group-hover:rotate-12 transition-transform duration-200" strokeWidth={2} />
-                <span className="hidden sm:inline text-sm font-medium">Share</span>
-              </Button>
+          {/* Actions - Reddit-style pill buttons */}
+          <div className="flex items-center gap-2 mt-2 -ml-1">
+            {/* Vote group - pill shaped */}
+            <div className="flex items-center bg-muted/50 rounded-full">
+              <button
+                aria-label={`Upvote post: ${post.title}`}
+                aria-pressed={post.userVote === 'up'}
+                onClick={() => onVote(post.id, 'up')}
+                className={`p-2 rounded-l-full transition-colors ${
+                  post.userVote === 'up' 
+                    ? 'text-civic-green bg-civic-green/10' 
+                    : 'text-muted-foreground hover:text-civic-green hover:bg-muted'
+                }`}
+              >
+                <ArrowUp className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-medium px-1 min-w-[1.5rem] text-center">
+                {formatNumber(getVoteScore())}
+              </span>
+              <button
+                aria-label="Downvote post"
+                aria-pressed={post.userVote === 'down'}
+                onClick={() => onVote(post.id, 'down')}
+                className={`p-2 rounded-r-full transition-colors ${
+                  post.userVote === 'down' 
+                    ? 'text-civic-red bg-civic-red/10' 
+                    : 'text-muted-foreground hover:text-civic-red hover:bg-muted'
+                }`}
+              >
+                <ArrowDown className="w-4 h-4" />
+              </button>
             </div>
 
+            {/* Comments - pill shaped */}
+            <Link 
+              to={getPostLink()}
+              className="flex items-center gap-1.5 bg-muted/50 rounded-full px-3 py-2 hover:bg-muted transition-colors"
+            >
+              <MessageCircle className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-medium">{post.commentCount}</span>
+            </Link>
+
+            {/* Share - pill shaped */}
+            <button className="flex items-center gap-1.5 bg-muted/50 rounded-full px-3 py-2 hover:bg-muted transition-colors">
+              <Share className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-medium hidden sm:inline">Share</span>
+            </button>
+
+            {/* Save - pill shaped */}
+            <button 
+              onClick={handleSave}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-2 transition-colors ${
+                isSaved ? 'bg-civic-green/10 text-civic-green' : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+              }`}
+            >
+              <Bookmark className="w-4 h-4" />
+            </button>
+
+            {/* More options - pill shaped */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-foreground bg-sidebar-accent hover:bg-sidebar-accent/80 rounded-lg transition-colors duration-200 border border-border/50">
-                  <MoreHorizontal className="w-5 h-5" />
-                </Button>
+                <button className="p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors">
+                  <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-sidebar-background border-sidebar-border">
+              <DropdownMenuContent align="end" className="bg-card border-border">
                 {isAuthor && (
                   <>
                     <DropdownMenuItem
-                      className="text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={() => navigate(`/edit-post/${post.id}`)}
                     >
                       <Edit className="w-4 h-4 mr-2" />
@@ -769,24 +776,22 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem
-                          className="text-destructive hover:bg-destructive/10"
+                          className="text-destructive"
                           onSelect={(e) => e.preventDefault()}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
                           Delete post
                         </DropdownMenuItem>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-sidebar-background border-sidebar-border">
+                      <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="text-sidebar-foreground">Delete Post</AlertDialogTitle>
-                          <AlertDialogDescription className="text-sidebar-muted-foreground">
+                          <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                          <AlertDialogDescription>
                             Are you sure you want to delete this post? This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80">
-                            Cancel
-                          </AlertDialogCancel>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={handleDelete}
                             disabled={isDeleting}
@@ -799,20 +804,14 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
                     </AlertDialog>
                   </>
                 )}
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  Hide post
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  Report
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-sidebar-foreground hover:bg-sidebar-accent">
-                  Block user
-                </DropdownMenuItem>
+                <DropdownMenuItem>Hide post</DropdownMenuItem>
+                <DropdownMenuItem>Report</DropdownMenuItem>
+                <DropdownMenuItem>Block user</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </CardContent>
+        </div>
       </div>
-    </Card>
+    </article>
   );
 };

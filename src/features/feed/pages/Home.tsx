@@ -1,8 +1,7 @@
-﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RightSidebar } from '@/components/layout/RightSidebar';
 import { PostCard } from '@/components/posts/PostCard';
-import { FeedHeader } from '@/components/feed/FeedHeader';
-
+import { FeedSortBar } from '@/components/feed/FeedSortBar';
 import { PostSkeletonList, InlinePostSkeleton } from '@/components/feed/PostSkeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -426,11 +425,9 @@ export default function Index() {
   return (
     <div className="flex flex-col lg:flex-row gap-6 max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
       {/* Main Content */}
-      <div className="flex-1 max-w-3xl space-y-6">
-
-
-        {/* Feed Header */}
-        <FeedHeader
+      <div className="flex-1 max-w-2xl">
+        {/* Reddit-style Sort Bar */}
+        <FeedSortBar
           sortBy={sortBy}
           onSortChange={setSortBy}
           viewMode={viewMode}
@@ -439,7 +436,7 @@ export default function Index() {
 
         {/* Posts Feed - wrapped in error boundary */}
         <FeedErrorBoundary>
-          <div className="space-y-4">
+          <div className="divide-y divide-border/40">
             {posts.length === 0 ? (
               <Card className="bg-gradient-to-br from-civic-green/5 to-civic-blue/5 border-civic-green/20">
                 <CardContent className="py-12 px-8">
