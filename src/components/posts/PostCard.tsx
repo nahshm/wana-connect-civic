@@ -462,7 +462,7 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
   }
 
   return (
-    <article className="hover:bg-muted/30 transition-colors">
+    <article className="border-b border-border/50 hover:bg-muted/30 transition-colors">
       <div className="flex flex-col">
         {/* Main Content */}
         <div className="flex-1 px-4 py-3 min-w-0">
