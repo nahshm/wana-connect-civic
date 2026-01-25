@@ -1,244 +1,87 @@
 
-## Plan: Profile Recovery System for Missing Profiles
+## Plan: Fix Infinite Recursion in Profiles RLS Policies
 
 ### Problem Analysis
 
-The user `ba07274d-aa96-4fc1-bc4e-5e5c9b379259` exists in `auth.users` but has **no corresponding profile** in the `profiles` table. This causes:
+The `profiles` table has an RLS policy that causes **infinite recursion**:
 
-1. **Console Error**: "Profile not found for user: ba07274d-aa96-4fc1-bc4e-5e5c9b379259"
-2. **Infinite Loading**: The `useOnboarding` hook sets `loading: true` when profile is null, causing `OnboardingGuard` to show endless spinner
-3. **No Recovery Path**: Users have no way to fix this state - they're stuck
+**Problematic Policy: `Only platform admins can update admin status`**
+```sql
+qual: ((SELECT auth.uid()) = id) OR (EXISTS (
+  SELECT 1 FROM profiles profiles_1 
+  WHERE profiles_1.id = (SELECT auth.uid()) 
+    AND profiles_1.is_platform_admin = true
+))
+```
 
-**Root Cause**: The `handle_new_user()` trigger exists but may have failed silently during signup, or the profile was accidentally deleted.
+This policy queries the `profiles` table from within a policy ON the `profiles` table, creating an infinite loop when Postgres evaluates RLS.
+
+### Root Cause
+
+The policy checks `is_platform_admin` by querying the same table it's protecting. Every time Postgres tries to evaluate the policy, it triggers another evaluation of the same policy → infinite recursion.
 
 ---
 
-### Solution Overview
+### Solution
 
-Create a **ProfileRecovery system** that:
-1. Detects missing profiles for authenticated users
-2. Shows a friendly recovery UI instead of infinite loading
-3. Allows users to recreate their profile and proceed to onboarding
+Replace the recursive policy with one that uses the existing `is_super_admin()` security definer function, which safely bypasses RLS to check the `user_roles` table.
 
 ---
 
-### Phase 1: Create Profile Recovery Component
+### Database Migration
 
-**Create `src/components/auth/ProfileRecovery.tsx`**
+The following SQL will be executed:
 
-A dedicated component shown when a user is authenticated but has no profile:
+```sql
+-- Step 1: Drop the problematic recursive policy
+DROP POLICY IF EXISTS "Only platform admins can update admin status" ON public.profiles;
 
-```text
-┌────────────────────────────────────────────┐
-│                                            │
-│         🔧 Profile Setup Required          │
-│                                            │
-│  We couldn't find your profile. This can  │
-│  happen if something went wrong during    │
-│  signup.                                   │
-│                                            │
-│  [ Create My Profile ]  [ Sign Out ]       │
-│                                            │
-│  ───────────────────────────────────────   │
-│  Technical details (for support)           │
-│  User ID: ba07274d-...                     │
-└────────────────────────────────────────────┘
-```
-
-Features:
-- Friendly messaging explaining the situation
-- "Create My Profile" button that creates a minimal profile row
-- "Sign Out" option if user wants to try a different account
-- Technical details (collapsible) for support
-
----
-
-### Phase 2: Update AuthContext to Track Profile State
-
-**Modify `src/contexts/AuthContext.tsx`**
-
-Add a new state to distinguish between:
-- `profileLoading: true` - Still fetching profile
-- `profileMissing: true` - Fetch complete, no profile found
-- `profile: Profile` - Profile exists and loaded
-
-Changes:
-```typescript
-interface AuthContextType {
-  // ... existing fields
-  profileMissing: boolean;  // NEW: true if user exists but profile doesn't
-  createMissingProfile: () => Promise<{ error: any }>;  // NEW: recovery function
-}
-```
-
-Update `fetchProfile()`:
-```typescript
-const fetchProfile = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching profile:', error);
-      setProfileMissing(true);  // NEW
-      return;
-    }
-
-    if (!data) {
-      console.warn('Profile not found for user:', userId);
-      setProfileMissing(true);  // NEW: Mark as missing instead of just returning
-      return;
-    }
-
-    setProfileMissing(false);  // NEW
-    // ... rest of profile mapping
-  } catch (error) {
-    setProfileMissing(true);  // NEW
-  }
-};
-```
-
-Add `createMissingProfile()` function:
-```typescript
-const createMissingProfile = async () => {
-  if (!user) return { error: { message: 'No user found' } };
-  
-  const { error } = await supabase.from('profiles').insert({
-    id: user.id,
-    username: user.email?.split('@')[0] || `user_${user.id.slice(0, 8)}`,
-    display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
-    onboarding_completed: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  if (!error) {
-    await fetchProfile(user.id);  // Refetch to update state
-  }
-  
-  return { error };
-};
+-- Step 2: Recreate with safe, non-recursive logic using security definer function
+CREATE POLICY "Only platform admins can update admin status"
+ON public.profiles
+FOR UPDATE
+TO authenticated
+USING (
+  -- Users can update their own profile
+  (SELECT auth.uid()) = id 
+  -- OR they are a super_admin (checked via security definer function)
+  OR public.is_super_admin((SELECT auth.uid()))
+)
+WITH CHECK (
+  (SELECT auth.uid()) = id 
+  OR public.is_super_admin((SELECT auth.uid()))
+);
 ```
 
 ---
 
-### Phase 3: Update OnboardingGuard to Handle Missing Profiles
+### Why This Works
 
-**Modify `src/components/routing/OnboardingGuard.tsx`**
+1. **`is_super_admin()` is SECURITY DEFINER**: It runs with elevated privileges, bypassing RLS entirely
+2. **Queries `user_roles` not `profiles`**: Breaks the recursion cycle
+3. **Proper role separation**: Uses the dedicated `user_roles` table instead of the `is_platform_admin` column
+4. **Optimized with SELECT wrapper**: `(SELECT auth.uid())` prevents per-row re-evaluation
 
-Add a check for missing profiles and show `ProfileRecovery` component:
+---
 
-```typescript
-import { ProfileRecovery } from '@/components/auth/ProfileRecovery';
+### Files Changed
 
-export const OnboardingGuard = ({ children }: OnboardingGuardProps) => {
-  const { user, profile, profileMissing, loading: authLoading } = useAuth();
-  const { needsOnboarding, loading: onboardingLoading } = useOnboarding();
-  
-  // ... existing code
+| Change | Description |
+|--------|-------------|
+| Database Migration | Drop and recreate the problematic policy |
 
-  // NEW: Show recovery UI if profile is missing
-  if (!authLoading && user && profileMissing) {
-    return <ProfileRecovery />;
-  }
+---
 
-  // ... rest of existing code
-};
+### Verification
+
+After the migration, the following query should return the updated policy without any self-referencing `profiles` subquery:
+
+```sql
+SELECT policyname, qual FROM pg_policies WHERE tablename = 'profiles' AND policyname LIKE '%admin%';
 ```
 
 ---
 
-### Phase 4: Update useOnboarding Hook
+### Future Consideration
 
-**Modify `src/hooks/useOnboarding.ts`**
-
-Handle the `profileMissing` state to prevent infinite loading:
-
-```typescript
-export const useOnboarding = () => {
-  const { user, profile, profileMissing, loading: authLoading } = useAuth();
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!user) {
-      setNeedsOnboarding(false);
-      setLoading(false);
-      return;
-    }
-
-    // NEW: If profile is missing, don't keep loading forever
-    if (profileMissing) {
-      setNeedsOnboarding(true);  // Will need onboarding after profile is created
-      setLoading(false);
-      return;
-    }
-
-    if (profile) {
-      setNeedsOnboarding(!profile.onboardingCompleted);
-      setLoading(false);
-    } else {
-      // Profile still loading
-      setLoading(true);
-    }
-  }, [user, profile, profileMissing, authLoading]);
-
-  return { needsOnboarding, loading };
-};
-```
-
----
-
-### Phase 5: Add Error Boundary for Profile Pages
-
-**Modify `src/features/profile/pages/ProfileV2.tsx`**
-
-Enhance the existing error handling to provide recovery options:
-
-The file already has an `ErrorBoundary` wrapper and handles missing profiles with a "User not found" message. We'll enhance it to:
-- Detect if the missing profile is the current user's own profile
-- Show recovery option if so
-
----
-
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/auth/ProfileRecovery.tsx` | Recovery UI for missing profiles |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/contexts/AuthContext.tsx` | Add `profileMissing` state, `createMissingProfile()` function |
-| `src/components/routing/OnboardingGuard.tsx` | Show `ProfileRecovery` when profile missing |
-| `src/hooks/useOnboarding.ts` | Handle `profileMissing` state |
-
----
-
-### Technical Details
-
-**Why the trigger failed:**
-The `on_auth_user_created` trigger exists and is enabled (`tgenabled: O`), but may have failed due to:
-- Unique constraint violation (duplicate username)
-- Database timeout during signup
-- Network issue between auth and database
-
-**Recovery logic:**
-1. User logs in → AuthContext fetches profile
-2. Profile not found → Set `profileMissing: true`
-3. OnboardingGuard detects `profileMissing` → Show `ProfileRecovery`
-4. User clicks "Create Profile" → Insert minimal profile row
-5. Profile created → Redirect to onboarding flow
-6. User completes onboarding → Normal app access
-
-**Edge cases handled:**
-- User trying to visit protected routes with missing profile
-- Multiple recovery attempts (uses `ON CONFLICT DO NOTHING`)
-- Username collision (generates unique fallback)
+The `is_platform_admin` column on the `profiles` table is now redundant since roles are properly managed in the `user_roles` table. In a future cleanup task, this column could be deprecated and removed.
