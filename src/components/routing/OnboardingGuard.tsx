@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/contexts/AuthContext';
+import { ProfileRecovery } from '@/components/auth/ProfileRecovery';
 
 interface OnboardingGuardProps {
   children: React.ReactNode;
 }
 
 export const OnboardingGuard = ({ children }: OnboardingGuardProps) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, profileMissing, loading: authLoading } = useAuth();
   const { needsOnboarding, loading: onboardingLoading } = useOnboarding();
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,6 +42,11 @@ export const OnboardingGuard = ({ children }: OnboardingGuardProps) => {
         </div>
       </div>
     );
+  }
+
+  // Show profile recovery UI if user exists but profile is missing
+  if (user && profileMissing) {
+    return <ProfileRecovery />;
   }
 
   return <>{children}</>;

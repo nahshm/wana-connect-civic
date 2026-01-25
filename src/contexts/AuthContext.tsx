@@ -11,6 +11,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  profileMissing: boolean;
   loading: boolean;
   signUp: (email: string, password: string, username?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -20,6 +21,7 @@ interface AuthContextType {
   sendMagicLink: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  createMissingProfile: () => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileMissing, setProfileMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -45,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }, 0);
         } else {
           setProfile(null);
+          setProfileMissing(false);
         }
         setLoading(false);
       }
@@ -76,13 +80,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        setProfileMissing(true);
         return;
       }
 
       if (!data) {
         console.warn('Profile not found for user:', userId);
+        setProfileMissing(true);
         return;
       }
+
+      setProfileMissing(false);
 
       // Convert snake_case to camelCase
       const profileData: Profile = {
@@ -118,6 +126,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfile(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setProfileMissing(true);
+    }
+  };
+
+  const createMissingProfile = async () => {
+    if (!user) return { error: { message: 'No user found' } };
+
+    try {
+      const username = user.email?.split('@')[0] || `user_${user.id.slice(0, 8)}`;
+      const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || username;
+
+      const { error } = await supabase.from('profiles').insert({
+        id: user.id,
+        username,
+        display_name: displayName,
+        onboarding_completed: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      if (error) {
+        console.error('Error creating profile:', error);
+        return { error };
+      }
+
+      // Refetch profile to update state
+      await fetchProfile(user.id);
+      
+      toast({
+        title: "Profile created!",
+        description: "Let's set up your profile to get started."
+      });
+
+      return { error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create profile';
+      return { error: { message } };
     }
   };
 
@@ -368,6 +413,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     session,
     profile,
+    profileMissing,
     loading,
     signUp,
     signIn,
@@ -377,6 +423,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     sendMagicLink,
     signOut,
     refreshProfile,
+    createMissingProfile,
   };
 
   return (
