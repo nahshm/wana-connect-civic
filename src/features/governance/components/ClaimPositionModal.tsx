@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -40,6 +41,7 @@ type ClaimFormData = z.infer<typeof claimSchema>;
 
 export function ClaimPositionModal({ isOpen, onClose, position, communityId }: ClaimPositionModalProps) {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [membershipVerified, setMembershipVerified] = useState<boolean | null>(null);
     const [existingClaim, setExistingClaim] = useState(false);
@@ -59,7 +61,7 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
     // Handle file upload to Supabase storage
     const handleFileUpload = async (file: File) => {
         if (!user) {
-            toast.error('You must be logged in to upload files');
+            authModal.open('login');
             return;
         }
 

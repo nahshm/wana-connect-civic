@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Mail, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { cn } from '@/lib/utils';
@@ -97,15 +97,15 @@ export const AuthModal = () => {
             <>
               {/*  Header */}
               <DialogHeader>
-                <h2 className="text-2xl font-bold text-center">
+                <DialogTitle className="text-2xl font-bold text-center">
                   {isSignup ? 'Sign Up' : 'Log In'}
-                </h2>
-                <p className="text-sm text-muted-foreground text-center mt-2">
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground text-center mt-2">
                   By continuing, you agree to our{' '}
                   <a href="/terms" className="text-primary hover:underline">User Agreement</a>
                   {' '}and acknowledge that you understand the{' '}
                   <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
-                 </p>
+                </DialogDescription>
               </DialogHeader>
 
               {/* OAuth Buttons */}
@@ -260,12 +260,12 @@ export const AuthModal = () => {
             <>
               {/* Magic Link View */}
               <DialogHeader>
-                <h2 className="text-2xl font-bold text-center">
+                <DialogTitle className="text-2xl font-bold text-center">
                   Get your login link
-                </h2>
-                <p className="text-sm text-muted-foreground text-center mt-2">
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground text-center mt-2">
                   We'll email you a magic link for a password-free sign in.
-                </p>
+                </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleMagicLinkSubmit} className="space-y-4">

@@ -12,6 +12,7 @@ import { MessageSquare, TrendingUp, Users, Plus, ArrowRight } from 'lucide-react
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { SELECT_FIELDS } from '@/lib/select-fields';
 import { Community, Post, PostMedia } from '@/types';
@@ -42,6 +43,7 @@ export default function Index() {
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
 
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
@@ -259,8 +261,12 @@ export default function Index() {
 
   // NEW: Handle community join request
   const handleJoinCommunity = useCallback((communityId: string, communityName: string) => {
+    if (!user) {
+      authModal.open('login');
+      return;
+    }
     setJoinDialogState({ isOpen: true, communityId, communityName });
-  }, []);
+  }, [user, authModal]);
 
   // NEW: Execute community join
   const handleJoinConfirm = useCallback(async () => {
@@ -302,11 +308,7 @@ export default function Index() {
   // Handle vote
   const handleVote = useCallback(async (postId: string, voteType: 'up' | 'down') => {
     if (!user) {
-      toast({
-        title: 'Authentication required',
-        description: 'Please sign in to vote on posts.',
-        variant: 'destructive',
-      });
+      authModal.open('login');
       return;
     }
 

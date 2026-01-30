@@ -14,6 +14,7 @@ export const AuthModalProvider = ({ children }: { children: ReactNode }) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
 
   const open = (newMode: 'login' | 'signup' = 'login') => {
+    console.log('🔓 Auth modal opening with mode:', newMode);
     setMode(newMode);
     setIsOpen(true);
   };

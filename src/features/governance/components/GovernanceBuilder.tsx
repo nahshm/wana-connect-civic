@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ interface Level {
 
 export function GovernanceBuilder() {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const [countryName, setCountryName] = useState('');
     const [countryCode, setCountryCode] = useState('');
     const [flagEmoji, setFlagEmoji] = useState('🏳️');
@@ -52,7 +54,7 @@ export function GovernanceBuilder() {
 
     const handleSubmit = async () => {
         if (!user) {
-            toast.error("Please log in to submit a template");
+            authModal.open('login');
             return;
         }
         if (!countryName || !countryCode || levels.length < 2) {

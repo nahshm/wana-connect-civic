@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Bell, User, Plus, LogOut, Users, MessageCircle, Search, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { CreateCommunityWizard } from '@/components/community/CreateCommunityWizard';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -37,6 +38,7 @@ export const Header = () => {
     signOut
   } = useAuth();
   const navigate = useNavigate();
+  const authModal = useAuthModal();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const {
@@ -61,12 +63,10 @@ export const Header = () => {
       {/* Logo - explicit dimensions prevent CLS */}
       <Link to="/" className="flex-shrink-0">
         <img 
-          src="/logo.png" 
-          alt="ama Logo" 
-          width={42}
-          height={40}
-          className="h-8 sm:h-10 w-auto" 
-          fetchPriority="high"
+          src="/lovable-uploads/be2fb717-4d00-401a-baee-2639bb9729b3.png"
+          alt="WanaIQ Logo"
+          className="h-8 w-auto"
+          fetchpriority="high"
         />
       </Link>
 
@@ -136,8 +136,13 @@ export const Header = () => {
           </DropdownMenu>
         </> : <>
           <ThemeToggle />
-          <Button variant="ghost" size="sm" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium">
-            <Link to="/auth">Sign In</Link>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => authModal.open('login')}
+            className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium"
+          >
+            Sign In
           </Button>
         </>}
       </div>

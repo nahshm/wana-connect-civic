@@ -5,13 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowUp, ArrowDown, MessageSquare, MoreHorizontal, Reply, Flag, Share2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageSquare, MoreHorizontal, Reply, Flag, Share2, LogIn } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { CommentAwardDisplay } from './CommentAwardDisplay';
 import { CommentAwardButton } from './CommentAwardButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { SafeContentRenderer } from './SafeContentRenderer';
 import type { Comment, User } from '@/types';
 
@@ -248,6 +249,8 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
 export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment }: CommentSectionProps) => {
   const [newComment, setNewComment] = useState('');
   const [sortBy, setSortBy] = useState<'best' | 'top' | 'new'>('best');
+  const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
 
   const handleAddComment = () => {
@@ -282,31 +285,51 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
 
   return (
     <div className="space-y-4">
-      {/* Comment Form */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <Textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="What are your thoughts?"
-              rows={4}
-              className="resize-none"
-            />
-            <div className="flex justify-between items-center">
-              <div className="text-xs text-muted-foreground">
-                {newComment.length}/10,000 characters
+      {/* Comment Form - Require Auth */}
+      {!user ? (
+        <Card className="border-2 border-dashed">
+          <CardContent className="p-6 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="bg-civic-blue/10 rounded-full p-3">
+                <LogIn className="h-6 w-6 text-civic-blue" />
               </div>
-              <Button
-                onClick={handleAddComment}
-                disabled={!newComment.trim()}
-              >
-                Comment
+              <div>
+                <h3 className="font-semibold mb-1">Sign in to comment</h3>
+                <p className="text-sm text-muted-foreground">Join the discussion by logging in or creating an account</p>
+              </div>
+              <Button onClick={() => authModal.open('login')} className="mt-2">
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign In to Comment
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <Textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="What are your thoughts?"
+                rows={4}
+                className="resize-none"
+              />
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-muted-foreground">
+                  {newComment.length}/10,000 characters
+                </div>
+                <Button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                >
+                  Comment
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sort Options */}
       {comments.length > 0 && (
@@ -330,27 +353,49 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
 
       <Separator />
 
-      {/* Comments List */}
-      <div>
-        {sortedComments.length === 0 ? (
-          <div className="text-center py-8">
-            <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-            <h3 className="font-semibold mb-1">No comments yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Be the first to share your thoughts on this post.
-            </p>
-          </div>
-        ) : (
-          sortedComments.map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              onReply={handleReply}
-              onVote={onVoteComment}
-            />
-          ))
-        )}
-      </div>
+      {/* Comments List - Require Auth to View */}
+      {!user ? (
+        <Card className="border-2 border-dashed">
+          <CardContent className="p-8 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="bg-civic-green/10 rounded-full p-4">
+                <MessageSquare className="h-8 w-8 text-civic-green" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-1">Sign in to view {comments.length} comment{comments.length !== 1 ? 's' : ''}</h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Join the conversation and see what others are saying about this post
+                </p>
+              </div>
+              <Button onClick={() => authModal.open('login')} size="lg" className="mt-2">
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign In to View Comments
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div>
+          {sortedComments.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+              <h3 className="font-semibold mb-1">No comments yet</h3>
+              <p className="text-sm text-muted-foreground">
+                Be the first to share your thoughts on this post.
+              </p>
+            </div>
+          ) : (
+            sortedComments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                onReply={handleReply}
+                onVote={onVoteComment}
+              />
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -30,6 +31,7 @@ type ClaimFormData = z.infer<typeof claimSchema>;
 
 export function PositionClaimWizard() {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedCountry, setSelectedCountry] = useState<string>('');
     const [availablePositions, setAvailablePositions] = useState<GovernmentPosition[]>([]);
@@ -62,7 +64,7 @@ export function PositionClaimWizard() {
 
     const onSubmit = async (data: ClaimFormData) => {
         if (!user) {
-            toast.error('You must be logged in to claim a position');
+            authModal.open('login');
             return;
         }
 

@@ -147,7 +147,7 @@ export function useVote({ itemType, onOptimisticUpdate }: UseVoteOptions) {
 
         lastVoteTime.current[itemId] = now;
         voteMutation.mutate({ itemId, voteType });
-    }, [user, itemType, toast, voteMutation]);
+    }, [user, itemType, authModal, toast, voteMutation]);
 
     return {
         vote,
