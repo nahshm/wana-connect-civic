@@ -1,4 +1,4 @@
-# WanaConnect Civic
+# WanaConnect Civic (ama/WanaIQ)
 
 ## 🇰🇪 Empowering Civic Engagement in Kenya
 
