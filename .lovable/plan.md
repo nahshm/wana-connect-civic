@@ -1,87 +1,89 @@
 
-## Plan: Fix Infinite Recursion in Profiles RLS Policies
+## Plan: Fix Logo Display & Generate New Transparent Logo
 
-### Problem Analysis
+### Problem Summary
 
-The `profiles` table has an RLS policy that causes **infinite recursion**:
-
-**Problematic Policy: `Only platform admins can update admin status`**
-```sql
-qual: ((SELECT auth.uid()) = id) OR (EXISTS (
-  SELECT 1 FROM profiles profiles_1 
-  WHERE profiles_1.id = (SELECT auth.uid()) 
-    AND profiles_1.is_platform_admin = true
-))
-```
-
-This policy queries the `profiles` table from within a policy ON the `profiles` table, creating an infinite loop when Postgres evaluates RLS.
-
-### Root Cause
-
-The policy checks `is_platform_admin` by querying the same table it's protecting. Every time Postgres tries to evaluate the policy, it triggers another evaluation of the same policy → infinite recursion.
+| Issue | Cause |
+|-------|-------|
+| Build error | `fetchpriority` should be `fetchPriority` |
+| Logo not showing | File path `/lovable-uploads/be2fb717-4d00-401a-baee-2639bb9729b3.png` doesn't exist |
+| Current logos | Have dark backgrounds, not transparent |
 
 ---
 
-### Solution
+### Phase 1: Generate New Logo with AI
 
-Replace the recursive policy with one that uses the existing `is_super_admin()` security definer function, which safely bypasses RLS to check the `user_roles` table.
+Using the Nano banana image generation model, I'll create a **professional logo** for WanaIQ/AmaCivic with:
+
+**Design Brief**:
+- **Style**: Modern, minimal, bold
+- **Symbol**: Stylized upward arrow combined with a speech bubble or community icon (represents citizen voice rising)
+- **Colors**: Orange-to-gold gradient (matching existing brand)
+- **Background**: Transparent (PNG)
+- **Use case**: Header navigation bar (horizontal orientation works best)
+
+**Prompt concept**:
+> "Modern minimalist logo for civic engagement platform, stylized upward arrow merging with speech bubble, orange to gold gradient, clean vector style, transparent background, suitable for header navigation"
 
 ---
 
-### Database Migration
+### Phase 2: Fix Header Component
 
-The following SQL will be executed:
+**File**: `src/components/layout/Header.tsx`
 
-```sql
--- Step 1: Drop the problematic recursive policy
-DROP POLICY IF EXISTS "Only platform admins can update admin status" ON public.profiles;
+**Changes**:
+1. Fix TypeScript error: `fetchpriority` → `fetchPriority`
+2. Update logo `src` to point to the new generated logo in `public/` directory
+3. Add fallback to existing `logo.png` if needed
 
--- Step 2: Recreate with safe, non-recursive logic using security definer function
-CREATE POLICY "Only platform admins can update admin status"
-ON public.profiles
-FOR UPDATE
-TO authenticated
-USING (
-  -- Users can update their own profile
-  (SELECT auth.uid()) = id 
-  -- OR they are a super_admin (checked via security definer function)
-  OR public.is_super_admin((SELECT auth.uid()))
-)
-WITH CHECK (
-  (SELECT auth.uid()) = id 
-  OR public.is_super_admin((SELECT auth.uid()))
-);
+```tsx
+// Before (broken):
+<img 
+  src="/lovable-uploads/be2fb717-4d00-401a-baee-2639bb9729b3.png"
+  fetchpriority="high"
+/>
+
+// After (fixed):
+<img 
+  src="/wanaiq-logo.png"  // New generated logo
+  fetchPriority="high"    // Correct camelCase
+/>
 ```
 
 ---
 
-### Why This Works
+### Phase 3: Save Logo Assets
 
-1. **`is_super_admin()` is SECURITY DEFINER**: It runs with elevated privileges, bypassing RLS entirely
-2. **Queries `user_roles` not `profiles`**: Breaks the recursion cycle
-3. **Proper role separation**: Uses the dedicated `user_roles` table instead of the `is_platform_admin` column
-4. **Optimized with SELECT wrapper**: `(SELECT auth.uid())` prevents per-row re-evaluation
-
----
-
-### Files Changed
-
-| Change | Description |
-|--------|-------------|
-| Database Migration | Drop and recreate the problematic policy |
+The generated logo will be saved to:
+- `public/wanaiq-logo.png` - Header logo (transparent background)
+- Optionally update favicon if the new design works better
 
 ---
 
-### Verification
+### Files to Create
 
-After the migration, the following query should return the updated policy without any self-referencing `profiles` subquery:
+| File | Purpose |
+|------|---------|
+| `public/wanaiq-logo.png` | New header logo with transparent background |
 
-```sql
-SELECT policyname, qual FROM pg_policies WHERE tablename = 'profiles' AND policyname LIKE '%admin%';
-```
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/layout/Header.tsx` | Fix `fetchPriority`, update logo path |
 
 ---
 
-### Future Consideration
+### Logo Design Rationale
 
-The `is_platform_admin` column on the `profiles` table is now redundant since roles are properly managed in the `user_roles` table. In a future cleanup task, this column could be deprecated and removed.
+Based on the platform's purpose:
+
+| Element | Meaning |
+|---------|---------|
+| **Upward Arrow** | Citizen voices rising, civic progress, accountability |
+| **Speech Bubble** | Community dialogue, civic discourse |
+| **Orange/Gold** | Energy, warmth, action (Kenyan sunrise colors) |
+| **Green accent** | Growth, Kenya's national color, hope |
+| **Clean/Bold** | Authority, trustworthiness, modern digital platform |
+
+The logo should work at small sizes (32px header) and large sizes (marketing).
