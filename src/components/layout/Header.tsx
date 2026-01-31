@@ -63,10 +63,10 @@ export const Header = () => {
       {/* Logo - explicit dimensions prevent CLS */}
       <Link to="/" className="flex-shrink-0">
         <img 
-          src="/lovable-uploads/be2fb717-4d00-401a-baee-2639bb9729b3.png"
+          src="/wanaiq-logo.png"
           alt="WanaIQ Logo"
           className="h-8 w-auto"
-          fetchpriority="high"
+          fetchPriority="high"
         />
       </Link>
 
