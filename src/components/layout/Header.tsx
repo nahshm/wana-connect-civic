@@ -60,14 +60,17 @@ export const Header = () => {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Logo - explicit dimensions prevent CLS */}
-      <Link to="/" className="flex-shrink-0">
+      {/* Logo + Wordmark - explicit dimensions prevent CLS */}
+      <Link to="/" className="flex-shrink-0 flex items-center gap-2">
         <img 
           src="/wanaiq-logo.png"
           alt="ama Logo"
           className="h-8 w-auto"
           fetchPriority="high"
         />
+        <span className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
+          ama
+        </span>
       </Link>
 
       {/* Centered Search */}
