@@ -9,24 +9,8 @@ import { SafeContentRenderer } from './SafeContentRenderer';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +18,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useVerification } from '@/hooks/useVerification';
 import VerificationPanel from '@/components/verification/VerificationPanel';
 import SentimentBar from '@/components/verification/SentimentBar';
-
 interface PostCardProps {
   post: Post;
   onVote: (postId: string, vote: 'up' | 'down') => void;
@@ -43,76 +26,80 @@ interface PostCardProps {
   isMember?: boolean; // NEW: Is user a member of this post's community?
   onJoinCommunity?: (communityId: string, communityName: string) => void; // NEW: Callback to join community
 }
-
-export const PostCard = ({ 
-  post, 
-  onVote, 
-  isDetailView = false, 
+export const PostCard = ({
+  post,
+  onVote,
+  isDetailView = false,
   viewMode = 'card',
-  isMember = true, // Default true for backwards compatibility
+  isMember = true,
+  // Default true for backwards compatibility
   onJoinCommunity
 }: PostCardProps) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [showFullImage, setShowFullImage] = useState(false)
-  const [isContentExpanded, setIsContentExpanded] = useState(isDetailView)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const secondVideoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isSecondPlaying, setIsSecondPlaying] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
-  const [showSavedTooltip, setShowSavedTooltip] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
+  const [isContentExpanded, setIsContentExpanded] = useState(isDetailView);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const secondVideoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isSecondPlaying, setIsSecondPlaying] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [showSavedTooltip, setShowSavedTooltip] = useState(false);
 
   // Handle bookmark/save with tooltip
   const handleSave = () => {
-    setIsSaved(true)
-    setShowSavedTooltip(true)
-    setTimeout(() => setShowSavedTooltip(false), 2000)
-    
+    setIsSaved(true);
+    setShowSavedTooltip(true);
+    setTimeout(() => setShowSavedTooltip(false), 2000);
     toast({
       title: '🔖 Saved!',
       description: 'Post saved to your collection.',
-      duration: 2000,
-    })
-  }
+      duration: 2000
+    });
+  };
 
   // Safe date formatting helper to prevent "Invalid time value" errors
-const formatPostDate = (dateInput: Date | string | undefined): string => {
-  if (!dateInput) return 'Unknown time';
-  
-  try {
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    if (isNaN(date.getTime())) return 'Unknown time';
-    
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    const diffMonths = Math.floor(diffDays / 30);
-    const diffYears = Math.floor(diffDays / 365);
-    
-    // Compact format like Reddit/Twitter
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'}`;
-    if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? '' : 's'}`;
-    if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'}`;
-    if (diffMonths < 12) return `${diffMonths} mo${diffMonths === 1 ? '' : 's'}`;
-    return `${diffYears} yr${diffYears === 1 ? '' : 's'}`;
-  } catch {
-    return 'Unknown time';
-  }
-};
+  const formatPostDate = (dateInput: Date | string | undefined): string => {
+    if (!dateInput) return 'Unknown time';
+    try {
+      const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+      if (isNaN(date.getTime())) return 'Unknown time';
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      const diffMonths = Math.floor(diffDays / 30);
+      const diffYears = Math.floor(diffDays / 365);
+
+      // Compact format like Reddit/Twitter
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'}`;
+      if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? '' : 's'}`;
+      if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'}`;
+      if (diffMonths < 12) return `${diffMonths} mo${diffMonths === 1 ? '' : 's'}`;
+      return `${diffYears} yr${diffYears === 1 ? '' : 's'}`;
+    } catch {
+      return 'Unknown time';
+    }
+  };
 
   // Verification system  
-  const { verification, castVote, isCastingVote } = useVerification({
+  const {
+    verification,
+    castVote,
+    isCastingVote
+  } = useVerification({
     contentId: post.id,
     contentType: 'post'
   });
-
   const isAuthor = user && post.author.id === user.id;
 
   // Helper to get the correct post link based on community context
@@ -122,19 +109,15 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
     }
     return `/post/${post.id}`;
   };
-
   const handleDelete = async () => {
     if (!user || !isAuthor) return;
-
     setIsDeleting(true);
     try {
       // Delete associated media first
       if (post.media && post.media.length > 0) {
-        const { error: mediaError } = await supabase
-          .from('post_media')
-          .delete()
-          .eq('post_id', post.id);
-
+        const {
+          error: mediaError
+        } = await supabase.from('post_media').delete().eq('post_id', post.id);
         if (mediaError) {
           console.error('Error deleting media:', mediaError);
         }
@@ -146,17 +129,14 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
       }
 
       // Delete the post
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', post.id)
-        .eq('author_id', user.id); // Extra safety check
+      const {
+        error
+      } = await supabase.from('posts').delete().eq('id', post.id).eq('author_id', user.id); // Extra safety check
 
       if (error) throw error;
-
       toast({
         title: "Post deleted",
-        description: "Your post has been successfully deleted.",
+        description: "Your post has been successfully deleted."
       });
 
       // Navigate away if on post detail page
@@ -171,7 +151,7 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
       toast({
         title: "Error",
         description: "Failed to delete post. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsDeleting(false);
@@ -180,85 +160,93 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
 
   // Auto-pause videos when scrolled out of view OR tab is hidden
   useEffect(() => {
-    const videos = [
-      { ref: videoRef, setPlaying: setIsPlaying },
-      { ref: secondVideoRef, setPlaying: setIsSecondPlaying }
-    ].filter(v => v.ref.current)
-
-    if (videos.length === 0) return
+    const videos = [{
+      ref: videoRef,
+      setPlaying: setIsPlaying
+    }, {
+      ref: secondVideoRef,
+      setPlaying: setIsSecondPlaying
+    }].filter(v => v.ref.current);
+    if (videos.length === 0) return;
 
     // Tab visibility handler
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        videos.forEach(({ ref, setPlaying }) => {
+        videos.forEach(({
+          ref,
+          setPlaying
+        }) => {
           if (ref.current && !ref.current.paused) {
-            ref.current.pause()
-            setPlaying(false)
+            ref.current.pause();
+            setPlaying(false);
           }
-        })
+        });
       }
-    }
+    };
 
     // Intersection Observer - pause when scrolled out of view
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          videos.forEach(({ ref, setPlaying }) => {
-            if (ref.current && ref.current.contains(entry.target as Node)) {
-              if (!entry.isIntersecting && !ref.current.paused) {
-                // Video scrolled out of view - pause it
-                ref.current.pause()
-                setPlaying(false)
-              }
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        videos.forEach(({
+          ref,
+          setPlaying
+        }) => {
+          if (ref.current && ref.current.contains(entry.target as Node)) {
+            if (!entry.isIntersecting && !ref.current.paused) {
+              // Video scrolled out of view - pause it
+              ref.current.pause();
+              setPlaying(false);
             }
-          })
-        })
-      },
-      { threshold: 0.5 } // Pause when less than 50% visible
-    )
+          }
+        });
+      });
+    }, {
+      threshold: 0.5
+    } // Pause when less than 50% visible
+    );
 
     // Observe all videos
-    videos.forEach(({ ref }) => {
+    videos.forEach(({
+      ref
+    }) => {
       if (ref.current) {
-        observer.observe(ref.current)
+        observer.observe(ref.current);
       }
-    })
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
+    });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
-      observer.disconnect()
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [])
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Toggle play/pause on video click
   const toggleVideoPlay = (videoElement: HTMLVideoElement | null, setPlaying: (playing: boolean) => void) => {
-    if (!videoElement) return
-
+    if (!videoElement) return;
     if (videoElement.paused) {
-      videoElement.play()
-      setPlaying(true)
+      videoElement.play();
+      setPlaying(true);
     } else {
-      videoElement.pause()
-      setPlaying(false)
-    }
-  }
-
-  // Handle community data that might be under 'community' or 'community_id' alias
-  const communityData = post.community || (post as any).community_id;
-
-  const getVoteScore = () => post.upvotes - post.downvotes;
-
-  const getRoleColor = (role?: string) => {
-    switch (role) {
-      case 'official': return 'bg-civic-blue/10 text-civic-blue border-civic-blue/20';
-      case 'expert': return 'bg-civic-green/10 text-civic-green border-civic-green/20';
-      case 'journalist': return 'bg-civic-orange/10 text-civic-orange border-civic-orange/20';
-      default: return 'bg-muted text-muted-foreground';
+      videoElement.pause();
+      setPlaying(false);
     }
   };
 
+  // Handle community data that might be under 'community' or 'community_id' alias
+  const communityData = post.community || (post as any).community_id;
+  const getVoteScore = () => post.upvotes - post.downvotes;
+  const getRoleColor = (role?: string) => {
+    switch (role) {
+      case 'official':
+        return 'bg-civic-blue/10 text-civic-blue border-civic-blue/20';
+      case 'expert':
+        return 'bg-civic-green/10 text-civic-green border-civic-green/20';
+      case 'journalist':
+        return 'bg-civic-orange/10 text-civic-orange border-civic-orange/20';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
@@ -274,141 +262,74 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
     const badges = [];
     // Map content sensitivity to badges with icons matching the form
     if (post.contentSensitivity === 'crisis') {
-      badges.push(
-        <Badge key="crisis" variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1">
+      badges.push(<Badge key="crisis" variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1">
           <AlertOctagon className="w-3 h-3" />
           Crisis Report
-        </Badge>
-      );
+        </Badge>);
     } else if (post.contentSensitivity === 'sensitive') {
-      badges.push(
-        <Badge key="sensitive" variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 flex items-center gap-1">
+      badges.push(<Badge key="sensitive" variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 flex items-center gap-1">
           <AlertTriangle className="w-3 h-3" />
           Sensitive Topic
-        </Badge>
-      );
+        </Badge>);
     } else if (post.contentSensitivity === 'public') {
-      badges.push(
-        <Badge key="public" variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1">
+      badges.push(<Badge key="public" variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1">
           <MessageSquare className="w-3 h-3" />
           Public Discussion
-        </Badge>
-      );
+        </Badge>);
     }
     if (post.isNgoVerified) {
-      badges.push(
-        <Badge key="verified" variant="outline" className="flex items-center gap-1">
+      badges.push(<Badge key="verified" variant="outline" className="flex items-center gap-1">
           <BadgeCheck className="w-3 h-3 text-blue-500" />
           NGO VERIFIED
-        </Badge>
-      );
+        </Badge>);
     }
-    return badges.length > 0 ? (
-      <div className="flex flex-wrap gap-1 mb-2">
+    return badges.length > 0 ? <div className="flex flex-wrap gap-1 mb-2">
         {badges}
-      </div>
-    ) : null;
+      </div> : null;
   };
 
   // Helper to render media (used in both views)
   const renderMedia = () => {
     if (!post.media || post.media.length === 0) return null;
-
-    return (
-      <div className="mb-3">
-        {post.media.length === 1 ? (
-          <div className="rounded-lg overflow-hidden border border-sidebar-border">
-            {post.media[0].file_type?.startsWith('image/') ? (
-              <img
-                src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-                alt="Post media"
-                loading="lazy"
-                className="w-full h-auto max-h-[512px] object-contain bg-black"
-              />
-            ) : post.media[0].file_type?.startsWith('video/') ? (
-              <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
-                <video
-                  ref={videoRef}
-                  src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-                  className="w-full h-auto max-h-[512px] object-contain bg-black"
-                  playsInline
-                />
-                {!isPlaying && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+    return <div className="mb-3">
+        {post.media.length === 1 ? <div className="rounded-lg overflow-hidden border border-sidebar-border">
+            {post.media[0].file_type?.startsWith('image/') ? <img src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} alt="Post media" loading="lazy" className="w-full h-auto max-h-[512px] object-contain bg-black" /> : post.media[0].file_type?.startsWith('video/') ? <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
+                <video ref={videoRef} src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} className="w-full h-auto max-h-[512px] object-contain bg-black" playsInline />
+                {!isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                     <div className="bg-white/90 rounded-full p-4">
                       <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {post.media.slice(0, 4).map((media, index) => (
-              <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
-                {media.file_type?.startsWith('image/') ? (
-                  <img
-                    src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
-                    alt={`Post media ${index + 1}`}
-                    loading="lazy"
-                    className="w-full h-32 object-cover"
-                  />
-                ) : media.file_type?.startsWith('video/') ? (
-                  <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
-                    <video
-                      ref={index === 0 ? secondVideoRef : undefined}
-                      src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
-                      className="w-full h-32 object-cover"
-                      playsInline
-                    />
-                    {index === 0 && !isSecondPlaying && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  </div>}
+              </div> : null}
+          </div> : <div className="grid grid-cols-2 gap-2">
+            {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
+                {media.file_type?.startsWith('image/') ? <img src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} alt={`Post media ${index + 1}`} loading="lazy" className="w-full h-32 object-cover" /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
+                    <video ref={index === 0 ? secondVideoRef : undefined} src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} className="w-full h-32 object-cover" playsInline />
+                    {index === 0 && !isSecondPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="bg-white/90 rounded-full p-2">
                           <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
                           </svg>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+                      </div>}
+                  </div> : null}
+              </div>)}
+          </div>}
+      </div>;
   };
-
   if (viewMode === 'compact') {
-    return (
-      <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
+    return <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
         {/* Vote Column */}
         <div className="flex flex-col items-center p-2 w-12 bg-sidebar-background/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={`Upvote post: ${post.title}`}
-            aria-pressed={post.userVote === 'up'}
-            onClick={() => onVote(post.id, 'up')}
-            className={`h-6 w-6 p-0 ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green'}`}
-          >
+          <Button variant="ghost" size="sm" aria-label={`Upvote post: ${post.title}`} aria-pressed={post.userVote === 'up'} onClick={() => onVote(post.id, 'up')} className={`h-6 w-6 p-0 ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green'}`}>
             <ArrowUp className="w-4 h-4" />
           </Button>
           <span className="text-xs font-medium text-sidebar-foreground py-1">
             {formatNumber(getVoteScore())}
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label="Downvote post"
-            aria-pressed={post.userVote === 'down'}
-            onClick={() => onVote(post.id, 'down')}
-            className={`h-6 w-6 p-0 ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red'}`}
-          >
+          <Button variant="ghost" size="sm" aria-label="Downvote post" aria-pressed={post.userVote === 'down'} onClick={() => onVote(post.id, 'down')} className={`h-6 w-6 p-0 ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red'}`}>
             <ArrowDown className="w-4 h-4" />
           </Button>
         </div>
@@ -416,13 +337,9 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
         {/* Content */}
         <div className="flex-1 p-3 min-w-0">
           <div className="flex items-center space-x-2 text-xs text-sidebar-muted-foreground mb-1">
-            {communityData ? (
-              <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
+            {communityData ? <Link to={`/c/${communityData.name}`} className="hover:underline font-medium">
                 c/{communityData.name}
-              </Link>
-            ) : (
-              <span className="font-medium">Profile Post</span>
-            )}
+              </Link> : <span className="font-medium">Profile Post</span>}
             <span>•</span>
             <span>by</span>
             <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
@@ -457,15 +374,12 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
             </Button>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <article className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+  return <article className="border-b border-border/50 hover:bg-muted/30 transition-colors">
       <div className="flex flex-col">
         {/* Main Content */}
-        <div className="flex-1 px-4 py-3 min-w-0">
+        <div className="flex-1 min-w-0 py-[12px] px-[2px]">
           {/* Clean Compact Header */}
           <div className="flex items-start gap-2.5 mb-2">
             {/* Left: Avatar - smaller like Reddit */}
@@ -479,22 +393,15 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
             {/* Center: Content */}
             <div className="flex-1 min-w-0">
               {/* Community Post Layout */}
-              {communityData ? (
-                <div className="flex flex-col gap-0.5">
+              {communityData ? <div className="flex flex-col gap-0.5">
                   {/* Line 1: c/name */}
-                  <Link 
-                    to={`/c/${communityData.name}`} 
-                    className="font-semibold text-sm hover:underline text-foreground"
-                  >
+                  <Link to={`/c/${communityData.name}`} className="font-semibold text-sm hover:underline text-foreground">
                     c/{communityData.name}
                   </Link>
                   
                   {/* Line 2: Prefix/username • time • suggestion */}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                    <Link
-                      to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`}
-                      className="hover:underline"
-                    >
+                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="hover:underline">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
                     <span>•</span>
@@ -502,37 +409,21 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
                     {/* Suggestion reason - example */}
                     <span className="hidden sm:inline">• Suggested for you</span>
                   </div>
-                </div>
-              ) : (
-                /* User Post Layout (no community) */
-                <div className="flex flex-col gap-0.5">
+                </div> : (/* User Post Layout (no community) */
+            <div className="flex flex-col gap-0.5">
                   {/* Line 1: Prefix/username + verification */}
                   <div className="flex items-center gap-1.5">
-                    <Link
-                      to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`}
-                      className="font-semibold text-sm hover:underline text-foreground"
-                    >
+                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="font-semibold text-sm hover:underline text-foreground">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
                     
                     {/* Verified badge inline */}
-                    {post.author.isVerified && (
-                      <VerifiedBadge
-                        size="xs"
-                        positionTitle={post.author.officialPosition}
-                      />
-                    )}
+                    {post.author.isVerified && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} />}
                     
                     {/* Title icon with hover - if has position */}
-                    {post.author.officialPosition && (
-                      <Badge 
-                        variant="outline"
-                        className="text-xs px-1.5 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate"
-                        title={post.author.officialPosition}
-                      >
+                    {post.author.officialPosition && <Badge variant="outline" className="text-xs px-1.5 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate" title={post.author.officialPosition}>
                         {post.author.officialPosition}
-                      </Badge>
-                    )}
+                      </Badge>}
                   </div>
                   
                   {/* Line 2: time • suggestion */}
@@ -540,35 +431,24 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
                     <span>{formatPostDate(post.createdAt)} ago</span>
                     <span className="hidden sm:inline">• Popular near you</span>
                   </div>
-                </div>
-              )}
+                </div>)}
             </div>
 
             {/* Right: Join Button + Three Dots Menu */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Join button - only for community posts and non-members */}
-              {communityData && !isMember && onJoinCommunity && (
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onJoinCommunity(post.community!.id, post.community!.name);
-                  }}
-                  size="sm"
-                  className="h-7 px-4 text-xs font-semibold bg-civic-blue hover:bg-civic-blue/90 text-white rounded-full"
-                >
+              {communityData && !isMember && onJoinCommunity && <Button onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              onJoinCommunity(post.community!.id, post.community!.name);
+            }} size="sm" className="h-7 px-4 text-xs font-semibold bg-civic-blue hover:bg-civic-blue/90 text-white rounded-full">
                   Join
-                </Button>
-              )}
+                </Button>}
 
               {/* Three dots menu */}
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border/50"
-                  >
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border/50">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -605,8 +485,7 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
           </div>
 
           {/* Title and Content */}
-          {isDetailView ? (
-            <div>
+          {isDetailView ? <div>
               {/* Detail View: Title -> Media -> Description */}
               <h1 className="font-bold text-2xl mb-4 leading-tight hover:text-destructive transition-colors">{post.title}</h1>
 
@@ -614,13 +493,8 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
               {renderMedia()}
 
               {/* Description */}
-              <SafeContentRenderer
-                content={post.content || ''}
-                className="text-sidebar-foreground text-sm mb-4"
-              />
-            </div>
-          ) : (
-            <div>
+              <SafeContentRenderer content={post.content || ''} className="text-sidebar-foreground text-sm mb-4" />
+            </div> : <div>
               {/* Feed View: Title + Content Preview + Expand/Collapse */}
               <Link to={getPostLink()} className="block group">
                 <h2 className="font-bold text-xl mb-3 group-hover:text-primary leading-tight">
@@ -629,114 +503,66 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
               </Link>
 
               {/* Content Preview with Expand/Collapse */}
-              {post.content && (
-                <div className="mb-3">
+              {post.content && <div className="mb-3">
                   <div className={`text-sm text-sidebar-muted-foreground ${!isContentExpanded ? 'line-clamp-3' : ''}`}>
                     <SafeContentRenderer content={post.content} />
                   </div>
-                  {post.content.length > 300 && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setIsContentExpanded(!isContentExpanded);
-                      }}
-                      className="text-primary hover:underline text-sm font-medium mt-1.5 inline-flex items-center gap-1"
-                    >
-                      {isContentExpanded ? (
-                        <>
+                  {post.content.length > 300 && <button onClick={e => {
+              e.preventDefault();
+              setIsContentExpanded(!isContentExpanded);
+            }} className="text-primary hover:underline text-sm font-medium mt-1.5 inline-flex items-center gap-1">
+                      {isContentExpanded ? <>
                           Show less
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                           </svg>
-                        </>
-                      ) : (
-                        <>
+                        </> : <>
                           Read more
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
+                        </>}
+                    </button>}
+                </div>}
 
               {/* Media shown in feed view */}
               {renderMedia()}
-            </div>
-          )}
+            </div>}
 
           {/* Flairs - Display with same colors as form */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
+          {post.tags && post.tags.length > 0 && <div className="flex flex-wrap gap-1.5 mb-3">
               {post.tags.map(tagId => {
-                const flair = CIVIC_FLAIRS.find(f => f.id === tagId);
-                if (!flair) return null;
-
-                return (
-                  <Badge
-                    key={tagId}
-                    variant="outline"
-                    className={`text-xs ${flair.bgColor} ${flair.color} border-transparent`}
-                  >
+            const flair = CIVIC_FLAIRS.find(f => f.id === tagId);
+            if (!flair) return null;
+            return <Badge key={tagId} variant="outline" className={`text-xs ${flair.bgColor} ${flair.color} border-transparent`}>
                     {flair.label}
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
+                  </Badge>;
+          })}
+            </div>}
 
           {/* Sentiment Bar - only show if available */}
-          {(post as any).sentiment && (
-            <SentimentBar sentiment={(post as any).sentiment} className="mb-3" />
-          )}
+          {(post as any).sentiment && <SentimentBar sentiment={(post as any).sentiment} className="mb-3" />}
 
           {/* Verification Panel */}
-          <VerificationPanel
-            verification={verification}
-            onVote={castVote}
-            isLoading={isCastingVote}
-          />
+          <VerificationPanel verification={verification} onVote={castVote} isLoading={isCastingVote} />
 
           {/* Actions - Reddit-style pill buttons */}
           <div className="flex items-center gap-2 mt-2 -ml-1">
             {/* Vote group - pill shaped */}
             <div className="flex items-center bg-muted/50 rounded-full">
-              <button
-                aria-label={`Upvote post: ${post.title}`}
-                aria-pressed={post.userVote === 'up'}
-                onClick={() => onVote(post.id, 'up')}
-                className={`p-2 rounded-l-full transition-colors ${
-                  post.userVote === 'up' 
-                    ? 'text-civic-green bg-civic-green/10' 
-                    : 'text-muted-foreground hover:text-civic-green hover:bg-muted'
-                }`}
-              >
+              <button aria-label={`Upvote post: ${post.title}`} aria-pressed={post.userVote === 'up'} onClick={() => onVote(post.id, 'up')} className={`p-2 rounded-l-full transition-colors ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-muted-foreground hover:text-civic-green hover:bg-muted'}`}>
                 <ArrowUp className="w-4 h-4" />
               </button>
               <span className="text-xs font-medium px-1 min-w-[1.5rem] text-center">
                 {formatNumber(getVoteScore())}
               </span>
-              <button
-                aria-label="Downvote post"
-                aria-pressed={post.userVote === 'down'}
-                onClick={() => onVote(post.id, 'down')}
-                className={`p-2 rounded-r-full transition-colors ${
-                  post.userVote === 'down' 
-                    ? 'text-civic-red bg-civic-red/10' 
-                    : 'text-muted-foreground hover:text-civic-red hover:bg-muted'
-                }`}
-              >
+              <button aria-label="Downvote post" aria-pressed={post.userVote === 'down'} onClick={() => onVote(post.id, 'down')} className={`p-2 rounded-r-full transition-colors ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-muted-foreground hover:text-civic-red hover:bg-muted'}`}>
                 <ArrowDown className="w-4 h-4" />
               </button>
             </div>
 
             {/* Comments - pill shaped */}
-            <Link 
-              to={getPostLink()}
-              className="flex items-center gap-1.5 bg-muted/50 rounded-full px-3 py-2 hover:bg-muted transition-colors"
-            >
+            <Link to={getPostLink()} className="flex items-center gap-1.5 bg-muted/50 rounded-full px-3 py-2 hover:bg-muted transition-colors">
               <MessageCircle className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs font-medium">{post.commentCount}</span>
             </Link>
@@ -748,12 +574,7 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
             </button>
 
             {/* Save - pill shaped */}
-            <button 
-              onClick={handleSave}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-2 transition-colors ${
-                isSaved ? 'bg-civic-green/10 text-civic-green' : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-              }`}
-            >
+            <button onClick={handleSave} className={`flex items-center gap-1.5 rounded-full px-3 py-2 transition-colors ${isSaved ? 'bg-civic-green/10 text-civic-green' : 'bg-muted/50 hover:bg-muted text-muted-foreground'}`}>
               <Bookmark className="w-4 h-4" />
             </button>
 
@@ -765,20 +586,14 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-card border-border">
-                {isAuthor && (
-                  <>
-                    <DropdownMenuItem
-                      onClick={() => navigate(`/edit-post/${post.id}`)}
-                    >
+                {isAuthor && <>
+                    <DropdownMenuItem onClick={() => navigate(`/edit-post/${post.id}`)}>
                       <Edit className="w-4 h-4 mr-2" />
                       Edit post
                     </DropdownMenuItem>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onSelect={(e) => e.preventDefault()}
-                        >
+                        <DropdownMenuItem className="text-destructive" onSelect={e => e.preventDefault()}>
                           <Trash2 className="w-4 h-4 mr-2" />
                           Delete post
                         </DropdownMenuItem>
@@ -792,18 +607,13 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
+                          <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                             {isDeleting ? "Deleting..." : "Delete"}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  </>
-                )}
+                  </>}
                 <DropdownMenuItem>Hide post</DropdownMenuItem>
                 <DropdownMenuItem>Report</DropdownMenuItem>
                 <DropdownMenuItem>Block user</DropdownMenuItem>
@@ -812,6 +622,5 @@ const formatPostDate = (dateInput: Date | string | undefined): string => {
           </div>
         </div>
       </div>
-    </article>
-  );
+    </article>;
 };
