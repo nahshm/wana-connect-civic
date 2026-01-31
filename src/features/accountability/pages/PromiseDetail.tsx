@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { copyToClipboard } from '@/lib/clipboard-utils';
 import {
   ArrowLeft, MapPin, DollarSign, Calendar, TrendingUp,
@@ -35,6 +36,7 @@ const PromiseDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const [promise, setPromise] = useState<PromiseWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -95,11 +97,7 @@ const PromiseDetail = () => {
 
   const handleSubmitVerification = async () => {
     if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to submit verification',
-        variant: 'destructive'
-      });
+      authModal.open('login');
       return;
     }
 

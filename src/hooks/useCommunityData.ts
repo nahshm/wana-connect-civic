@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Community, Post } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface CommunityWithMembership extends Community {
@@ -54,6 +55,7 @@ async function fetchCommunitiesWithMembership(
 
 export const useCommunityData = () => {
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -149,11 +151,7 @@ export const useCommunityData = () => {
 
   const toggleCommunityFollow = async (communityId: string) => {
     if (!user) {
-      toast({
-        title: 'Authentication required',
-        description: 'Please sign in to join communities',
-        variant: 'destructive',
-      });
+      authModal.open('login');
       return;
     }
     toggleMutation.mutate(communityId);

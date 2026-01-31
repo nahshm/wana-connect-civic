@@ -9,6 +9,7 @@ import { Step3_Styling } from './steps/Step3_Styling';
 import { CommunityPreview } from './CommunityPreview';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,6 +32,7 @@ interface CreateCommunityWizardProps {
 
 export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizardProps) => {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const { toast } = useToast();
     const navigate = useNavigate();
 
@@ -83,11 +85,7 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
 
     const handleCreateCommunity = async () => {
         if (!user) {
-            toast({
-                title: "Error",
-                description: "You must be logged in to create a community",
-                variant: "destructive"
-            });
+            authModal.open('login');
             return;
         }
 

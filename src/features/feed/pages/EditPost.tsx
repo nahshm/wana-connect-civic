@@ -5,6 +5,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { SELECT_FIELDS } from '@/lib/select-fields'; // Bandwidth optimization
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const EditPost = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -89,11 +91,7 @@ const EditPost = () => {
 
   const handleUpdatePost = async (formData: any) => {
     if (!user || !postData) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to update the post",
-        variant: "destructive",
-      });
+      authModal.open('login');
       return;
     }
 

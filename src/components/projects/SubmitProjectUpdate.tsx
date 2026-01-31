@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { Loader2, Upload, X, ImageIcon } from 'lucide-react';
 
 interface SubmitProjectUpdateProps {
@@ -24,6 +25,7 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
     onSuccess
 }) => {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [updateType, setUpdateType] = useState<'progress' | 'issue' | 'delay'>('progress');
@@ -72,7 +74,7 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
         e.preventDefault();
 
         if (!user) {
-            toast({ title: 'Authentication Required', description: 'Please sign in', variant: 'destructive' });
+            authModal.open('login');
             return;
         }
 

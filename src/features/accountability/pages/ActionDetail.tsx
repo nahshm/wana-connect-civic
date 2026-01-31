@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const ActionDetail = () => {
     const { id } = useParams<{ id: string }>();
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const navigate = useNavigate();
     const { toast } = useToast();
 
@@ -155,11 +157,7 @@ const ActionDetail = () => {
 
     const toggleSupport = async () => {
         if (!user) {
-            toast({
-                title: 'Login Required',
-                description: 'Please log in to support this issue',
-                variant: 'destructive',
-            });
+            authModal.open('login');
             return;
         }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ const ISSUE_CATEGORIES = [
 
 const ReportIssue = () => {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const { toast } = useToast();
     const navigate = useNavigate();
 
@@ -46,11 +48,7 @@ const ReportIssue = () => {
         e.preventDefault();
 
         if (!user) {
-            toast({
-                title: "Error",
-                description: "You must be logged in to report issues",
-                variant: "destructive"
-            });
+            authModal.open('login');
             return;
         }
 

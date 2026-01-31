@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { Quest, UserQuest } from '@/types/gamification';
 import { Target, TrendingUp, Users, BookOpen, FileText, CheckCircle, Clock, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +28,7 @@ const difficultyColors = {
 
 const Quests = () => {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const { toast } = useToast();
     const [quests, setQuests] = useState<Quest[]>([]);
     const [userQuests, setUserQuests] = useState<UserQuest[]>([]);
@@ -76,7 +78,7 @@ const Quests = () => {
 
     const startQuest = async (questId: string) => {
         if (!user) {
-            toast({ title: 'Login Required', description: 'Please sign in to start quests', variant: 'destructive' });
+            authModal.open('login');
             return;
         }
 

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +12,7 @@ import { SELECT_FIELDS } from '@/lib/select-fields';
 
 const CreatePost = () => {
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -30,11 +32,7 @@ const CreatePost = () => {
 
   const handleCreatePost = async (postData: any) => {
     if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to create a post",
-        variant: "destructive",
-      });
+      authModal.open('login');
       return;
     }
 

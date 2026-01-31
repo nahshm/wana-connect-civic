@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVideoUpload } from '@/hooks/useVideoUpload'
 import { useAuth } from '@/hooks/useAuth'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,7 @@ import { generateVideoThumbnail, uploadThumbnail } from '@/lib/generateThumbnail
 
 export const CreateCivicClip = () => {
     const { user } = useAuth()
+    const authModal = useAuthModal()
     const navigate = useNavigate()
     const { uploadVideo, uploading, progress } = useVideoUpload()
     const { toast } = useToast()
@@ -143,11 +145,7 @@ export const CreateCivicClip = () => {
         console.log('Submit validation:', { videoFile, user, title })
 
         if (!user) {
-            toast({
-                title: 'Not authenticated',
-                description: 'Please log in to upload a CivicClip',
-                variant: 'destructive'
-            })
+            authModal.open('login')
             return
         }
 

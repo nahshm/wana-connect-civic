@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { toast as toastSonner } from 'sonner';
@@ -110,6 +111,7 @@ const ProfileEditForm = ({ profile, onSave, onCancel }: { profile: UserProfile; 
 const Profile = () => {
   const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -135,22 +137,14 @@ const Profile = () => {
 
   const handleVote = async (postId: string, voteType: 'up' | 'down') => {
     if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to vote on posts",
-        variant: "destructive",
-      });
+      authModal.open('login');
       return;
     }
 
     // Check Supabase authentication session
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to vote on posts",
-        variant: "destructive",
-      });
+      authModal.open('login');
       return;
     }
 

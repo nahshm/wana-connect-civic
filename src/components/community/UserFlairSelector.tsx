@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +40,7 @@ export const UserFlairSelector: React.FC<UserFlairSelectorProps> = ({
   onFlairUpdated
 }) => {
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
   const [selectedFlair, setSelectedFlair] = useState<string | null>(currentFlair);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -47,11 +49,7 @@ export const UserFlairSelector: React.FC<UserFlairSelectorProps> = ({
 
   const handleUpdateFlair = async () => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to set a flair.",
-        variant: "destructive"
-      });
+      authModal.open('login');
       return;
     }
 

@@ -15,6 +15,7 @@ import { ArrowLeft, Users, Shield, Calendar, Share, Bookmark, EyeOff } from 'luc
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useVerification } from '@/hooks/useVerification';
 import type { Comment, Post, CommentAward } from '@/types';
@@ -29,6 +30,7 @@ const PostDetail = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const { user } = useAuth();
+  const authModal = useAuthModal();
   const { toast } = useToast();
   
   // Get verification data
@@ -333,11 +335,7 @@ const PostDetail = () => {
 
   const handleAddComment = async (content: string, parentId?: string) => {
     if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to comment on posts",
-        variant: "destructive",
-      });
+      authModal.open('login');
       return;
     }
 
@@ -522,11 +520,7 @@ const PostDetail = () => {
 
   const handleVoteComment = async (commentId: string, vote: 'up' | 'down') => {
     if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to vote on comments",
-        variant: "destructive",
-      });
+      authModal.open('login');
       return;
     }
 
@@ -642,11 +636,7 @@ const PostDetail = () => {
 
   const handleVote = async (postId: string, voteType: 'up' | 'down') => {
     if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to vote on posts",
-        variant: "destructive",
-      });
+      authModal.open('login');
       return;
     }
 

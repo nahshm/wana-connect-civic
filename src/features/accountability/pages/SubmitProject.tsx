@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { ArrowLeft, Upload, X, FileText, Image as ImageIcon, Film, AlertCircle, Loader2, Plus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PROJECT_CATEGORIES_2026, PROJECT_LEVELS, PROJECT_STATUSES, PROJECT_PRIORITIES } from '@/constants/projectConstants';
@@ -34,6 +35,7 @@ const SubmitProject = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const [searchParams] = useSearchParams();
     const communityId = searchParams.get('community');
 
@@ -319,7 +321,7 @@ const SubmitProject = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) {
-            toast({ title: 'Authentication Required', description: 'Please sign in to post a project', variant: 'destructive' });
+            authModal.open('login');
             return;
         }
 

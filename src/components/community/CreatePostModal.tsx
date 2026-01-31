@@ -8,6 +8,7 @@ import {
 import { CreatePostForm } from '@/components/posts/CreatePostForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -25,6 +26,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     communityName,
 }) => {
     const { user } = useAuth();
+    const authModal = useAuthModal();
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
@@ -46,11 +48,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
     const handleCreatePost = async (postData: any) => {
         if (!user) {
-            toast({
-                title: "Authentication required",
-                description: "Please sign in to create a post",
-                variant: "destructive",
-            });
+            authModal.open('login');
+            onClose(); // Close the modal so auth modal shows
             return;
         }
 
