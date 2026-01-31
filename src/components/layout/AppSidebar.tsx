@@ -6,7 +6,6 @@ import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGrou
 import { useOfficeHolderId } from '@/hooks/useOfficeHolderId';
 import { usePrimaryCommunity } from '@/hooks/usePrimaryCommunity';
 import { SetLocationModal } from '@/components/community/SetLocationModal';
-
 const mainItems = [{
   title: 'For You',
   url: '/',
@@ -28,7 +27,6 @@ const mainItems = [{
   url: '/communities',
   icon: Globe
 }];
-
 export function AppSidebar() {
   const {
     state
@@ -38,17 +36,21 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const [wizardOpen, setWizardOpen] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
-
-  const { officeHolderId, isLoading } = useOfficeHolderId();
-  const { path: primaryCommunityPath, hasLocation, isLoading: communityLoading } = usePrimaryCommunity();
-
+  const {
+    officeHolderId,
+    isLoading
+  } = useOfficeHolderId();
+  const {
+    path: primaryCommunityPath,
+    hasLocation,
+    isLoading: communityLoading
+  } = usePrimaryCommunity();
   const isActive = (path: string) => {
     if (path === '/') {
       return currentPath === '/';
     }
     return currentPath.startsWith(path);
   };
-
   const getNavCls = ({
     isActive
   }: {
@@ -62,9 +64,8 @@ export function AppSidebar() {
       setLocationModalOpen(true);
     }
   };
-
   return <Sidebar collapsible="icon" variant="sidebar">
-    <SidebarContent className="gap-0 py-2 bg-popover px-[20px]">
+    <SidebarContent className="gap-0 py-2 bg-popover px-[10px]">
       <SidebarGroup className="px-2">
         <SidebarGroupContent>
           <SidebarMenu className="gap-1">
@@ -87,34 +88,25 @@ export function AppSidebar() {
         <SidebarGroupContent>
           <SidebarMenu className="gap-1">
             {/* My Office - Only show for verified officials */}
-            {officeHolderId && (
-              <SidebarMenuItem>
+            {officeHolderId && <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
                   <NavLink to={`/g/${officeHolderId}`} className={getNavCls}>
                     <Building className="h-5 w-5" />
                     {!collapsed && <span className="text-sm">My Office</span>}
                   </NavLink>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
+              </SidebarMenuItem>}
 
             {/* My Communities - Navigate to primary community or show modal */}
             <SidebarMenuItem>
               <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
-                {primaryCommunityPath && hasLocation ? (
-                  <NavLink to={primaryCommunityPath} className={getNavCls}>
+                {primaryCommunityPath && hasLocation ? <NavLink to={primaryCommunityPath} className={getNavCls}>
                     <Users className="h-5 w-5" />
                     {!collapsed && <span className="text-sm">My Communities</span>}
-                  </NavLink>
-                ) : (
-                  <button
-                    onClick={handleMyCommunitiesClick}
-                    className="flex items-center gap-3 w-full text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors"
-                  >
+                  </NavLink> : <button onClick={handleMyCommunitiesClick} className="flex items-center gap-3 w-full text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
                     <Users className="h-5 w-5" />
                     {!collapsed && <span className="text-sm">My Communities</span>}
-                  </button>
-                )}
+                  </button>}
               </SidebarMenuButton>
             </SidebarMenuItem>
 
