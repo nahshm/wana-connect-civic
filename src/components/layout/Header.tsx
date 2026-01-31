@@ -64,7 +64,7 @@ export const Header = () => {
       <Link to="/" className="flex-shrink-0">
         <img 
           src="/wanaiq-logo.png"
-          alt="WanaIQ Logo"
+          alt="ama Logo"
           className="h-8 w-auto"
           fetchPriority="high"
         />
