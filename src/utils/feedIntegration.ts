@@ -3,6 +3,12 @@
  * Handles mixing of special cards (Quest, Accountability) into the main feed
  */
 
+import { Post } from '@/types/index';
+import { Quest, AccountabilityUpdate, FeedItem, FeedPost, FeedQuestCard, FeedAccountabilityCard } from '@/types/feed';
+
+// Re-export types for backward compatibility
+export type { FeedItem, FeedPost, FeedQuestCard, FeedAccountabilityCard };
+
 // Configuration for card placement frequency
 const FEED_CONFIG = {
   QUEST_CARD_FREQUENCY: 7, // Show quest card every 7 posts
@@ -10,26 +16,6 @@ const FEED_CONFIG = {
   MAX_QUEST_CARDS_PER_FEED: 5,
   MAX_ACCOUNTABILITY_CARDS_PER_FEED: 3,
 };
-
-export interface FeedPost {
-  id: string;
-  type: 'post';
-  data: any;
-}
-
-export interface FeedQuestCard {
-  id: string;
-  type: 'quest';
-  data: any;
-}
-
-export interface FeedAccountabilityCard {
-  id: string;
-  type: 'accountability';
-  data: any;
-}
-
-export type FeedItem = FeedPost | FeedQuestCard | FeedAccountabilityCard;
 
 /**
  * Integrate special cards into the feed algorithmically
@@ -39,9 +25,9 @@ export type FeedItem = FeedPost | FeedQuestCard | FeedAccountabilityCard;
  * @returns Mixed feed with posts and special cards
  */
 export function integrateFeedCards(
-  posts: any[],
-  quests: any[] = [],
-  accountabilityUpdates: any[] = []
+  posts: Post[],
+  quests: Quest[] = [],
+  accountabilityUpdates: AccountabilityUpdate[] = []
 ): FeedItem[] {
   const result: FeedItem[] = [];
   let questIndex = 0;
@@ -90,10 +76,10 @@ export function integrateFeedCards(
  * Prioritizes quests from joined communities and user's activity patterns
  */
 export function getRelevantQuests(
-  allQuests: any[],
+  allQuests: Quest[],
   userCommunities: string[] = [],
   userActivity: { category?: string } = {}
-): any[] {
+): Quest[] {
   return allQuests
     .filter((quest) => {
       // Filter out completed quests
@@ -132,10 +118,10 @@ export function getRelevantQuests(
  * Prioritizes updates from tracked promises and user's geographic area
  */
 export function getRelevantAccountabilityUpdates(
-  allUpdates: any[],
+  allUpdates: AccountabilityUpdate[],
   trackedPromises: string[] = [],
   userLocation?: string
-): any[] {
+): AccountabilityUpdate[] {
   return allUpdates
     .filter((update) => {
       // Always show tracked items

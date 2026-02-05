@@ -59,7 +59,9 @@ export function validatePost(data: unknown): ValidatedPost | null {
     if (result.success) {
         return result.data;
     }
-    console.warn('Post validation failed:', result.error.issues);
+    if (import.meta.env.DEV) {
+        console.warn('Post validation failed:', result.error.issues);
+    }
     return null;
 }
 

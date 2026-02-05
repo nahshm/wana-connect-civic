@@ -42,14 +42,15 @@ export class OnboardingErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        // Log error to console for debugging
-        console.error('Onboarding error caught by boundary:', error, errorInfo);
+        // TODO: Replace with Sentry.captureException when integrated
+        if (import.meta.env.DEV) {
+            console.error('Onboarding error caught by boundary:', error, errorInfo);
+        }
 
         // Save error info to state for display
         this.setState({ errorInfo });
 
-        // TODO: Send to error reporting service (e.g., Sentry)
-        // logErrorToService(error, errorInfo);
+        // Future: Sentry.captureException(error, { tags: { feature: 'onboarding' }, extra: errorInfo });
     }
 
     handleReset = () => {

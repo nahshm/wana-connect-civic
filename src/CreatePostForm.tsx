@@ -73,12 +73,10 @@ export function CreatePostForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    console.log("Submitting post:", values);
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    console.log("Post submitted successfully!");
     setIsSubmitting(false);
     form.reset();
     // Here you would typically show a success message or redirect the user

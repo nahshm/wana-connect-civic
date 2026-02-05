@@ -79,13 +79,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching profile:', error);
+        }
         setProfileMissing(true);
         return;
       }
 
       if (!data) {
-        console.warn('Profile not found for user:', userId);
+        if (import.meta.env.DEV) {
+          console.warn('Profile not found for user:', userId);
+        }
         setProfileMissing(true);
         return;
       }
@@ -125,7 +129,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       setProfile(profileData);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching profile:', error);
+      }
       setProfileMissing(true);
     }
   };
@@ -147,7 +153,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
-        console.error('Error creating profile:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error creating profile:', error);
+        }
         return { error };
       }
 
