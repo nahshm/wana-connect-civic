@@ -117,7 +117,7 @@ export function usePosts(sortBy: string = 'new', filterBy: string = 'all') {
             if (!postsData) return { posts: [], nextPage: undefined };
 
             // Fetch user votes if authenticated
-            let userVotes: { [postId: string]: 'up' | 'down' } = {};
+            const userVotes: { [postId: string]: 'up' | 'down' } = {};
             if (user && postsData.length > 0) {
                 const postIds = postsData.map(post => post.id);
                 const { data: votesData } = await supabase

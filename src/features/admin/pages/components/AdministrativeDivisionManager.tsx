@@ -56,7 +56,7 @@ export function AdministrativeDivisionManager({
     const { data: divisions, isLoading } = useQuery({
         queryKey: ['admin-divisions', countryCode, governanceLevel],
         queryFn: async () => {
-            let query = supabase
+            const query = supabase
                 .from('administrative_divisions')
                 .select('*, parent:parent_id(name)')
                 .eq('country_code', countryCode)

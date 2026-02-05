@@ -80,7 +80,7 @@ export function useProjectDetails(projectId: string | undefined) {
             if (basicError) throw basicError;
 
             // Initialize with basic data
-            let projectData: any = { ...basicData };
+            const projectData: any = { ...basicData };
 
             // Try to fetch new relationships if columns exist
             try {
@@ -238,7 +238,7 @@ export function useProjects(filters?: {
             // Fetch related data for each project separately (handles missing columns gracefully)
             const enrichedProjects = await Promise.all(
                 projects.map(async (project) => {
-                    let enriched: any = { ...project };
+                    const enriched: any = { ...project };
 
                     // Try to fetch primary entities if IDs exist
                     try {

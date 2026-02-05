@@ -78,7 +78,7 @@ async function fetchChannelProjects(
     // 2. Enrich projects with same logic as useProjects.ts
     const enrichedProjects = await Promise.all(
         projectsData.map(async (project) => {
-            let enriched: any = { ...project };
+            const enriched: any = { ...project };
 
             // Ensure camelCase conversion for base fields if needed, OR keep snake_case
             // The existing code uses toCamelCase at the end, which caused the media_urls issue.

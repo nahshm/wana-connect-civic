@@ -22,7 +22,7 @@ async function fetchCommunitiesWithMembership(
   if (communitiesError) throw communitiesError;
 
   // Fetch user memberships if logged in
-  let joinedCommunityIds = new Set<string>();
+  const joinedCommunityIds = new Set<string>();
   if (userId) {
     const { data: memberships, error: membershipsError } = await supabase
       .from('community_members')

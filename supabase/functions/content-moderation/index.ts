@@ -189,7 +189,7 @@ serve(async (req) => {
 
 async function moderateContent(content: string, type: string): Promise<ModerationResult> {
   const flags: string[] = [];
-  let confidence = 0.8;
+  const confidence = 0.8;
   
   // Basic keyword filtering
   const inappropriateWords = [
