@@ -31,11 +31,13 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        console.error('ErrorBoundary caught an error:', error, errorInfo);
+        // TODO: Replace with Sentry.captureException when integrated
+        if (import.meta.env.DEV) {
+            console.error('ErrorBoundary caught an error:', error, errorInfo);
+        }
         this.setState({ errorInfo });
 
-        // Optional: Report to error tracking service
-        // reportError(error, errorInfo);
+        // Future: Sentry.captureException(error, { extra: errorInfo });
     }
 
     handleReset = () => {

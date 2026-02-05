@@ -30,8 +30,11 @@ export class CommunityErrorBoundary extends Component<ErrorBoundaryProps, ErrorB
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error(`Community Error [${this.props.section || 'unknown'}]:`, error, errorInfo);
-        // TODO: Send to error tracking service (e.g., Sentry)
+        // TODO: Replace with Sentry.captureException when integrated
+        if (import.meta.env.DEV) {
+            console.error(`Community Error [${this.props.section || 'unknown'}]:`, error, errorInfo);
+        }
+        // Future: Sentry.captureException(error, { tags: { section: this.props.section }, extra: errorInfo });
     }
 
     handleReset = () => {

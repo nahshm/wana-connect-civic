@@ -309,10 +309,7 @@ const Profile = () => {
             .eq('author_id', profile.id)
             .order('created_at', { ascending: false })
             .limit(20);
-          console.log('Posts data:', postsData);
-          console.log('Posts error:', postsError);
           const camelPosts = toCamelCase(postsData) || [];
-          console.log('Posts after camelCase:', camelPosts);
           setPosts(camelPosts);
           setLoadingPosts(false);
           break;
