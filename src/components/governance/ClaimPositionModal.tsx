@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -102,15 +102,8 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
         }
     };
 
-    // Verify community membership when modal opens
-    useEffect(() => {
-        if (isOpen && user && communityId) {
-            verifyMembership();
-            checkExistingClaim();
-        }
-    }, [isOpen, user, communityId, position]);
-
-    const verifyMembership = async () => {
+    // Define verification functions with useCallback to stabilize references
+    const verifyMembership = useCallback(async () => {
         if (!user || !communityId) {
             setMembershipVerified(false);
             return;
@@ -124,9 +117,9 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
             .maybeSingle();
 
         setMembershipVerified(!!data);
-    };
+    }, [user, communityId]);
 
-    const checkExistingClaim = async () => {
+    const checkExistingClaim = useCallback(async () => {
         if (!position) return;
 
         const { data } = await supabase
@@ -137,7 +130,15 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
             .maybeSingle();
 
         setExistingClaim(!!data);
-    };
+    }, [position]);
+
+    // Verify community membership when modal opens
+    useEffect(() => {
+        if (isOpen && user && communityId) {
+            verifyMembership();
+            checkExistingClaim();
+        }
+    }, [isOpen, user, communityId, position, verifyMembership, checkExistingClaim]);
 
     const onSubmit = async (data: ClaimFormData) => {
         if (!user || !position) {

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { X, Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { initCivicClipsMonitoring } from '@/lib/civic-clips-monitoring'
+import { CivicClipsFilterModal, ClipsFilters } from '@/components/civic-clips/CivicClipsFilterModal'
 
 export const CivicClipsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams()
@@ -22,6 +23,8 @@ export const CivicClipsPage = () => {
     const [showSearch, setShowSearch] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [isFirstVisit, setIsFirstVisit] = useState(true)
+    const [showFilterModal, setShowFilterModal] = useState(false)
+    const [filters, setFilters] = useState<ClipsFilters>({ sortBy: 'recent' })
 
     // Show swipe hint only on first visit
     useEffect(() => {
@@ -75,7 +78,7 @@ export const CivicClipsPage = () => {
             {/* Header */}
             <CivicClipsHeader
                 onSearchClick={() => setShowSearch(true)}
-                onFilterClick={() => {/* TODO: open filter modal */ }}
+                onFilterClick={() => setShowFilterModal(true)}
             />
 
             {/* Category Tabs */}
@@ -127,6 +130,14 @@ export const CivicClipsPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* Filter Modal */}
+            <CivicClipsFilterModal
+                isOpen={showFilterModal}
+                onClose={() => setShowFilterModal(false)}
+                onApplyFilters={(newFilters) => setFilters(newFilters)}
+                currentFilters={filters}
+            />
 
             {/* Video Feed with Error Boundary */}
             <VideoFeedErrorBoundary

@@ -189,7 +189,16 @@ export function useProjectDetails(projectId: string | undefined) {
                 projectData.verifications_count = 0;
             }
 
-            projectData.views_count = 0; // TODO: Implement view tracking
+            // Fetch views count
+            try {
+                const viewsCount = await supabase
+                    .from('project_views')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('project_id', projectId);
+                projectData.views_count = viewsCount.count || 0;
+            } catch {
+                projectData.views_count = 0;
+            }
 
             return projectData as ProjectWithFullDetails;
         },
@@ -300,7 +309,13 @@ export function useProjects(filters?: {
 
                         enriched.comments_count = comments;
                         enriched.verifications_count = verifications;
-                        enriched.views_count = 0; // TODO: Implement
+                        // Fetch views count
+                        const views = await supabase
+                            .from('project_views')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('project_id', project.id)
+                            .then(r => r.count || 0);
+                        enriched.views_count = views;
                     } catch (err) {
                         enriched.comments_count = 0;
                         enriched.verifications_count = 0;
