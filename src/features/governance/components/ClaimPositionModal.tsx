@@ -157,7 +157,7 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
 
         setIsSubmitting(true);
         try {
-            const { error } = await supabase
+            const { data: claimData, error } = await supabase
                 .from('office_holders')
                 .insert({
                     position_id: position.id,
@@ -172,7 +172,9 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
                         claimed_at: new Date().toISOString(),
                     },
                     is_active: true,
-                });
+                })
+                .select('id')
+                .single();
 
             if (error) {
                 console.error(error);
@@ -183,8 +185,10 @@ export function ClaimPositionModal({ isOpen, onClose, position, communityId }: C
             toast.success('Position claim submitted for verification!');
             onClose();
 
-            // TODO: Redirect to position view page
-            // window.location.href = `/positions/${position.id}`;
+            // Redirect to the newly created office page
+            if (claimData?.id) {
+                window.location.href = `/g/${claimData.id}`;
+            }
         } catch (error) {
             console.error(error);
             toast.error('An error occurred');

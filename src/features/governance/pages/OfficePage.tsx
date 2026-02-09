@@ -140,8 +140,47 @@ export default function OfficePage() {
 
                 setOfficeHolder(transformed as any);
 
-                // TODO: Fetch promises when table exists
-                // TODO: Fetch questions when table exists
+                // Fetch promises
+                try {
+                    const { data: promisesData } = await supabase
+                        .from('office_promises')
+                        .select('*')
+                        .eq('office_holder_id', id)
+                        .order('created_at', { ascending: false });
+                    
+                    setPromises(promisesData || []);
+                } catch (error) {
+                    console.log('Promises table not available yet:', error);
+                    setPromises([]);
+                }
+
+                // Fetch questions with profile data
+                try {
+                    const { data: questionsData } = await supabase
+                        .from('office_questions')
+                        .select(`
+                            *,
+                            profiles!office_questions_asked_by_fkey(username, display_name, avatar_url)
+                        `)
+                        .eq('office_holder_id', id)
+                        .order('upvotes', { ascending: false })
+                        .order('asked_at', { ascending: false });
+                    
+                    // Transform to expected format
+                    const transformed = questionsData?.map(q => ({
+                        id: q.id,
+                        question: q.question,
+                        answer: q.answer,
+                        asked_by: q.profiles?.username || 'Anonymous',
+                        asked_at: q.asked_at,
+                        answered_at: q.answered_at
+                    })) || [];
+                    
+                    setQuestions(transformed);
+                } catch (error) {
+                    console.log('Questions table not available yet:', error);
+                    setQuestions([]);
+                }
 
             } catch (error) {
                 console.error('Error fetching office data:', error);
