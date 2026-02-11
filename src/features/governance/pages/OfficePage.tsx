@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,9 +27,20 @@ import {
     Target,
     AlertCircle,
     ThumbsUp,
-    ThumbsDown
+    ThumbsDown,
+    Send,
+    Loader2,
+    ArrowUp,
+    Pencil,
+    Trash2,
+    Sparkles,
+    BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AddPromiseModal } from '@/components/governance/AddPromiseModal';
+import { UpdatePromiseModal } from '@/components/governance/UpdatePromiseModal';
+import { AnswerQuestionModal } from '@/components/governance/AnswerQuestionModal';
+import { getCategoryInfo, getStatusColor, formatRelativeDate } from '@/components/governance/officeConstants';
 
 // UUID validation regex for security
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -76,6 +87,7 @@ interface Question {
     asked_by: string;
     asked_at: string;
     answered_at?: string;
+    upvotes?: number;
 }
 
 export default function OfficePage() {
@@ -96,102 +108,176 @@ export default function OfficePage() {
     const [newQuestion, setNewQuestion] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
 
+    // Modal states
+    const [showAddPromise, setShowAddPromise] = useState(false);
+    const [updatePromise, setUpdatePromise] = useState<Promise | null>(null);
+    const [answerQuestion, setAnswerQuestion] = useState<Question | null>(null);
+    const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
+    const [upvotingIds, setUpvotingIds] = useState<Set<string>>(new Set());
+
     const isOwner = user?.id === officeHolder?.user_id;
 
-    useEffect(() => {
-        const fetchOfficeData = async () => {
-            if (!id) {
-                setLoading(false);
+    const fetchOfficeData = useCallback(async () => {
+        if (!id) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const { data: holderData, error: holderError } = await supabase
+                .from('office_holders')
+                .select(`
+                    *,
+                    profiles!office_holders_user_id_fkey(id, username, display_name, avatar_url, bio),
+                    government_positions(id, title, governance_level, country_code, jurisdiction_name)
+                `)
+                .eq('id', id)
+                .single();
+
+            if (holderError) {
+                if (holderError.code === 'PGRST116') {
+                    setOfficeHolder(null);
+                } else {
+                    throw holderError;
+                }
                 return;
             }
 
-            try {
+            const transformed = holderData ? {
+                ...holderData,
+                created_at: holderData.claimed_at,
+                profile: holderData.profiles,
+                position: holderData.government_positions
+            } : null;
 
-                // Fetch office holder with profile and position
-                // Note: Must specify FK name because office_holders has TWO FKs to profiles (user_id AND verified_by)
-                const { data: holderData, error: holderError } = await supabase
-                    .from('office_holders')
+            setOfficeHolder(transformed as any);
+
+            // Fetch promises
+            try {
+                const { data: promisesData } = await supabase
+                    .from('office_promises')
+                    .select('*')
+                    .eq('office_holder_id', id)
+                    .order('created_at', { ascending: false });
+                setPromises(promisesData || []);
+            } catch (error) {
+                console.log('Promises table not available yet:', error);
+                setPromises([]);
+            }
+
+            // Fetch questions
+            try {
+                const { data: questionsData } = await supabase
+                    .from('office_questions')
                     .select(`
                         *,
-                        profiles!office_holders_user_id_fkey(id, username, display_name, avatar_url, bio),
-                        government_positions(id, title, governance_level, country_code, jurisdiction_name)
+                        profiles!office_questions_asked_by_fkey(username, display_name, avatar_url)
                     `)
-                    .eq('id', id)
-                    .single();
+                    .eq('office_holder_id', id)
+                    .order('upvotes', { ascending: false })
+                    .order('asked_at', { ascending: false });
 
-                if (holderError) {
-                    // Differentiate between not found vs other errors
-                    if (holderError.code === 'PGRST116') {
-                        // Record not found - this is expected for invalid IDs
-                        setOfficeHolder(null);
-                    } else {
-                        throw holderError;
-                    }
-                    return;
-                }
-
-                // Transform to expected format
-                const transformed = holderData ? {
-                    ...holderData,
-                    created_at: holderData.claimed_at, // Use claimed_at as fallback
-                    profile: holderData.profiles,
-                    position: holderData.government_positions
-                } : null;
-
-                setOfficeHolder(transformed as any);
-
-                // Fetch promises
-                try {
-                    const { data: promisesData } = await supabase
-                        .from('office_promises')
-                        .select('*')
-                        .eq('office_holder_id', id)
-                        .order('created_at', { ascending: false });
-                    
-                    setPromises(promisesData || []);
-                } catch (error) {
-                    console.log('Promises table not available yet:', error);
-                    setPromises([]);
-                }
-
-                // Fetch questions with profile data
-                try {
-                    const { data: questionsData } = await supabase
-                        .from('office_questions')
-                        .select(`
-                            *,
-                            profiles!office_questions_asked_by_fkey(username, display_name, avatar_url)
-                        `)
-                        .eq('office_holder_id', id)
-                        .order('upvotes', { ascending: false })
-                        .order('asked_at', { ascending: false });
-                    
-                    // Transform to expected format
-                    const transformed = questionsData?.map(q => ({
-                        id: q.id,
-                        question: q.question,
-                        answer: q.answer,
-                        asked_by: q.profiles?.username || 'Anonymous',
-                        asked_at: q.asked_at,
-                        answered_at: q.answered_at
-                    })) || [];
-                    
-                    setQuestions(transformed);
-                } catch (error) {
-                    console.log('Questions table not available yet:', error);
-                    setQuestions([]);
-                }
-
+                const transformedQ = questionsData?.map(q => ({
+                    id: q.id,
+                    question: q.question,
+                    answer: q.answer,
+                    asked_by: q.profiles?.username || 'Anonymous',
+                    asked_at: q.asked_at,
+                    answered_at: q.answered_at
+                })) || [];
+                setQuestions(transformedQ);
             } catch (error) {
-                console.error('Error fetching office data:', error);
-                toast.error('Failed to load office page. Please try again.');
-            } finally {
-                setLoading(false);
+                console.log('Questions table not available yet:', error);
+                setQuestions([]);
             }
-        };
-
-        fetchOfficeData();
+        } catch (error) {
+            console.error('Error fetching office data:', error);
+            toast.error('Failed to load office page. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     }, [id]);
+
+    useEffect(() => {
+        fetchOfficeData();
+    }, [fetchOfficeData]);
+
+    // Submit a new question
+    const handleSubmitQuestion = async () => {
+        if (!user || !id || !newQuestion.trim()) return;
+
+        setIsSubmittingQuestion(true);
+        try {
+            const { error } = await supabase
+                .from('office_questions')
+                .insert({
+                    office_holder_id: id,
+                    question: newQuestion.trim(),
+                    asked_by: user.id,
+                });
+
+            if (error) throw error;
+
+            toast.success('Question submitted! The official will be notified.');
+            setNewQuestion('');
+            fetchOfficeData(); // Refresh
+        } catch (error: any) {
+            console.error('Error submitting question:', error);
+            toast.error(error.message || 'Failed to submit question');
+        } finally {
+            setIsSubmittingQuestion(false);
+        }
+    };
+
+    // Upvote a question
+    const handleUpvoteQuestion = async (questionId: string) => {
+        if (!user) {
+            toast.error('Please sign in to upvote');
+            return;
+        }
+
+        setUpvotingIds(prev => new Set(prev).add(questionId));
+        try {
+            // Increment upvotes (simple counter for now)
+            const { error } = await supabase.rpc('increment_question_upvotes', {
+                question_id: questionId,
+            });
+
+            // Fallback: direct update if RPC doesn't exist
+            if (error) {
+                await supabase
+                    .from('office_questions')
+                    .update({ upvotes: questions.find(q => q.id === questionId)?.upvotes ? (questions.find(q => q.id === questionId)?.upvotes || 0) + 1 : 1 })
+                    .eq('id', questionId);
+            }
+
+            fetchOfficeData();
+        } catch (error) {
+            console.error('Error upvoting:', error);
+        } finally {
+            setUpvotingIds(prev => {
+                const next = new Set(prev);
+                next.delete(questionId);
+                return next;
+            });
+        }
+    };
+
+    // Delete a question (for the asker)
+    const handleDeleteQuestion = async (questionId: string) => {
+        try {
+            const { error } = await supabase
+                .from('office_questions')
+                .delete()
+                .eq('id', questionId);
+
+            if (error) throw error;
+            toast.success('Question deleted');
+            fetchOfficeData();
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to delete question');
+        }
+    };
 
     const calculateDaysRemaining = () => {
         if (!officeHolder?.term_end) return null;
@@ -202,6 +288,7 @@ export default function OfficePage() {
     };
 
     const daysRemaining = calculateDaysRemaining();
+
 
     if (loading) {
         return (
@@ -443,58 +530,150 @@ export default function OfficePage() {
                 {/* Promises Tab */}
                 <TabsContent value="promises" className="space-y-6">
                     {isOwner && (
-                        <Card className="bg-primary/5 border-primary/20">
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-medium">Add a Public Promise</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Commit to something and let citizens track your progress
-                                    </p>
+                        <Card className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent border-primary/20 overflow-hidden">
+                            <CardContent className="p-5 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
+                                        <Target className="h-6 w-6 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-base">Make a Public Promise</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Commit to something and let citizens track your progress
+                                        </p>
+                                    </div>
                                 </div>
-                                <Button>Add Promise</Button>
+                                <Button onClick={() => setShowAddPromise(true)} className="gap-2">
+                                    <Sparkles className="h-4 w-4" />
+                                    Add Promise
+                                </Button>
                             </CardContent>
                         </Card>
                     )}
 
+                    {/* Filter Summary */}
+                    {promises.length > 0 && (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="gap-1">
+                                    <BarChart3 className="h-3 w-3" />
+                                    {completedPromises}/{promises.length} completed
+                                </Badge>
+                                <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-emerald-500 transition-all duration-500 rounded-full"
+                                        style={{ width: `${promiseCompletionRate}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {promises.length === 0 ? (
-                        <Card>
-                            <CardContent className="py-12 text-center">
-                                <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="font-medium mb-2">No Promises Yet</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    This official hasn't made any public commitments yet.
+                        <Card className="border-dashed">
+                            <CardContent className="py-16 text-center">
+                                <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-muted mx-auto mb-4">
+                                    <Target className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <h3 className="font-semibold text-lg mb-2">No Promises Yet</h3>
+                                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                    {isOwner
+                                        ? 'Make your first public commitment and let citizens track your accountability.'
+                                        : 'This official hasn\'t made any public commitments yet.'
+                                    }
                                 </p>
+                                {isOwner && (
+                                    <Button
+                                        onClick={() => setShowAddPromise(true)}
+                                        className="mt-6 gap-2"
+                                    >
+                                        <Target className="h-4 w-4" />
+                                        Make Your First Promise
+                                    </Button>
+                                )}
                             </CardContent>
                         </Card>
                     ) : (
                         <div className="space-y-4">
-                            {promises.map((promise) => (
-                                <Card key={promise.id}>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div>
-                                                <h4 className="font-medium">{promise.title}</h4>
-                                                <Badge variant="outline" className="mt-1">{promise.category}</Badge>
+                            {promises.map((promise) => {
+                                const catInfo = getCategoryInfo(promise.category);
+                                const statusColor = getStatusColor(promise.status);
+
+                                return (
+                                    <Card key={promise.id} className="group hover:shadow-md transition-shadow duration-200">
+                                        <CardContent className="p-5">
+                                            <div className="flex items-start justify-between gap-4 mb-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                                        <h4 className="font-semibold text-base">{promise.title}</h4>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <Badge variant="outline" className={`text-xs ${catInfo.color}`}>
+                                                            {catInfo.label}
+                                                        </Badge>
+                                                        <Badge className={`text-xs border ${statusColor}`}>
+                                                            {promise.status === 'in_progress' ? 'In Progress' :
+                                                                promise.status.charAt(0).toUpperCase() + promise.status.slice(1)}
+                                                        </Badge>
+                                                        {promise.deadline && (
+                                                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                <Calendar className="h-3 w-3" />
+                                                                Due {new Date(promise.deadline).toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {isOwner && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                                        onClick={() => setUpdatePromise(promise)}
+                                                    >
+                                                        <Pencil className="h-4 w-4 mr-1" />
+                                                        Update
+                                                    </Button>
+                                                )}
                                             </div>
-                                            <Badge variant={
-                                                promise.status === 'completed' ? 'default' :
-                                                    promise.status === 'failed' ? 'destructive' :
-                                                        'secondary'
-                                            }>
-                                                {promise.status}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground mb-3">{promise.description}</p>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span>Progress</span>
-                                                <span>{promise.progress}%</span>
+
+                                            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                                                {promise.description}
+                                            </p>
+
+                                            {/* Progress Bar */}
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Progress</span>
+                                                    <span className="font-semibold tabular-nums">{promise.progress}%</span>
+                                                </div>
+                                                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-700 ease-out ${
+                                                            promise.status === 'completed' ? 'bg-emerald-500' :
+                                                            promise.status === 'failed' ? 'bg-red-400' :
+                                                            promise.progress >= 50 ? 'bg-blue-500' :
+                                                            'bg-amber-400'
+                                                        }`}
+                                                        style={{ width: `${promise.progress}%` }}
+                                                    />
+                                                </div>
                                             </div>
-                                            <Progress value={promise.progress} className="h-2" />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+
+                                            {/* Footer */}
+                                            <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs text-muted-foreground">
+                                                <span>Created {formatRelativeDate(promise.created_at)}</span>
+                                                {promise.status === 'completed' && (
+                                                    <span className="flex items-center gap-1 text-emerald-600">
+                                                        <CheckCircle className="h-3.5 w-3.5" />
+                                                        Fulfilled
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
                         </div>
                     )}
                 </TabsContent>
@@ -503,33 +682,64 @@ export default function OfficePage() {
                 <TabsContent value="questions" className="space-y-6">
                     {/* Ask Question Form */}
                     {user && !isOwner && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Ask a Question</CardTitle>
+                        <Card className="border-primary/10">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <MessageSquare className="h-5 w-5 text-primary" />
+                                    Ask a Question
+                                </CardTitle>
                                 <CardDescription>
                                     Your question will be public. The official can respond publicly.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Textarea
-                                    placeholder="What would you like to ask this official?"
-                                    value={newQuestion}
-                                    onChange={(e) => setNewQuestion(e.target.value)}
-                                    className="mb-4"
-                                />
-                                <Button disabled={!newQuestion.trim()}>
-                                    Submit Question
-                                </Button>
+                                <div className="relative">
+                                    <Textarea
+                                        placeholder="What would you like to ask this official?"
+                                        value={newQuestion}
+                                        onChange={(e) => setNewQuestion(e.target.value)}
+                                        className="min-h-[80px] pr-12 resize-none"
+                                        maxLength={500}
+                                    />
+                                    <Button
+                                        size="sm"
+                                        className="absolute bottom-3 right-3 h-8 w-8 p-0"
+                                        disabled={!newQuestion.trim() || isSubmittingQuestion}
+                                        onClick={handleSubmitQuestion}
+                                    >
+                                        {isSubmittingQuestion ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Send className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground text-right mt-1">
+                                    {newQuestion.length}/500
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {!user && (
+                        <Card className="bg-muted/50 border-dashed">
+                            <CardContent className="py-6 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                    <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>{' '}
+                                    to ask this official a question
+                                </p>
                             </CardContent>
                         </Card>
                     )}
 
                     {questions.length === 0 ? (
-                        <Card>
-                            <CardContent className="py-12 text-center">
-                                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="font-medium mb-2">No Questions Yet</h3>
-                                <p className="text-sm text-muted-foreground">
+                        <Card className="border-dashed">
+                            <CardContent className="py-16 text-center">
+                                <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-muted mx-auto mb-4">
+                                    <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <h3 className="font-semibold text-lg mb-2">No Questions Yet</h3>
+                                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                                     Be the first to ask this official a question!
                                 </p>
                             </CardContent>
@@ -537,29 +747,75 @@ export default function OfficePage() {
                     ) : (
                         <div className="space-y-4">
                             {questions.map((q) => (
-                                <Card key={q.id}>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex-1">
-                                                <p className="font-medium">{q.question}</p>
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    Asked {new Date(q.asked_at).toLocaleDateString()}
-                                                </p>
+                                <Card key={q.id} className="group">
+                                    <CardContent className="p-5">
+                                        <div className="flex gap-4">
+                                            {/* Upvote Column */}
+                                            <div className="flex flex-col items-center gap-1 shrink-0">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                                    onClick={() => handleUpvoteQuestion(q.id)}
+                                                    disabled={upvotingIds.has(q.id)}
+                                                >
+                                                    <ArrowUp className="h-4 w-4" />
+                                                </Button>
+                                                <span className="text-sm font-semibold tabular-nums">
+                                                    {(q as any).upvotes || 0}
+                                                </span>
+                                            </div>
+
+                                            {/* Question Content */}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm leading-relaxed">{q.question}</p>
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <span className="text-xs text-muted-foreground">
+                                                        by <span className="font-medium">{q.asked_by}</span>
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">•</span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {formatRelativeDate(q.asked_at)}
+                                                    </span>
+                                                    {!q.answer && (
+                                                        <Badge variant="outline" className="text-xs gap-1 bg-amber-50 text-amber-700 border-amber-200">
+                                                            <Clock className="h-2.5 w-2.5" />
+                                                            Awaiting answer
+                                                        </Badge>
+                                                    )}
+                                                </div>
+
+                                                {/* Answer */}
                                                 {q.answer && (
-                                                    <div className="mt-4 pl-4 border-l-2 border-primary">
-                                                        <p className="text-sm">{q.answer}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                            Answered {new Date(q.answered_at!).toLocaleDateString()}
+                                                    <div className="mt-4 pl-4 border-l-2 border-emerald-400 bg-emerald-500/5 rounded-r-lg p-3">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs gap-1">
+                                                                <CheckCircle className="h-3 w-3" />
+                                                                Official Response
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-sm leading-relaxed">{q.answer}</p>
+                                                        <p className="text-xs text-muted-foreground mt-2">
+                                                            Answered {formatRelativeDate(q.answered_at!)}
                                                         </p>
                                                     </div>
                                                 )}
+
+                                                {/* Action Buttons */}
+                                                <div className="flex items-center gap-2 mt-3">
+                                                    {isOwner && !q.answer && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 text-xs gap-1"
+                                                            onClick={() => setAnswerQuestion(q)}
+                                                        >
+                                                            <MessageSquare className="h-3 w-3" />
+                                                            Answer
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {!q.answer && (
-                                                <Badge variant="outline" className="shrink-0">
-                                                    <Clock className="h-3 w-3 mr-1" />
-                                                    Pending
-                                                </Badge>
-                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -594,6 +850,37 @@ export default function OfficePage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Modals */}
+            {id && (
+                <>
+                    <AddPromiseModal
+                        isOpen={showAddPromise}
+                        onClose={() => setShowAddPromise(false)}
+                        officeHolderId={id}
+                        onPromiseAdded={fetchOfficeData}
+                    />
+
+                    {updatePromise && (
+                        <UpdatePromiseModal
+                            isOpen={!!updatePromise}
+                            onClose={() => setUpdatePromise(null)}
+                            promise={updatePromise}
+                            onPromiseUpdated={fetchOfficeData}
+                        />
+                    )}
+
+                    {answerQuestion && user && (
+                        <AnswerQuestionModal
+                            isOpen={!!answerQuestion}
+                            onClose={() => setAnswerQuestion(null)}
+                            question={answerQuestion}
+                            userId={user.id}
+                            onAnswered={fetchOfficeData}
+                        />
+                    )}
+                </>
+            )}
         </div>
     );
 }

@@ -3072,6 +3072,117 @@ export type Database = {
           },
         ]
       }
+      office_promises: {
+        Row: {
+          id: string
+          office_holder_id: string
+          title: string
+          description: string
+          category: string
+          status: string
+          progress: number
+          deadline: string | null
+          created_at: string | null
+          updated_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          office_holder_id: string
+          title: string
+          description: string
+          category: string
+          status?: string
+          progress?: number
+          deadline?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          office_holder_id?: string
+          title?: string
+          description?: string
+          category?: string
+          status?: string
+          progress?: number
+          deadline?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          completed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_promises_office_holder_id_fkey"
+            columns: ["office_holder_id"]
+            isOneToOne: false
+            referencedRelation: "office_holders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      office_questions: {
+        Row: {
+          id: string
+          office_holder_id: string
+          question: string
+          answer: string | null
+          asked_by: string
+          answered_by: string | null
+          asked_at: string | null
+          answered_at: string | null
+          upvotes: number | null
+          is_pinned: boolean | null
+        }
+        Insert: {
+          id?: string
+          office_holder_id: string
+          question: string
+          answer?: string | null
+          asked_by: string
+          answered_by?: string | null
+          asked_at?: string | null
+          answered_at?: string | null
+          upvotes?: number | null
+          is_pinned?: boolean | null
+        }
+        Update: {
+          id?: string
+          office_holder_id?: string
+          question?: string
+          answer?: string | null
+          asked_by?: string
+          answered_by?: string | null
+          asked_at?: string | null
+          answered_at?: string | null
+          upvotes?: number | null
+          is_pinned?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_questions_office_holder_id_fkey"
+            columns: ["office_holder_id"]
+            isOneToOne: false
+            referencedRelation: "office_holders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_questions_asked_by_fkey"
+            columns: ["asked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_questions_answered_by_fkey"
+            columns: ["answered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       official_contacts: {
         Row: {
           contact_type: string
