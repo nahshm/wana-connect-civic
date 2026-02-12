@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.generate-thumbnail]
 verify_jwt = false
+
+[functions.civic-steward]
+verify_jwt = false
+
+[functions.civic-router]
+verify_jwt = false
+
+[functions.civic-brain]
+verify_jwt = false
