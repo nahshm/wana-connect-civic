@@ -37,7 +37,7 @@ INSERT INTO office_activity_log (
     created_at
 )
 SELECT 
-    oh.id,
+    q.office_holder_id,
     'question_answered',
     'Answered a Question',
     'Answered: "' || SUBSTRING(q.question, 1, 60) || (CASE WHEN LENGTH(q.question) > 60 THEN '...' ELSE '' END) || '"',
@@ -46,7 +46,6 @@ SELECT
     q.answered_by, -- Use the actual user who answered
     q.answered_at
 FROM office_questions q
-JOIN office_holders oh ON q.office_id = oh.office_id AND q.answered_by = oh.user_id
 WHERE q.answered_at IS NOT NULL
 AND NOT EXISTS (
     SELECT 1 FROM office_activity_log al 

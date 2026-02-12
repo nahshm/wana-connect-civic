@@ -77,16 +77,80 @@ export const ComponentName: React.FC<ComponentProps> = ({ prop1, prop2 }) => {
 
 ## 3. AI/ML IMPLEMENTATION GUIDELINES
 
-### 3.1 Hybrid Inference Strategy (Critical)
+### 3.0 Architecture Pattern: Hybrid Approach ⭐
+
+**WanaIQ Architecture Decision: HYBRID**
+
+```typescript
+// ✅ CORRECT: Hybrid Architecture
+// Client has unified interface (simple)
+export const aiClient = {
+  governance: (content) => supabase.functions.invoke('civic-steward', {body}),
+  routing: (issue) => supabase.functions.invoke('civic-router', {body}),
+  rag: (query) => supabase.functions.invoke('civic-brain', {body})
+}
+
+// Backend has separate Edge Functions (scalable)
+supabase/functions/
+  civic-steward/     # Content moderation
+  civic-router/      # Issue routing
+  civic-brain/       # RAG knowledge
+
+// ❌ INCORRECT: Single Gateway
+supabase.functions.invoke('ai-proxy', {
+  body: { feature: 'governance', ... }  // DON'T DO THIS
+})
+```
+
+**Why Hybrid Wins:**
+- ✅ Simple client code (one aiClient service)
+- ✅ Scalable backend (functions scale independently)
+- ✅ Independent deployment (update Router without touching RAG)
+- ✅ Easy testing (test each function separately)
+- ✅ No technical debt (follows microservices pattern)
+
+**NEVER:**
+- Combine multiple AI modes into one Edge Function
+- Use a "switch/case" pattern for routing AI features
+- Create a monolithic "ai-proxy" function
+
+## 3. AI/ML IMPLEMENTATION GUIDELINES
+
+### 3.1 Hybrid Architecture Pattern (CRITICAL)
+
+**WanaIQ uses Hybrid Architecture: Clean client API + Separate backend services**
+
+**ALWAYS follow this pattern:**
+```
+Client Layer (Single Interface):
+  aiClient.governance()  →  Supabase Edge Function: civic-steward
+  aiClient.routing()     →  Supabase Edge Function: civic-router
+  aiClient.rag()         →  Supabase Edge Function: civic-brain
+
+Backend Layer (Separate Functions):
+  civic-steward/   # Governance & moderation
+  civic-router/    # Agentic issue routing
+  civic-brain/     # RAG knowledge Q&A
+```
+
+**NEVER combine these into a single Edge Function** - this violates separation of concerns and creates technical debt.
+
+### 3.2 Hybrid Inference Strategy (Critical)
 
 **NEVER run large models 24/7. Use this decision matrix:**
 
 | Workload Type | Method | Infrastructure | Cost Model |
 |---------------|--------|----------------|------------|
 | Video/Image Processing | On-demand Serverless | AWS Lambda (2GB) | Pay-per-invocation |
-| Chat/Agent Logic | API-based | Groq API | Pay-per-token |
+| Chat/Agent Logic | API-based (Groq) | Groq API | Pay-per-token |
 | Vector Search | Managed DB | Supabase pgvector | Included in DB |
 | Batch Analytics | Scheduled Jobs | Lambda Cron | Pay-per-execution |
+
+**Standardized Provider: Groq API with Llama 3**
+- Governance: llama-3-8b-8192 (fast, cheap)
+- Routing: llama-3-70b-8192 (complex reasoning)
+- RAG: llama-3-8b-8192 (knowledge retrieval)
+- Cost: ~$3/month for 1000 users vs $500+ for GPUs
 
 **Implementation Pattern:**
 ```javascript
