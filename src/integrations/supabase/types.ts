@@ -50,6 +50,120 @@ export type Database = {
         }
         Relationships: []
       }
+      administrative_divisions: {
+        Row: {
+          area_sq_km: number | null
+          country_code: string
+          created_at: string | null
+          division_code: string | null
+          governance_level: string
+          id: string
+          level_index: number
+          metadata: Json | null
+          name: string
+          name_local: string | null
+          parent_id: string | null
+          population: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          area_sq_km?: number | null
+          country_code: string
+          created_at?: string | null
+          division_code?: string | null
+          governance_level: string
+          id?: string
+          level_index: number
+          metadata?: Json | null
+          name: string
+          name_local?: string | null
+          parent_id?: string | null
+          population?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          area_sq_km?: number | null
+          country_code?: string
+          created_at?: string | null
+          division_code?: string | null
+          governance_level?: string
+          id?: string
+          level_index?: number
+          metadata?: Json | null
+          name?: string
+          name_local?: string | null
+          parent_id?: string | null
+          population?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrative_divisions_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_governance_templates"
+            referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "administrative_divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "wards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_configurations: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          models: Json
+          provider_slug: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          models?: Json
+          provider_slug: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          models?: Json
+          provider_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anonymous_reports: {
         Row: {
           assigned_to: string | null
@@ -114,29 +228,34 @@ export type Database = {
           updated_at?: string | null
           ward_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "anonymous_reports_constituency_id_fkey"
-            columns: ["constituency_id"]
-            isOneToOne: false
-            referencedRelation: "constituencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anonymous_reports_county_id_fkey"
-            columns: ["county_id"]
-            isOneToOne: false
-            referencedRelation: "counties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anonymous_reports_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      api_metrics: {
+        Row: {
+          created_at: string | null
+          duration_ms: number
+          id: string
+          operation: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms: number
+          id?: string
+          operation: string
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number
+          id?: string
+          operation?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       badges: {
         Row: {
@@ -176,6 +295,53 @@ export type Database = {
           tier?: string
         }
         Relationships: []
+      }
+      baraza_spaces: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          host_user_id: string
+          is_live: boolean | null
+          participant_count: number | null
+          scheduled_end: string | null
+          scheduled_start: string | null
+          space_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          host_user_id: string
+          is_live?: boolean | null
+          participant_count?: number | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          space_id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          host_user_id?: string
+          is_live?: boolean | null
+          participant_count?: number | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          space_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "baraza_spaces_host_user_id_fkey"
+            columns: ["host_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_promises: {
         Row: {
@@ -365,6 +531,44 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_analytics: {
+        Row: {
+          active_users: number | null
+          channel_id: string
+          created_at: string | null
+          date: string
+          message_count: number | null
+          post_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_users?: number | null
+          channel_id: string
+          created_at?: string | null
+          date?: string
+          message_count?: number | null
+          post_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_users?: number | null
+          channel_id?: string
+          created_at?: string | null
+          date?: string
+          message_count?: number | null
+          post_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_analytics_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           category: string | null
@@ -372,9 +576,12 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          emoji_prefix: string | null
           id: string
+          is_locked: boolean | null
           is_private: boolean | null
           name: string
+          position: number | null
           type: string | null
           updated_at: string | null
         }
@@ -384,9 +591,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          emoji_prefix?: string | null
           id?: string
+          is_locked?: boolean | null
           is_private?: boolean | null
           name: string
+          position?: number | null
           type?: string | null
           updated_at?: string | null
         }
@@ -396,9 +606,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          emoji_prefix?: string | null
           id?: string
+          is_locked?: boolean | null
           is_private?: boolean | null
           name?: string
+          position?: number | null
           type?: string | null
           updated_at?: string | null
         }
@@ -418,6 +631,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "channels_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "channels_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -432,6 +652,7 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          reply_to_id: string | null
           room_id: string | null
           sender_id: string | null
           updated_at: string | null
@@ -441,6 +662,7 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          reply_to_id?: string | null
           room_id?: string | null
           sender_id?: string | null
           updated_at?: string | null
@@ -450,6 +672,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          reply_to_id?: string | null
           room_id?: string | null
           sender_id?: string | null
           updated_at?: string | null
@@ -460,6 +683,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
             referencedColumns: ["id"]
           },
           {
@@ -700,31 +930,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "civic_actions_constituency_id_fkey"
-            columns: ["constituency_id"]
-            isOneToOne: false
-            referencedRelation: "constituencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "civic_actions_county_id_fkey"
-            columns: ["county_id"]
-            isOneToOne: false
-            referencedRelation: "counties"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "civic_actions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "civic_actions_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
             referencedColumns: ["id"]
           },
         ]
@@ -825,6 +1034,7 @@ export type Database = {
           civic_type: string | null
           created_at: string | null
           duration: number | null
+          fact_check_status: string | null
           featured_at: string | null
           featured_by: string | null
           file_size: number | null
@@ -833,10 +1043,12 @@ export type Database = {
           height: number | null
           id: string
           is_featured: boolean | null
+          official_response: string | null
           post_id: string | null
           processing_error: string | null
           processing_status: string | null
           quality: string | null
+          source_citation_url: string | null
           thumbnail_url: string | null
           transcript: string | null
           updated_at: string | null
@@ -854,6 +1066,7 @@ export type Database = {
           civic_type?: string | null
           created_at?: string | null
           duration?: number | null
+          fact_check_status?: string | null
           featured_at?: string | null
           featured_by?: string | null
           file_size?: number | null
@@ -862,10 +1075,12 @@ export type Database = {
           height?: number | null
           id?: string
           is_featured?: boolean | null
+          official_response?: string | null
           post_id?: string | null
           processing_error?: string | null
           processing_status?: string | null
           quality?: string | null
+          source_citation_url?: string | null
           thumbnail_url?: string | null
           transcript?: string | null
           updated_at?: string | null
@@ -883,6 +1098,7 @@ export type Database = {
           civic_type?: string | null
           created_at?: string | null
           duration?: number | null
+          fact_check_status?: string | null
           featured_at?: string | null
           featured_by?: string | null
           file_size?: number | null
@@ -891,10 +1107,12 @@ export type Database = {
           height?: number | null
           id?: string
           is_featured?: boolean | null
+          official_response?: string | null
           post_id?: string | null
           processing_error?: string | null
           processing_status?: string | null
           quality?: string | null
+          source_citation_url?: string | null
           thumbnail_url?: string | null
           transcript?: string | null
           updated_at?: string | null
@@ -916,6 +1134,69 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: true
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "civic_clips_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      civic_impact_scores: {
+        Row: {
+          actions_score: number | null
+          calculated_at: string | null
+          community_score: number | null
+          created_at: string | null
+          goat_level: number | null
+          goat_title: string | null
+          goat_xp: number | null
+          impact_rating: number | null
+          reliability_score: number | null
+          resolution_score: number | null
+          trust_tier: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actions_score?: number | null
+          calculated_at?: string | null
+          community_score?: number | null
+          created_at?: string | null
+          goat_level?: number | null
+          goat_title?: string | null
+          goat_xp?: number | null
+          impact_rating?: number | null
+          reliability_score?: number | null
+          resolution_score?: number | null
+          trust_tier?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actions_score?: number | null
+          calculated_at?: string | null
+          community_score?: number | null
+          created_at?: string | null
+          goat_level?: number | null
+          goat_title?: string | null
+          goat_xp?: number | null
+          impact_rating?: number | null
+          reliability_score?: number | null
+          resolution_score?: number | null
+          trust_tier?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "civic_impact_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1522,6 +1803,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "comments_referenced_project_id_fkey"
             columns: ["referenced_project_id"]
             isOneToOne: false
@@ -1681,38 +1969,45 @@ export type Database = {
             referencedRelation: "communities_with_stats"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "community_active_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
         ]
       }
       community_bookmarks: {
         Row: {
           community_id: string
           created_at: string | null
-          description: string | null
-          display_order: number | null
+          created_by: string | null
+          icon: string | null
           id: string
-          title: string
-          updated_at: string | null
-          url: string | null
+          label: string
+          position: number | null
+          url: string
         }
         Insert: {
           community_id: string
           created_at?: string | null
-          description?: string | null
-          display_order?: number | null
+          created_by?: string | null
+          icon?: string | null
           id?: string
-          title: string
-          updated_at?: string | null
-          url?: string | null
+          label: string
+          position?: number | null
+          url: string
         }
         Update: {
           community_id?: string
           created_at?: string | null
-          description?: string | null
-          display_order?: number | null
+          created_by?: string | null
+          icon?: string | null
           id?: string
-          title?: string
-          updated_at?: string | null
-          url?: string | null
+          label?: string
+          position?: number | null
+          url?: string
         }
         Relationships: [
           {
@@ -1727,6 +2022,20 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_bookmarks_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_bookmarks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1781,6 +2090,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -1842,6 +2158,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_flairs_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "community_flairs_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -1882,6 +2205,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -1947,6 +2277,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_moderators_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -2044,6 +2381,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_polls_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "community_polls_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -2099,6 +2443,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_rules_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "community_rules_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -2107,44 +2458,55 @@ export type Database = {
           },
         ]
       }
-      constituencies: {
+      community_visits: {
         Row: {
-          county_id: string | null
-          created_at: string | null
+          community_id: string
           id: string
-          mp_id: string | null
-          name: string
-          population: number | null
+          user_id: string
+          visit_date: string
+          visited_at: string | null
         }
         Insert: {
-          county_id?: string | null
-          created_at?: string | null
+          community_id: string
           id?: string
-          mp_id?: string | null
-          name: string
-          population?: number | null
+          user_id: string
+          visit_date?: string
+          visited_at?: string | null
         }
         Update: {
-          county_id?: string | null
-          created_at?: string | null
+          community_id?: string
           id?: string
-          mp_id?: string | null
-          name?: string
-          population?: number | null
+          user_id?: string
+          visit_date?: string
+          visited_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "constituencies_county_id_fkey"
-            columns: ["county_id"]
+            foreignKeyName: "community_visits_community_id_fkey"
+            columns: ["community_id"]
             isOneToOne: false
-            referencedRelation: "counties"
+            referencedRelation: "communities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "constituencies_mp_id_fkey"
-            columns: ["mp_id"]
+            foreignKeyName: "community_visits_community_id_fkey"
+            columns: ["community_id"]
             isOneToOne: false
-            referencedRelation: "officials"
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_visits_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_visits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2292,30 +2654,6 @@ export type Database = {
           verification_date?: string | null
           website?: string | null
           years_experience?: number | null
-        }
-        Relationships: []
-      }
-      counties: {
-        Row: {
-          country: string | null
-          created_at: string | null
-          id: string
-          name: string
-          population: number | null
-        }
-        Insert: {
-          country?: string | null
-          created_at?: string | null
-          id?: string
-          name: string
-          population?: number | null
-        }
-        Update: {
-          country?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string
-          population?: number | null
         }
         Relationships: []
       }
@@ -2556,6 +2894,349 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          component_name: string | null
+          created_at: string | null
+          error_message: string
+          error_stack: string | null
+          id: string
+          page_url: string | null
+          severity: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          component_name?: string | null
+          created_at?: string | null
+          error_message: string
+          error_stack?: string | null
+          id?: string
+          page_url?: string | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          component_name?: string | null
+          created_at?: string | null
+          error_message?: string
+          error_stack?: string | null
+          id?: string
+          page_url?: string | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      expertise_endorsements: {
+        Row: {
+          created_at: string | null
+          endorser_id: string
+          expertise_id: string
+          id: string
+          message: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endorser_id: string
+          expertise_id: string
+          id?: string
+          message?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endorser_id?: string
+          expertise_id?: string
+          id?: string
+          message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expertise_endorsements_endorser_id_fkey"
+            columns: ["endorser_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expertise_endorsements_expertise_id_fkey"
+            columns: ["expertise_id"]
+            isOneToOne: false
+            referencedRelation: "user_expertise"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flags: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          feature_key: string
+          feature_name: string
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_replies: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string | null
+          id: string
+          parent_reply_id: string | null
+          thread_id: string
+          updated_at: string | null
+          upvotes: number | null
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          parent_reply_id?: string | null
+          thread_id: string
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          parent_reply_id?: string | null
+          thread_id?: string
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_replies_parent_reply_id_fkey"
+            columns: ["parent_reply_id"]
+            isOneToOne: false
+            referencedRelation: "forum_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_replies_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_reply_reactions: {
+        Row: {
+          created_at: string | null
+          emoji: string
+          id: string
+          reply_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emoji: string
+          id?: string
+          reply_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emoji?: string
+          id?: string
+          reply_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_reply_reactions_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "forum_replies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_thread_reactions: {
+        Row: {
+          created_at: string | null
+          emoji: string
+          id: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emoji: string
+          id?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emoji?: string
+          id?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_thread_reactions_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_threads: {
+        Row: {
+          author_id: string
+          channel_id: string
+          community_id: string
+          content: string | null
+          created_at: string | null
+          id: string
+          last_reply_at: string | null
+          locked: boolean | null
+          pinned: boolean | null
+          reply_count: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id: string
+          channel_id: string
+          community_id: string
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          last_reply_at?: string | null
+          locked?: boolean | null
+          pinned?: boolean | null
+          reply_count?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          channel_id?: string
+          community_id?: string
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          last_reply_at?: string | null
+          locked?: boolean | null
+          pinned?: boolean | null
+          reply_count?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_threads_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_threads_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_threads_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_threads_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_threads_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goat_levels: {
+        Row: {
+          badge_color: string | null
+          description: string | null
+          level: number
+          title: string
+          xp_required: number
+        }
+        Insert: {
+          badge_color?: string | null
+          description?: string | null
+          level: number
+          title: string
+          xp_required: number
+        }
+        Update: {
+          badge_color?: string | null
+          description?: string | null
+          level?: number
+          title?: string
+          xp_required?: number
+        }
+        Relationships: []
+      }
       governance_hierarchies: {
         Row: {
           country: string
@@ -2582,6 +3263,87 @@ export type Database = {
           level_3_name?: string | null
         }
         Relationships: []
+      }
+      government_institutions: {
+        Row: {
+          acronym: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          country_code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          established_date: string | null
+          id: string
+          institution_type: string
+          is_active: boolean | null
+          jurisdiction_name: string | null
+          jurisdiction_type: string
+          name: string
+          parent_institution_id: string | null
+          physical_address: string | null
+          reporting_level: number | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          acronym?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          established_date?: string | null
+          id?: string
+          institution_type: string
+          is_active?: boolean | null
+          jurisdiction_name?: string | null
+          jurisdiction_type: string
+          name: string
+          parent_institution_id?: string | null
+          physical_address?: string | null
+          reporting_level?: number | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          acronym?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          established_date?: string | null
+          id?: string
+          institution_type?: string
+          is_active?: boolean | null
+          jurisdiction_name?: string | null
+          jurisdiction_type?: string
+          name?: string
+          parent_institution_id?: string | null
+          physical_address?: string | null
+          reporting_level?: number | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "government_institutions_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_governance_templates"
+            referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "government_institutions_parent_institution_id_fkey"
+            columns: ["parent_institution_id"]
+            isOneToOne: false
+            referencedRelation: "government_institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       government_positions: {
         Row: {
@@ -2672,13 +3434,18 @@ export type Database = {
           official_id: string | null
           planned_completion_date: string | null
           planned_start_date: string | null
+          primary_institution_id: string | null
+          primary_official_id: string | null
+          primary_responsible_type: string | null
           priority: string | null
           progress_percentage: number | null
+          project_level: string | null
           search_vector: unknown
           sentiment_id: string | null
           status: string | null
           title: string
           updated_at: string | null
+          verification_count: number | null
           verification_id: string | null
           ward: string | null
         }
@@ -2710,13 +3477,18 @@ export type Database = {
           official_id?: string | null
           planned_completion_date?: string | null
           planned_start_date?: string | null
+          primary_institution_id?: string | null
+          primary_official_id?: string | null
+          primary_responsible_type?: string | null
           priority?: string | null
           progress_percentage?: number | null
+          project_level?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
+          verification_count?: number | null
           verification_id?: string | null
           ward?: string | null
         }
@@ -2748,13 +3520,18 @@ export type Database = {
           official_id?: string | null
           planned_completion_date?: string | null
           planned_start_date?: string | null
+          primary_institution_id?: string | null
+          primary_official_id?: string | null
+          primary_responsible_type?: string | null
           priority?: string | null
           progress_percentage?: number | null
+          project_level?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null
+          verification_count?: number | null
           verification_id?: string | null
           ward?: string | null
         }
@@ -2792,6 +3569,20 @@ export type Database = {
             columns: ["official_id"]
             isOneToOne: false
             referencedRelation: "officials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_projects_primary_institution_id_fkey"
+            columns: ["primary_institution_id"]
+            isOneToOne: false
+            referencedRelation: "government_institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_projects_primary_official_id_fkey"
+            columns: ["primary_official_id"]
+            isOneToOne: false
+            referencedRelation: "government_positions"
             referencedColumns: ["id"]
           },
           {
@@ -2875,6 +3666,38 @@ export type Database = {
         }
         Relationships: []
       }
+      message_reactions: {
+        Row: {
+          created_at: string | null
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mod_mail_messages: {
         Row: {
           content: string
@@ -2953,7 +3776,53 @@ export type Database = {
             referencedRelation: "communities_with_stats"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mod_mail_threads_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      moderation_logs: {
+        Row: {
+          ai_confidence: number | null
+          content_preview: string | null
+          content_type: string
+          created_at: string
+          id: string
+          model_used: string | null
+          processing_time_ms: number | null
+          reason: string | null
+          user_id: string | null
+          verdict: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          content_preview?: string | null
+          content_type: string
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          processing_time_ms?: number | null
+          reason?: string | null
+          user_id?: string | null
+          verdict: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          content_preview?: string | null
+          content_type?: string
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          processing_time_ms?: number | null
+          reason?: string | null
+          user_id?: string | null
+          verdict?: string
+        }
+        Relationships: []
       }
       ngo_partners: {
         Row: {
@@ -3011,54 +3880,54 @@ export type Database = {
       }
       office_activity_log: {
         Row: {
-          id: string
-          office_holder_id: string
           activity_type: string
-          title: string
-          description: string | null
-          metadata: Json | null
-          reference_id: string | null
-          reference_type: string | null
           created_at: string | null
           created_by: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          office_holder_id: string
+          reference_id: string | null
+          reference_type: string | null
+          title: string
         }
         Insert: {
-          id?: string
-          office_holder_id: string
           activity_type: string
-          title: string
-          description?: string | null
-          metadata?: Json | null
-          reference_id?: string | null
-          reference_type?: string | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          office_holder_id: string
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
         }
         Update: {
-          id?: string
-          office_holder_id?: string
           activity_type?: string
-          title?: string
-          description?: string | null
-          metadata?: Json | null
-          reference_id?: string | null
-          reference_type?: string | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          office_holder_id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "office_activity_log_office_holder_id_fkey"
-            columns: ["office_holder_id"]
-            isOneToOne: false
-            referencedRelation: "office_holders"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "office_activity_log_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_activity_log_office_holder_id_fkey"
+            columns: ["office_holder_id"]
+            isOneToOne: false
+            referencedRelation: "office_holders"
             referencedColumns: ["id"]
           },
         ]
@@ -3138,43 +4007,43 @@ export type Database = {
       }
       office_promises: {
         Row: {
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          deadline: string | null
+          description: string
           id: string
           office_holder_id: string
-          title: string
-          description: string
-          category: string
-          status: string
           progress: number
-          deadline: string | null
-          created_at: string | null
+          status: string
+          title: string
           updated_at: string | null
-          completed_at: string | null
         }
         Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description: string
           id?: string
           office_holder_id: string
-          title: string
-          description: string
-          category: string
-          status?: string
           progress?: number
-          deadline?: string | null
-          created_at?: string | null
+          status?: string
+          title: string
           updated_at?: string | null
-          completed_at?: string | null
         }
         Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string
           id?: string
           office_holder_id?: string
-          title?: string
-          description?: string
-          category?: string
-          status?: string
           progress?: number
-          deadline?: string | null
-          created_at?: string | null
+          status?: string
+          title?: string
           updated_at?: string | null
-          completed_at?: string | null
         }
         Relationships: [
           {
@@ -3188,47 +4057,47 @@ export type Database = {
       }
       office_questions: {
         Row: {
-          id: string
-          office_holder_id: string
-          question: string
           answer: string | null
-          asked_by: string
+          answered_at: string | null
           answered_by: string | null
           asked_at: string | null
-          answered_at: string | null
-          upvotes: number | null
+          asked_by: string
+          id: string
           is_pinned: boolean | null
-        }
-        Insert: {
-          id?: string
           office_holder_id: string
           question: string
+          upvotes: number | null
+        }
+        Insert: {
           answer?: string | null
-          asked_by: string
+          answered_at?: string | null
           answered_by?: string | null
           asked_at?: string | null
-          answered_at?: string | null
-          upvotes?: number | null
+          asked_by: string
+          id?: string
           is_pinned?: boolean | null
+          office_holder_id: string
+          question: string
+          upvotes?: number | null
         }
         Update: {
-          id?: string
-          office_holder_id?: string
-          question?: string
           answer?: string | null
-          asked_by?: string
+          answered_at?: string | null
           answered_by?: string | null
           asked_at?: string | null
-          answered_at?: string | null
-          upvotes?: number | null
+          asked_by?: string
+          id?: string
           is_pinned?: boolean | null
+          office_holder_id?: string
+          question?: string
+          upvotes?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "office_questions_office_holder_id_fkey"
-            columns: ["office_holder_id"]
+            foreignKeyName: "office_questions_answered_by_fkey"
+            columns: ["answered_by"]
             isOneToOne: false
-            referencedRelation: "office_holders"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3239,10 +4108,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "office_questions_answered_by_fkey"
-            columns: ["answered_by"]
+            foreignKeyName: "office_questions_office_holder_id_fkey"
+            columns: ["office_holder_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "office_holders"
             referencedColumns: ["id"]
           },
         ]
@@ -3330,6 +4199,86 @@ export type Database = {
           },
         ]
       }
+      official_scorecards: {
+        Row: {
+          attendance_percent: number | null
+          attendance_sessions_present: number | null
+          attendance_sessions_total: number | null
+          avg_response_hours: number | null
+          created_at: string | null
+          last_calculated: string | null
+          overall_grade: string | null
+          projects_active: number | null
+          projects_cancelled: number | null
+          projects_completed: number | null
+          projects_stalled: number | null
+          projects_total: number | null
+          promise_kept_percent: number | null
+          promises_broken: number | null
+          promises_in_progress: number | null
+          promises_kept: number | null
+          promises_total: number | null
+          queries_responded: number | null
+          total_citizen_queries: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attendance_percent?: number | null
+          attendance_sessions_present?: number | null
+          attendance_sessions_total?: number | null
+          avg_response_hours?: number | null
+          created_at?: string | null
+          last_calculated?: string | null
+          overall_grade?: string | null
+          projects_active?: number | null
+          projects_cancelled?: number | null
+          projects_completed?: number | null
+          projects_stalled?: number | null
+          projects_total?: number | null
+          promise_kept_percent?: number | null
+          promises_broken?: number | null
+          promises_in_progress?: number | null
+          promises_kept?: number | null
+          promises_total?: number | null
+          queries_responded?: number | null
+          total_citizen_queries?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attendance_percent?: number | null
+          attendance_sessions_present?: number | null
+          attendance_sessions_total?: number | null
+          avg_response_hours?: number | null
+          created_at?: string | null
+          last_calculated?: string | null
+          overall_grade?: string | null
+          projects_active?: number | null
+          projects_cancelled?: number | null
+          projects_completed?: number | null
+          projects_stalled?: number | null
+          projects_total?: number | null
+          promise_kept_percent?: number | null
+          promises_broken?: number | null
+          promises_in_progress?: number | null
+          promises_kept?: number | null
+          promises_total?: number | null
+          queries_responded?: number | null
+          total_citizen_queries?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "official_scorecards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       officials: {
         Row: {
           bio: string | null
@@ -3397,29 +4346,7 @@ export type Database = {
           ward?: string | null
           ward_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "officials_constituency_id_fkey"
-            columns: ["constituency_id"]
-            isOneToOne: false
-            referencedRelation: "constituencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "officials_county_id_fkey"
-            columns: ["county_id"]
-            isOneToOne: false
-            referencedRelation: "counties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "officials_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       onboarding_progress: {
         Row: {
@@ -3474,6 +4401,39 @@ export type Database = {
           },
         ]
       }
+      performance_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_name: string
+          page_url: string | null
+          rating: string | null
+          user_agent: string | null
+          user_id: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_name: string
+          page_url?: string | null
+          rating?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          value: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_name?: string
+          page_url?: string | null
+          rating?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
       position_communities: {
         Row: {
           access_level: string | null
@@ -3509,6 +4469,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "position_communities_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -3554,6 +4521,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -3645,6 +4619,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "posts_official_id_fkey"
             columns: ["official_id"]
             isOneToOne: false
@@ -3663,6 +4644,53 @@ export type Database = {
             columns: ["verification_id"]
             isOneToOne: false
             referencedRelation: "verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_customizations: {
+        Row: {
+          accent_color: string | null
+          banner_animation_url: string | null
+          created_at: string | null
+          frame_animation: string | null
+          has_premium_features: boolean | null
+          premium_until: string | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string
+          walkout_sound_url: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          banner_animation_url?: string | null
+          created_at?: string | null
+          frame_animation?: string | null
+          has_premium_features?: boolean | null
+          premium_until?: string | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id: string
+          walkout_sound_url?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          banner_animation_url?: string | null
+          created_at?: string | null
+          frame_animation?: string | null
+          has_premium_features?: boolean | null
+          premium_until?: string | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string
+          walkout_sound_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_customizations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3690,6 +4718,8 @@ export type Database = {
           karma: number | null
           last_activity: string | null
           location: string | null
+          official_position: string | null
+          official_position_id: string | null
           onboarding_completed: boolean | null
           persona: Database["public"]["Enums"]["user_persona"] | null
           post_karma: number | null
@@ -3727,6 +4757,8 @@ export type Database = {
           karma?: number | null
           last_activity?: string | null
           location?: string | null
+          official_position?: string | null
+          official_position_id?: string | null
           onboarding_completed?: boolean | null
           persona?: Database["public"]["Enums"]["user_persona"] | null
           post_karma?: number | null
@@ -3764,6 +4796,8 @@ export type Database = {
           karma?: number | null
           last_activity?: string | null
           location?: string | null
+          official_position?: string | null
+          official_position_id?: string | null
           onboarding_completed?: boolean | null
           persona?: Database["public"]["Enums"]["user_persona"] | null
           post_karma?: number | null
@@ -3781,24 +4815,133 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_constituency_id_fkey"
-            columns: ["constituency_id"]
+            foreignKeyName: "profiles_official_position_id_fkey"
+            columns: ["official_position_id"]
             isOneToOne: false
-            referencedRelation: "constituencies"
+            referencedRelation: "government_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_collaborating_institutions: {
+        Row: {
+          created_at: string | null
+          id: string
+          institution_id: string
+          project_id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          institution_id: string
+          project_id: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          institution_id?: string
+          project_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_collaborating_institutions_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "government_institutions"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "profiles_county_id_fkey"
-            columns: ["county_id"]
+            foreignKeyName: "project_collaborating_institutions_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "counties"
+            referencedRelation: "government_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_collaborating_officials: {
+        Row: {
+          created_at: string | null
+          id: string
+          official_id: string
+          project_id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          official_id: string
+          project_id: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          official_id?: string
+          project_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_collaborating_officials_official_id_fkey"
+            columns: ["official_id"]
+            isOneToOne: false
+            referencedRelation: "government_positions"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "profiles_ward_id_fkey"
-            columns: ["ward_id"]
+            foreignKeyName: "project_collaborating_officials_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "wards"
+            referencedRelation: "government_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_comments: {
+        Row: {
+          comment_text: string
+          created_at: string | null
+          id: string
+          parent_comment_id: string | null
+          project_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          project_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          project_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "project_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "government_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -3875,93 +5018,109 @@ export type Database = {
         Row: {
           community_verified: boolean | null
           created_at: string | null
+          created_by: string
           description: string
-          documents: string[] | null
-          downvotes: number | null
-          fact_check_notes: string | null
-          fact_check_status: string | null
-          fact_checker_id: string | null
           id: string
-          is_fact_check: boolean | null
-          latitude: number | null
-          location_description: string | null
-          longitude: number | null
-          photos: string[] | null
+          media_urls: string[] | null
           project_id: string
-          reporter_contact: string | null
-          reporter_id: string | null
-          reporter_name: string | null
-          status: string | null
           title: string
           update_type: string
           updated_at: string | null
-          upvotes: number | null
-          verification_notes: string | null
-          verified_at: string | null
-          verified_by: string | null
-          videos: string[] | null
         }
         Insert: {
           community_verified?: boolean | null
           created_at?: string | null
+          created_by: string
           description: string
-          documents?: string[] | null
-          downvotes?: number | null
-          fact_check_notes?: string | null
-          fact_check_status?: string | null
-          fact_checker_id?: string | null
           id?: string
-          is_fact_check?: boolean | null
-          latitude?: number | null
-          location_description?: string | null
-          longitude?: number | null
-          photos?: string[] | null
+          media_urls?: string[] | null
           project_id: string
-          reporter_contact?: string | null
-          reporter_id?: string | null
-          reporter_name?: string | null
-          status?: string | null
           title: string
-          update_type: string
+          update_type?: string
           updated_at?: string | null
-          upvotes?: number | null
-          verification_notes?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
-          videos?: string[] | null
         }
         Update: {
           community_verified?: boolean | null
           created_at?: string | null
+          created_by?: string
           description?: string
-          documents?: string[] | null
-          downvotes?: number | null
-          fact_check_notes?: string | null
-          fact_check_status?: string | null
-          fact_checker_id?: string | null
           id?: string
-          is_fact_check?: boolean | null
-          latitude?: number | null
-          location_description?: string | null
-          longitude?: number | null
-          photos?: string[] | null
+          media_urls?: string[] | null
           project_id?: string
-          reporter_contact?: string | null
-          reporter_id?: string | null
-          reporter_name?: string | null
-          status?: string | null
           title?: string
           update_type?: string
           updated_at?: string | null
-          upvotes?: number | null
-          verification_notes?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
-          videos?: string[] | null
         }
         Relationships: [
           {
             foreignKeyName: "project_updates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "government_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_verifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_verified: boolean | null
+          media_urls: string[] | null
+          project_id: string
+          user_id: string
+          verification_notes: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          media_urls?: string[] | null
+          project_id: string
+          user_id: string
+          verification_notes?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          media_urls?: string[] | null
+          project_id?: string
+          user_id?: string
+          verification_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_verifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "government_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_views: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_views_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "government_projects"
@@ -4151,6 +5310,108 @@ export type Database = {
           title?: string
           updated_at?: string | null
           verification_type?: string
+        }
+        Relationships: []
+      }
+      rag_chat_history: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          model_used: string | null
+          role: string
+          session_id: string
+          sources: Json | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          role: string
+          session_id: string
+          sources?: Json | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          role?: string
+          session_id?: string
+          sources?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          action: string
+          request_count: number | null
+          user_id: string
+          window_start: string | null
+        }
+        Insert: {
+          action: string
+          request_count?: number | null
+          user_id: string
+          window_start?: string | null
+        }
+        Update: {
+          action?: string
+          request_count?: number | null
+          user_id?: string
+          window_start?: string | null
+        }
+        Relationships: []
+      }
+      routing_logs: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          department_name: string | null
+          department_slug: string | null
+          id: string
+          issue_description: string
+          issue_type: string | null
+          location: string | null
+          model_used: string | null
+          processing_time_ms: number | null
+          recommended_actions: Json | null
+          severity: number | null
+          user_id: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          department_name?: string | null
+          department_slug?: string | null
+          id?: string
+          issue_description: string
+          issue_type?: string | null
+          location?: string | null
+          model_used?: string | null
+          processing_time_ms?: number | null
+          recommended_actions?: Json | null
+          severity?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          department_name?: string | null
+          department_slug?: string | null
+          id?: string
+          issue_description?: string
+          issue_type?: string | null
+          location?: string | null
+          model_used?: string | null
+          processing_time_ms?: number | null
+          recommended_actions?: Json | null
+          severity?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -4531,6 +5792,50 @@ export type Database = {
           },
         ]
       }
+      user_expertise: {
+        Row: {
+          created_at: string | null
+          endorsement_count: number | null
+          expertise_type: string
+          id: string
+          is_verified: boolean | null
+          updated_at: string | null
+          user_id: string
+          verified_actions_count: number | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endorsement_count?: number | null
+          expertise_type: string
+          id?: string
+          is_verified?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          verified_actions_count?: number | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endorsement_count?: number | null
+          expertise_type?: string
+          id?: string
+          is_verified?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          verified_actions_count?: number | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_expertise_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_interests: {
         Row: {
           id: string
@@ -4723,6 +6028,36 @@ export type Database = {
           },
         ]
       }
+      vectors: {
+        Row: {
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          source_id: string | null
+          source_type: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Relationships: []
+      }
       verification_votes: {
         Row: {
           created_at: string | null
@@ -4829,52 +6164,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "votes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wards: {
-        Row: {
-          constituency_id: string | null
-          created_at: string | null
-          id: string
-          mca_id: string | null
-          name: string
-          population: number | null
-        }
-        Insert: {
-          constituency_id?: string | null
-          created_at?: string | null
-          id?: string
-          mca_id?: string | null
-          name: string
-          population?: number | null
-        }
-        Update: {
-          constituency_id?: string | null
-          created_at?: string | null
-          id?: string
-          mca_id?: string | null
-          name?: string
-          population?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wards_constituency_id_fkey"
-            columns: ["constituency_id"]
-            isOneToOne: false
-            referencedRelation: "constituencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wards_mca_id_fkey"
-            columns: ["mca_id"]
-            isOneToOne: false
-            referencedRelation: "officials"
             referencedColumns: ["id"]
           },
         ]
@@ -4891,29 +6191,7 @@ export type Database = {
           status: string | null
           ward_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "civic_actions_constituency_id_fkey"
-            columns: ["constituency_id"]
-            isOneToOne: false
-            referencedRelation: "constituencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "civic_actions_county_id_fkey"
-            columns: ["county_id"]
-            isOneToOne: false
-            referencedRelation: "counties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "civic_actions_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       communities_with_stats: {
         Row: {
@@ -4935,6 +6213,46 @@ export type Database = {
           visibility_type: string | null
         }
         Relationships: []
+      }
+      constituencies: {
+        Row: {
+          counties: Json | null
+          county_id: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          population: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "administrative_divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "wards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contractor_contacts: {
         Row: {
@@ -4975,6 +6293,51 @@ export type Database = {
         }
         Relationships: []
       }
+      counties: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          population: number | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          population?: number | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          population?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrative_divisions_country_code_fkey"
+            columns: ["country"]
+            isOneToOne: false
+            referencedRelation: "country_governance_templates"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
+      popular_communities: {
+        Row: {
+          activity_score: number | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string | null
+          id: string | null
+          member_count: number | null
+          name: string | null
+        }
+        Relationships: []
+      }
       public_community_moderators: {
         Row: {
           added_at: string | null
@@ -4999,6 +6362,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_moderators_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
           {
@@ -5076,17 +6446,205 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_stats: {
+        Row: {
+          action: string | null
+          avg_requests_per_user: number | null
+          earliest_window: string | null
+          latest_window: string | null
+          max_requests: number | null
+          total_requests: number | null
+          unique_users: number | null
+        }
+        Relationships: []
+      }
+      trending_posts: {
+        Row: {
+          author_id: string | null
+          comment_count: number | null
+          community_id: string | null
+          created_at: string | null
+          downvotes: number | null
+          hot_score: number | null
+          id: string | null
+          rising_score: number | null
+          title: string | null
+          upvotes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wards: {
+        Row: {
+          constituencies: Json | null
+          constituency_id: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          population: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "administrative_divisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_divisions_parent_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "wards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_comment_karma: { Args: { user_uuid: string }; Returns: number }
+      calculate_goat_level: {
+        Args: { p_xp: number }
+        Returns: {
+          level: number
+          title: string
+        }[]
+      }
+      calculate_impact_rating: { Args: { p_user_id: string }; Returns: number }
       calculate_post_karma: { Args: { user_uuid: string }; Returns: number }
       calculate_user_karma: { Args: { user_uuid: string }; Returns: number }
+      check_rate_limit: {
+        Args: {
+          p_action: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       cleanup_stale_active_members: { Args: never; Returns: number }
       compute_leaderboard_scores: { Args: never; Returns: undefined }
+      create_comment_ratelimited: {
+        Args: { p_content: string; p_parent_id?: string; p_post_id: string }
+        Returns: string
+      }
+      create_community_ratelimited: {
+        Args: {
+          p_category: string
+          p_description: string
+          p_display_name: string
+          p_name: string
+        }
+        Returns: string
+      }
+      create_community_with_channels: {
+        Args: {
+          p_category: string
+          p_description: string
+          p_display_name: string
+          p_name: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      create_post_ratelimited: {
+        Args: {
+          p_community_id: string
+          p_content: string
+          p_tags?: string[]
+          p_title: string
+        }
+        Returns: string
+      }
+      get_channel_analytics: {
+        Args: { p_channel_id: string }
+        Returns: {
+          avg_daily_activity: number
+          most_active_day: string
+          total_messages: number
+          total_posts: number
+        }[]
+      }
       get_current_user_role: { Args: never; Returns: string }
       get_online_member_count: {
         Args: { community_uuid: string }
         Returns: number
+      }
+      get_posts_with_votes: {
+        Args: {
+          limit_param?: number
+          offset_param?: number
+          sort_by?: string
+          user_id_param?: string
+        }
+        Returns: {
+          author_avatar_url: string
+          author_display_name: string
+          author_id: string
+          author_is_verified: boolean
+          author_official_position: string
+          author_role: string
+          author_username: string
+          comment_count: number
+          community_category: string
+          community_description: string
+          community_display_name: string
+          community_id: string
+          community_member_count: number
+          community_name: string
+          content: string
+          content_sensitivity: string
+          created_at: string
+          downvotes: number
+          id: string
+          is_ngo_verified: boolean
+          tags: string[]
+          title: string
+          upvotes: number
+          user_vote: string
+        }[]
       }
       get_profile_with_privacy: {
         Args: { profile_id: string }
@@ -5103,6 +6661,20 @@ export type Database = {
           username: string
         }[]
       }
+      get_rate_limit_status: {
+        Args: { p_action?: string }
+        Returns: {
+          action: string
+          request_count: number
+          time_until_reset: number
+          window_start: string
+        }[]
+      }
+      get_weekly_contributions: {
+        Args: { community_uuid: string }
+        Returns: number
+      }
+      get_weekly_visitors: { Args: { community_uuid: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5110,15 +6682,70 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_channel_metric: {
+        Args: { p_channel_id: string; p_metric: string }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_community_visit: {
+        Args: { p_community_id: string }
+        Returns: undefined
+      }
+      match_documents: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
+      recommend_communities: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          avatar_url: string
+          description: string
+          display_name: string
+          id: string
+          member_count: number
+          name: string
+          recommendation_reason: string
+          recommendation_score: number
+          weekly_contributions: number
+          weekly_visitors: number
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_all_karma: { Args: never; Returns: undefined }
       update_community_active_status: {
         Args: { p_community_id: string; p_user_id: string }
         Returns: undefined
       }
+      update_profile_ratelimited: {
+        Args: {
+          p_avatar_url?: string
+          p_banner_url?: string
+          p_bio?: string
+          p_display_name?: string
+        }
+        Returns: boolean
+      }
       user_is_room_participant: {
         Args: { room_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      vote_ratelimited: {
+        Args: {
+          p_target_id: string
+          p_target_type: string
+          p_vote_type: string
+        }
         Returns: boolean
       }
     }

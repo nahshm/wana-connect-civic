@@ -188,7 +188,7 @@ export default function OfficePage() {
                     .select('*')
                     .eq('office_holder_id', id)
                     .order('created_at', { ascending: false });
-                setPromises(promisesData || []);
+                setPromises((promisesData || []) as Promise[]);
             } catch (error) {
                 console.log('Promises table not available yet:', error);
                 setPromises([]);
@@ -358,7 +358,7 @@ export default function OfficePage() {
         setUpvotingIds(prev => new Set(prev).add(questionId));
         try {
             // Increment upvotes (simple counter for now)
-            const { error } = await supabase.rpc('increment_question_upvotes', {
+            const { error } = await (supabase.rpc as any)('increment_question_upvotes', {
                 question_id: questionId,
             });
 
@@ -1121,9 +1121,8 @@ export default function OfficePage() {
                 {/* Activity Tab */}
                 <TabsContent value="activity" className="space-y-6">
                     <ActivityTimeline
-                        activities={activities}
-                        onLoadMore={() => { /* Could implement pagination */ }}
-                        hasMore={false}
+                        entries={activities}
+                        isLoading={false}
                     />
                 </TabsContent>
 

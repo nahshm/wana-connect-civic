@@ -21,8 +21,7 @@ export const ProjectVerificationButton: React.FC<ProjectVerificationButtonProps>
         queryKey: ['user-verification', projectId, user?.id],
         queryFn: async () => {
             if (!user) return null;
-            const { data } = await supabase
-                .from('project_verifications')
+            const { data } = await (supabase.from as any)('project_verifications')
                 .select('id')
                 .eq('project_id', projectId)
                 .eq('user_id', user.id)
@@ -36,8 +35,7 @@ export const ProjectVerificationButton: React.FC<ProjectVerificationButtonProps>
     const { data: verificationData } = useQuery({
         queryKey: ['verification-count', projectId],
         queryFn: async () => {
-            const { count } = await supabase
-                .from('project_verifications')
+            const { count } = await (supabase.from as any)('project_verifications')
                 .select('*', { count: 'exact', head: true })
                 .eq('project_id', projectId);
             return { count: count || 0 };
@@ -48,8 +46,7 @@ export const ProjectVerificationButton: React.FC<ProjectVerificationButtonProps>
         mutationFn: async () => {
             if (!user) throw new Error('Must be logged in');
 
-            const { error } = await supabase
-                .from('project_verifications')
+            const { error } = await (supabase.from as any)('project_verifications')
                 .insert({ project_id: projectId, user_id: user.id });
 
             if (error) throw error;
@@ -75,8 +72,7 @@ export const ProjectVerificationButton: React.FC<ProjectVerificationButtonProps>
         mutationFn: async () => {
             if (!user) throw new Error('Must be logged in');
 
-            const { error } = await supabase
-                .from('project_verifications')
+            const { error } = await (supabase.from as any)('project_verifications')
                 .delete()
                 .eq('project_id', projectId)
                 .eq('user_id', user.id);
