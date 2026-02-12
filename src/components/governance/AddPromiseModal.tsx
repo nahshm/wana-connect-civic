@@ -26,6 +26,7 @@ interface AddPromiseModalProps {
     isOpen: boolean;
     onClose: () => void;
     officeHolderId: string;
+    userId: string;
     onPromiseAdded: () => void;
 }
 
@@ -33,6 +34,7 @@ export function AddPromiseModal({
     isOpen,
     onClose,
     officeHolderId,
+    userId,
     onPromiseAdded,
 }: AddPromiseModalProps) {
     const [title, setTitle] = useState('');
@@ -51,7 +53,8 @@ export function AddPromiseModal({
 
         setIsSubmitting(true);
         try {
-            const { error } = await supabase
+            // 1. Create the promise
+            const { data: promise, error } = await supabase
                 .from('office_promises')
                 .insert({
                     office_holder_id: officeHolderId,
@@ -61,9 +64,27 @@ export function AddPromiseModal({
                     deadline: deadline ? new Date(deadline).toISOString() : null,
                     status: 'pending',
                     progress: 0,
-                });
+                })
+                .select()
+                .single();
 
             if (error) throw error;
+
+            // 2. Log activity (fire & forget)
+            try {
+                await supabase.from('office_activity_log').insert({
+                    office_holder_id: officeHolderId,
+                    activity_type: 'promise_created',
+                    title: 'Made a New Promise',
+                    description: `Promised: "${title.trim()}"`,
+                    reference_id: promise.id,
+                    reference_type: 'promise',
+                    created_by: userId
+                });
+            } catch (logErr) {
+                console.error('Failed to log activity:', logErr);
+                // Don't block success
+            }
 
             toast.success('Promise published successfully! Citizens can now track your progress.');
             onPromiseAdded();

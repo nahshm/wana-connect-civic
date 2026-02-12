@@ -23,6 +23,7 @@ interface AnswerQuestionModalProps {
         asked_at: string;
     };
     userId: string;
+    officeHolderId: string;
     onAnswered: () => void;
 }
 
@@ -31,6 +32,7 @@ export function AnswerQuestionModal({
     onClose,
     question,
     userId,
+    officeHolderId,
     onAnswered,
 }: AnswerQuestionModalProps) {
     const [answer, setAnswer] = useState('');
@@ -46,6 +48,7 @@ export function AnswerQuestionModal({
 
         setIsSubmitting(true);
         try {
+            // 1. Submit answer
             const { error } = await supabase
                 .from('office_questions')
                 .update({
@@ -56,6 +59,21 @@ export function AnswerQuestionModal({
                 .eq('id', question.id);
 
             if (error) throw error;
+
+            // 2. Log activity (fire & forget)
+            try {
+                await supabase.from('office_activity_log').insert({
+                    office_holder_id: officeHolderId,
+                    activity_type: 'question_answered',
+                    title: 'Answered a Question',
+                    description: `Answered: "${question.question.substring(0, 60)}${question.question.length > 60 ? '...' : ''}"`,
+                    reference_id: question.id,
+                    reference_type: 'question',
+                    created_by: userId
+                });
+            } catch (logErr) {
+                console.error('Failed to log activity:', logErr);
+            }
 
             toast.success('Answer published! The citizen has been notified.');
             onAnswered();

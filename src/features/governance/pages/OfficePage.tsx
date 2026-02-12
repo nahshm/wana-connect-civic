@@ -1146,6 +1146,7 @@ export default function OfficePage() {
                         isOpen={showAddPromise}
                         onClose={() => setShowAddPromise(false)}
                         officeHolderId={id}
+                        userId={user?.id || ''}
                         onPromiseAdded={fetchOfficeData}
                     />
 
@@ -1154,6 +1155,8 @@ export default function OfficePage() {
                             isOpen={!!updatePromise}
                             onClose={() => setUpdatePromise(null)}
                             promise={updatePromise}
+                            officeHolderId={id}
+                            userId={user?.id || ''}
                             onPromiseUpdated={fetchOfficeData}
                         />
                     )}
@@ -1164,6 +1167,7 @@ export default function OfficePage() {
                             onClose={() => setAnswerQuestion(null)}
                             question={answerQuestion}
                             userId={user.id}
+                            officeHolderId={id}
                             onAnswered={fetchOfficeData}
                         />
                     )}

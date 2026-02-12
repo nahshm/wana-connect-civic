@@ -33,6 +33,8 @@ interface UpdatePromiseModalProps {
         progress: number;
         description: string;
     };
+    officeHolderId: string;
+    userId: string;
     onPromiseUpdated: () => void;
 }
 
@@ -47,6 +49,8 @@ export function UpdatePromiseModal({
     isOpen,
     onClose,
     promise,
+    officeHolderId,
+    userId,
     onPromiseUpdated,
 }: UpdatePromiseModalProps) {
     const [status, setStatus] = useState(promise.status);
@@ -81,6 +85,25 @@ export function UpdatePromiseModal({
                 .eq('id', promise.id);
 
             if (error) throw error;
+
+            // 2. Log activity (fire & forget)
+            try {
+                let activityTitle = 'Updated a Promise';
+                if (status === 'completed') activityTitle = 'Fulfilled a Promise! 🎉';
+                else if (status === 'failed') activityTitle = 'Promise Update';
+
+                await supabase.from('office_activity_log').insert({
+                    office_holder_id: officeHolderId,
+                    activity_type: 'promise_updated',
+                    title: activityTitle,
+                    description: updateNote.trim() || `Status updated to ${status.replace('_', ' ')} (Progress: ${updateData.progress}%)`,
+                    reference_id: promise.id,
+                    reference_type: 'promise',
+                    created_by: userId
+                });
+            } catch (logErr) {
+                console.error('Failed to log activity:', logErr);
+            }
 
             toast.success(
                 status === 'completed'
