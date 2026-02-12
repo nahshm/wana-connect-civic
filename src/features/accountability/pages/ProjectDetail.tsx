@@ -139,8 +139,7 @@ const ProjectDetail = () => {
         setSubmitting(true);
         try {
             // Add verification entry
-            const { error: verificationError } = await supabase
-                .from('project_verifications')
+            const { error: verificationError } = await (supabase.from as any)('project_verifications')
                 .insert({
                     project_id: projectId,
                     user_id: user.id,

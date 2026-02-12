@@ -77,14 +77,12 @@ export const BookmarkManageDialog: React.FC<BookmarkManageDialogProps> = ({
     const saveMutation = useMutation({
         mutationFn: async () => {
             if (isEditing) {
-                const { error } = await supabase
-                    .from('community_bookmarks')
+                const { error } = await (supabase.from as any)('community_bookmarks')
                     .update({ label, url, icon })
                     .eq('id', bookmark.id);
                 if (error) throw error;
             } else {
-                const { error } = await supabase
-                    .from('community_bookmarks')
+                const { error } = await (supabase.from as any)('community_bookmarks')
                     .insert({
                         community_id: communityId,
                         label,
@@ -116,8 +114,7 @@ export const BookmarkManageDialog: React.FC<BookmarkManageDialogProps> = ({
     const deleteMutation = useMutation({
         mutationFn: async () => {
             if (!bookmark) return;
-            const { error } = await supabase
-                .from('community_bookmarks')
+            const { error } = await (supabase.from as any)('community_bookmarks')
                 .delete()
                 .eq('id', bookmark.id);
             if (error) throw error;

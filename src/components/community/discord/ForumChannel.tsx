@@ -116,8 +116,7 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
     const { data: threads, isLoading: threadsLoading } = useQuery({
         queryKey: ['forum-threads', channelId],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('forum_threads')
+            const { data, error } = await (supabase.from as any)('forum_threads')
                 .select(`
                     id, title, content, pinned, locked, reply_count, last_reply_at, created_at,
                     author:profiles!author_id(id, display_name, avatar_url, role)
@@ -142,8 +141,7 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
         queryKey: ['forum-replies', selectedThread?.id],
         queryFn: async () => {
             if (!selectedThread) return [];
-            const { data, error } = await supabase
-                .from('forum_replies')
+            const { data, error } = await (supabase.from as any)('forum_replies')
                 .select(`
                     id, content, upvotes, created_at, parent_reply_id,
                     author:profiles!author_id(id, display_name, avatar_url, role)
@@ -166,8 +164,7 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
     const createThreadMutation = useMutation({
         mutationFn: async () => {
             if (!user) throw new Error('Not authenticated');
-            const { error } = await supabase
-                .from('forum_threads')
+            const { error } = await (supabase.from as any)('forum_threads')
                 .insert({
                     channel_id: channelId,
                     community_id: communityId,
@@ -191,8 +188,7 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
     const postReplyMutation = useMutation({
         mutationFn: async () => {
             if (!user || !selectedThread) throw new Error('Missing data');
-            const { error } = await supabase
-                .from('forum_replies')
+            const { error } = await (supabase.from as any)('forum_replies')
                 .insert({
                     thread_id: selectedThread.id,
                     author_id: user.id,
@@ -242,7 +238,7 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
 
     // Delete reply
     const handleDeleteReply = async (replyId: string) => {
-        const { error } = await supabase.from('forum_replies').delete().eq('id', replyId);
+        const { error } = await (supabase.from as any)('forum_replies').delete().eq('id', replyId);
         if (error) {
             toast.error('Failed to delete');
         } else {

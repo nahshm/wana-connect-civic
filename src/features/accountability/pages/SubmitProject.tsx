@@ -174,18 +174,16 @@ const SubmitProject = () => {
     }, [formData.constituency]);
 
     const fetchCounties = async () => {
-        const { data } = await supabase
-            .from('administrative_divisions')
+        const { data } = await (supabase.from as any)('administrative_divisions')
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'county')
             .order('name');
-        if (data) setCounties(data);
+        if (data) setCounties(data as { id: string; name: string }[]);
     };
 
     const fetchConstituencies = async (county: string) => {
-        const { data: countyData } = await supabase
-            .from('administrative_divisions')
+        const { data: countyData } = await (supabase.from as any)('administrative_divisions')
             .select('id')
             .eq('country_code', 'KE')
             .eq('governance_level', 'county')
@@ -194,19 +192,17 @@ const SubmitProject = () => {
 
         if (!countyData) return;
 
-        const { data } = await supabase
-            .from('administrative_divisions')
+        const { data } = await (supabase.from as any)('administrative_divisions')
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'constituency')
             .eq('parent_id', countyData.id)
             .order('name');
-        if (data) setConstituencies(data);
+        if (data) setConstituencies(data as { id: string; name: string }[]);
     };
 
     const fetchWards = async (constituency: string) => {
-        const { data: constituencyData } = await supabase
-            .from('administrative_divisions')
+        const { data: constituencyData } = await (supabase.from as any)('administrative_divisions')
             .select('id')
             .eq('country_code', 'KE')
             .eq('governance_level', 'constituency')
@@ -215,14 +211,13 @@ const SubmitProject = () => {
 
         if (!constituencyData) return;
 
-        const { data } = await supabase
-            .from('administrative_divisions')
+        const { data } = await (supabase.from as any)('administrative_divisions')
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'ward')
             .eq('parent_id', constituencyData.id)
             .order('name');
-        if (data) setWards(data);
+        if (data) setWards(data as { id: string; name: string }[]);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
