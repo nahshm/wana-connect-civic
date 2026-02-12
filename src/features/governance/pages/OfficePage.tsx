@@ -23,6 +23,7 @@ import {
     Mail,
     Phone,
     Building,
+    Building2,
     Award,
     Target,
     AlertCircle,
@@ -34,13 +35,27 @@ import {
     Pencil,
     Trash2,
     Sparkles,
-    BarChart3
+    BarChart3,
+    Plus,
+    History,
+    Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AddPromiseModal } from '@/components/governance/AddPromiseModal';
 import { UpdatePromiseModal } from '@/components/governance/UpdatePromiseModal';
 import { AnswerQuestionModal } from '@/components/governance/AnswerQuestionModal';
-import { getCategoryInfo, getStatusColor, formatRelativeDate } from '@/components/governance/officeConstants';
+import { AddProjectModal } from '@/components/governance/AddProjectModal';
+import { UpdateProjectModal } from '@/components/governance/UpdateProjectModal';
+import { ActivityTimeline } from '@/components/governance/ActivityTimeline';
+import { OfficeHistoryTimeline } from '@/components/governance/OfficeHistoryTimeline';
+import {
+    getCategoryInfo,
+    getStatusColor,
+    formatRelativeDate,
+    getProjectCategoryInfo,
+    getProjectStatusColor,
+    formatBudget,
+} from '@/components/governance/officeConstants';
 
 // UUID validation regex for security
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -108,10 +123,24 @@ export default function OfficePage() {
     const [newQuestion, setNewQuestion] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
 
+    // Projects state
+    const [projects, setProjects] = useState<any[]>([]);
+
+    // Constituent check state
+    const [isConstituent, setIsConstituent] = useState<boolean | null>(null);
+
+    // Activity state
+    const [activities, setActivities] = useState<any[]>([]);
+
+    // History state
+    const [positionHolders, setPositionHolders] = useState<any[]>([]);
+
     // Modal states
     const [showAddPromise, setShowAddPromise] = useState(false);
     const [updatePromise, setUpdatePromise] = useState<Promise | null>(null);
     const [answerQuestion, setAnswerQuestion] = useState<Question | null>(null);
+    const [showAddProject, setShowAddProject] = useState(false);
+    const [updateProject, setUpdateProject] = useState<any | null>(null);
     const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
     const [upvotingIds, setUpvotingIds] = useState<Set<string>>(new Set());
 
@@ -190,6 +219,51 @@ export default function OfficePage() {
                 console.log('Questions table not available yet:', error);
                 setQuestions([]);
             }
+
+            // Fetch linked projects (by the office holder's user account)
+            try {
+                const { data: projectsData } = await supabase
+                    .from('government_projects')
+                    .select('*')
+                    .eq('created_by', holderData.user_id)
+                    .order('created_at', { ascending: false });
+                setProjects(projectsData || []);
+            } catch (error) {
+                console.log('Projects fetch error:', error);
+                setProjects([]);
+            }
+
+            // Fetch activity log
+            try {
+                const { data: activityData } = await supabase
+                    .from('office_activity_log' as any)
+                    .select('*')
+                    .eq('office_holder_id', id)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                setActivities(activityData || []);
+            } catch (error) {
+                console.log('Activity log not available yet:', error);
+                setActivities([]);
+            }
+
+            // Fetch all holders for this position (for history tab)
+            if (holderData?.position_id) {
+                try {
+                    const { data: holdersData } = await supabase
+                        .from('office_holders')
+                        .select(`
+                            id, is_active, is_historical, term_start, term_end,
+                            profiles!office_holders_user_id_fkey(username, display_name, avatar_url)
+                        `)
+                        .eq('position_id', holderData.position_id)
+                        .order('term_start', { ascending: false });
+                    setPositionHolders(holdersData || []);
+                } catch (error) {
+                    console.log('History fetch not available:', error);
+                    setPositionHolders([]);
+                }
+            }
         } catch (error) {
             console.error('Error fetching office data:', error);
             toast.error('Failed to load office page. Please try again.');
@@ -201,6 +275,51 @@ export default function OfficePage() {
     useEffect(() => {
         fetchOfficeData();
     }, [fetchOfficeData]);
+
+    // Check if current user is a constituent
+    useEffect(() => {
+        const checkConstituent = async () => {
+            if (!user || !officeHolder?.position) {
+                setIsConstituent(null);
+                return;
+            }
+
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('county, constituency, ward')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!profile) {
+                    setIsConstituent(false);
+                    return;
+                }
+
+                const jurisdictionName = officeHolder.position.jurisdiction_name || '';
+                const govLevel = officeHolder.position.governance_level || '';
+
+                // Match based on governance level
+                let match = false;
+                if (govLevel === 'county' && profile.county) {
+                    match = profile.county.toLowerCase() === jurisdictionName.toLowerCase();
+                } else if (govLevel === 'constituency' && profile.constituency) {
+                    match = profile.constituency.toLowerCase() === jurisdictionName.toLowerCase();
+                } else if (govLevel === 'ward' && profile.ward) {
+                    match = profile.ward.toLowerCase() === jurisdictionName.toLowerCase();
+                } else if (govLevel === 'national') {
+                    match = true; // All citizens are constituents of national officials
+                }
+
+                setIsConstituent(match);
+            } catch (error) {
+                console.log('Could not check constituent status:', error);
+                setIsConstituent(null);
+            }
+        };
+
+        checkConstituent();
+    }, [user, officeHolder]);
 
     // Submit a new question
     const handleSubmitQuestion = async () => {
@@ -409,7 +528,7 @@ export default function OfficePage() {
                         <div className="text-xs text-muted-foreground">Questions Answered</div>
                     </div>
                     <div className="p-4 text-center">
-                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-2xl font-bold">{projects.length}</div>
                         <div className="text-xs text-muted-foreground">Projects</div>
                     </div>
                     <div className="p-4 text-center">
@@ -436,12 +555,18 @@ export default function OfficePage() {
                     </TabsTrigger>
                     <TabsTrigger value="projects" className="gap-2">
                         <FileText className="h-4 w-4" />
-                        Projects
+                        Projects ({projects.length})
                     </TabsTrigger>
                     <TabsTrigger value="activity" className="gap-2">
                         <TrendingUp className="h-4 w-4" />
                         Activity
                     </TabsTrigger>
+                    {positionHolders.length > 1 && (
+                        <TabsTrigger value="history" className="gap-2">
+                            <Crown className="h-4 w-4" />
+                            History
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 {/* Overview Tab */}
@@ -680,8 +805,21 @@ export default function OfficePage() {
 
                 {/* Q&A Tab */}
                 <TabsContent value="questions" className="space-y-6">
-                    {/* Ask Question Form */}
-                    {user && !isOwner && (
+                    {/* Constituent badge */}
+                    {user && !isOwner && isConstituent === true && (
+                        <div className="flex items-center gap-2">
+                            <Badge className="bg-blue-100 text-blue-700 border-blue-200 gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Constituent ✓
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                                You can ask questions as a constituent of this office.
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Ask Question Form - Constituent only */}
+                    {user && !isOwner && isConstituent === true && (
                         <Card className="border-primary/10">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-lg flex items-center gap-2">
@@ -716,6 +854,20 @@ export default function OfficePage() {
                                 </div>
                                 <p className="text-xs text-muted-foreground text-right mt-1">
                                     {newQuestion.length}/500
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Non-constituent message */}
+                    {user && !isOwner && isConstituent === false && (
+                        <Card className="bg-muted/50 border-dashed">
+                            <CardContent className="py-6 text-center">
+                                <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Only constituents can ask questions to this official.
+                                    <br />
+                                    <span className="text-xs">Update your location in your profile to match this official's jurisdiction.</span>
                                 </p>
                             </CardContent>
                         </Card>
@@ -826,29 +978,165 @@ export default function OfficePage() {
 
                 {/* Projects Tab */}
                 <TabsContent value="projects" className="space-y-6">
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="font-medium mb-2">Projects Coming Soon</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Government projects linked to this office will appear here.
-                            </p>
-                        </CardContent>
-                    </Card>
+                    {isOwner && (
+                        <Card className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent border-primary/20 overflow-hidden">
+                            <CardContent className="p-5 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
+                                        <Building2 className="h-6 w-6 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-base">Manage Projects</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Link existing projects or create new ones for your office
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button onClick={() => setShowAddProject(true)} className="gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    Add Project
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {projects.length === 0 ? (
+                        <Card className="border-dashed">
+                            <CardContent className="py-16 text-center">
+                                <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-muted mx-auto mb-4">
+                                    <FileText className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <h3 className="font-semibold text-lg mb-2">No Projects Yet</h3>
+                                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                    {isOwner
+                                        ? 'Add your first government project to showcase your work.'
+                                        : 'No government projects have been linked to this office yet.'}
+                                </p>
+                                {isOwner && (
+                                    <Button
+                                        onClick={() => setShowAddProject(true)}
+                                        className="mt-6 gap-2"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Add First Project
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="space-y-4">
+                            {projects.map((project) => {
+                                const catInfo = getProjectCategoryInfo(project.category || '');
+                                const statusColor = getProjectStatusColor(project.status || '');
+                                return (
+                                    <Card key={project.id} className="group hover:shadow-md transition-shadow duration-200">
+                                        <CardContent className="p-5">
+                                            <div className="flex items-start justify-between gap-4 mb-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-semibold text-base mb-1.5">{project.title}</h4>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        {project.category && (
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {catInfo.label}
+                                                            </Badge>
+                                                        )}
+                                                        {project.status && (
+                                                            <Badge className={`text-xs border ${statusColor}`}>
+                                                                {project.status.replace('_', ' ')}
+                                                            </Badge>
+                                                        )}
+                                                        {project.priority && (
+                                                            <Badge variant="secondary" className="text-xs">
+                                                                {project.priority}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {isOwner && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                                        onClick={() => setUpdateProject(project)}
+                                                    >
+                                                        <Pencil className="h-4 w-4 mr-1" />
+                                                        Update
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            {project.description && (
+                                                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                                                    {project.description}
+                                                </p>
+                                            )}
+
+                                            {/* Progress Bar */}
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Progress</span>
+                                                    <span className="font-semibold tabular-nums">{project.progress_percentage || 0}%</span>
+                                                </div>
+                                                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-700 ease-out ${
+                                                            project.status === 'completed' ? 'bg-emerald-500' :
+                                                            (project.progress_percentage || 0) >= 50 ? 'bg-blue-500' :
+                                                            'bg-amber-400'
+                                                        }`}
+                                                        style={{ width: `${project.progress_percentage || 0}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Footer */}
+                                            <div className="flex items-center justify-between mt-3 pt-3 border-t text-xs text-muted-foreground">
+                                                <div className="flex items-center gap-3">
+                                                    {project.budget_allocated && (
+                                                        <span>Budget: {formatBudget(project.budget_allocated)}</span>
+                                                    )}
+                                                    {project.location && (
+                                                        <span className="flex items-center gap-1">
+                                                            <MapPin className="h-3 w-3" />
+                                                            {project.location}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {project.status === 'completed' && (
+                                                    <span className="flex items-center gap-1 text-emerald-600">
+                                                        <CheckCircle className="h-3.5 w-3.5" />
+                                                        Completed
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
                 </TabsContent>
 
                 {/* Activity Tab */}
                 <TabsContent value="activity" className="space-y-6">
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="font-medium mb-2">Activity Feed Coming Soon</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Posts, updates, and actions by this official will appear here.
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <ActivityTimeline
+                        activities={activities}
+                        onLoadMore={() => { /* Could implement pagination */ }}
+                        hasMore={false}
+                    />
                 </TabsContent>
+
+                {/* History Tab */}
+                {positionHolders.length > 1 && (
+                    <TabsContent value="history" className="space-y-6">
+                        <OfficeHistoryTimeline
+                            holders={positionHolders}
+                            currentHolderId={id!}
+                            positionTitle={officeHolder?.position?.title}
+                        />
+                    </TabsContent>
+                )}
             </Tabs>
 
             {/* Modals */}
@@ -877,6 +1165,33 @@ export default function OfficePage() {
                             question={answerQuestion}
                             userId={user.id}
                             onAnswered={fetchOfficeData}
+                        />
+                    )}
+
+                    {user && (
+                        <AddProjectModal
+                            isOpen={showAddProject}
+                            onClose={() => setShowAddProject(false)}
+                            officeHolderId={id}
+                            userId={user.id}
+                            position={officeHolder?.position || null}
+                            officeHolderLocation={{
+                                county: officeHolder?.position?.governance_level === 'county' ? officeHolder?.position?.jurisdiction_name : undefined,
+                                constituency: officeHolder?.position?.governance_level === 'constituency' ? officeHolder?.position?.jurisdiction_name : undefined,
+                                ward: officeHolder?.position?.governance_level === 'ward' ? officeHolder?.position?.jurisdiction_name : undefined,
+                            }}
+                            onProjectAdded={fetchOfficeData}
+                        />
+                    )}
+
+                    {updateProject && user && (
+                        <UpdateProjectModal
+                            isOpen={!!updateProject}
+                            onClose={() => setUpdateProject(null)}
+                            project={updateProject}
+                            officeHolderId={id}
+                            userId={user.id}
+                            onProjectUpdated={fetchOfficeData}
                         />
                     )}
                 </>

@@ -2668,6 +2668,7 @@ export type Database = {
           location: string | null
           longitude: number | null
           media_urls: string[] | null
+          office_holder_id: string | null
           official_id: string | null
           planned_completion_date: string | null
           planned_start_date: string | null
@@ -2705,6 +2706,7 @@ export type Database = {
           location?: string | null
           longitude?: number | null
           media_urls?: string[] | null
+          office_holder_id?: string | null
           official_id?: string | null
           planned_completion_date?: string | null
           planned_start_date?: string | null
@@ -2742,6 +2744,7 @@ export type Database = {
           location?: string | null
           longitude?: number | null
           media_urls?: string[] | null
+          office_holder_id?: string | null
           official_id?: string | null
           planned_completion_date?: string | null
           planned_start_date?: string | null
@@ -2775,6 +2778,13 @@ export type Database = {
             columns: ["lead_contractor_id"]
             isOneToOne: false
             referencedRelation: "public_contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_projects_office_holder_id_fkey"
+            columns: ["office_holder_id"]
+            isOneToOne: false
+            referencedRelation: "office_holders"
             referencedColumns: ["id"]
           },
           {
@@ -2998,6 +3008,60 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      office_activity_log: {
+        Row: {
+          id: string
+          office_holder_id: string
+          activity_type: string
+          title: string
+          description: string | null
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string | null
+          created_at: string | null
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          office_holder_id: string
+          activity_type: string
+          title: string
+          description?: string | null
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          office_holder_id?: string
+          activity_type?: string
+          title?: string
+          description?: string | null
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_activity_log_office_holder_id_fkey"
+            columns: ["office_holder_id"]
+            isOneToOne: false
+            referencedRelation: "office_holders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_activity_log_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       office_holders: {
         Row: {
