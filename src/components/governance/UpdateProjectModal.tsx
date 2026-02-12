@@ -40,9 +40,9 @@ interface UpdateProjectModalProps {
 const UPDATE_TYPES = [
     { value: 'progress', label: '📊 Progress Update' },
     { value: 'milestone', label: '🎯 Milestone Reached' },
-    { value: 'challenge', label: '⚠️ Challenge/Delay' },
+    { value: 'delay', label: '⚠️ Challenge / Delay' },
+    { value: 'issue', label: '🚨 Issue Reported' },
     { value: 'completion', label: '✅ Project Completed' },
-    { value: 'general', label: '📝 General Update' },
 ];
 
 export function UpdateProjectModal({

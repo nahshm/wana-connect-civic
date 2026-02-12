@@ -34,7 +34,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-purple-600 via-teal-600 to-green-500'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     },
     health: {
         name: 'Health',
@@ -45,7 +45,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-red-600 via-orange-500 to-yellow-400'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     },
     housing: {
         name: 'Housing',
@@ -56,7 +56,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-cyan-700 via-cyan-500 to-sky-400'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     },
     agriculture: {
         name: 'Agriculture',
@@ -67,7 +67,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-lime-700 via-lime-500 to-lime-300'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     },
     water_sanitation: {
         name: 'Water & Sanitation',
@@ -78,7 +78,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-blue-600 via-sky-500 to-sky-300'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     },
     energy: {
         name: 'Energy',
@@ -89,7 +89,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-amber-600 via-yellow-500 to-yellow-300'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     },
     environment: {
         name: 'Environment',
@@ -100,7 +100,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-emerald-700 via-green-600 to-green-400'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     },
     default: {
         name: 'General',
@@ -111,7 +111,7 @@ export const TIMELINE_THEMES: Record<string, TimelineTheme> = {
             gradient: 'from-slate-700 via-slate-500 to-slate-400'
         },
         layout: 'gradient-stages',
-        showRoadmap: false
+        showRoadmap: true
     }
 };
 
