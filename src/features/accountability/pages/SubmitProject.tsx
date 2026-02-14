@@ -182,7 +182,7 @@ const SubmitProject = () => {
             .eq('country_code', 'KE')
             .eq('governance_level', 'county')
             .order('name');
-        if (data) setCounties(data as { id: string; name: string }[]);
+        if (data) setCounties(data as unknown as { id: string; name: string }[]);
     };
 
     const fetchConstituencies = async (county: string) => {
@@ -201,9 +201,9 @@ const SubmitProject = () => {
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'constituency')
-            .eq('parent_id', countyData.id)
+            .eq('parent_id', (countyData as any).id)
             .order('name');
-        if (data) setConstituencies(data as { id: string; name: string }[]);
+        if (data) setConstituencies(data as unknown as { id: string; name: string }[]);
     };
 
     const fetchWards = async (constituency: string) => {
@@ -222,9 +222,9 @@ const SubmitProject = () => {
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'ward')
-            .eq('parent_id', constituencyData.id)
+            .eq('parent_id', (constituencyData as any).id)
             .order('name');
-        if (data) setWards(data as { id: string; name: string }[]);
+        if (data) setWards(data as unknown as { id: string; name: string }[]);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -396,6 +396,7 @@ const SubmitProject = () => {
                 // Ensure we only pass expected properties to the logger
                 await logProjectSubmitted(user.id, project.id, {
                     name: project.title,
+                    location: project.location || project.county || '',
                     county: project.county
                     // constituency is intentionally omitted if not supported
                 });

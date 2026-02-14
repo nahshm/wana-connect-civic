@@ -71,18 +71,16 @@ Deno.serve(async (req) => {
     const userContext = await getUserContext(serviceClient, userId);
     console.log(`Context loaded for ${userContext.name} (${userContext.role}) from ${userContext.location.county}`);
 
-    // STEP 2: GET GROQ API KEY
-    const { data: config } = await serviceClient
-      .from('ai_configurations')
-      .select('api_key')
-      .eq('provider_slug', 'groq')
-      .single();
-    
-    if (!config?.api_key) {
-        throw new Error("GROQ_API_KEY not found in ai_configurations");
+    // STEP 2: GET GROQ API KEY from environment (not database)
+    const groqApiKey = Deno.env.get("GROQ_API_KEY");
+    if (!groqApiKey) {
+      return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const groq = new Groq({ apiKey: config.api_key });
+    const groq = new Groq({ apiKey: groqApiKey });
 
     // STEP 3: GENERATE QUERY EMBEDDING FOR RAG
     // Using OpenAI for now as per instructions, fallback to null if no key? 
