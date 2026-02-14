@@ -16,9 +16,7 @@ export const useUnifiedFeed = ({ userId, limit = 10, sortBy = 'hot' }: UseUnifie
       const offset = pageParam * limit;
 
       // Call the RPC function
-      // @ts-expect-error - RPC types might not be fully generated yet
-      const { data, error } = await supabase
-        .rpc('get_unified_feed', {
+      const { data, error } = await (supabase.rpc as any)('get_unified_feed', {
           p_user_id: userId || null,
           p_limit_count: limit,
           p_offset_count: offset

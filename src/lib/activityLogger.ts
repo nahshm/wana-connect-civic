@@ -121,8 +121,7 @@ export async function logActivity(params: LogActivityParams): Promise<string> {
   } = params;
 
   try {
-    const { data, error } = await supabase
-      .from('feed_activities')
+    const { data, error } = await (supabase.from as any)('feed_activities')
       .insert({
         user_id: userId,
         activity_type: type,
@@ -392,8 +391,7 @@ export async function logActivitiesBatch(
   activities: LogActivityParams[]
 ): Promise<string[]> {
   try {
-    const { data, error } = await supabase
-      .from('feed_activities')
+    const { data, error } = await (supabase.from as any)('feed_activities')
       .insert(
         activities.map(activity => ({
           user_id: activity.userId,
@@ -430,8 +428,7 @@ export async function getUserActivities(
   userId: string,
   limit = 50
 ): Promise<FeedActivity[]> {
-  const { data, error } = await supabase
-    .from('feed_activities')
+  const { data, error } = await (supabase.from as any)('feed_activities')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -442,15 +439,14 @@ export async function getUserActivities(
     throw new Error(`Failed to fetch user activities: ${error.message}`);
   }
 
-  return data || [];
+  return (data || []) as FeedActivity[];
 }
 
 /**
  * Get all public activities (for admin/moderation)
  */
 export async function getPublicActivities(limit = 100): Promise<FeedActivity[]> {
-  const { data, error } = await supabase
-    .from('feed_activities')
+  const { data, error } = await (supabase.from as any)('feed_activities')
     .select('*')
     .eq('is_public', true)
     .order('created_at', { ascending: false })
@@ -461,7 +457,7 @@ export async function getPublicActivities(limit = 100): Promise<FeedActivity[]> 
     throw new Error(`Failed to fetch public activities: ${error.message}`);
   }
 
-  return data || [];
+  return (data || []) as FeedActivity[];
 }
 
 // ============================================================================

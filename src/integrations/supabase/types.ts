@@ -3013,6 +3013,47 @@ export type Database = {
           },
         ]
       }
+      feed_activities: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forum_replies: {
         Row: {
           author_id: string
@@ -6612,6 +6653,19 @@ export type Database = {
         Args: { community_uuid: string }
         Returns: number
       }
+      get_personalized_feed: {
+        Args: { p_limit_count?: number; p_user_id: string }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          data: Json
+          id: string
+          relevance_score: number
+          type: string
+          user_id: string
+          username: string
+        }[]
+      }
       get_posts_with_votes: {
         Args: {
           limit_param?: number
@@ -6670,6 +6724,22 @@ export type Database = {
           window_start: string
         }[]
       }
+      get_unified_feed: {
+        Args: {
+          p_limit_count?: number
+          p_offset_count?: number
+          p_user_id?: string
+        }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          data: Json
+          id: string
+          type: string
+          user_id: string
+          username: string
+        }[]
+      }
       get_weekly_contributions: {
         Args: { community_uuid: string }
         Returns: number
@@ -6691,6 +6761,17 @@ export type Database = {
       log_community_visit: {
         Args: { p_community_id: string }
         Returns: undefined
+      }
+      log_feed_activity: {
+        Args: {
+          p_activity_type: string
+          p_is_public?: boolean
+          p_metadata?: Json
+          p_target_id?: string
+          p_target_type?: string
+          p_user_id: string
+        }
+        Returns: string
       }
       match_documents: {
         Args: {
@@ -6750,6 +6831,21 @@ export type Database = {
       }
     }
     Enums: {
+      activity_type_enum:
+        | "post_created"
+        | "project_submitted"
+        | "project_verified"
+        | "promise_tracked"
+        | "promise_updated"
+        | "quest_completed"
+        | "community_joined"
+        | "community_created"
+        | "clip_uploaded"
+        | "issue_reported"
+        | "official_claimed"
+        | "achievement_earned"
+        | "comment_created"
+        | "vote_cast"
       app_role:
         | "admin"
         | "moderator"
@@ -6900,6 +6996,22 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_type_enum: [
+        "post_created",
+        "project_submitted",
+        "project_verified",
+        "promise_tracked",
+        "promise_updated",
+        "quest_completed",
+        "community_joined",
+        "community_created",
+        "clip_uploaded",
+        "issue_reported",
+        "official_claimed",
+        "achievement_earned",
+        "comment_created",
+        "vote_cast",
+      ],
       app_role: [
         "admin",
         "moderator",
