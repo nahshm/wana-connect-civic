@@ -39,6 +39,9 @@ const Community = lazy(() => import("@/features/community/pages/Community"));
 const Chat = lazy(() => import("@/features/community/pages/Chat"));
 const MyCommunitiesPage = lazy(() => import("@/features/community/pages/MyCommunitiesPage").then(m => ({ default: m.MyCommunitiesPage })));
 
+// LAZY LOADED: AI Features
+const CivicChat = lazy(() => import("@/components/civic-assistant/CivicChat").then(m => ({ default: m.CivicChat })));
+
 // LAZY LOADED: Misc
 const CivicClipsPage = lazy(() => import("@/features/feed/pages/CivicClips").then(m => ({ default: m.CivicClipsPage })));
 
@@ -63,6 +66,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingFlow = lazy(() => import("./pages/Onboarding/OnboardingFlow"));
 const WelcomeDashboard = lazy(() => import("./pages/Onboarding/WelcomeDashboard"));
+const ProfileSetup = lazy(() => import("@/components/onboarding/ProfileSetup").then(m => ({ default: m.ProfileSetup })));
 const CivicDashboard = lazy(() => import("./pages/Dashboard/CivicDashboard"));
 const Analytics = lazy(() => import("./pages/Dashboard/Analytics"));
 const SearchResults = lazy(() => import("./pages/SearchResults").then(m => ({ default: m.SearchResults })));
@@ -146,7 +150,8 @@ const App = () => (
                             <Route path="/quests" element={<Quests />} />
                             <Route path="/leaderboards" element={<Leaderboards />} />
                             <Route path="/search" element={<SearchResults />} />
-                            <Route path="/settings" element={<SettingsPage />} />
+                            <Route path="/civic-assistant" element={<CivicChat />} />
+                            <Route path="/profile/setup" element={<ProfileSetup />} />
 
                             {/* Functional prefix routes - handled by PrefixRouter */}
                             <Route path="/u/*" element={<PrefixRouter />} />

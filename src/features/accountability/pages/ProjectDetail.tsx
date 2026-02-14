@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +35,15 @@ const statusConfig = {
 };
 
 const ProjectDetail = () => {
-    const { projectId } = useParams<{ projectId: string }>();
+    const params = useParams<{ projectId?: string }>();
+    const { pathname } = useLocation();
     const navigate = useNavigate();
+
+    // Handle both /projects/:id and /p/:id (via PrefixRouter)
+    let projectId = params.projectId;
+    if (!projectId && pathname.startsWith('/p/')) {
+        projectId = pathname.split('/')[2];
+    }
     const { user } = useAuth();
     const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
     const [postUpdateOpen, setPostUpdateOpen] = useState(false);

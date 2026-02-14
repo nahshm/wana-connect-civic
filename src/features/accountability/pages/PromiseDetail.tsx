@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -32,8 +32,15 @@ interface PromiseWithDetails extends DevelopmentPromise {
 }
 
 const PromiseDetail = () => {
-  const { promiseId } = useParams<{ promiseId: string }>();
+  const params = useParams<{ promiseId?: string }>();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  // Handle both /promises/:id and /pr/:id (via PrefixRouter)
+  let promiseId = params.promiseId;
+  if (!promiseId && pathname.startsWith('/pr/')) {
+    promiseId = pathname.split('/')[2];
+  }
   const { toast } = useToast();
   const { user } = useAuth();
   const authModal = useAuthModal();

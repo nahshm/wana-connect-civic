@@ -1,14 +1,15 @@
+import React, { useState, useEffect } from 'react';
 import { CreatePostForm } from '@/components/posts/CreatePostForm';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { SELECT_FIELDS } from '@/lib/select-fields';
+import { logPostCreated } from '@/lib/activityLogger';
+import { ReceiptToast } from '@/components/ui/ReceiptToast';
 
 const CreatePost = () => {
   const { user } = useAuth();
@@ -81,7 +82,19 @@ const CreatePost = () => {
 
       if (error) throw error;
 
-      const postId = data.id
+      const postId = data.id;
+
+      // Log activity to unified feed
+      try {
+        await logPostCreated(user.id, postId, {
+          title: postData.title,
+          communityId: postData.communityId,
+          contentType: contentType
+        });
+      } catch (logError) {
+        console.error('Failed to log post activity:', logError);
+        // Don't block flow for logging error
+      }
 
       // Handle VIDEO uploads - Create civic_clip record
       if (hasVideo && postData.evidenceFiles) {
@@ -226,9 +239,16 @@ const CreatePost = () => {
           variant: "default",
         });
       } else {
+        // Show Receipt for standard posts
         toast({
-          title: "Success!",
-          description: "Your post has been created successfully",
+          description: (
+            <ReceiptToast
+              title="Post Created"
+              trackingId={postId}
+              nextSteps={['Community Visibility', 'Engagement Tracking']}
+            />
+          ),
+          duration: 5000,
         });
       }
 

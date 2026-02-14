@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
+import { logProjectSubmitted } from '@/lib/activityLogger';
+import { ReceiptToast } from '@/components/ui/ReceiptToast';
 import { ArrowLeft, Upload, X, FileText, Image as ImageIcon, Film, AlertCircle, Loader2, Plus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PROJECT_CATEGORIES_2026, PROJECT_LEVELS, PROJECT_STATUSES, PROJECT_PRIORITIES } from '@/constants/projectConstants';
@@ -91,7 +93,7 @@ const SubmitProject = () => {
         console.log('Current Form Data:', formData);
         console.log('Is Initialized:', isInitialized);
         console.log('===========================');
-    }, [communityLocation, userProfile, isInitialized]);
+    }, [communityLocation, userProfile, isInitialized, formData, communityId]);
 
     // Fetch officials based on location
     const { data: officials = [], isLoading: officialsLoading } = useOfficialsByLocation(
@@ -115,7 +117,7 @@ const SubmitProject = () => {
             console.log('Autofilling from community:', communityLocation);
 
             setFormData(prev => {
-                const updates: any = { ...prev };
+                const updates = { ...prev };
 
                 // Set project scope and locations based on community type
                 if (communityLocation.location_type === 'county') {
@@ -174,7 +176,8 @@ const SubmitProject = () => {
     }, [formData.constituency]);
 
     const fetchCounties = async () => {
-        const { data } = await (supabase.from as any)('administrative_divisions')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await supabase.from('administrative_divisions' as any)
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'county')
@@ -183,7 +186,8 @@ const SubmitProject = () => {
     };
 
     const fetchConstituencies = async (county: string) => {
-        const { data: countyData } = await (supabase.from as any)('administrative_divisions')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: countyData } = await supabase.from('administrative_divisions' as any)
             .select('id')
             .eq('country_code', 'KE')
             .eq('governance_level', 'county')
@@ -192,7 +196,8 @@ const SubmitProject = () => {
 
         if (!countyData) return;
 
-        const { data } = await (supabase.from as any)('administrative_divisions')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await supabase.from('administrative_divisions' as any)
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'constituency')
@@ -202,7 +207,8 @@ const SubmitProject = () => {
     };
 
     const fetchWards = async (constituency: string) => {
-        const { data: constituencyData } = await (supabase.from as any)('administrative_divisions')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: constituencyData } = await supabase.from('administrative_divisions' as any)
             .select('id')
             .eq('country_code', 'KE')
             .eq('governance_level', 'constituency')
@@ -211,7 +217,8 @@ const SubmitProject = () => {
 
         if (!constituencyData) return;
 
-        const { data } = await (supabase.from as any)('administrative_divisions')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await supabase.from('administrative_divisions' as any)
             .select('id, name')
             .eq('country_code', 'KE')
             .eq('governance_level', 'ward')
@@ -384,18 +391,38 @@ const SubmitProject = () => {
                 if (institutionsError) console.error('Error adding collaborating institutions:', institutionsError);
             }
 
+            // Log activity
+            try {
+                // Ensure we only pass expected properties to the logger
+                await logProjectSubmitted(user.id, project.id, {
+                    name: project.title,
+                    county: project.county
+                    // constituency is intentionally omitted if not supported
+                });
+            } catch (logError) {
+                console.error('Failed to log project activity:', logError);
+            }
+
+            // Show Receipt
             toast({
-                title: 'Project Submitted!',
-                description: 'Your project has been posted and is pending community verification.',
+                description: (
+                    <ReceiptToast
+                        title="Project Submitted"
+                        trackingId={project.id}
+                        nextSteps={['Community Verification', 'Official Review', 'Implementation']}
+                    />
+                ),
+                duration: 5000,
             });
 
             navigate(`/projects/${project.id}`);
 
-        } catch (error: any) {
-            console.error('Error submitting project:', error);
+        } catch (error: unknown) {
+            const err = error as Error;
+            console.error('Error submitting project:', err);
             toast({
                 title: 'Submission Failed',
-                description: error.message || 'Failed to submit project',
+                description: err.message || 'Failed to submit project',
                 variant: 'destructive'
             });
         } finally {

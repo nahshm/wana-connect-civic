@@ -11,6 +11,7 @@ import { RichTextEditor } from './RichTextEditor'
 import { MediaUploadZone } from './MediaUploadZone'
 import { LinkPostInput } from './LinkPostInput'
 import { cn } from '@/lib/utils'
+import { aiClient, ModerationResult } from '@/services/aiClient'
 
 interface Community {
   id: string
@@ -38,6 +39,8 @@ export interface PostFormData {
   postType: 'text' | 'media' | 'link'
   linkUrl?: string
   flairIds?: string[]
+  governance_verdict?: string
+  governance_confidence?: number
 }
 
 const POST_TYPES = [
@@ -74,6 +77,10 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
   const [files, setFiles] = useState<File[]>([])
   const [linkUrl, setLinkUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // AI State
+  const [governanceResult, setGovernanceResult] = useState<ModerationResult | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Load draft from localStorage on mount (skip if defaultCommunityId is provided for modal usage)
   useEffect(() => {
@@ -167,8 +174,43 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
     }
 
     setIsSubmitting(true)
+    setGovernanceResult(null)
 
     try {
+      // STEP 1: AI Governance Check
+      const governance = await aiClient.governance(
+        'post',
+        JSON.stringify({
+          title: title.trim(),
+          description: content.trim(),
+          metadata: { tags: flairIds }
+        })
+      );
+      
+      setGovernanceResult(governance);
+
+      // STEP 2: Handle Verdict
+      if (governance.verdict === 'BLOCKED') {
+        setIsSubmitting(false)
+        return; // UI will show the block message
+      }
+
+      if (governance.verdict === 'NEEDS_REVISION') {
+        setShowSuggestions(true);
+        setIsSubmitting(false)
+        return;
+      }
+
+      if (governance.verdict === 'FLAGGED') {
+        const confirmed = confirm(
+          `Your post was flagged: ${governance.reason}\n\nDo you still want to post?`
+        );
+        if (!confirmed) {
+            setIsSubmitting(false)
+            return;
+        }
+      }
+
       const formData: PostFormData = {
         title: title.trim(),
         content: content.trim(),
@@ -178,15 +220,19 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
         evidenceFiles: files,
         postType,
         linkUrl: postType === 'link' ? linkUrl.trim() : undefined,
-        flairIds
+        flairIds,
+        governance_verdict: governance.verdict,
+        governance_confidence: governance.confidence
       }
 
       await onSubmit(formData)
 
       // Clear form and draft on successful submission
       clearDraft()
+      setGovernanceResult(null)
     } catch (error) {
       console.error('Form submission error:', error)
+      alert('Failed to process post. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -313,6 +359,41 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
         onValueChange={setContentSensitivity}
         disabled={disabled || isSubmitting}
       />
+
+      {/* AI Blocked Message */}
+      {governanceResult?.verdict === 'BLOCKED' && (
+        <div className="rounded-lg border-2 border-red-400 bg-red-50 p-4 mb-4">
+            <h3 className="font-semibold text-red-800 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Post Blocked by Governance AI
+            </h3>
+            <p className="mt-2 text-sm text-red-700">
+                {governanceResult.reason}
+            </p>
+            <p className="mt-1 text-xs text-red-600">
+                Please revise your content to adhere to community guidelines.
+            </p>
+        </div>
+      )}
+
+      {/* AI Suggestions Modal (Inline) */}
+      {showSuggestions && governanceResult?.verdict === 'NEEDS_REVISION' && (
+        <div className="rounded-lg border-2 border-yellow-400 bg-yellow-50 p-4 mb-4">
+          <h3 className="font-semibold text-yellow-800">
+            💡 AI Suggestions to Improve Your Post
+          </h3>
+          <p className="mt-2 text-sm text-yellow-700">
+            {governanceResult.reason}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowSuggestions(false)}
+            className="mt-3 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+          >
+            Edit and try again
+          </button>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-6 border-t">

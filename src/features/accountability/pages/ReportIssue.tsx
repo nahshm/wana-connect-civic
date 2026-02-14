@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { aiClient, RoutingResult } from '@/services/aiClient';
 import {
     Droplet,
     Car,
@@ -18,18 +19,10 @@ import {
     Home,
     AlertCircle,
     Building,
-    ArrowLeft
+    ArrowLeft,
+    MapPin,
+    Camera
 } from 'lucide-react';
-
-const ISSUE_CATEGORIES = [
-    { id: 'water', label: 'Water', icon: Droplet, color: 'bg-blue-500', level: 'ward' },
-    { id: 'roads', label: 'Roads', icon: Car, color: 'bg-gray-500', level: 'county' },
-    { id: 'garbage', label: 'Garbage', icon: Trash2, color: 'bg-green-500', level: 'ward' },
-    { id: 'street_lights', label: 'Street Lights', icon: Lightbulb, color: 'bg-yellow-500', level: 'ward' },
-    { id: 'security', label: 'Security', icon: Shield, color: 'bg-red-500', level: 'national' },
-    { id: 'housing', label: 'Housing', icon: Home, color: 'bg-purple-500', level: 'county' },
-    { id: 'health', label: 'Health', icon: Building, color: 'bg-pink-500', level: 'county' },
-];
 
 const ReportIssue = () => {
     const { user } = useAuth();
@@ -37,58 +30,100 @@ const ReportIssue = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
 
-    const [selectedCategory, setSelectedCategory] = useState<string>('');
-    const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [location, setLocation] = useState('');
-    const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium');
-    const [submitting, setSubmitting] = useState(false);
+    const [locationText, setLocationText] = useState('');
+    const [locationCoords, setLocationCoords] = useState<{lat: number; lng: number} | undefined>(undefined);
+    const [photos, setPhotos] = useState<string[]>([]); // Future: Store URLs
+    const [loading, setLoading] = useState(false);
+    
+    // AI State
+    const [routing, setRouting] = useState<RoutingResult | null>(null);
+    const [routingLoading, setRoutingLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Get user location
+    const handleGetLocation = () => {
+        if (!navigator.geolocation) {
+            toast({ title: "Error", description: "Geolocation is not supported by your browser", variant: "destructive" });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLocationCoords({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+                toast({ title: "Location Captured", description: "Coordinates attached to report." });
+            },
+            (error) => {
+                toast({ title: "Error", description: "Unable to retrieve location", variant: "destructive" });
+            }
+        );
+    };
 
+    const handleRouteIssue = async () => {
         if (!user) {
             authModal.open('login');
             return;
         }
-
-        if (!selectedCategory || !title || !description) {
-            toast({
-                title: "Error",
-                description: "Please fill in all required fields",
-                variant: "destructive"
-            });
+        if (!description.trim()) {
+            toast({ title: "Required", description: "Please describe the issue first.", variant: "destructive" });
             return;
         }
 
-        setSubmitting(true);
-
+        setRoutingLoading(true);
         try {
-            // Get user's location
+            // Get user profile for location context if available
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('ward_id, constituency_id, county_id')
+                .select('ward, constituency, county') // Assuming these fields exist or are joined
                 .eq('id', user.id)
                 .single();
 
-            const category = ISSUE_CATEGORIES.find(c => c.id === selectedCategory);
-            const actionLevel = category?.level || 'ward';
+            const locationContext = {
+                lat: locationCoords?.lat,
+                lng: locationCoords?.lng,
+                text: locationText,
+                ward: (profile as any)?.ward || undefined, // Fallbacks
+                constituency: (profile as any)?.constituency || undefined,
+                county: (profile as any)?.county || 'Nairobi'
+            };
 
-            // Create civic action
+            const result = await aiClient.routing(description, locationContext, photos);
+            setRouting(result);
+            
+        } catch (error) {
+            console.error('Routing failed:', error);
+            toast({ title: "AI Routing Failed", description: "Could not classify issue. Please try again.", variant: "destructive" });
+        } finally {
+            setRoutingLoading(false);
+        }
+    };
+
+    const handleConfirmSubmit = async () => {
+        if (!user || !routing) return;
+        setLoading(true);
+
+        try {
+            // Map AI result to database columns
+            // Table: civic_actions
             const { data: action, error } = await supabase
                 .from('civic_actions')
                 .insert({
                     user_id: user.id,
                     action_type: 'report_issue',
-                    action_level: actionLevel,
-                    category: selectedCategory,
-                    title,
-                    description,
-                    urgency,
-                    location_text: location || null,
-                    ward_id: profile?.ward_id,
-                    constituency_id: profile?.constituency_id,
-                    county_id: profile?.county_id,
+                    title: description.substring(0, 50) + '...', // Generate title from desc
+                    description: description,
+                    location_text: locationText || 'Pinned Location',
+                    // AI Fields
+                    category: routing.issue_type, // Use issue_type as category
+                    action_level: routing.jurisdiction,
+                    issue_type: routing.issue_type,
+                    jurisdiction: routing.jurisdiction,
+                    severity: routing.severity,
+                    ai_routing_confidence: routing.confidence,
+                    estimated_resolution_days: routing.estimated_resolution_days,
+                    // urgency: Map severity to low/medium/high ??
+                    urgency: routing.severity >= 7 ? 'high' : routing.severity >= 4 ? 'medium' : 'low'
                 })
                 .select()
                 .single();
@@ -96,168 +131,152 @@ const ReportIssue = () => {
             if (error) throw error;
 
             toast({
-                title: "Issue Reported Successfully!",
-                description: `Case number: ${action.case_number}`,
+                title: "Report Submitted Successfully",
+                description: `Ticket #${action.case_number || action.id.substring(0,8)} routed to ${routing.department_name}.`,
             });
-
+            
             navigate('/dashboard');
+
         } catch (error) {
-            console.error('Error reporting issue:', error);
-            toast({
-                title: "Error",
-                description: "Failed to submit report. Please try again.",
-                variant: "destructive"
-            });
+            console.error('Error submitting report:', error);
+            toast({ title: "Submission Failed", description: "Could not save report.", variant: "destructive" });
         } finally {
-            setSubmitting(false);
+            setLoading(false);
         }
     };
 
-    const selectedCategoryData = ISSUE_CATEGORIES.find(c => c.id === selectedCategory);
-
     return (
         <div className="container mx-auto p-6 max-w-4xl space-y-4">
-            {/* Back Button */}
-            <Button
-                variant="ghost"
-                onClick={() => navigate('/dashboard')}
-                className="gap-2"
-            >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
+            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="gap-2">
+                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
             </Button>
 
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <AlertCircle className="w-6 h-6" />
-                        Report an Issue
+                        Report an Issue (AI Assisted)
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                        Report issues in your area and track their resolution
+                        Describe the problem usage and our AI will route it to the correct department.
                     </p>
                 </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Category Selection */}
-                        <div>
-                            <Label>Issue Category *</Label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                                {ISSUE_CATEGORIES.map((cat) => (
-                                    <button
-                                        key={cat.id}
-                                        type="button"
-                                        onClick={() => setSelectedCategory(cat.id)}
-                                        className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all ${selectedCategory === cat.id
-                                                ? 'border-primary bg-primary/10'
-                                                : 'border-border hover:border-primary/50'
-                                            }`}
+                <CardContent className="space-y-6">
+                    {/* Step 1: Input */}
+                    {!routing && (
+                        <div className="space-y-4">
+                            <div>
+                                <Label>Describe the Issue</Label>
+                                <Textarea 
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="e.g. Broken streetlight on Moxie Avenue causing safety concerns..."
+                                    rows={4}
+                                />
+                            </div>
+                            
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Location</Label>
+                                    <Input 
+                                        value={locationText}
+                                        onChange={(e) => setLocationText(e.target.value)}
+                                        placeholder="Specific landmark or street name"
+                                    />
+                                </div>
+                                <div className="flex items-end">
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        onClick={handleGetLocation}
+                                        className="w-full gap-2"
                                     >
-                                        <cat.icon className={`w-8 h-8 ${cat.color} text-white rounded p-1.5`} />
-                                        <span className="text-sm font-medium">{cat.label}</span>
-                                        <span className="text-xs text-muted-foreground capitalize">
-                                            {cat.level} level
-                                        </span>
-                                    </button>
-                                ))}
+                                        <MapPin className="w-4 h-4" />
+                                        {locationCoords ? "Location Captured" : "Use GPS"}
+                                    </Button>
+                                </div>
                             </div>
-                            {selectedCategoryData && (
-                                <p className="text-xs text-muted-foreground mt-2">
-                                    This will be routed to <strong>{selectedCategoryData.level}</strong> level authorities
+
+                            <Button 
+                                onClick={handleRouteIssue} 
+                                disabled={routingLoading || !description}
+                                className="w-full bg-blue-600 hover:bg-blue-700"
+                            >
+                                {routingLoading ? "Analyzing & Routing..." : "Route Issue"}
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Step 2: Review Routing */}
+                    {routing && (
+                        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="rounded-lg border-2 border-blue-200 bg-blue-50/50 p-6">
+                                <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                                    <Building className="w-5 h-5" />
+                                    Routed to: {routing.department_name}
+                                </h3>
+
+                                <div className="grid grid-cols-2 gap-6 mb-4">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Jurisdiction</p>
+                                        <p className="font-medium capitalize">{routing.jurisdiction}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Issue Type</p>
+                                        <p className="font-medium capitalize">{routing.issue_type.replace('_', ' ')}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Severity</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className={`h-2.5 w-24 rounded-full bg-gray-200 overflow-hidden`}>
+                                                <div 
+                                                    className={`h-full ${routing.severity >= 7 ? 'bg-red-500' : routing.severity >= 4 ? 'bg-yellow-500' : 'bg-green-500'}`} 
+                                                    style={{ width: `${routing.severity * 10}%` }}
+                                                />
+                                            </div>
+                                            <span className="font-bold">{routing.severity}/10</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Est. Resolution</p>
+                                        <p className="font-medium">{routing.estimated_resolution_days || 7} Days</p>
+                                    </div>
+                                </div>
+
+                                {routing.required_forms && routing.required_forms.length > 0 && (
+                                    <div className="mb-4">
+                                        <p className="text-sm font-medium text-gray-700 mb-1">Required Actions:</p>
+                                        <ul className="list-disc pl-5 text-sm text-gray-600">
+                                            {routing.required_forms.map(form => (
+                                                <li key={form.form_id}>{form.form_name}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                <p className="text-xs text-muted-foreground mt-4">
+                                    AI Confidence: {Math.round(routing.confidence * 100)}%
                                 </p>
-                            )}
-                        </div>
+                            </div>
 
-                        {/* Title */}
-                        <div>
-                            <Label htmlFor="title">Issue Title *</Label>
-                            <Input
-                                id="title"
-                                type="text"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Brief description of the issue"
-                                required
-                            />
-                        </div>
-
-                        {/* Location */}
-                        <div>
-                            <Label htmlFor="location">Specific Location</Label>
-                            <Input
-                                id="location"
-                                type="text"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                placeholder="e.g., Corner of Thika Road and Outer Ring Road"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Optional - Provide exact location if known
-                            </p>
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                            <Label htmlFor="description">Full Description *</Label>
-                            <Textarea
-                                id="description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Provide details about the issue, impact, and any other relevant information"
-                                rows={5}
-                                required
-                            />
-                        </div>
-
-                        {/* Urgency */}
-                        <div>
-                            <Label>Urgency Level</Label>
-                            <div className="flex gap-2 mt-2">
-                                <Button
-                                    type="button"
-                                    variant={urgency === 'low' ? 'default' : 'outline'}
-                                    onClick={() => setUrgency('low')}
-                                    size="sm"
+                            <div className="flex gap-3">
+                                <Button 
+                                    onClick={handleConfirmSubmit} 
+                                    disabled={loading}
+                                    className="flex-1 bg-green-600 hover:bg-green-700"
                                 >
-                                    Low
+                                    {loading ? "Submitting Report..." : "Confirm & Submit Report"}
                                 </Button>
-                                <Button
-                                    type="button"
-                                    variant={urgency === 'medium' ? 'default' : 'outline'}
-                                    onClick={() => setUrgency('medium')}
-                                    size="sm"
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => setRouting(null)}
+                                    disabled={loading}
                                 >
-                                    Medium
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant={urgency === 'high' ? 'destructive' : 'outline'}
-                                    onClick={() => setUrgency('high')}
-                                    size="sm"
-                                >
-                                    High
+                                    Edit Details
                                 </Button>
                             </div>
                         </div>
-
-                        {/* Submit */}
-                        <div className="flex gap-3">
-                            <Button
-                                type="submit"
-                                disabled={submitting}
-                                className="flex-1"
-                            >
-                                {submitting ? 'Submitting...' : 'Submit Report'}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => navigate('/dashboard')}
-                            >
-                                Cancel
-                            </Button>
-                        </div>
-                    </form>
+                    )}
                 </CardContent>
             </Card>
         </div>

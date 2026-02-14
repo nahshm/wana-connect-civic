@@ -292,17 +292,53 @@ export const PostCard = ({
   const renderMedia = () => {
     if (!post.media || post.media.length === 0) return null;
     return <div className="mb-3">
-        {post.media.length === 1 ? <div className="rounded-lg overflow-hidden border border-sidebar-border">
-            {post.media[0].file_type?.startsWith('image/') ? <img src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} alt="Post media" loading="lazy" className="w-full h-auto max-h-[512px] object-contain bg-black" /> : post.media[0].file_type?.startsWith('video/') ? <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
-                <video ref={videoRef} src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} className="w-full h-auto max-h-[512px] object-contain bg-black" playsInline />
-                {!isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <div className="bg-white/90 rounded-full p-4">
-                      <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
-                  </div>}
-              </div> : null}
+        {post.media.length === 1 ? <div className="relative w-full flex justify-center overflow-hidden border border-sidebar-border bg-black/5 group">
+            {/* Blurred Background Layer - Absolute to fill the container defined by foreground */}
+            <div className="absolute inset-0 z-0 opacity-60">
+                {post.media[0].file_type?.startsWith('image/') ? 
+                  <img 
+                    src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
+                    alt="" 
+                    className="w-full h-full object-cover blur-2xl scale-110" 
+                    aria-hidden="true"
+                  /> 
+                : post.media[0].file_type?.startsWith('video/') ? 
+                  <video 
+                    src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
+                    className="w-full h-full object-cover blur-2xl scale-110" 
+                    muted 
+                    aria-hidden="true"
+                  /> 
+                : null}
+            </div>
+
+            {/* Foreground Content - Flex centered, dictates container height via max-height */}
+            <div className="relative z-10 w-full flex justify-center">
+              {post.media[0].file_type?.startsWith('image/') ? (
+                <img 
+                  src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
+                  alt="Post media" 
+                  loading="lazy" 
+                  className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md transition-transform duration-500 group-hover:scale-[1.01]" 
+                />
+              ) : post.media[0].file_type?.startsWith('video/') ? (
+                <div className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
+                  <video 
+                    ref={videoRef} 
+                    src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
+                    className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-sm" 
+                    playsInline 
+                  />
+                  {!isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20 m-auto pointer-events-none">
+                      <div className="bg-white/90 rounded-full p-4 shadow-lg backdrop-blur-sm">
+                        <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>}
+                </div>
+              ) : null}
+            </div>
           </div> : <div className="grid grid-cols-2 gap-2">
             {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
                 {media.file_type?.startsWith('image/') ? <img src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} alt={`Post media ${index + 1}`} loading="lazy" className="w-full h-32 object-cover" /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>

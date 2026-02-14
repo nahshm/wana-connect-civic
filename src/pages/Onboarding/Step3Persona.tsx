@@ -12,34 +12,46 @@ interface Step3PersonaProps {
 
 const personas = [
   {
-    id: 'active_citizen',
-    title: 'Active Citizen',
-    description: 'I want to report issues and take action in my community',
-    icon: '🎯',
+    id: 'citizen',
+    title: 'Regular Citizen',
+    description: 'I want to access services and report issues',
+    icon: '👤',
+  },
+  {
+    id: 'youth_leader',
+    title: 'Youth Leader',
+    description: 'I want to mobilize youth and find opportunities',
+    icon: '🚀',
   },
   {
     id: 'community_organizer',
     title: 'Community Organizer',
-    description: 'I want to mobilize others and lead civic initiatives',
+    description: 'I want to lead initiatives and track civic progress',
     icon: '🤝',
   },
   {
-    id: 'civic_learner',
-    title: 'Civic Learner',
-    description: 'I want to understand how government works and my rights',
-    icon: '📚',
-  },
-  {
-    id: 'government_watcher',
-    title: 'Government Watcher',
-    description: 'I want to track officials, budgets, and promises',
-    icon: '👁️',
-  },
-  {
-    id: 'professional',
-    title: 'Professional',
-    description: 'I work in governance, NGO, or civil society sector',
+    id: 'business_owner',
+    title: 'Business Owner',
+    description: 'I want to find tenders, licenses, and business support',
     icon: '💼',
+  },
+  {
+    id: 'journalist',
+    title: 'Journalist',
+    description: 'I need to verify facts, data, and government records',
+    icon: '📰',
+  },
+  {
+    id: 'official',
+    title: 'Gov Official',
+    description: 'I want to engage with constituents and manage issues',
+    icon: '🏛️',
+  },
+  {
+    id: 'ngo_worker',
+    title: 'NGO/CSO Worker',
+    description: 'I want to coordinate development projects and advocacy',
+    icon: '🌍',
   },
 ];
 

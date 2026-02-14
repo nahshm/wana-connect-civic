@@ -66,7 +66,7 @@ export const Header = () => {
           src="/wanaiq-logo.png"
           alt="ama Logo"
           className="h-8 w-auto"
-          fetchPriority="high"
+          fetchpriority="high"
         />
         <span className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
           ama
@@ -75,8 +75,8 @@ export const Header = () => {
 
       {/* Centered Search */}
       <div className="hidden md:flex flex-1 max-w-2xl">
-        <SearchBar placeholder="Search discussions, communities, users..." className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring" onSearch={(query, filters) => {
-          console.log('Search:', query, filters);
+        <SearchBar placeholder="Search discussions, communities, users..." className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring" onSearch={(query) => {
+          console.log('Search:', query);
           navigate(`/search?q=${encodeURIComponent(query)}`);
         }} />
       </div>
@@ -161,8 +161,8 @@ export const Header = () => {
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <SearchBar placeholder="Search discussions, communities, users..." className="w-full" onSearch={(query, filters) => {
-            console.log('Search:', query, filters);
+          <SearchBar placeholder="Search discussions, communities, users..." className="w-full" onSearch={(query) => {
+            console.log('Search:', query);
             navigate(`/search?q=${encodeURIComponent(query)}`);
             setMobileSearchOpen(false);
           }} />
