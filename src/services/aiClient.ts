@@ -48,7 +48,23 @@ export interface RAGResult {
 
 async function invokeFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke(name, { body });
-  if (error) throw new Error(`${name} failed: ${error.message}`);
+  
+  if (error) {
+    if (error instanceof Error && 'context' in error) {
+        // FunctionsHttpError often has the response body in 'context'
+        const context = (error as any).context;
+        if (context && typeof context === 'object') {
+            const contextError = (await context.json())?.error || JSON.stringify(context);
+            console.error(`${name} detailed error:`, contextError);
+            throw new Error(`${name} failed: ${contextError}`);
+        }
+    }
+    
+    // Fallback: try to see if error message is just the status text
+    console.error(`${name} invocation failed:`, error);
+    throw new Error(`${name} failed: ${error.message}`);
+  }
+  
   if (data?.error) throw new Error(data.error);
   return data as T;
 }
