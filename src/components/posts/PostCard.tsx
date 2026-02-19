@@ -172,7 +172,7 @@ export const PostCard = ({
     }, {
       ref: secondVideoRef,
       setPlaying: setIsSecondPlaying
-    }].filter(v => v.ref.current);
+    }].filter((v) => v.ref.current);
     if (videos.length === 0) return;
 
     // Tab visibility handler
@@ -191,8 +191,8 @@ export const PostCard = ({
     };
 
     // Intersection Observer - pause when scrolled out of view
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
         videos.forEach(({
           ref,
           setPlaying
@@ -301,40 +301,40 @@ export const PostCard = ({
         {post.media.length === 1 ? <div className="relative w-full flex justify-center overflow-hidden border border-sidebar-border bg-black/5 group">
             {/* Blurred Background Layer - Absolute to fill the container defined by foreground */}
             <div className="absolute inset-0 z-0 opacity-60">
-                {post.media[0].file_type?.startsWith('image/') ? 
-                  <img 
-                    src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
-                    alt="" 
-                    className="w-full h-full object-cover blur-2xl scale-110" 
-                    aria-hidden="true"
-                  /> 
-                : post.media[0].file_type?.startsWith('video/') ? 
-                  <video 
-                    src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
-                    className="w-full h-full object-cover blur-2xl scale-110" 
-                    muted 
-                    aria-hidden="true"
-                  /> 
-                : null}
+                {post.media[0].file_type?.startsWith('image/') ?
+          <img
+            src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+            alt=""
+            className="w-full h-full object-cover blur-2xl scale-110"
+            aria-hidden="true" /> :
+
+          post.media[0].file_type?.startsWith('video/') ?
+          <video
+            src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+            className="w-full h-full object-cover blur-2xl scale-110"
+            muted
+            aria-hidden="true" /> :
+
+          null}
             </div>
 
             {/* Foreground Content - Flex centered, dictates container height via max-height */}
             <div className="relative z-10 w-full flex justify-center">
-              {post.media[0].file_type?.startsWith('image/') ? (
-                <img 
-                  src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
-                  alt="Post media" 
-                  loading="lazy" 
-                  className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md transition-transform duration-500 group-hover:scale-[1.01]" 
-                />
-              ) : post.media[0].file_type?.startsWith('video/') ? (
-                <div className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
-                  <video 
-                    ref={videoRef} 
-                    src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl} 
-                    className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-sm" 
-                    playsInline 
-                  />
+              {post.media[0].file_type?.startsWith('image/') ?
+          <img
+            src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+            alt="Post media"
+            loading="lazy"
+            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md transition-transform duration-500 group-hover:scale-[1.01]" /> :
+
+          post.media[0].file_type?.startsWith('video/') ?
+          <div className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
+                  <video
+              ref={videoRef}
+              src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
+              className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-sm"
+              playsInline />
+
                   {!isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20 m-auto pointer-events-none">
                       <div className="bg-white/90 rounded-full p-4 shadow-lg backdrop-blur-sm">
                         <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
@@ -342,8 +342,8 @@ export const PostCard = ({
                         </svg>
                       </div>
                     </div>}
-                </div>
-              ) : null}
+                </div> :
+          null}
             </div>
           </div> : <div className="grid grid-cols-2 gap-2">
             {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
@@ -369,13 +369,13 @@ export const PostCard = ({
     let hostname = '';
     try {
       hostname = new URL(post.link_url).hostname;
-    } catch { /* ignore */ }
+    } catch {/* ignore */}
 
     // Detect embeddable platforms
     const getEmbedConfig = (url: string) => {
       try {
         const urlObj = new URL(url);
-        
+
         // YouTube
         if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
           let videoId = '';
@@ -385,35 +385,35 @@ export const PostCard = ({
             videoId = urlObj.searchParams.get('v') || '';
           }
           if (videoId) {
-            return { 
+            return {
               type: 'youtube',
-              url: `https://www.youtube.com/embed/${videoId}`, 
-              platform: 'YouTube' 
+              url: `https://www.youtube.com/embed/${videoId}`,
+              platform: 'YouTube'
             };
           }
         }
-        
+
         // TikTok
         if (urlObj.hostname.includes('tiktok.com')) {
           const videoMatch = url.match(/video\/(\d+)/);
           if (videoMatch) {
-            return { 
+            return {
               type: 'tiktok',
-              url: `https://www.tiktok.com/embed/v2/${videoMatch[1]}`, 
-              platform: 'TikTok' 
+              url: `https://www.tiktok.com/embed/v2/${videoMatch[1]}`,
+              platform: 'TikTok'
             };
           }
         }
 
         // X/Twitter
         if (urlObj.hostname.includes('twitter.com') || urlObj.hostname.includes('x.com')) {
-          return { 
+          return {
             type: 'x',
-            url: `https://platform.twitter.com/embed/Tweet.html?url=${encodeURIComponent(url)}`, 
-            platform: 'X' 
+            url: `https://platform.twitter.com/embed/Tweet.html?url=${encodeURIComponent(url)}`,
+            platform: 'X'
           };
         }
-      } catch { /* ignore */ }
+      } catch {/* ignore */}
       return null;
     };
 
@@ -422,88 +422,88 @@ export const PostCard = ({
     return (
       <div className="mb-3">
         {/* Embedded video/media frame */}
-        {embed && (
-          <div className="rounded-lg overflow-hidden border border-sidebar-border mb-2 bg-black/5 flex justify-center">
-            {embed.type === 'youtube' && (
-              <div className="w-full aspect-video">
+        {embed &&
+        <div className="rounded-lg overflow-hidden border border-sidebar-border mb-2 bg-black/5 flex justify-center">
+            {embed.type === 'youtube' &&
+          <div className="w-full aspect-video">
                 <iframe
-                  src={embed.url}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title="YouTube video player"
-                />
-              </div>
-            )}
-            
-            {embed.type === 'tiktok' && (
-              <div className="h-[550px] aspect-[9/16] my-2 shadow-sm">
-                <iframe
-                  src={embed.url}
-                  className="w-full h-full rounded-md"
-                  allow="encrypted-media;"
-                  allowFullScreen
-                  title="TikTok video player"
-                />
-              </div>
-            )}
+              src={embed.url}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="YouTube video player" />
 
-            {embed.type === 'x' && (
-               <div className="w-full max-w-[500px]">
-                <iframe
-                  src={embed.url}
-                  className="w-full h-[500px]" // Initial height, X embeds usually resize themselves but iframe needs base height
-                  title="X post"
-                />
               </div>
-            )}
+          }
+            
+            {embed.type === 'tiktok' &&
+          <div className="h-[550px] aspect-[9/16] my-2 shadow-sm">
+                <iframe
+              src={embed.url}
+              className="w-full h-full rounded-md"
+              allow="encrypted-media;"
+              allowFullScreen
+              title="TikTok video player" />
+
+              </div>
+          }
+
+            {embed.type === 'x' &&
+          <div className="w-full max-w-[500px]">
+                <iframe
+              src={embed.url}
+              className="w-full h-[500px]" // Initial height, X embeds usually resize themselves but iframe needs base height
+              title="X post" />
+
+              </div>
+          }
           </div>
-        )}
+        }
 
         {/* OG card preview (shown below embed or as standalone) */}
-        {!embed && (
-          <a
-            href={post.link_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block rounded-lg overflow-hidden border border-sidebar-border hover:border-primary/40 transition-colors group/link"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {post.link_image && (
-              <div className="relative w-full h-40 bg-muted overflow-hidden">
+        {!embed &&
+        <a
+          href={post.link_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-lg overflow-hidden border border-sidebar-border hover:border-primary/40 transition-colors group/link"
+          onClick={(e) => e.stopPropagation()}>
+
+            {post.link_image &&
+          <div className="relative w-full h-40 bg-muted overflow-hidden">
                 <img
-                  src={post.link_image}
-                  alt={post.link_title || 'Link preview'}
-                  className="w-full h-full object-cover group-hover/link:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
+              src={post.link_image}
+              alt={post.link_title || 'Link preview'}
+              className="w-full h-full object-cover group-hover/link:scale-105 transition-transform duration-300"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }} />
+
               </div>
-            )}
+          }
             <div className="p-3 bg-muted/30">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                 <ExternalLink className="w-3 h-3" />
                 <span>{hostname}</span>
               </div>
-              {post.link_title && (
-                <h4 className="font-semibold text-sm line-clamp-2 text-foreground group-hover/link:text-primary transition-colors">
+              {post.link_title &&
+            <h4 className="font-semibold text-sm line-clamp-2 text-foreground group-hover/link:text-primary transition-colors">
                   {post.link_title}
                 </h4>
-              )}
-              {post.link_description && (
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+            }
+              {post.link_description &&
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                   {post.link_description}
                 </p>
-              )}
-              {!post.link_title && !post.link_description && (
-                <p className="text-sm text-primary truncate">{post.link_url}</p>
-              )}
+            }
+              {!post.link_title && !post.link_description &&
+            <p className="text-sm text-primary truncate">{post.link_url}</p>
+            }
             </div>
           </a>
-        )}
-      </div>
-    );
+        }
+      </div>);
+
   };
   if (viewMode === 'compact') {
     return <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
@@ -623,7 +623,7 @@ export const PostCard = ({
             {/* Right: Join Button + Three Dots Menu */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Join button - only for community posts and non-members */}
-              {communityData && !isMember && onJoinCommunity && <Button onClick={e => {
+              {communityData && !isMember && onJoinCommunity && <Button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               onJoinCommunity(post.community!.id, post.community!.name);
@@ -684,7 +684,7 @@ export const PostCard = ({
             </div> : <div>
               {/* Feed View: Title + Content Preview + Expand/Collapse */}
               <Link to={getPostLink()} className="block group">
-                <h2 className="font-bold text-xl mb-3 group-hover:text-primary leading-tight">
+                <h2 className="mb-3 group-hover:text-primary leading-tight font-bold text-base">
                   {post.title}
                 </h2>
               </Link>
@@ -694,7 +694,7 @@ export const PostCard = ({
                   <div className={`text-sm text-sidebar-muted-foreground ${!isContentExpanded ? 'line-clamp-3' : ''}`}>
                     <SafeContentRenderer content={post.content} />
                   </div>
-                  {post.content.length > 300 && <button onClick={e => {
+                  {post.content.length > 300 && <button onClick={(e) => {
               e.preventDefault();
               setIsContentExpanded(!isContentExpanded);
             }} className="text-primary hover:underline text-sm font-medium mt-1.5 inline-flex items-center gap-1">
@@ -719,8 +719,8 @@ export const PostCard = ({
 
           {/* Flairs - Display with same colors as form */}
           {post.tags && post.tags.length > 0 && <div className="flex flex-wrap gap-1.5 mb-3">
-              {post.tags.map(tagId => {
-            const flair = CIVIC_FLAIRS.find(f => f.id === tagId);
+              {post.tags.map((tagId) => {
+            const flair = CIVIC_FLAIRS.find((f) => f.id === tagId);
             if (!flair) return null;
             return <Badge key={tagId} variant="outline" className={`text-xs ${flair.bgColor} ${flair.color} border-transparent`}>
                     {flair.label}
@@ -781,7 +781,7 @@ export const PostCard = ({
                     </DropdownMenuItem>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <DropdownMenuItem className="text-destructive" onSelect={e => e.preventDefault()}>
+                        <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
                           <Trash2 className="w-4 h-4 mr-2" />
                           Delete post
                         </DropdownMenuItem>
