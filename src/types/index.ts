@@ -82,6 +82,10 @@ export interface Post {
   flair?: CommunityFlair;
   contentSensitivity: 'public' | 'sensitive' | 'crisis';
   isNgoVerified?: boolean;
+  link_url?: string | null;
+  link_title?: string | null;
+  link_description?: string | null;
+  link_image?: string | null;
 }
 
 export interface PostMedia {

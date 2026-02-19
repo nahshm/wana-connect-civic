@@ -16,6 +16,10 @@ interface RawPostData {
     tags: string[];
     content_sensitivity: string;
     is_ngo_verified: boolean;
+    link_url?: string | null;
+    link_title?: string | null;
+    link_description?: string | null;
+    link_image?: string | null;
     profiles: {
         id: string;
         username: string;
@@ -85,6 +89,10 @@ function transformPost(post: RawPostData, userVote: 'up' | 'down' | null = null)
         tags: post.tags || [],
         contentSensitivity: (post.content_sensitivity || 'public') as 'public' | 'sensitive' | 'crisis',
         isNgoVerified: post.is_ngo_verified || false,
+        link_url: post.link_url || null,
+        link_title: post.link_title || null,
+        link_description: post.link_description || null,
+        link_image: post.link_image || null,
         media: (post.post_media || []).map(m => ({
             id: m.id,
             url: m.url,

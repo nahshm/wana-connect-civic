@@ -9,7 +9,7 @@ import { FlairSelector } from './FlairSelector'
 import { ContentSensitivitySelector, ContentSensitivity } from './ContentSensitivitySelector'
 import { RichTextEditor } from './RichTextEditor'
 import { MediaUploadZone } from './MediaUploadZone'
-import { LinkPostInput } from './LinkPostInput'
+import { LinkPostInput, LinkPreviewData } from './LinkPostInput'
 import { cn } from '@/lib/utils'
 import { aiClient, ModerationResult } from '@/services/aiClient'
 
@@ -38,6 +38,9 @@ export interface PostFormData {
   evidenceFiles: File[]
   postType: 'text' | 'media' | 'link'
   linkUrl?: string
+  linkTitle?: string
+  linkDescription?: string
+  linkImage?: string
   flairIds?: string[]
   governance_verdict?: string
   governance_confidence?: number
@@ -76,6 +79,7 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
   const [contentSensitivity, setContentSensitivity] = useState<ContentSensitivity>(initialValues?.contentSensitivity || 'public')
   const [files, setFiles] = useState<File[]>([])
   const [linkUrl, setLinkUrl] = useState('')
+  const [linkPreview, setLinkPreview] = useState<LinkPreviewData | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // AI State
@@ -220,6 +224,9 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
         evidenceFiles: files,
         postType,
         linkUrl: postType === 'link' ? linkUrl.trim() : undefined,
+        linkTitle: postType === 'link' ? (linkPreview?.title || undefined) : undefined,
+        linkDescription: postType === 'link' ? (linkPreview?.description || undefined) : undefined,
+        linkImage: postType === 'link' ? (linkPreview?.image || undefined) : undefined,
         flairIds,
         governance_verdict: governance.verdict,
         governance_confidence: governance.confidence
@@ -334,6 +341,7 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
           <LinkPostInput
             url={linkUrl}
             onUrlChange={setLinkUrl}
+            onPreviewChange={setLinkPreview}
             disabled={disabled || isSubmitting}
           />
 

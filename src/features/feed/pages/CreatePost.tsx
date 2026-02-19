@@ -72,6 +72,10 @@ const CreatePost = () => {
         tags: postData.tags || [],
         content_type: contentType,
         content_sensitivity: postData.contentSensitivity || 'public',
+        link_url: postData.linkUrl || null,
+        link_title: postData.linkTitle || null,
+        link_description: postData.linkDescription || null,
+        link_image: postData.linkImage || null,
       };
 
       const { data, error } = await supabase

@@ -70,6 +70,10 @@ interface UnifiedFeedItemProps {
  * - AchievementCard: Quest completions, achievements
  */
 export function UnifiedFeedItem({ item, onInteraction }: UnifiedFeedItemProps) {
+  // Silently filter out hidden activity types (logged for analytics, not shown in feed)
+  const hiddenTypes = ['post_created', 'comment_created', 'vote_cast', 'community_joined', 'issue_reported', 'clip_uploaded', 'promise_tracked', 'project_submitted'];
+  if (hiddenTypes.includes(item.type)) return null;
+
   // Standard post content
   if (item.type === 'post') {
     // Map RPC data to Post interface
@@ -96,6 +100,10 @@ export function UnifiedFeedItem({ item, onInteraction }: UnifiedFeedItemProps) {
       commentCount: item.data.comment_count || 0,
       tags: [], // Default empty
       media: item.data.media || [], // Map media from RPC
+      link_url: item.data.link_url || null,
+      link_title: item.data.link_title || null,
+      link_description: item.data.link_description || null,
+      link_image: item.data.link_image || null,
     };
 
     return (
@@ -148,14 +156,15 @@ export function UnifiedFeedItem({ item, onInteraction }: UnifiedFeedItemProps) {
   }
   */
 
-  // All other activity notices (joins, verifications, etc.)
+  // High-value activity notices only (per Feed Strategy doc)
+  // Low-value activities (community_joined, issue_reported) are logged for analytics but hidden from feed
   const activityTypes: FeedItemType[] = [
-    // 'post_created', // Temporarily disabled on request
-    'project_verified',
-    'community_joined',
-    'community_created',
-    'issue_reported',
-    'official_claimed'
+    // 'post_created', // Redundant - posts appear as PostCards
+    'project_verified',   // Accountability milestone
+    // 'community_joined', // Low value - too noisy
+    'community_created',  // Rare, high-impact event
+    // 'issue_reported', // Internal tracking only
+    'official_claimed'    // High-impact civic event
   ];
 
   if (activityTypes.includes(item.type)) {

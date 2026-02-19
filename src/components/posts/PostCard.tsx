@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef, useEffect } from 'react';
 import { useVerification } from '@/hooks/useVerification';
@@ -41,6 +42,7 @@ export const PostCard = ({
   const {
     toast
   } = useToast();
+  const authModal = useAuthModal();
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -55,6 +57,10 @@ export const PostCard = ({
 
   // Handle bookmark/save with tooltip
   const handleSave = () => {
+    if (!user) {
+      authModal.open('login');
+      return;
+    }
     setIsSaved(true);
     setShowSavedTooltip(true);
     setTimeout(() => setShowSavedTooltip(false), 2000);
@@ -355,6 +361,150 @@ export const PostCard = ({
           </div>}
       </div>;
   };
+
+  // Helper to render link preview (for link-type posts)
+  const renderLinkPreview = () => {
+    if (!post.link_url) return null;
+
+    let hostname = '';
+    try {
+      hostname = new URL(post.link_url).hostname;
+    } catch { /* ignore */ }
+
+    // Detect embeddable platforms
+    const getEmbedConfig = (url: string) => {
+      try {
+        const urlObj = new URL(url);
+        
+        // YouTube
+        if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+          let videoId = '';
+          if (urlObj.hostname.includes('youtu.be')) {
+            videoId = urlObj.pathname.slice(1);
+          } else {
+            videoId = urlObj.searchParams.get('v') || '';
+          }
+          if (videoId) {
+            return { 
+              type: 'youtube',
+              url: `https://www.youtube.com/embed/${videoId}`, 
+              platform: 'YouTube' 
+            };
+          }
+        }
+        
+        // TikTok
+        if (urlObj.hostname.includes('tiktok.com')) {
+          const videoMatch = url.match(/video\/(\d+)/);
+          if (videoMatch) {
+            return { 
+              type: 'tiktok',
+              url: `https://www.tiktok.com/embed/v2/${videoMatch[1]}`, 
+              platform: 'TikTok' 
+            };
+          }
+        }
+
+        // X/Twitter
+        if (urlObj.hostname.includes('twitter.com') || urlObj.hostname.includes('x.com')) {
+          return { 
+            type: 'x',
+            url: `https://platform.twitter.com/embed/Tweet.html?url=${encodeURIComponent(url)}`, 
+            platform: 'X' 
+          };
+        }
+      } catch { /* ignore */ }
+      return null;
+    };
+
+    const embed = getEmbedConfig(post.link_url);
+
+    return (
+      <div className="mb-3">
+        {/* Embedded video/media frame */}
+        {embed && (
+          <div className="rounded-lg overflow-hidden border border-sidebar-border mb-2 bg-black/5 flex justify-center">
+            {embed.type === 'youtube' && (
+              <div className="w-full aspect-video">
+                <iframe
+                  src={embed.url}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="YouTube video player"
+                />
+              </div>
+            )}
+            
+            {embed.type === 'tiktok' && (
+              <div className="h-[550px] aspect-[9/16] my-2 shadow-sm">
+                <iframe
+                  src={embed.url}
+                  className="w-full h-full rounded-md"
+                  allow="encrypted-media;"
+                  allowFullScreen
+                  title="TikTok video player"
+                />
+              </div>
+            )}
+
+            {embed.type === 'x' && (
+               <div className="w-full max-w-[500px]">
+                <iframe
+                  src={embed.url}
+                  className="w-full h-[500px]" // Initial height, X embeds usually resize themselves but iframe needs base height
+                  title="X post"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* OG card preview (shown below embed or as standalone) */}
+        {!embed && (
+          <a
+            href={post.link_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-lg overflow-hidden border border-sidebar-border hover:border-primary/40 transition-colors group/link"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {post.link_image && (
+              <div className="relative w-full h-40 bg-muted overflow-hidden">
+                <img
+                  src={post.link_image}
+                  alt={post.link_title || 'Link preview'}
+                  className="w-full h-full object-cover group-hover/link:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              </div>
+            )}
+            <div className="p-3 bg-muted/30">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <ExternalLink className="w-3 h-3" />
+                <span>{hostname}</span>
+              </div>
+              {post.link_title && (
+                <h4 className="font-semibold text-sm line-clamp-2 text-foreground group-hover/link:text-primary transition-colors">
+                  {post.link_title}
+                </h4>
+              )}
+              {post.link_description && (
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                  {post.link_description}
+                </p>
+              )}
+              {!post.link_title && !post.link_description && (
+                <p className="text-sm text-primary truncate">{post.link_url}</p>
+              )}
+            </div>
+          </a>
+        )}
+      </div>
+    );
+  };
   if (viewMode === 'compact') {
     return <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
         {/* Vote Column */}
@@ -527,6 +677,7 @@ export const PostCard = ({
 
               {/* Media between title and description */}
               {renderMedia()}
+              {renderLinkPreview()}
 
               {/* Description */}
               <SafeContentRenderer content={post.content || ''} className="text-sidebar-foreground text-sm mb-4" />
@@ -563,6 +714,7 @@ export const PostCard = ({
 
               {/* Media shown in feed view */}
               {renderMedia()}
+              {renderLinkPreview()}
             </div>}
 
           {/* Flairs - Display with same colors as form */}

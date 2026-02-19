@@ -152,6 +152,7 @@ export async function logActivity(params: LogActivityParams): Promise<string> {
 
 /**
  * Log post creation activity
+ * Feed visibility: ❌ Hidden (redundant - posts appear as PostCards)
  */
 export async function logPostCreated(
   userId: string,
@@ -166,13 +167,15 @@ export async function logPostCreated(
     metadata: {
       title: metadata.title,
       community_id: metadata.communityId,
-      content_type: metadata.contentType
+      content_type: metadata.contentType,
+      is_feed_visible: false
     }
   });
 }
 
 /**
  * Log project submission activity
+ * Feed visibility: ❌ Hidden (redundant - projects appear as ProjectFeedCards)
  */
 export async function logProjectSubmitted(
   userId: string,
@@ -187,13 +190,15 @@ export async function logProjectSubmitted(
     metadata: {
       name: metadata.name,
       location: metadata.location,
-      county: metadata.county
+      county: metadata.county,
+      is_feed_visible: false
     }
   });
 }
 
 /**
  * Log project verification activity
+ * Feed visibility: ✅ Shown (accountability milestone)
  */
 export async function logProjectVerified(
   userId: string,
@@ -207,13 +212,15 @@ export async function logProjectVerified(
     targetType: 'project',
     metadata: {
       project_name: metadata.projectName,
-      verification_type: metadata.verificationType
+      verification_type: metadata.verificationType,
+      is_feed_visible: true
     }
   });
 }
 
 /**
  * Log community join activity
+ * Feed visibility: ❌ Hidden (too noisy, low value)
  */
 export async function logCommunityJoined(
   userId: string,
@@ -226,13 +233,15 @@ export async function logCommunityJoined(
     targetId: communityId,
     targetType: 'community',
     metadata: {
-      community_name: metadata.communityName
+      community_name: metadata.communityName,
+      is_feed_visible: false
     }
   });
 }
 
 /**
  * Log community creation activity
+ * Feed visibility: ✅ Shown (rare, high-impact event)
  */
 export async function logCommunityCreated(
   userId: string,
@@ -246,13 +255,15 @@ export async function logCommunityCreated(
     targetType: 'community',
     metadata: {
       community_name: metadata.communityName,
-      category: metadata.category
+      category: metadata.category,
+      is_feed_visible: true
     }
   });
 }
 
 /**
  * Log promise tracking activity
+ * Feed visibility: ❌ Hidden (personal action, not community news)
  */
 export async function logPromiseTracked(
   userId: string,
@@ -266,13 +277,15 @@ export async function logPromiseTracked(
     targetType: 'promise',
     metadata: {
       promise_title: metadata.promiseTitle,
-      official_name: metadata.officialName
+      official_name: metadata.officialName,
+      is_feed_visible: false
     }
   });
 }
 
 /**
  * Log civic clip upload activity
+ * Feed visibility: ❌ Hidden (redundant - clips appear as ClipPreviewCards)
  */
 export async function logClipUploaded(
   userId: string,
@@ -286,13 +299,15 @@ export async function logClipUploaded(
     targetType: 'clip',
     metadata: {
       title: metadata.title,
-      duration: metadata.duration
+      duration: metadata.duration,
+      is_feed_visible: false
     }
   });
 }
 
 /**
  * Log issue report activity
+ * Feed visibility: ❌ Hidden (internal tracking only)
  */
 export async function logIssueReported(
   userId: string,
@@ -307,13 +322,15 @@ export async function logIssueReported(
     metadata: {
       issue_type: metadata.issueType,
       location: metadata.location,
-      severity: metadata.severity
+      severity: metadata.severity,
+      is_feed_visible: false
     }
   });
 }
 
 /**
  * Log official position claim activity
+ * Feed visibility: ✅ Shown (high-impact civic event)
  */
 export async function logOfficialClaimed(
   userId: string,
@@ -327,13 +344,15 @@ export async function logOfficialClaimed(
     targetType: 'official',
     metadata: {
       position_title: metadata.positionTitle,
-      level: metadata.level
+      level: metadata.level,
+      is_feed_visible: true
     }
   });
 }
 
 /**
  * Log quest completion activity
+ * Feed visibility: ✅ Shown (gamification engagement)
  */
 export async function logQuestCompleted(
   userId: string,
@@ -347,13 +366,15 @@ export async function logQuestCompleted(
     targetType: 'quest',
     metadata: {
       quest_title: metadata.questTitle,
-      reward: metadata.reward
+      reward: metadata.reward,
+      is_feed_visible: true
     }
   });
 }
 
 /**
  * Log achievement earned activity
+ * Feed visibility: ✅ Shown (gamification engagement)
  */
 export async function logAchievementEarned(
   userId: string,
@@ -367,7 +388,8 @@ export async function logAchievementEarned(
     targetType: 'achievement',
     metadata: {
       achievement_name: metadata.achievementName,
-      tier: metadata.tier
+      tier: metadata.tier,
+      is_feed_visible: true
     }
   });
 }
