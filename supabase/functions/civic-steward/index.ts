@@ -35,16 +35,17 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: claims, error: authError } = await supabase.auth.getClaims(
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", "")
     );
-    if (authError || !claims?.claims) {
+    if (authError || !user) {
+      console.error("JWT validation error:", authError?.message);
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claims.claims.sub as string;
+    const userId = user.id;
 
     const { content_type, content } = await req.json();
 
@@ -134,7 +135,7 @@ Respond ONLY with valid JSON:
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("civic-steward error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again later." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

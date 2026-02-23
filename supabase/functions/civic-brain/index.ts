@@ -41,6 +41,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (typeof query !== "string" || query.length > 2000) {
+      return new Response(JSON.stringify({ error: "query must be a string under 2000 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (typeof session_id !== "string" || !uuidRegex.test(session_id)) {
+      return new Response(JSON.stringify({ error: "session_id must be a valid UUID" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (language && !["en", "sw"].includes(language)) {
+      return new Response(JSON.stringify({ error: "language must be 'en' or 'sw'" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -51,17 +73,18 @@ Deno.serve(async (req) => {
     });
 
     // Get User ID from Token
-    const { data: claims, error: authError } = await supabase.auth.getClaims(
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", "")
     );
     
-    if (authError || !claims?.claims) {
+    if (authError || !user) {
+      console.error("JWT validation error:", authError?.message);
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claims.claims.sub as string;
+    const userId = user.id;
 
     // Service Client for DB Ops (Context, RAG, History)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -180,7 +203,7 @@ Current Question: ${query}
     // STEP 9: CALL GROQ LLM
     console.log('Calling Groq with personalized prompt...');
     const completion = await groq.chat.completions.create({
-      model: 'llama-3-8b-8192',
+      model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: personalizedPrompt },
         { role: 'user', content: userMessage }
@@ -221,9 +244,9 @@ Current Question: ${query}
     // STEP 12: UPDATE USER ACTIVITY (fire and forget)
     serviceClient
       .from('profiles')
-      .update({ last_active_at: new Date().toISOString() })
+      .update({ last_activity: new Date().toISOString() })
       .eq('id', userId)
-      .then(() => console.log('Updated last_active_at'));
+      .then(() => console.log('Updated last_activity'));
 
     return new Response(JSON.stringify({
       answer,
@@ -243,7 +266,7 @@ Current Question: ${query}
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error('Civic Brain Error:', message);
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "An internal error occurred. Please try again later." }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

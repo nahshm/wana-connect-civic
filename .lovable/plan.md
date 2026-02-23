@@ -1,178 +1,78 @@
 
 
-# Phase 3: AI Infrastructure + Build Error Fixes
+# Fix User Context to Use Actual Onboarding Data
 
-## Part A: Fix Build Errors (Pre-requisite)
+## Problem
 
-The build errors stem from two root causes:
+The onboarding flow collects three key pieces of personalization data, but the AI backend (`userContext.ts`) crashes because it queries non-existent columns. The data is stored correctly but never reaches the AI.
 
-### A.1 Missing Supabase Types
+### Where the Data Actually Lives
 
-Tables `forum_threads`, `forum_replies`, `project_verifications`, and `administrative_divisions` exist in the database but are **not** in the auto-generated `src/integrations/supabase/types.ts` (which we cannot edit directly).
+| Onboarding Step | Data | Stored In |
+|----------------|------|-----------|
+| "Your Location" | county, constituency, ward | `profiles.county`, `profiles.constituency`, `profiles.ward` (text) + UUID refs |
+| "What Matters to You" | civic interests (3+) | `user_interests` table (maps user_id to `civic_interests.id`) |
+| "How Do You Want to Engage?" | persona | `profiles.persona` (enum: active_citizen, community_organizer, etc.) |
 
-**Fix**: Add `as any` type assertions at Supabase query call sites for these 4 tables. This is the standard workaround when DB tables exist but types haven't been regenerated.
+### What `userContext.ts` Currently Tries to Read (and fails)
 
-| File | Table | Instances |
-|------|-------|-----------|
-| `src/components/community/discord/ForumChannel.tsx` | `forum_threads`, `forum_replies` | 6 calls |
-| `src/components/projects/ProjectVerificationButton.tsx` | `project_verifications` | 4 calls |
-| `src/features/accountability/pages/ProjectDetail.tsx` | `project_verifications` | 1 call |
-| `src/features/accountability/pages/SubmitProject.tsx` | `administrative_divisions` | 6 calls |
+- `profiles.interests` -- does NOT exist (interests are in `user_interests` table)
+- `profiles.preferred_language` -- does NOT exist
+- `profiles.full_name` -- does NOT exist (it's `display_name`)
+- `profiles.verified_role` -- does NOT exist (it's `is_verified`)
+- `profiles.expertise_areas` -- does NOT exist (it's `expertise`)
+- `profiles.engagement_score` -- does NOT exist (it's `karma`)
+- `profiles.total_contributions` -- does NOT exist
+- `profiles.last_active_at` -- does NOT exist (it's `last_activity`)
+- `user_context_cache` table -- does NOT exist
+- `user_activity_context` table -- does NOT exist
 
-**Pattern applied**:
-```typescript
-// Before (type error)
-const { data } = await supabase.from('forum_threads').select(...)
+## Solution
 
-// After (type-safe workaround)
-const { data } = await (supabase.from as any)('forum_threads').select(...)
-```
+### 1. Rewrite `supabase/functions/_shared/userContext.ts`
 
-### A.2 BookmarkManageDialog Schema Mismatch
-
-The `community_bookmarks` table has columns `title`, `description`, `display_order` but the code uses `label`, `icon`, `position`. 
-
-**Fix**: Update `BookmarkManageDialog.tsx` to use the correct column names:
-- `label` -> `title`
-- `icon` -> Store in `description` (or add column via migration)
-- `position` -> `display_order`
-
-Since adding columns requires a migration and this is a bookmark feature, I'll map existing columns:
-- `title` = label text
-- `description` = icon name
-- `display_order` = position
-- `url` = url (already matches)
-
----
-
-## Part B: AI Infrastructure - Hybrid Architecture
-
-### B.1 Database Migration
-
-Create 5 new tables for the AI infrastructure:
+Query the correct columns from `profiles` and fetch interests from the `user_interests` + `civic_interests` tables:
 
 ```text
-+------------------------+     +-------------------+
-| ai_configurations      |     | moderation_logs   |
-| - provider_slug (text) |     | - content_type    |
-| - api_key (text)       |     | - verdict         |
-| - models (jsonb)       |     | - ai_confidence   |
-| - is_active (bool)     |     | - reason          |
-+------------------------+     +-------------------+
+profiles: display_name, county, constituency, ward, role, persona, 
+          is_verified, expertise, karma, last_activity
 
-+-------------------+     +-------------------+     +-------------------+
-| routing_logs      |     | vectors           |     | rag_chat_history  |
-| - issue_type      |     | - content (text)  |     | - session_id      |
-| - department_slug |     | - embedding       |     | - role            |
-| - severity (int)  |     | - metadata (json) |     | - content         |
-| - confidence      |     +-------------------+     | - sources (json)  |
-+-------------------+                               +-------------------+
+user_interests + civic_interests: join to get interest names 
+  (e.g., "Water & Sanitation", "Healthcare")
 ```
 
-**RLS Policies**:
-- `ai_configurations`: Service role only (stores API keys)
-- `moderation_logs`: Insert for authenticated, select own logs
-- `routing_logs`: Insert for authenticated, select own logs
-- `rag_chat_history`: Users read/write their own sessions
-- `vectors`: Read for authenticated (knowledge base)
+Key changes:
+- Query `profiles` with correct column names
+- Query `user_interests` joined with `civic_interests` to get interest display names
+- Map `persona` to `role` (persona is the engagement style from onboarding, more descriptive than the generic `role` field)
+- Remove all references to non-existent cache tables
+- Default `preferredLanguage` to `'en'` (no column exists for this yet)
 
-### B.2 Edge Functions (3 Functions)
+### 2. Update `supabase/functions/civic-brain/index.ts`
 
-#### Function 1: `civic-steward` (Content Moderation)
+- Fix the fire-and-forget profile update: change `last_active_at` to `last_activity`
 
-- **Endpoint**: POST with `{ content_type, content, user_id }`
-- **Logic**: Fetches Groq API key from `ai_configurations`, sends content to Llama 3 for moderation
-- **Checks**: Hate speech, PII, quality (promises need dates)
-- **Output**: `{ verdict: 'APPROVED' | 'NEEDS_REVISION' | 'BLOCKED', reason, confidence }`
-- **Logging**: Inserts into `moderation_logs`
+### 3. Deploy both functions
 
-#### Function 2: `civic-router` (Issue Routing)
+## What This Unlocks
 
-- **Endpoint**: POST with `{ issue_description, location, user_id }`
-- **Logic**: Uses Llama 3 to classify issue type, determine jurisdiction, assign severity
-- **Output**: `{ issue_type, department_name, severity, confidence, recommended_actions }`
-- **Logging**: Inserts into `routing_logs`
+Once fixed, the existing `promptBuilder.ts` (which is already well-built) will finally receive real data:
 
-#### Function 3: `civic-brain` (RAG Q&A)
+- **Interest personalization**: "Primary Interest: Water & Sanitation" will bias answers toward water issues
+- **Persona-based communication style**: A "community_organizer" gets strategic, resource-focused answers; a "civic_learner" gets educational, empowering ones
+- **Location-aware answers**: Specific county/ward facilities and contacts
+- **Activity insights**: Karma-based engagement level adjustments
 
-- **Endpoint**: POST with `{ query, session_id, user_id, language }`
-- **Logic**: Embeds query, vector search in `vectors` table, generates answer with Llama 3
-- **Output**: `{ answer, sources, confidence }`
-- **Logging**: Inserts into `rag_chat_history`
+## What Stays the Same
 
-### B.3 Frontend Integration
+- `promptBuilder.ts` -- no changes needed, it already handles all personalization logic
+- The `UserContext` interface shape stays compatible
+- Frontend `CivicChat.tsx` -- no changes needed
+- All onboarding components -- no changes needed
 
-**New file**: `src/services/aiClient.ts`
+## Scope
 
-A unified TypeScript service:
-
-```typescript
-export const aiClient = {
-  governance: (contentType, content) => 
-    supabase.functions.invoke('civic-steward', { body: {...} }),
-  
-  routing: (issueDescription, location) => 
-    supabase.functions.invoke('civic-router', { body: {...} }),
-  
-  rag: (query, sessionId, language) => 
-    supabase.functions.invoke('civic-brain', { body: {...} }),
-};
-```
-
-### B.4 Groq API Key Setup
-
-Before edge functions work, you'll need to provide your Groq API key. I'll use the secrets tool to securely store it as a Supabase secret accessible by edge functions.
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/civic-steward/index.ts` | Content moderation edge function |
-| `supabase/functions/civic-router/index.ts` | Issue routing edge function |
-| `supabase/functions/civic-brain/index.ts` | RAG Q&A edge function |
-| `src/services/aiClient.ts` | Unified frontend AI client |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/community/discord/ForumChannel.tsx` | Add type assertions for missing tables |
-| `src/components/projects/ProjectVerificationButton.tsx` | Add type assertions |
-| `src/features/accountability/pages/ProjectDetail.tsx` | Add type assertions |
-| `src/features/accountability/pages/SubmitProject.tsx` | Add type assertions |
-| `src/components/community/BookmarkManageDialog.tsx` | Fix column name mismatch |
-| `supabase/config.toml` | Register 3 new edge functions |
-
-## Database Changes
-
-| Change | Type |
-|--------|------|
-| Create `ai_configurations` table | Migration |
-| Create `moderation_logs` table | Migration |
-| Create `routing_logs` table | Migration |
-| Create `vectors` table (with pgvector) | Migration |
-| Create `rag_chat_history` table | Migration |
-| Add RLS policies for all 5 tables | Migration |
-
-## Implementation Order
-
-1. Fix build errors first (Part A) - unblocks development
-2. Run database migration (Part B.1) - creates AI tables
-3. Request Groq API key secret (Part B.4)
-4. Deploy edge functions (Part B.2)
-5. Create frontend aiClient (Part B.3)
-6. Test end-to-end
-
-## Effort Estimate
-
-| Phase | Duration |
-|-------|----------|
-| Build error fixes | 1 hour |
-| Database migration | 30 minutes |
-| Edge functions (3) | 3-4 hours |
-| Frontend client | 1 hour |
-| Testing | 1 hour |
-| **Total** | **6-7 hours** |
+- 2 files modified (`userContext.ts`, `civic-brain/index.ts`)
+- 0 new files
+- 0 database changes
 
