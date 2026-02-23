@@ -9,7 +9,10 @@
  *   import { logAgentRun, emitEvent, createProposal } from '../_shared/agentUtils.ts';
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// deno-lint-ignore no-explicit-any
+type AnySupabaseClient = SupabaseClient<any, any, any>;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
