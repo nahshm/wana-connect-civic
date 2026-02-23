@@ -153,7 +153,7 @@ Respond ONLY with valid JSON:
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("civic-router error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again later." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

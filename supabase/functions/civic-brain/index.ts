@@ -41,6 +41,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (typeof query !== "string" || query.length > 2000) {
+      return new Response(JSON.stringify({ error: "query must be a string under 2000 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (typeof session_id !== "string" || !uuidRegex.test(session_id)) {
+      return new Response(JSON.stringify({ error: "session_id must be a valid UUID" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (language && !["en", "sw"].includes(language)) {
+      return new Response(JSON.stringify({ error: "language must be 'en' or 'sw'" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -243,7 +265,7 @@ Current Question: ${query}
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error('Civic Brain Error:', message);
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "An internal error occurred. Please try again later." }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
