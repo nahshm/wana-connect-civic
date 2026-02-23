@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      accountability_alerts: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          constituency: string | null
+          county: string | null
+          created_at: string
+          details: Json
+          id: string
+          is_public: boolean
+          severity: number
+          subject_id: string
+          subject_name: string | null
+          subject_type: string
+          summary: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          constituency?: string | null
+          county?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          is_public?: boolean
+          severity?: number
+          subject_id: string
+          subject_name?: string | null
+          subject_type: string
+          summary: string
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          constituency?: string | null
+          county?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          is_public?: boolean
+          severity?: number
+          subject_id?: string
+          subject_name?: string | null
+          subject_type?: string
+          summary?: string
+        }
+        Relationships: []
+      }
       admin_notifications: {
         Row: {
           action_url: string | null
@@ -133,6 +187,279 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_drafts: {
+        Row: {
+          agent_name: string
+          approved_at: string | null
+          approved_by: string | null
+          content: string
+          created_at: string
+          draft_type: string
+          id: string
+          language: string
+          metadata: Json
+          sent_at: string | null
+          source_event: string | null
+          status: string
+          target_id: string | null
+          target_type: string | null
+          title: string | null
+        }
+        Insert: {
+          agent_name?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          content: string
+          created_at?: string
+          draft_type: string
+          id?: string
+          language?: string
+          metadata?: Json
+          sent_at?: string | null
+          source_event?: string | null
+          status?: string
+          target_id?: string | null
+          target_type?: string | null
+          title?: string | null
+        }
+        Update: {
+          agent_name?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          content?: string
+          created_at?: string
+          draft_type?: string
+          id?: string
+          language?: string
+          metadata?: Json
+          sent_at?: string | null
+          source_event?: string | null
+          status?: string
+          target_id?: string | null
+          target_type?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_drafts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "agent_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_drafts_source_event_fkey"
+            columns: ["source_event"]
+            isOneToOne: false
+            referencedRelation: "agent_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_events: {
+        Row: {
+          created_at: string
+          error_detail: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          source_agent: string
+          status: string
+          target_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_detail?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          source_agent: string
+          status?: string
+          target_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_detail?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          source_agent?: string
+          status?: string
+          target_agent?: string | null
+        }
+        Relationships: []
+      }
+      agent_feedback: {
+        Row: {
+          agent_name: string
+          created_at: string
+          id: string
+          notes: string | null
+          proposal_id: string | null
+          rating: string
+          reviewer_id: string
+          run_id: string | null
+        }
+        Insert: {
+          agent_name: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          proposal_id?: string | null
+          rating: string
+          reviewer_id: string
+          run_id?: string | null
+        }
+        Update: {
+          agent_name?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          proposal_id?: string | null
+          rating?: string
+          reviewer_id?: string
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_feedback_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "agent_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_feedback_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_proposals: {
+        Row: {
+          action_taken: string | null
+          agent_name: string
+          confidence: number | null
+          created_at: string
+          evidence: Json
+          expires_at: string
+          id: string
+          proposal_type: string
+          reasoning: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          subject_id: string | null
+          subject_type: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          agent_name: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: Json
+          expires_at?: string
+          id?: string
+          proposal_type: string
+          reasoning: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject_id?: string | null
+          subject_type?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          agent_name?: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: Json
+          expires_at?: string
+          id?: string
+          proposal_type?: string
+          reasoning?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject_id?: string | null
+          subject_type?: string | null
+        }
+        Relationships: []
+      }
+      agent_runs: {
+        Row: {
+          agent_name: string
+          created_at: string
+          duration_ms: number | null
+          error_summary: string | null
+          id: string
+          items_actioned: number
+          items_failed: number
+          items_scanned: number
+          metadata: Json
+          status: string
+          trigger_type: string
+        }
+        Insert: {
+          agent_name: string
+          created_at?: string
+          duration_ms?: number | null
+          error_summary?: string | null
+          id?: string
+          items_actioned?: number
+          items_failed?: number
+          items_scanned?: number
+          metadata?: Json
+          status: string
+          trigger_type: string
+        }
+        Update: {
+          agent_name?: string
+          created_at?: string
+          duration_ms?: number | null
+          error_summary?: string | null
+          id?: string
+          items_actioned?: number
+          items_failed?: number
+          items_scanned?: number
+          metadata?: Json
+          status?: string
+          trigger_type?: string
+        }
+        Relationships: []
+      }
+      agent_state: {
+        Row: {
+          agent_name: string
+          description: string | null
+          id: string
+          state_key: string
+          state_value: Json
+          updated_at: string
+        }
+        Insert: {
+          agent_name: string
+          description?: string | null
+          id?: string
+          state_key: string
+          state_value: Json
+          updated_at?: string
+        }
+        Update: {
+          agent_name?: string
+          description?: string | null
+          id?: string
+          state_key?: string
+          state_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       ai_configurations: {
         Row: {
@@ -1642,6 +1969,7 @@ export type Database = {
       }
       comments: {
         Row: {
+          agent_flags: Json
           appeal_status: string | null
           author_id: string
           civic_tags: string[] | null
@@ -1656,6 +1984,7 @@ export type Database = {
           fact_check_timestamp: string | null
           fact_checker_id: string | null
           flair_id: string | null
+          hidden_by_agent: string | null
           hidden_reason: string | null
           id: string
           is_collapsed: boolean | null
@@ -1679,6 +2008,7 @@ export type Database = {
           verification_id: string | null
         }
         Insert: {
+          agent_flags?: Json
           appeal_status?: string | null
           author_id: string
           civic_tags?: string[] | null
@@ -1693,6 +2023,7 @@ export type Database = {
           fact_check_timestamp?: string | null
           fact_checker_id?: string | null
           flair_id?: string | null
+          hidden_by_agent?: string | null
           hidden_reason?: string | null
           id?: string
           is_collapsed?: boolean | null
@@ -1716,6 +2047,7 @@ export type Database = {
           verification_id?: string | null
         }
         Update: {
+          agent_flags?: Json
           appeal_status?: string | null
           author_id?: string
           civic_tags?: string[] | null
@@ -1730,6 +2062,7 @@ export type Database = {
           fact_check_timestamp?: string | null
           fact_checker_id?: string | null
           flair_id?: string | null
+          hidden_by_agent?: string | null
           hidden_reason?: string | null
           id?: string
           is_collapsed?: boolean | null
@@ -4575,6 +4908,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          agent_flags: Json
           author_id: string
           comment_count: number | null
           community_id: string | null
@@ -4583,7 +4917,10 @@ export type Database = {
           content_type: Database["public"]["Enums"]["content_type"] | null
           created_at: string
           downvotes: number | null
+          hidden_by_agent: string | null
+          hidden_reason: string | null
           id: string
+          is_hidden: boolean
           is_ngo_verified: boolean | null
           link_description: string | null
           link_image: string | null
@@ -4597,9 +4934,12 @@ export type Database = {
           updated_at: string
           upvotes: number | null
           verification_id: string | null
+          verification_source: string | null
+          verification_status: string | null
           video_data: Json | null
         }
         Insert: {
+          agent_flags?: Json
           author_id: string
           comment_count?: number | null
           community_id?: string | null
@@ -4608,7 +4948,10 @@ export type Database = {
           content_type?: Database["public"]["Enums"]["content_type"] | null
           created_at?: string
           downvotes?: number | null
+          hidden_by_agent?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           is_ngo_verified?: boolean | null
           link_description?: string | null
           link_image?: string | null
@@ -4622,9 +4965,12 @@ export type Database = {
           updated_at?: string
           upvotes?: number | null
           verification_id?: string | null
+          verification_source?: string | null
+          verification_status?: string | null
           video_data?: Json | null
         }
         Update: {
+          agent_flags?: Json
           author_id?: string
           comment_count?: number | null
           community_id?: string | null
@@ -4633,7 +4979,10 @@ export type Database = {
           content_type?: Database["public"]["Enums"]["content_type"] | null
           created_at?: string
           downvotes?: number | null
+          hidden_by_agent?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           is_ngo_verified?: boolean | null
           link_description?: string | null
           link_image?: string | null
@@ -4647,6 +4996,8 @@ export type Database = {
           updated_at?: string
           upvotes?: number | null
           verification_id?: string | null
+          verification_source?: string | null
+          verification_status?: string | null
           video_data?: Json | null
         }
         Relationships: [
@@ -5500,6 +5851,60 @@ export type Database = {
           },
         ]
       }
+      scout_findings: {
+        Row: {
+          category: string | null
+          county: string | null
+          created_at: string
+          embedded: boolean
+          id: string
+          processed: boolean
+          raw_content: string | null
+          related_id: string | null
+          related_name: string | null
+          related_to: string | null
+          relevance_score: number | null
+          source_type: string | null
+          source_url: string | null
+          summary: string | null
+          title: string | null
+        }
+        Insert: {
+          category?: string | null
+          county?: string | null
+          created_at?: string
+          embedded?: boolean
+          id?: string
+          processed?: boolean
+          raw_content?: string | null
+          related_id?: string | null
+          related_name?: string | null
+          related_to?: string | null
+          relevance_score?: number | null
+          source_type?: string | null
+          source_url?: string | null
+          summary?: string | null
+          title?: string | null
+        }
+        Update: {
+          category?: string | null
+          county?: string | null
+          created_at?: string
+          embedded?: boolean
+          id?: string
+          processed?: boolean
+          raw_content?: string | null
+          related_id?: string | null
+          related_name?: string | null
+          related_to?: string | null
+          relevance_score?: number | null
+          source_type?: string | null
+          source_url?: string | null
+          summary?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       sentiment_scores: {
         Row: {
           content_id: string
@@ -6081,6 +6486,48 @@ export type Database = {
           },
         ]
       }
+      user_warnings: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_at: string | null
+          content_ref: string | null
+          content_type: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          issued_by: string
+          reason: string
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          content_ref?: string | null
+          content_type?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_by?: string
+          reason: string
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          content_ref?: string | null
+          content_type?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_by?: string
+          reason?: string
+          severity?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vectors: {
         Row: {
           content: string
@@ -6597,6 +7044,18 @@ export type Database = {
       }
     }
     Functions: {
+      acknowledge_warning: {
+        Args: { p_warning_id: string }
+        Returns: undefined
+      }
+      agent_hide_comment: {
+        Args: { p_agent: string; p_comment_id: string; p_reason: string }
+        Returns: undefined
+      }
+      agent_hide_post: {
+        Args: { p_agent: string; p_post_id: string; p_reason: string }
+        Returns: undefined
+      }
       calculate_comment_karma: { Args: { user_uuid: string }; Returns: number }
       calculate_goat_level: {
         Args: { p_xp: number }
@@ -6650,6 +7109,10 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      get_agent_threshold: {
+        Args: { p_agent: string; p_key: string }
+        Returns: number
       }
       get_channel_analytics: {
         Args: { p_channel_id: string }
@@ -6752,6 +7215,7 @@ export type Database = {
           username: string
         }[]
       }
+      get_user_warning_count: { Args: { p_user_id: string }; Returns: number }
       get_weekly_contributions: {
         Args: { community_uuid: string }
         Returns: number
@@ -6768,7 +7232,9 @@ export type Database = {
         Args: { p_channel_id: string; p_metric: string }
         Returns: undefined
       }
-      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       log_community_visit: {
         Args: { p_community_id: string }
