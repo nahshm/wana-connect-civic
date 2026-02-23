@@ -243,9 +243,9 @@ Current Question: ${query}
     // STEP 12: UPDATE USER ACTIVITY (fire and forget)
     serviceClient
       .from('profiles')
-      .update({ last_active_at: new Date().toISOString() })
+      .update({ last_activity: new Date().toISOString() })
       .eq('id', userId)
-      .then(() => console.log('Updated last_active_at'));
+      .then(() => console.log('Updated last_activity'));
 
     return new Response(JSON.stringify({
       answer,
