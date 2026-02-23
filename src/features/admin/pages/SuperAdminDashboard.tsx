@@ -8,7 +8,8 @@ import {
   UserCheck, MessageSquare, BarChart3, FileText, Bell, ChevronDown,
   Search, Filter, Activity, Server, Brain, Sparkles,
   CheckCircle, XCircle, Clock, Briefcase, ShieldAlert, Radio, Send,
-  Building, MapPin, Calendar, Map, Check, X, Loader2
+  Building, MapPin, Calendar, Map, Check, X, Loader2, Bot, RefreshCw,
+  ThumbsUp, ThumbsDown, Minus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +37,7 @@ const mainTabs = [
   { id: 'verification', label: 'Position Verification', icon: Check },
   { id: 'geo-data', label: 'Geographic Data', icon: Map },
   { id: 'institutions', label: 'Government Institutions', icon: Building },
+  { id: 'agent-queue', label: 'Agent Queue', icon: Bot },
   { id: 'ai-insights', label: 'AI Insights', icon: Brain },
   { id: 'feature-flags', label: 'Feature Flags', icon: Settings },
   { id: 'security', label: 'Security', icon: Lock },
@@ -218,6 +220,7 @@ export default function SuperAdminDashboard() {
           {selectedTab === 'verification' && <PositionVerificationTab />}
           {selectedTab === 'geo-data' && <GeographicDataTab />}
           {selectedTab === 'institutions' && <InstitutionsTab />}
+          {selectedTab === 'agent-queue' && <AgentQueueTab />}
           {selectedTab === 'ai-insights' && <AIInsightsTab />}
           {selectedTab === 'feature-flags' && <FeatureFlagsTab />}
           {selectedTab === 'security' && <SecurityTab />}
@@ -943,6 +946,292 @@ function OfficialsTab() {
                     </div>
                   </div>
                 ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Agent Queue Tab ─────────────────────────────────────────────────────────
+type ProposalRow = {
+  id: string;
+  content_type: string;
+  agent_verdict: string;
+  confidence_score: number;
+  status: string;
+  created_at: string;
+  target_id: string;
+  reasoning: string | null;
+};
+
+type RunLogRow = {
+  id: string;
+  agent_name: string;
+  trigger_type: string;
+  status: string;
+  started_at: string;
+  completed_at: string | null;
+  error_message: string | null;
+  items_processed: number;
+};
+
+function AgentQueueTab() {
+  const [proposals, setProposals] = useState<ProposalRow[]>([]);
+  const [runLogs, setRunLogs] = useState<RunLogRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approve' | 'remove' | 'warn'>('all');
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const [proposalsRes, logsRes] = await Promise.all([
+      supabase
+        .from('agent_proposals')
+        .select('id, content_type, agent_verdict, confidence_score, status, created_at, target_id, reasoning')
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('agent_run_logs')
+        .select('id, agent_name, trigger_type, status, started_at, completed_at, error_message, items_processed')
+        .order('started_at', { ascending: false })
+        .limit(30),
+    ]);
+    setProposals((proposalsRes.data as ProposalRow[]) || []);
+    setRunLogs((logsRes.data as RunLogRow[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleDecision = async (proposalId: string, decision: 'approved' | 'rejected', adminNotes?: string) => {
+    setProcessing(proposalId);
+    try {
+      const { data: { user: admin } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('agent_proposals')
+        .update({
+          status: decision,
+          admin_reviewed_by: admin?.id,
+          admin_reviewed_at: new Date().toISOString(),
+          admin_notes: adminNotes || null,
+        })
+        .eq('id', proposalId);
+      if (error) throw error;
+      toast.success(decision === 'approved' ? 'Proposal approved — action will execute.' : 'Proposal rejected.');
+      fetchData();
+    } catch (e) {
+      toast.error('Failed to update proposal');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const verdictIcon = (verdict: string) => {
+    if (verdict === 'approve') return <ThumbsUp className="w-4 h-4 text-green-500" />;
+    if (verdict === 'remove') return <ThumbsDown className="w-4 h-4 text-destructive" />;
+    return <Minus className="w-4 h-4 text-yellow-500" />;
+  };
+
+  const pendingCount = proposals.filter(p => p.status === 'pending').length;
+  const approveCount = proposals.filter(p => p.agent_verdict === 'approve').length;
+  const removeCount = proposals.filter(p => p.agent_verdict === 'remove').length;
+  const recentRuns = runLogs.length;
+
+  const filtered = filter === 'all' ? proposals : proposals.filter(p =>
+    filter === 'pending' ? p.status === 'pending' : p.agent_verdict === filter
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center">
+            <Bot className="w-5 h-5 text-violet-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">WAAS Agent Queue</h2>
+            <p className="text-sm text-muted-foreground">Review civic-guardian &amp; civic-minion proposals</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+
+      {/* KPI Row */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-orange-500">
+          <CardContent className="p-4">
+            <Clock className="text-orange-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{pendingCount}</div>
+            <div className="text-sm text-muted-foreground">Pending Review</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <ThumbsUp className="text-green-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{approveCount}</div>
+            <div className="text-sm text-muted-foreground">Approve Verdicts</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-destructive">
+          <CardContent className="p-4">
+            <ThumbsDown className="text-destructive mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{removeCount}</div>
+            <div className="text-sm text-muted-foreground">Remove Verdicts</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-violet-500">
+          <CardContent className="p-4">
+            <Bot className="text-violet-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{recentRuns}</div>
+            <div className="text-sm text-muted-foreground">Recent Agent Runs</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Proposal Queue */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Proposal Queue</CardTitle>
+            <div className="flex gap-2">
+              {(['all', 'pending', 'approve', 'remove', 'warn'] as const).map(f => (
+                <Button
+                  key={f}
+                  size="sm"
+                  variant={filter === f ? 'default' : 'outline'}
+                  onClick={() => setFilter(f)}
+                  className="capitalize"
+                >
+                  {f}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <Bot className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No proposals found. Agents will populate this queue as content is moderated.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map(proposal => (
+                <div key={proposal.id} className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {verdictIcon(proposal.agent_verdict)}
+                        <Badge variant="outline" className="capitalize text-xs">{proposal.content_type}</Badge>
+                        <Badge
+                          variant={proposal.agent_verdict === 'remove' ? 'destructive' : proposal.agent_verdict === 'approve' ? 'default' : 'secondary'}
+                          className="capitalize text-xs"
+                        >
+                          {proposal.agent_verdict}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Confidence: {Math.round((proposal.confidence_score || 0) * 100)}%
+                        </span>
+                        <Badge
+                          variant={proposal.status === 'pending' ? 'secondary' : proposal.status === 'approved' ? 'default' : 'destructive'}
+                          className="capitalize text-xs ml-auto"
+                        >
+                          {proposal.status}
+                        </Badge>
+                      </div>
+                      {proposal.reasoning && (
+                        <p className="text-sm text-muted-foreground mt-1 truncate" title={proposal.reasoning}>
+                          {proposal.reasoning}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Target ID: <code className="font-mono">{proposal.target_id?.slice(0, 12)}…</code>
+                        &nbsp;·&nbsp;{new Date(proposal.created_at).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {proposal.status === 'pending' && (
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                          onClick={() => handleDecision(proposal.id, 'approved')}
+                          disabled={processing === proposal.id}
+                        >
+                          {processing === proposal.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-destructive border-destructive hover:bg-destructive/10"
+                          onClick={() => handleDecision(proposal.id, 'rejected')}
+                          disabled={processing === proposal.id}
+                        >
+                          {processing === proposal.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Agent Run Log */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Agent Runs</CardTitle>
+          <CardDescription>Last 30 agent execution records</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {runLogs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No agent runs recorded yet. Runs are logged when the Edge Functions execute.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {runLogs.map(log => (
+                <div key={log.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full ${
+                      log.status === 'completed' ? 'bg-green-500' :
+                      log.status === 'failed' ? 'bg-destructive' : 'bg-yellow-500'
+                    }`} />
+                    <div>
+                      <div className="font-medium text-sm">{log.agent_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {log.trigger_type} · {log.items_processed ?? 0} items · {new Date(log.started_at).toLocaleString()}
+                      </div>
+                      {log.error_message && (
+                        <div className="text-xs text-destructive mt-0.5 truncate max-w-xs" title={log.error_message}>
+                          {log.error_message}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Badge
+                    variant={log.status === 'completed' ? 'default' : log.status === 'failed' ? 'destructive' : 'secondary'}
+                    className="capitalize text-xs"
+                  >
+                    {log.status}
+                  </Badge>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
