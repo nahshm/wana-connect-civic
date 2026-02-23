@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Server configuration error" }, 500);
   }
 
-  const serviceClient: any = createClient(supabaseUrl, serviceRoleKey, {
+  const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
 
@@ -219,9 +219,10 @@ async function runCatchUpScan(
   // Look back 6 minutes to safely overlap with 5-min cron interval
   const since = new Date(Date.now() - 6 * 60 * 1000).toISOString();
 
-  const { data: posts, error: postsErr } = await (serviceClient as any)
+  const { data: posts, error: postsErr } = await serviceClient
     .from("posts")
-    .select("id, content, author_id")
+    .select("id, body, user_id")
+    .eq("is_hidden", false)
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(SCAN_BATCH_SIZE);
@@ -234,7 +235,7 @@ async function runCatchUpScan(
       scanned++;
       const result = await processContentItem(
         serviceClient, groqApiKey,
-        { id: post.id, content: post.content, user_id: post.author_id, type: "post" },
+        { id: post.id, content: post.body, user_id: post.user_id, type: "post" },
         autoActionThreshold, reviewThreshold, repeatOffenderStrikes
       );
       if (result === "actioned") actioned++;
@@ -243,9 +244,9 @@ async function runCatchUpScan(
   }
 
   // Scan recent comments
-  const { data: comments, error: commentsErr } = await (serviceClient as any)
+  const { data: comments, error: commentsErr } = await serviceClient
     .from("comments")
-    .select("id, content, author_id")
+    .select("id, content, user_id")
     .eq("is_hidden", false)
     .gte("created_at", since)
     .order("created_at", { ascending: false })
@@ -259,7 +260,7 @@ async function runCatchUpScan(
       scanned++;
       const result = await processContentItem(
         serviceClient, groqApiKey,
-        { id: comment.id, content: comment.content, user_id: comment.author_id, type: "comment" },
+        { id: comment.id, content: comment.content, user_id: comment.user_id, type: "comment" },
         autoActionThreshold, reviewThreshold, repeatOffenderStrikes
       );
       if (result === "actioned") actioned++;
@@ -365,7 +366,7 @@ async function processContentItem(
     });
 
     // 4. Log to existing moderation_logs (backward-compatible)
-    await (serviceClient as any).from("moderation_logs").insert({
+    await serviceClient.from("moderation_logs").insert({
       user_id: item.user_id,
       content_type: item.type,
       content_preview: rawText.substring(0, 200),
@@ -428,7 +429,7 @@ async function queueForHumanReview(
   flags: string,
   reason: string
 ): Promise<void> {
-  const { error } = await (serviceClient as any).from("moderation_logs").insert({
+  const { error } = await serviceClient.from("moderation_logs").insert({
     user_id: item.user_id,
     content_type: item.type,
     content_preview: ((item.content ?? item.body) ?? "").substring(0, 200),

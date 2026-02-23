@@ -957,13 +957,13 @@ function OfficialsTab() {
 // ─── Agent Queue Tab ─────────────────────────────────────────────────────────
 type ProposalRow = {
   id: string;
-  proposal_type: string;
-  agent_name: string;
-  confidence: number | null;
+  content_type: string;
+  agent_verdict: string;
+  confidence_score: number;
   status: string;
   created_at: string;
-  subject_id: string | null;
-  reasoning: string;
+  target_id: string;
+  reasoning: string | null;
 };
 
 type RunLogRow = {
@@ -971,10 +971,10 @@ type RunLogRow = {
   agent_name: string;
   trigger_type: string;
   status: string;
-  created_at: string;
-  duration_ms: number | null;
-  error_summary: string | null;
-  items_scanned: number;
+  started_at: string;
+  completed_at: string | null;
+  error_message: string | null;
+  items_processed: number;
 };
 
 function AgentQueueTab() {
@@ -989,17 +989,17 @@ function AgentQueueTab() {
     const [proposalsRes, logsRes] = await Promise.all([
       supabase
         .from('agent_proposals')
-        .select('id, proposal_type, agent_name, confidence, status, created_at, subject_id, reasoning')
+        .select('id, content_type, agent_verdict, confidence_score, status, created_at, target_id, reasoning')
         .order('created_at', { ascending: false })
         .limit(50),
       supabase
-        .from('agent_runs')
-        .select('id, agent_name, trigger_type, status, created_at, duration_ms, error_summary, items_scanned')
-        .order('created_at', { ascending: false })
+        .from('agent_run_logs')
+        .select('id, agent_name, trigger_type, status, started_at, completed_at, error_message, items_processed')
+        .order('started_at', { ascending: false })
         .limit(30),
     ]);
-    setProposals((proposalsRes.data as unknown as ProposalRow[]) || []);
-    setRunLogs((logsRes.data as unknown as RunLogRow[]) || []);
+    setProposals((proposalsRes.data as ProposalRow[]) || []);
+    setRunLogs((logsRes.data as RunLogRow[]) || []);
     setLoading(false);
   };
 
@@ -1009,13 +1009,13 @@ function AgentQueueTab() {
     setProcessing(proposalId);
     try {
       const { data: { user: admin } } = await supabase.auth.getUser();
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('agent_proposals')
         .update({
           status: decision,
-          reviewed_by: admin?.id,
-          reviewed_at: new Date().toISOString(),
-          action_taken: adminNotes || null,
+          admin_reviewed_by: admin?.id,
+          admin_reviewed_at: new Date().toISOString(),
+          admin_notes: adminNotes || null,
         })
         .eq('id', proposalId);
       if (error) throw error;
@@ -1035,12 +1035,12 @@ function AgentQueueTab() {
   };
 
   const pendingCount = proposals.filter(p => p.status === 'pending').length;
-  const approveCount = proposals.filter(p => p.proposal_type === 'approve' || p.status === 'approved').length;
-  const removeCount = proposals.filter(p => p.proposal_type === 'ban_user' || p.proposal_type === 'hide_content').length;
+  const approveCount = proposals.filter(p => p.agent_verdict === 'approve').length;
+  const removeCount = proposals.filter(p => p.agent_verdict === 'remove').length;
   const recentRuns = runLogs.length;
 
   const filtered = filter === 'all' ? proposals : proposals.filter(p =>
-    filter === 'pending' ? p.status === 'pending' : p.proposal_type === filter
+    filter === 'pending' ? p.status === 'pending' : p.agent_verdict === filter
   );
 
   return (
@@ -1131,16 +1131,16 @@ function AgentQueueTab() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {verdictIcon(proposal.proposal_type)}
-                        <Badge variant="outline" className="capitalize text-xs">{proposal.proposal_type}</Badge>
+                        {verdictIcon(proposal.agent_verdict)}
+                        <Badge variant="outline" className="capitalize text-xs">{proposal.content_type}</Badge>
                         <Badge
-                          variant={proposal.proposal_type === 'ban_user' ? 'destructive' : proposal.proposal_type === 'send_warning' ? 'default' : 'secondary'}
+                          variant={proposal.agent_verdict === 'remove' ? 'destructive' : proposal.agent_verdict === 'approve' ? 'default' : 'secondary'}
                           className="capitalize text-xs"
                         >
-                          {proposal.proposal_type}
+                          {proposal.agent_verdict}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          Confidence: {Math.round((proposal.confidence || 0) * 100)}%
+                          Confidence: {Math.round((proposal.confidence_score || 0) * 100)}%
                         </span>
                         <Badge
                           variant={proposal.status === 'pending' ? 'secondary' : proposal.status === 'approved' ? 'default' : 'destructive'}
@@ -1155,7 +1155,7 @@ function AgentQueueTab() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-1">
-                        Subject: <code className="font-mono">{proposal.subject_id?.slice(0, 12)}…</code>
+                        Target ID: <code className="font-mono">{proposal.target_id?.slice(0, 12)}…</code>
                         &nbsp;·&nbsp;{new Date(proposal.created_at).toLocaleString()}
                       </p>
                     </div>
@@ -1215,11 +1215,11 @@ function AgentQueueTab() {
                     <div>
                       <div className="font-medium text-sm">{log.agent_name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {log.trigger_type} · {log.items_scanned ?? 0} items · {new Date(log.created_at).toLocaleString()}
+                        {log.trigger_type} · {log.items_processed ?? 0} items · {new Date(log.started_at).toLocaleString()}
                       </div>
-                      {log.error_summary && (
-                        <div className="text-xs text-destructive mt-0.5 truncate max-w-xs" title={log.error_summary}>
-                          {log.error_summary}
+                      {log.error_message && (
+                        <div className="text-xs text-destructive mt-0.5 truncate max-w-xs" title={log.error_message}>
+                          {log.error_message}
                         </div>
                       )}
                     </div>
