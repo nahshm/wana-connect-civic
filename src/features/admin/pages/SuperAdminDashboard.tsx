@@ -9,7 +9,7 @@ import {
   Search, Filter, Activity, Server, Brain, Sparkles,
   CheckCircle, XCircle, Clock, Briefcase, ShieldAlert, Radio, Send,
   Building, MapPin, Calendar, Map, Check, X, Loader2, Bot, RefreshCw,
-  ThumbsUp, ThumbsDown, Minus
+  ThumbsUp, ThumbsDown, Minus, Sliders, Database, BookOpen, Pencil, Plus, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +38,7 @@ const mainTabs = [
   { id: 'geo-data', label: 'Geographic Data', icon: Map },
   { id: 'institutions', label: 'Government Institutions', icon: Building },
   { id: 'agent-queue', label: 'Agent Queue', icon: Bot },
+  { id: 'agent-control', label: 'Agent Control Center', icon: Sliders },
   { id: 'ai-insights', label: 'AI Insights', icon: Brain },
   { id: 'feature-flags', label: 'Feature Flags', icon: Settings },
   { id: 'security', label: 'Security', icon: Lock },
@@ -221,6 +222,7 @@ export default function SuperAdminDashboard() {
           {selectedTab === 'geo-data' && <GeographicDataTab />}
           {selectedTab === 'institutions' && <InstitutionsTab />}
           {selectedTab === 'agent-queue' && <AgentQueueTab />}
+          {selectedTab === 'agent-control' && <AgentControlCenterTab />}
           {selectedTab === 'ai-insights' && <AIInsightsTab />}
           {selectedTab === 'feature-flags' && <FeatureFlagsTab />}
           {selectedTab === 'security' && <SecurityTab />}
@@ -977,29 +979,81 @@ type RunLogRow = {
   items_processed: number;
 };
 
+type AccountabilityAlertRow = {
+  id: string;
+  alert_type: string;
+  subject_type: string;
+  subject_name: string;
+  severity: number;
+  summary: string;
+  county: string | null;
+  constituency: string | null;
+  is_public: boolean;
+  acknowledged: boolean;
+  created_at: string;
+  details: { citizen_action?: string; raw_facts?: Record<string, unknown> } | null;
+};
+
+type DraftRow = {
+  id: string;
+  agent_name: string;
+  draft_type: string;
+  title: string;
+  content: string;
+  status: string;
+  language: string;
+  created_at: string;
+  metadata: {
+    finding_id?: string;
+    analysis_type?: string;
+    confidence?: number;
+    county?: string | null;
+    rag_sources_count?: number;
+  } | null;
+};
+
 function AgentQueueTab() {
   const [proposals, setProposals] = useState<ProposalRow[]>([]);
   const [runLogs, setRunLogs] = useState<RunLogRow[]>([]);
+  const [accountabilityAlerts, setAccountabilityAlerts] = useState<AccountabilityAlertRow[]>([]);
+  const [sageDrafts, setSageDrafts] = useState<DraftRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approve' | 'remove' | 'warn'>('all');
   const [processing, setProcessing] = useState<string | null>(null);
+  const [ackProcessing, setAckProcessing] = useState<string | null>(null);
+  const [draftProcessing, setDraftProcessing] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
-    const [proposalsRes, logsRes] = await Promise.all([
-      supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any;
+    const [proposalsRes, logsRes, alertsRes, draftsRes] = await Promise.all([
+      db
         .from('agent_proposals')
         .select('id, content_type, agent_verdict, confidence_score, status, created_at, target_id, reasoning')
         .order('created_at', { ascending: false })
         .limit(50),
-      supabase
+      db
         .from('agent_run_logs')
         .select('id, agent_name, trigger_type, status, started_at, completed_at, error_message, items_processed')
         .order('started_at', { ascending: false })
         .limit(30),
+      db
+        .from('accountability_alerts')
+        .select('id, alert_type, subject_type, subject_name, severity, summary, county, constituency, is_public, acknowledged, created_at, details')
+        .order('created_at', { ascending: false })
+        .limit(30),
+      db
+        .from('agent_drafts')
+        .select('id, agent_name, draft_type, title, content, status, language, created_at, metadata')
+        .in('agent_name', ['civic-sage'])
+        .order('created_at', { ascending: false })
+        .limit(20),
     ]);
     setProposals((proposalsRes.data as ProposalRow[]) || []);
     setRunLogs((logsRes.data as RunLogRow[]) || []);
+    setAccountabilityAlerts((alertsRes.data as AccountabilityAlertRow[]) || []);
+    setSageDrafts((draftsRes.data as DraftRow[]) || []);
     setLoading(false);
   };
 
@@ -1053,7 +1107,7 @@ function AgentQueueTab() {
           </div>
           <div>
             <h2 className="text-lg font-semibold">WAAS Agent Queue</h2>
-            <p className="text-sm text-muted-foreground">Review civic-guardian &amp; civic-minion proposals</p>
+            <p className="text-sm text-muted-foreground">Proposals · Accountability Alerts · Agent Runs</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
@@ -1236,6 +1290,640 @@ function AgentQueueTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Accountability Alerts — from civic-tracker */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-orange-500" />
+                Accountability Alerts
+              </CardTitle>
+              <CardDescription>Generated by civic-tracker · Last 30 records</CardDescription>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {accountabilityAlerts.filter(a => !a.acknowledged).length} unacknowledged
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
+            </div>
+          ) : accountabilityAlerts.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <AlertTriangle className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No alerts yet. civic-tracker runs daily at 08:00 EAT.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {accountabilityAlerts.map(alert => {
+                const severityColor =
+                  alert.severity >= 8 ? 'border-l-destructive bg-destructive/5' :
+                  alert.severity >= 6 ? 'border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20' :
+                  alert.severity >= 4 ? 'border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20' :
+                  'border-l-blue-400 bg-blue-50/50 dark:bg-blue-950/20';
+
+                const alertTypeLabel: Record<string, string> = {
+                  delay: 'Project Delay',
+                  budget_overrun: 'Budget Overrun',
+                  stalled: 'Stalled Project',
+                  broken_promise: 'Broken Promise',
+                };
+
+                return (
+                  <div
+                    key={alert.id}
+                    className={`p-4 border-l-4 rounded-lg ${severityColor} ${alert.acknowledged ? 'opacity-60' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {alertTypeLabel[alert.alert_type] ?? alert.alert_type}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {alert.subject_type}
+                          </Badge>
+                          <span className="text-xs font-semibold">
+                            Severity {alert.severity}/10
+                          </span>
+                          {alert.county && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />{alert.county}
+                            </span>
+                          )}
+                          {alert.acknowledged && (
+                            <Badge variant="secondary" className="text-xs ml-auto">Acknowledged</Badge>
+                          )}
+                        </div>
+                        <p className="font-medium text-sm truncate" title={alert.subject_name}>
+                          {alert.subject_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                          {alert.summary}
+                        </p>
+                        {alert.details?.citizen_action && (
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            💡 {alert.details.citizen_action}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(alert.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      {!alert.acknowledged && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0"
+                          disabled={ackProcessing === alert.id}
+                          onClick={async () => {
+                            setAckProcessing(alert.id);
+                            const { data: { user } } = await supabase.auth.getUser();
+                            const { error } = await supabase
+                              .from('accountability_alerts')
+                              .update({
+                                acknowledged: true,
+                                acknowledged_by: user?.id,
+                                acknowledged_at: new Date().toISOString(),
+                              })
+                              .eq('id', alert.id);
+                            if (error) toast.error('Failed to acknowledge alert');
+                            else { toast.success('Alert acknowledged'); fetchData(); }
+                            setAckProcessing(null);
+                          }}
+                        >
+                          {ackProcessing === alert.id
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <CheckCircle className="w-4 h-4 mr-1" />}
+                          Acknowledge
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* civic-sage Draft Reports — pending admin approval */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-violet-500" />
+                Sage Intelligence Drafts
+              </CardTitle>
+              <CardDescription>
+                Generated by civic-sage · Awaiting admin review before publication
+              </CardDescription>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {sageDrafts.filter(d => d.status === 'pending').length} pending
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
+            </div>
+          ) : sageDrafts.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <Brain className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No drafts yet. civic-sage generates reports when Scout finds high-relevance civic data.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sageDrafts.map(draft => {
+                const confidence = draft.metadata?.confidence ?? 0;
+                const confBorder =
+                  confidence >= 0.8 ? 'border-l-green-500 bg-green-50/30 dark:bg-green-950/20' :
+                  confidence >= 0.6 ? 'border-l-yellow-500 bg-yellow-50/30 dark:bg-yellow-950/20' :
+                  'border-l-muted bg-muted/20';
+
+                return (
+                  <div
+                    key={draft.id}
+                    className={`p-4 border-l-4 rounded-lg space-y-2 ${confBorder} ${draft.status !== 'pending' ? 'opacity-60' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {draft.draft_type.replace('_', ' ')}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">{draft.language}</Badge>
+                          {draft.metadata?.county && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />{draft.metadata.county}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            Conf: {Math.round(confidence * 100)}%
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            RAG: {draft.metadata?.rag_sources_count ?? 0} sources
+                          </span>
+                          <Badge
+                            variant={draft.status === 'pending' ? 'secondary' : draft.status === 'approved' ? 'default' : 'destructive'}
+                            className="text-xs ml-auto capitalize"
+                          >
+                            {draft.status}
+                          </Badge>
+                        </div>
+                        <p className="font-medium text-sm">{draft.title}</p>
+                        <pre className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-4 font-sans">
+                          {draft.content.slice(0, 400)}{draft.content.length > 400 ? '…' : ''}
+                        </pre>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {draft.agent_name} · {new Date(draft.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      {draft.status === 'pending' && (
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                            disabled={draftProcessing === draft.id}
+                            onClick={async () => {
+                              setDraftProcessing(draft.id);
+                              const { error } = await supabase
+                                .from('agent_drafts')
+                                .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+                                .eq('id', draft.id);
+                              if (error) toast.error('Failed to approve draft');
+                              else { toast.success('Draft approved'); fetchData(); }
+                              setDraftProcessing(null);
+                            }}
+                          >
+                            {draftProcessing === draft.id
+                              ? <Loader2 className="w-4 h-4 animate-spin" />
+                              : <CheckCircle className="w-4 h-4" />}
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-destructive border-destructive hover:bg-destructive/10"
+                            disabled={draftProcessing === draft.id}
+                            onClick={async () => {
+                              setDraftProcessing(draft.id);
+                              const { error } = await supabase
+                                .from('agent_drafts')
+                                .update({ status: 'discarded', reviewed_at: new Date().toISOString() })
+                                .eq('id', draft.id);
+                              if (error) toast.error('Failed to discard draft');
+                              else { toast.success('Draft discarded'); fetchData(); }
+                              setDraftProcessing(null);
+                            }}
+                          >
+                            {draftProcessing === draft.id
+                              ? <Loader2 className="w-4 h-4 animate-spin" />
+                              : <XCircle className="w-4 h-4" />}
+                            Discard
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Agent Control Center Tab ──────────────────────────────────────────────────
+function AgentControlCenterTab() {
+  const [subTab, setSubTab] = useState<'quill-drafts' | 'thresholds' | 'rag-viewer'>('quill-drafts');
+
+  // ── Quill Drafts state ──
+  type QuillDraft = { id: string; agent_name: string; draft_type: string; title: string; content: string; status: string; language: string; metadata: Record<string, unknown>; created_at: string };
+  const [quillDrafts, setQuillDrafts] = useState<QuillDraft[]>([]);
+  const [quillLoading, setQuillLoading] = useState(false);
+  const [quillProcessing, setQuillProcessing] = useState<string | null>(null);
+  const [expandedDraft, setExpandedDraft] = useState<string | null>(null);
+
+  // ── Threshold state ──
+  type AgentStateRow = { id: string; agent_name: string; state_key: string; state_value: string; description: string | null; updated_at: string };
+  const [thresholds, setThresholds] = useState<AgentStateRow[]>([]);
+  const [threshLoading, setThreshLoading] = useState(false);
+  const [editingThresh, setEditingThresh] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // ── RAG Viewer state ──
+  type VectorRow = { id: string; source_type: string; title: string | null; content: string; created_at: string };
+  const [vectors, setVectors] = useState<VectorRow[]>([]);
+  const [ragLoading, setRagLoading] = useState(false);
+  const [ragFilter, setRagFilter] = useState<string>('all');
+  const [addingDoc, setAddingDoc] = useState(false);
+  const [newDoc, setNewDoc] = useState({ title: '', content: '', source_type: 'manual' });
+  const [ragSaving, setRagSaving] = useState(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fetchQuillDrafts = async () => {
+    setQuillLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from('agent_drafts')
+      .select('*')
+      .in('status', ['pending', 'low_confidence', 'approved', 'rejected'])
+      .order('created_at', { ascending: false })
+      .limit(30);
+    setQuillDrafts((data ?? []) as QuillDraft[]);
+    setQuillLoading(false);
+  };
+
+  const fetchThresholds = async () => {
+    setThreshLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from('agent_state')
+      .select('*')
+      .order('agent_name', { ascending: true });
+    setThresholds((data ?? []) as AgentStateRow[]);
+    setThreshLoading(false);
+  };
+
+  const fetchVectors = async () => {
+    setRagLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q = (supabase as any).from('vectors').select('id, source_type, title, content, created_at').order('created_at', { ascending: false }).limit(50);
+    if (ragFilter !== 'all') q = q.eq('source_type', ragFilter);
+    const { data } = await q;
+    setVectors((data ?? []) as VectorRow[]);
+    setRagLoading(false);
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (subTab === 'quill-drafts') fetchQuillDrafts(); }, [subTab]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (subTab === 'thresholds') fetchThresholds(); }, [subTab]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (subTab === 'rag-viewer') fetchVectors(); }, [subTab, ragFilter]);
+
+  const handleDraftAction = async (draftId: string, newStatus: 'approved' | 'rejected') => {
+    setQuillProcessing(draftId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from('agent_drafts').update({ status: newStatus, reviewed_at: new Date().toISOString() }).eq('id', draftId);
+    if (error) toast.error(`Failed to ${newStatus} draft`);
+    else { toast.success(`Draft ${newStatus}`); fetchQuillDrafts(); }
+    setQuillProcessing(null);
+  };
+
+  const handleSaveThreshold = async (row: AgentStateRow) => {
+    setSaving(true);
+    const { error } = await supabase.from('agent_state')
+      .update({ state_value: editValue, updated_at: new Date().toISOString() })
+      .eq('id', row.id);
+    if (error) toast.error('Failed to save');
+    else { toast.success(`Saved: ${row.agent_name}.${row.state_key} = ${editValue}`); setEditingThresh(null); fetchThresholds(); }
+    setSaving(false);
+  };
+
+  const handleAddDoc = async () => {
+    if (!newDoc.content.trim()) { toast.error('Content is required'); return; }
+    setRagSaving(true);
+    const { error } = await supabase.from('vectors').insert({ title: newDoc.title || null, content: newDoc.content, source_type: newDoc.source_type, embedding: null });
+    if (error) toast.error('Failed to save document');
+    else { toast.success('Document added to knowledge base'); setNewDoc({ title: '', content: '', source_type: 'manual' }); setAddingDoc(false); fetchVectors(); }
+    setRagSaving(false);
+  };
+
+  const draftTypeColor: Record<string, string> = {
+    warning_message: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200',
+    civic_summary: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
+    educational_post: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200',
+    accountability_alert_summary: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200',
+    user_notification: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200',
+    promise_breach_notice: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200',
+  };
+
+  // Group thresholds by agent name
+  const grouped = thresholds.reduce((acc, row) => {
+    if (!acc[row.agent_name]) acc[row.agent_name] = [];
+    acc[row.agent_name].push(row);
+    return acc;
+  }, {} as Record<string, AgentStateRow[]>);
+
+  // RAG source type options
+  const ragSourceTypes = ['all', 'kenya_constitution', 'kenya_ppada', 'kenya_pfma', 'kenya_kica', 'wanaiq_guidelines', 'scout_finding', 'manual'];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="bg-gradient-to-r from-cyan-600 to-indigo-700 text-white border-0">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Sliders className="w-8 h-8" />
+            <div>
+              <div className="text-xl font-bold">Agent Control Center</div>
+              <div className="text-sm text-white/80">Quill drafts · Threshold tuning · RAG knowledge base</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sub-tab bar */}
+      <div className="flex gap-2 border-b pb-3">
+        {([['quill-drafts', 'Quill Drafts', BookOpen], ['thresholds', 'Threshold Tuning', Sliders], ['rag-viewer', 'Knowledge Base', Database]] as const).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            onClick={() => setSubTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              subTab === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Quill Drafts ── */}
+      {subTab === 'quill-drafts' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg">Quill Content Drafts</h3>
+              <p className="text-sm text-muted-foreground">Review and approve content generated by civic-quill before it goes live</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={fetchQuillDrafts} className="gap-1">
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </Button>
+          </div>
+
+          {quillLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+          ) : quillDrafts.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-muted-foreground">
+              <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No drafts yet. civic-quill generates content when agent_events are processed.</p>
+            </CardContent></Card>
+          ) : (
+            <div className="space-y-3">
+              {quillDrafts.map(draft => (
+                <Card key={draft.id} className={draft.status !== 'pending' ? 'opacity-70' : ''}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className={`text-xs px-2 py-0.5 rounded font-medium capitalize ${draftTypeColor[draft.draft_type] ?? 'bg-muted text-muted-foreground'}`}>
+                            {draft.draft_type.replace(/_/g, ' ')}
+                          </span>
+                          <Badge variant={draft.status === 'pending' ? 'secondary' : draft.status === 'approved' ? 'default' : 'destructive'} className="text-xs capitalize">
+                            {draft.status}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">{draft.language}</Badge>
+                          <span className="text-xs text-muted-foreground">{draft.agent_name} · {new Date(draft.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="font-medium">{draft.title}</p>
+                        {expandedDraft === draft.id ? (
+                          <pre className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap font-sans bg-muted/40 p-3 rounded-lg">
+                            {draft.content}
+                          </pre>
+                        ) : (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{draft.content.slice(0, 200)}{draft.content.length > 200 ? '…' : ''}</p>
+                        )}
+                        <button
+                          onClick={() => setExpandedDraft(expandedDraft === draft.id ? null : draft.id)}
+                          className="text-xs text-primary mt-1 flex items-center gap-1 hover:underline"
+                        >
+                          <ChevronRight className={`w-3 h-3 transition-transform ${expandedDraft === draft.id ? 'rotate-90' : ''}`} />
+                          {expandedDraft === draft.id ? 'Collapse' : 'Expand full content'}
+                        </button>
+                      </div>
+                      {draft.status === 'pending' && (
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <Button size="sm" variant="outline" className="gap-1 text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                            disabled={quillProcessing === draft.id}
+                            onClick={() => handleDraftAction(draft.id, 'approved')}>
+                            {quillProcessing === draft.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                            Approve
+                          </Button>
+                          <Button size="sm" variant="outline" className="gap-1 text-destructive border-destructive hover:bg-destructive/10"
+                            disabled={quillProcessing === draft.id}
+                            onClick={() => handleDraftAction(draft.id, 'rejected')}>
+                            {quillProcessing === draft.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Threshold Tuning ── */}
+      {subTab === 'thresholds' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold text-lg">Agent Thresholds</h3>
+            <p className="text-sm text-muted-foreground">Edit agent_state values that control pipeline sensitivity, timing, and behaviour</p>
+          </div>
+          {threshLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+          ) : (
+            Object.entries(grouped).map(([agentName, rows]) => (
+              <Card key={agentName}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-primary" />
+                    {agentName}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {rows.map(row => (
+                      <div key={row.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm font-medium">{row.state_key}</code>
+                          </div>
+                          {row.description && <p className="text-xs text-muted-foreground mt-0.5">{row.description}</p>}
+                        </div>
+                        {editingThresh === row.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-32 h-8 text-sm"
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveThreshold(row); if (e.key === 'Escape') setEditingThresh(null); }}
+                              autoFocus
+                            />
+                            <Button size="sm" className="h-8" disabled={saving} onClick={() => handleSaveThreshold(row)}>
+                              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8" onClick={() => setEditingThresh(null)}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm bg-muted px-2 py-1 rounded">{row.state_value}</code>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setEditingThresh(row.id); setEditValue(row.state_value); }}>
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── RAG Knowledge Base ── */}
+      {subTab === 'rag-viewer' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg">RAG Knowledge Base</h3>
+              <p className="text-sm text-muted-foreground">View and add documents powering civic-sage's analysis</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={fetchVectors} className="gap-1">
+                <RefreshCw className="w-4 h-4" /> Refresh
+              </Button>
+              <Button size="sm" onClick={() => setAddingDoc(!addingDoc)} className="gap-1">
+                <Plus className="w-4 h-4" /> Add Document
+              </Button>
+            </div>
+          </div>
+
+          {/* Filter bar */}
+          <div className="flex gap-2 flex-wrap">
+            {ragSourceTypes.map(st => (
+              <button key={st} onClick={() => setRagFilter(st)}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors capitalize ${
+                  ragFilter === st ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-muted'
+                }`}>
+                {st.replace(/_/g, ' ')}
+              </button>
+            ))}
+          </div>
+
+          {/* Add document form */}
+          {addingDoc && (
+            <Card className="border-dashed border-2 border-primary/40">
+              <CardHeader><CardTitle className="text-base">Add Knowledge Document</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-sm">Title (optional)</Label>
+                  <Input value={newDoc.title} onChange={e => setNewDoc({ ...newDoc, title: e.target.value })} placeholder="E.g. Article 43 — Right to Education" className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-sm">Source Type</Label>
+                  <select value={newDoc.source_type} onChange={e => setNewDoc({ ...newDoc, source_type: e.target.value })}
+                    className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                    {['manual', 'kenya_constitution', 'kenya_ppada', 'kenya_pfma', 'kenya_kica', 'wanaiq_guidelines'].map(st => (
+                      <option key={st} value={st}>{st.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-sm">Content *</Label>
+                  <textarea
+                    value={newDoc.content}
+                    onChange={e => setNewDoc({ ...newDoc, content: e.target.value })}
+                    placeholder="Paste the document text here..."
+                    rows={6}
+                    className="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setAddingDoc(false)}>Cancel</Button>
+                  <Button disabled={ragSaving} onClick={handleAddDoc}>
+                    {ragSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Database className="w-4 h-4 mr-2" />}
+                    Save to Knowledge Base
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {ragLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+          ) : vectors.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-muted-foreground">
+              <Database className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No documents in knowledge base yet. Run the seeding script or add documents manually.</p>
+            </CardContent></Card>
+          ) : (
+            <div className="space-y-3">
+              {vectors.map(vec => (
+                <div key={vec.id} className="p-4 border rounded-lg space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 bg-muted rounded font-medium capitalize">{vec.source_type.replace(/_/g, ' ')}</span>
+                    {vec.title && <span className="text-sm font-medium truncate">{vec.title}</span>}
+                    <span className="text-xs text-muted-foreground ml-auto">{new Date(vec.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-3">{vec.content.slice(0, 300)}{vec.content.length > 300 ? '…' : ''}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
