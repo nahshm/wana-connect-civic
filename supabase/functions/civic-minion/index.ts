@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Server configuration error" }, 500);
   }
 
-  const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
+  const serviceClient: any = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
 
