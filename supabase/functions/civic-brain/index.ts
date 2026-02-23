@@ -73,17 +73,18 @@ Deno.serve(async (req) => {
     });
 
     // Get User ID from Token
-    const { data: claims, error: authError } = await supabase.auth.getClaims(
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", "")
     );
     
-    if (authError || !claims?.claims) {
+    if (authError || !user) {
+      console.error("JWT validation error:", authError?.message);
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claims.claims.sub as string;
+    const userId = user.id;
 
     // Service Client for DB Ops (Context, RAG, History)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -202,7 +203,7 @@ Current Question: ${query}
     // STEP 9: CALL GROQ LLM
     console.log('Calling Groq with personalized prompt...');
     const completion = await groq.chat.completions.create({
-      model: 'llama-3-8b-8192',
+      model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: personalizedPrompt },
         { role: 'user', content: userMessage }
