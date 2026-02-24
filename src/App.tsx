@@ -57,6 +57,7 @@ const SuperAdminDashboard = lazy(() => import("@/features/admin/pages/SuperAdmin
 
 // LAZY LOADED: Profile V2
 const ProfileV2 = lazy(() => import("@/features/profile").then(m => ({ default: m.ProfileV2 })));
+const CivicResumePage = lazy(() => import("@/features/profile/pages/CivicResumePage"));
 
 // LAZY LOADED: Legacy pages
 const SettingsPage = lazy(() => import("./pages/Settings"));
@@ -138,6 +139,7 @@ const App = () => (
                             {/* Profile Routes - handled by PrefixRouter for /u/, /w/, /g/ */}
                             {/* PrefixRouter detects UUIDs vs usernames and routes to OfficePage vs ProfileV2 */}
                             <Route path="/profile/:username" element={<ProfileV2 />} />
+                            <Route path="/resume/:username" element={<CivicResumePage />} />
                             <Route path="/profile" element={<ProfileV2 />} />
 
                             {/* Admin Routes */}
