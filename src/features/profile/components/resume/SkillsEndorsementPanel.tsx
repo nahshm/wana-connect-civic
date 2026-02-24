@@ -20,35 +20,44 @@ export const SkillsEndorsementPanel: React.FC<SkillsEndorsementPanelProps> = ({ 
     const { data: skills, isLoading } = useQuery({
         queryKey: ['resume-skills', userId],
         queryFn: async () => {
-            // First get user skills
+            // Fetch user_skills joined with skills table for names
             const { data: userSkills, error: skillsError } = await supabase
                 .from('user_skills')
-                .select('*')
+                .select('id, skill_id, user_id, endorsement_count, credibility_score, claimed_at, skills ( name )')
                 .eq('user_id', userId)
                 .order('endorsement_count', { ascending: false });
 
             if (skillsError) throw skillsError;
 
-            // Get current user's endorsements for this profile
+            // Get current user's endorsements for this profile's skills
             const { data: authUser } = await supabase.auth.getUser();
             const currentUserId = authUser?.user?.id;
 
-            let myEndorsements: string[] = [];
-            if (currentUserId && currentUserId !== userId) {
-                const { data: endData, error: endError } = await supabase
+            let myEndorsedSkillIds: string[] = [];
+            if (currentUserId && currentUserId !== userId && userSkills?.length) {
+                const userSkillIds = userSkills.map(s => s.id);
+                const { data: endData } = await supabase
                     .from('skill_endorsements')
-                    .select('skill_id')
-                    .eq('endorser_id', currentUserId)
-                    .eq('endorsed_user_id', userId);
+                    .select('user_skill_id')
+                    .eq('endorsed_by', currentUserId)
+                    .in('user_skill_id', userSkillIds);
                 
-                if (!endError && endData) {
-                    myEndorsements = endData.map(e => e.skill_id);
+                if (endData) {
+                    myEndorsedSkillIds = endData.map(e => e.user_skill_id);
                 }
             }
 
             return {
-                skills: userSkills || [],
-                myEndorsements
+                skills: (userSkills || []) as Array<{
+                    id: string;
+                    skill_id: string;
+                    user_id: string;
+                    endorsement_count: number | null;
+                    credibility_score: number | null;
+                    claimed_at: string | null;
+                    skills: { name: string } | null;
+                }>,
+                myEndorsements: myEndorsedSkillIds
             };
         },
         enabled: !!userId,
@@ -61,14 +70,11 @@ export const SkillsEndorsementPanel: React.FC<SkillsEndorsementPanelProps> = ({ 
             
             setVerifyingSkill(skillId);
 
-            // Using our RPC or just direct insert depending on RLS. We'll use insert.
             const { error } = await supabase
                 .from('skill_endorsements')
                 .insert({
-                    endorser_id: authUser.user.id,
-                    endorsed_user_id: userId,
-                    skill_id: skillId,
-                    credibility_score: 1 // Default
+                    endorsed_by: authUser.user.id,
+                    user_skill_id: skillId,
                 });
 
             if (error) {
@@ -144,13 +150,13 @@ export const SkillsEndorsementPanel: React.FC<SkillsEndorsementPanelProps> = ({ 
 
                         return (
                             <div key={skill.id} className="flex items-center bg-muted/30 border border-border/50 rounded-full pl-3 pr-1 py-1 group transition-colors hover:border-primary/50">
-                                <span className="text-sm font-medium mr-2">{skill.skill_name}</span>
+                                <span className="text-sm font-medium mr-2">{skill.skills?.name ?? 'Unknown'}</span>
                                 
                                 <Badge 
                                     variant="secondary" 
-                                    className={`px-1.5 min-w-[24px] flex justify-center ${skill.endorsement_count > 0 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}
+                                    className={`px-1.5 min-w-[24px] flex justify-center ${(skill.endorsement_count ?? 0) > 0 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}
                                 >
-                                    {skill.endorsement_count}
+                                    {skill.endorsement_count ?? 0}
                                 </Badge>
 
                                 {!isOwnProfile && (

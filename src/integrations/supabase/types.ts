@@ -26,6 +26,7 @@ export type Database = {
           details: Json
           id: string
           is_public: boolean
+          quill_draft_id: string | null
           severity: number
           subject_id: string
           subject_name: string | null
@@ -43,6 +44,7 @@ export type Database = {
           details?: Json
           id?: string
           is_public?: boolean
+          quill_draft_id?: string | null
           severity?: number
           subject_id: string
           subject_name?: string | null
@@ -60,13 +62,22 @@ export type Database = {
           details?: Json
           id?: string
           is_public?: boolean
+          quill_draft_id?: string | null
           severity?: number
           subject_id?: string
           subject_name?: string | null
           subject_type?: string
           summary?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accountability_alerts_quill_draft_id_fkey"
+            columns: ["quill_draft_id"]
+            isOneToOne: false
+            referencedRelation: "agent_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_notifications: {
         Row: {
@@ -1875,7 +1886,7 @@ export type Database = {
       comment_notifications: {
         Row: {
           action_url: string | null
-          comment_id: string
+          comment_id: string | null
           created_at: string
           id: string
           is_read: boolean | null
@@ -1887,7 +1898,7 @@ export type Database = {
         }
         Insert: {
           action_url?: string | null
-          comment_id: string
+          comment_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null
@@ -1899,7 +1910,7 @@ export type Database = {
         }
         Update: {
           action_url?: string | null
-          comment_id?: string
+          comment_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null
