@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MapPin, TrendingUp, Users, FileText, CheckCircle2, BarChart3, GraduationCap, Megaphone, Phone, HelpCircle, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MyActions } from '@/components/dashboard/MyActions';
+import { CommunityIssuesFeed } from '@/components/dashboard/CommunityIssuesFeed';
 import { GamificationWidgets } from '@/components/gamification/GamificationWidgets';
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer';
 
@@ -379,41 +380,8 @@ const CivicDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Local Issues */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Local Issues</CardTitle>
-            <CardDescription>Recent posts from {data.wardName}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.localPosts.length > 0 ? (
-              data.localPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  to={`/post/${post.id}`}
-                  className="block p-3 border border-border rounded-lg hover:border-primary/50 transition-colors"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-sm line-clamp-1">{post.title}</h4>
-                    <Badge variant="secondary" className="text-xs">
-                      {post.upvotes} votes
-                    </Badge>
-                  </div>
-                  <SafeContentRenderer
-                    content={post.content || ''}
-                    className="text-xs text-muted-foreground"
-                    truncate={true}
-                    maxLength={100}
-                  />
-                </Link>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No local issues yet. Be the first to report!
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Community Issues Feed — replaces generic local posts */}
+        <CommunityIssuesFeed />
 
         {/* Trending Discussions */}
         <Card>
