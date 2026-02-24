@@ -105,25 +105,22 @@ const ReportIssue = () => {
 
         try {
             // Map AI result to database columns
-            // Table: civic_actions
-            const { data: action, error } = await supabase
+            // Table: civic_actions (verified columns)
+            const { data: action, error } = await (supabase as any)
                 .from('civic_actions')
                 .insert({
                     user_id: user.id,
                     action_type: 'report_issue',
-                    title: description.substring(0, 50) + '...', // Generate title from desc
+                    title: description.substring(0, 100),
                     description: description,
-                    location_text: locationText || 'Pinned Location',
-                    // AI Fields
-                    category: routing.issue_type, // Use issue_type as category
-                    action_level: routing.jurisdiction,
-                    issue_type: routing.issue_type,
-                    jurisdiction: routing.jurisdiction,
-                    severity: routing.severity,
-                    ai_routing_confidence: routing.confidence,
-                    estimated_resolution_days: routing.estimated_resolution_days,
-                    // urgency: Map severity to low/medium/high ??
-                    urgency: routing.severity >= 7 ? 'high' : routing.severity >= 4 ? 'medium' : 'low'
+                    location_text: locationText || undefined,
+                    latitude: locationCoords?.lat ?? null,
+                    longitude: locationCoords?.lng ?? null,
+                    // AI Fields mapped to existing columns
+                    category: routing.issue_type,   // e.g. 'water', 'roads', 'waste'
+                    action_level: routing.jurisdiction, // e.g. 'county', 'ward', 'national'
+                    urgency: routing.severity >= 7 ? 'high' : routing.severity >= 4 ? 'medium' : 'low',
+                    is_public: true,
                 })
                 .select()
                 .single();
