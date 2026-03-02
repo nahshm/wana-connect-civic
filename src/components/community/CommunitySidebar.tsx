@@ -20,6 +20,7 @@ import { CommunitySettingsDialog } from './CommunitySettingsDialog';
 import { CreatePostModal } from './CreatePostModal';
 import { ModeratorsListModal } from './ModeratorsListModal';
 import { RulesManageDialog } from './RulesManageDialog';
+import { GovernmentOfficesWidget } from '@/components/governance/GovernmentOfficesWidget';
 
 interface CommunitySidebarProps {
     community: CommunityProfile;
@@ -200,6 +201,14 @@ export const CommunitySidebar = ({
 
                 {/* Bookmarks Widget */}
                 <CommunityBookmarks communityId={community.id} isAdmin={isAdmin} />
+
+                {/* Government Offices Widget — location communities only */}
+                {community.type === 'location' && community.locationType && community.locationValue && (
+                    <GovernmentOfficesWidget
+                        jurisdictionName={community.locationValue}
+                        governanceLevel={community.locationType}
+                    />
+                )}
 
                 {/* Rules Widget */}
                 <Card className="bg-sidebar-background border-sidebar-border">

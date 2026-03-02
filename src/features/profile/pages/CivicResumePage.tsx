@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Resume Components (to be implemented)
 import { ImpactSummaryCard } from '../components/resume/ImpactSummaryCard';
 import { CivicExperienceList } from '../components/resume/CivicExperienceList';
 import { SkillsEndorsementPanel } from '../components/resume/SkillsEndorsementPanel';
 import { AchievementGallery } from '../components/resume/AchievementGallery';
 import { LeaderboardRankCard } from '../components/resume/LeaderboardRankCard';
+import { ActiveQuestsPanel } from '../components/resume/ActiveQuestsPanel';
 
 interface UserProfile {
     id: string;
@@ -206,6 +206,9 @@ const CivicResumePage: React.FC = () => {
                             userId={profile.id} 
                             isOwnProfile={isOwnProfile} 
                         />
+
+                        {/* Active Quests */}
+                        <ActiveQuestsPanel userId={profile.id} />
                     </div>
                 </div>
             </div>

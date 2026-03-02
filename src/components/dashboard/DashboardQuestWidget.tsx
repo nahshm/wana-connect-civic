@@ -18,7 +18,7 @@ interface Quest {
   xp_reward: number;
 }
 
-export const DashboardQuestWidget = () => {
+export const DashboardQuestWidget = ({ fullView = false }: { fullView?: boolean }) => {
   const { user } = useAuth();
   const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export const DashboardQuestWidget = () => {
           `)
           .eq('user_id', user.id)
           .in('status', ['active', 'in_progress'])
-          .limit(3);
+          .limit(fullView ? 10 : 3);
 
         const mapped = (data || []).map((q: any) => ({
           id: q.id,

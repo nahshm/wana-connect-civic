@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LayoutGrid, FileText, Users, Target, BarChart3, GraduationCap, Shield,
-  Phone, HelpCircle, Megaphone } from 'lucide-react';
+  Phone, HelpCircle, Megaphone, Sword } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +77,7 @@ const CivicDashboard = () => {
 
           {/* Tabbed Content */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-4 h-10 bg-muted/50 rounded-xl p-1">
+            <TabsList className="w-full grid grid-cols-5 h-10 bg-muted/50 rounded-xl p-1">
               <TabsTrigger
                 value="overview"
                 className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -98,6 +98,13 @@ const CivicDashboard = () => {
               >
                 <Users className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Community</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="quests"
+                className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Sword className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Quests</span>
               </TabsTrigger>
               <TabsTrigger
                 value="insights"
@@ -121,6 +128,11 @@ const CivicDashboard = () => {
             {/* Community Tab */}
             <TabsContent value="community" className="mt-4">
               <CommunityIssuesFeed />
+            </TabsContent>
+
+            {/* Quests Tab */}
+            <TabsContent value="quests" className="mt-4">
+              <DashboardQuestWidget fullView />
             </TabsContent>
 
             {/* Insights Tab */}

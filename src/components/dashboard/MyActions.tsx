@@ -24,6 +24,7 @@ import {
     ThumbsUp
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { ActionDetailSheet } from './ActionDetailSheet';
 
 interface CivicAction {
     id: string;
@@ -93,6 +94,7 @@ export const MyActions = () => {
         in_progress: 0,
         resolved: 0,
     });
+    const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchActions();
@@ -331,12 +333,10 @@ export const MyActions = () => {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="w-full justify-between mt-2"
-                                                asChild
+                                                onClick={() => setSelectedActionId(action.id)}
                                             >
-                                                <Link to={`/dashboard/actions/${action.id}`}>
-                                                    <span>View Details</span>
-                                                    <ArrowRight className="w-4 h-4" />
-                                                </Link>
+                                                <span>View Details</span>
+                                                <ArrowRight className="w-4 h-4" />
                                             </Button>
                                         </div>
                                     );
@@ -353,6 +353,12 @@ export const MyActions = () => {
                     </div>
                 )}
             </CardContent>
+
+            <ActionDetailSheet 
+                actionId={selectedActionId} 
+                isOpen={!!selectedActionId} 
+                onClose={() => setSelectedActionId(null)} 
+            />
         </Card>
     );
 };

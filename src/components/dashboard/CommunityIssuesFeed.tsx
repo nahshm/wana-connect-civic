@@ -12,6 +12,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthModal } from '@/contexts/AuthModalContext';
+import { ActionDetailSheet } from './ActionDetailSheet';
 
 interface CivicIssue {
     id: string;
@@ -70,6 +71,7 @@ export const CommunityIssuesFeed = () => {
     const [sortBy, setSortBy]                   = useState('newest');
     const [categoryFilter, setCategoryFilter]   = useState('all');
     const [countyName, setCountyName]           = useState<string>('Your Area');
+    const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchIssues();
@@ -364,10 +366,8 @@ export const CommunityIssuesFeed = () => {
                                             {isSupported ? 'Supported' : 'I Have This Issue Too'}
                                         </Button>
 
-                                        <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto" asChild>
-                                            <Link to={`/dashboard/actions/${issue.id}`}>
-                                                View Details <ArrowRight className="w-3 h-3 ml-1" />
-                                            </Link>
+                                        <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto" onClick={() => setSelectedIssueId(issue.id)}>
+                                            View Details <ArrowRight className="w-3 h-3 ml-1" />
                                         </Button>
                                     </div>
                                 </div>
@@ -376,6 +376,12 @@ export const CommunityIssuesFeed = () => {
                     </div>
                 )}
             </CardContent>
+
+            <ActionDetailSheet 
+                actionId={selectedIssueId} 
+                isOpen={!!selectedIssueId} 
+                onClose={() => setSelectedIssueId(null)} 
+            />
         </Card>
     );
 };

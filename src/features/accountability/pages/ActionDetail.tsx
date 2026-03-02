@@ -1,28 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import {
-    ArrowLeft,
-    MapPin,
-    Calendar,
-    AlertCircle,
-    Clock,
-    CheckCircle,
-    XCircle,
-    ThumbsUp,
-    Share2,
-    Users,
-    Loader2
+    ArrowLeft, MapPin, Calendar, AlertCircle, Clock, CheckCircle,
+    XCircle, Share2, Users, Loader2, ImageIcon
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { IssueCommentThread } from '../components/IssueCommentThread';
 
 interface ActionDetail {
     id: string;
@@ -35,6 +27,10 @@ interface ActionDetail {
     urgency: string;
     location_text: string | null;
     support_count: number;
+    comment_count: number;
+    media_urls: string[] | null;
+    latitude: number | null;
+    longitude: number | null;
     created_at: string;
     updated_at: string;
     user_id: string;
@@ -43,15 +39,6 @@ interface ActionDetail {
         display_name: string | null;
         avatar_url: string | null;
     };
-    wards: {
-        name: string;
-    } | null;
-    constituencies: {
-        name: string;
-    } | null;
-    counties: {
-        name: string;
-    } | null;
 }
 
 interface ActionUpdate {
@@ -62,22 +49,103 @@ interface ActionUpdate {
     created_at: string;
 }
 
-const STATUS_CONFIG = {
-    submitted: { icon: Clock, color: 'bg-gray-500', label: 'Submitted', progress: 20 },
-    acknowledged: { icon: AlertCircle, color: 'bg-blue-500', label: 'Acknowledged', progress: 40 },
-    in_progress: { icon: Clock, color: 'bg-yellow-500', label: 'In Progress', progress: 60 },
-    resolved: { icon: CheckCircle, color: 'bg-green-500', label: 'Resolved', progress: 100 },
-    rejected: { icon: XCircle, color: 'bg-red-500', label: 'Rejected', progress: 0 },
+// Step-based progress representation
+const STATUS_STEPS = ['submitted', 'acknowledged', 'in_progress', 'resolved'];
+const STATUS_CONFIG: Record<string, { icon: React.ElementType; color: string; label: string; step: number }> = {
+    submitted: { icon: Clock, color: 'text-gray-500 border-gray-300', label: 'Submitted', step: 0 },
+    acknowledged: { icon: AlertCircle, color: 'text-blue-500 border-blue-300', label: 'Acknowledged', step: 1 },
+    in_progress: { icon: Clock, color: 'text-yellow-500 border-yellow-300', label: 'In Progress', step: 2 },
+    resolved: { icon: CheckCircle, color: 'text-green-500 border-green-300', label: 'Resolved', step: 3 },
+    rejected: { icon: XCircle, color: 'text-red-500 border-red-300', label: 'Rejected', step: -1 },
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-    water: 'Water',
-    roads: 'Roads',
-    garbage: 'Garbage',
-    street_lights: 'Street Lights',
-    security: 'Security',
-    housing: 'Housing',
-    health: 'Health',
+const URGENCY_COLORS: Record<string, string> = {
+    low: 'bg-green-500/10 text-green-700 border-green-200',
+    medium: 'bg-amber-500/10 text-amber-700 border-amber-200',
+    high: 'bg-red-500/10 text-red-700 border-red-200',
+    critical: 'bg-red-700/10 text-red-900 border-red-300',
+};
+
+const StatusStepper = ({ status }: { status: string }) => {
+    const currentStep = STATUS_CONFIG[status]?.step ?? 0;
+    const isRejected = status === 'rejected';
+
+    if (isRejected) {
+        return (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+                <XCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm font-medium text-red-700">This issue was rejected</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center justify-between gap-1">
+            {STATUS_STEPS.map((s, i) => {
+                const cfg = STATUS_CONFIG[s];
+                const isDone = i <= currentStep;
+                const isCurrent = i === currentStep;
+                const Icon = cfg.icon;
+                return (
+                    <div key={s} className="flex items-center gap-1 flex-1 last:flex-none">
+                        <div className={`flex flex-col items-center gap-1 ${isDone ? '' : 'opacity-40'}`}>
+                            <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                isCurrent
+                                    ? `bg-primary border-primary text-primary-foreground`
+                                    : isDone
+                                    ? 'bg-green-500/10 border-green-400 text-green-600'
+                                    : 'bg-muted border-border text-muted-foreground'
+                            }`}>
+                                <Icon className="w-3.5 h-3.5" />
+                            </div>
+                            <span className={`text-[10px] font-medium text-center hidden sm:block ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
+                                {cfg.label}
+                            </span>
+                        </div>
+                        {i < STATUS_STEPS.length - 1 && (
+                            <div className={`flex-1 h-0.5 mx-1 mb-4 rounded-full transition-colors ${
+                                i < currentStep ? 'bg-green-400' : 'bg-border'
+                            }`} />
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const MediaGrid = ({ urls }: { urls: string[] }) => {
+    const [lightbox, setLightbox] = useState<string | null>(null);
+    if (urls.length === 0) return null;
+
+    return (
+        <>
+            <div className={`grid gap-2 ${urls.length === 1 ? 'grid-cols-1' : urls.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {urls.map((url, i) => (
+                    <button
+                        key={i}
+                        type="button"
+                        onClick={() => setLightbox(url)}
+                        className={`rounded-lg overflow-hidden border border-border/60 group ${urls.length === 1 ? 'h-64' : 'h-36'}`}
+                    >
+                        <img
+                            src={url}
+                            alt={`Evidence photo ${i + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                    </button>
+                ))}
+            </div>
+            {lightbox && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
+                    onClick={() => setLightbox(null)}
+                >
+                    <img src={lightbox} alt="full-size" className="max-w-full max-h-[90vh] rounded-xl object-contain" />
+                </div>
+            )}
+        </>
+    );
 };
 
 const ActionDetail = () => {
@@ -86,157 +154,95 @@ const ActionDetail = () => {
     const authModal = useAuthModal();
     const navigate = useNavigate();
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
-    const [action, setAction] = useState<ActionDetail | null>(null);
-    const [updates, setUpdates] = useState<ActionUpdate[]>([]);
-    const [loading, setLoading] = useState(true);
     const [hasSupported, setHasSupported] = useState(false);
     const [supporting, setSupporting] = useState(false);
 
-    useEffect(() => {
-        fetchActionDetails();
-        if (user) {
-            checkIfSupported();
-        }
-    }, [id, user]);
-
-    const fetchActionDetails = async () => {
-        try {
-            const { data: actionData, error: actionError } = await supabase
+    // Fetch action details with React Query
+    const {
+        data: action,
+        isLoading,
+        isError,
+        error,
+    } = useQuery<ActionDetail>({
+        queryKey: ['action-detail', id],
+        queryFn: async () => {
+            const { data, error } = await (supabase as any)
                 .from('civic_actions')
-                .select(`
-          *,
-          profiles:user_id(username, display_name, avatar_url)
-        `)
+                .select(`*, profiles:user_id(username, display_name, avatar_url)`)
                 .eq('id', id)
                 .single();
+            if (error) throw error;
+            return data as ActionDetail;
+        },
+        enabled: !!id,
+        staleTime: 30 * 1000,
+    });
 
-            if (actionError) throw actionError;
-            
-            // Add placeholder data for related entities
-            const enrichedData = {
-                ...actionData,
-                wards: null,
-                constituencies: null,
-                counties: null
-            };
-            setAction(enrichedData as ActionDetail);
-
-            // Fetch status updates
-            const { data: updatesData } = await supabase
+    // Fetch status updates
+    const { data: updates = [] } = useQuery<ActionUpdate[]>({
+        queryKey: ['action-updates', id],
+        queryFn: async () => {
+            const { data, error } = await supabase
                 .from('civic_action_updates')
                 .select('*')
-                .eq('action_id', id)
+                .eq('action_id', id!)
                 .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!id,
+        staleTime: 30 * 1000,
+    });
 
-            setUpdates(updatesData || []);
-        } catch (error) {
-            console.error('Error fetching action:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to load action details',
-                variant: 'destructive',
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const checkIfSupported = async () => {
+    // Check initial support status
+    useEffect(() => {
         if (!user || !id) return;
+        const check = async () => {
+            const { data } = await supabase
+                .from('civic_action_supporters')
+                .select('id')
+                .eq('action_id', id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+            setHasSupported(!!data);
+        };
+        check();
+    }, [user, id]);
 
-        const { data } = await supabase
-            .from('civic_action_supporters')
-            .select('id')
-            .eq('action_id', id)
-            .eq('user_id', user.id)
-            .single();
+    const handleSupportToggle = useCallback(() => {
+        setHasSupported(true);
+        // Refresh action to get updated support_count
+        queryClient.invalidateQueries({ queryKey: ['action-detail', id] });
+    }, [id, queryClient]);
 
-        setHasSupported(!!data);
-    };
-
-    const toggleSupport = async () => {
-        if (!user) {
-            authModal.open('login');
-            return;
-        }
-
-        setSupporting(true);
-
-        try {
-            if (hasSupported) {
-                // Unsupport
-                await supabase
-                    .from('civic_action_supporters')
-                    .delete()
-                    .eq('action_id', id)
-                    .eq('user_id', user.id);
-
-                setHasSupported(false);
-                setAction(prev => prev ? { ...prev, support_count: prev.support_count - 1 } : null);
-            } else {
-                // Support
-                await supabase
-                    .from('civic_action_supporters')
-                    .insert({
-                        action_id: id,
-                        user_id: user.id,
-                    });
-
-                setHasSupported(true);
-                setAction(prev => prev ? { ...prev, support_count: prev.support_count + 1 } : null);
-            }
-        } catch (error) {
-            console.error('Error toggling support:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to update support',
-                variant: 'destructive',
-            });
-        } finally {
-            setSupporting(false);
-        }
-    };
-
-    const shareToFeed = async () => {
+    const shareToFeed = () => {
         if (!action) return;
-
-        // Navigate to create post with pre-filled content
-        const postContent = `🚨 Civic Issue Alert\n\nCase: ${action.case_number}\n${action.title}\n\n${action.description}\n\nStatus: ${STATUS_CONFIG[action.status as keyof typeof STATUS_CONFIG]?.label}\nLocation: ${action.location_text || 'Not specified'}\n\n#CivicAction #${action.category}`;
-
-        navigate('/create', {
-            state: {
-                prefill: {
-                    content: postContent,
-                    title: `Civic Issue: ${action.title}`,
-                },
-            },
-        });
+        const postContent = `🚨 Civic Issue Alert\n\nCase: ${action.case_number}\n${action.title}\n\n${action.description}\n\nStatus: ${STATUS_CONFIG[action.status]?.label}\nLocation: ${action.location_text || 'Not specified'}\n\n#CivicAction #${action.category}`;
+        navigate('/create', { state: { prefill: { content: postContent, title: `Civic Issue: ${action.title}` } } });
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
-            <div className="container mx-auto p-6 max-w-4xl flex justify-center items-center min-h-screen">
+            <div className="container mx-auto p-6 max-w-4xl flex justify-center items-center min-h-96">
                 <Loader2 className="w-8 h-8 animate-spin" />
             </div>
         );
     }
 
-    if (!action) {
+    if (isError || !action) {
         return (
             <div className="container mx-auto p-6 max-w-4xl">
                 <Card>
                     <CardContent className="py-12 text-center">
                         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="font-semibold text-lg mb-2">Action Not Found</h3>
+                        <h3 className="font-semibold text-lg mb-2">Issue Not Found</h3>
                         <p className="text-sm text-muted-foreground mb-4">
-                            This civic action doesn't exist or you don't have permission to view it.
+                            {error instanceof Error ? error.message : "This issue doesn't exist or you don't have permission to view it."}
                         </p>
                         <Button asChild>
-                            <Link to="/dashboard">
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Back to Dashboard
-                            </Link>
+                            <Link to="/dashboard"><ArrowLeft className="w-4 h-4 mr-2" />Back to Dashboard</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -244,144 +250,126 @@ const ActionDetail = () => {
         );
     }
 
-    const config = STATUS_CONFIG[action.status as keyof typeof STATUS_CONFIG];
-    const Icon = config.icon;
-    const categoryLabel = CATEGORY_LABELS[action.category] || action.category;
+    const config = STATUS_CONFIG[action.status] ?? STATUS_CONFIG['submitted'];
+    const isOwnIssue = user?.id === action.user_id;
+    const mediaUrls = action.media_urls || [];
 
     return (
-        <div className="container mx-auto p-6 max-w-4xl space-y-6">
+        <div className="container mx-auto p-4 sm:p-6 max-w-4xl space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
                 <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold">Action Details</h1>
-                    <p className="text-sm text-muted-foreground">Case {action.case_number}</p>
+                    <h1 className="text-xl font-bold">Issue Report</h1>
+                    <p className="text-sm text-muted-foreground font-mono">#{action.case_number}</p>
                 </div>
             </div>
 
             {/* Main Details Card */}
             <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="font-mono">
-                                    {action.case_number}
-                                </Badge>
-                                <Badge variant="secondary" className="capitalize">
-                                    {categoryLabel}
-                                </Badge>
-                                <Badge variant="outline" className="capitalize">
-                                    {action.action_level} level
-                                </Badge>
-                                <Badge variant="outline" className="capitalize">
-                                    {action.urgency} urgency
-                                </Badge>
+                <CardHeader className="pb-3">
+                    <div className="flex flex-wrap items-start gap-2 justify-between">
+                        <div className="space-y-1.5 min-w-0">
+                            <div className="flex flex-wrap gap-1.5">
+                                <Badge variant="outline" className="font-mono text-xs">{action.case_number}</Badge>
+                                <Badge variant="secondary" className="capitalize text-xs">{action.category?.replace(/_/g, ' ')}</Badge>
+                                <Badge variant="outline" className="capitalize text-xs">{action.action_level} level</Badge>
+                                {action.urgency && (
+                                    <Badge variant="outline" className={`capitalize text-xs ${URGENCY_COLORS[action.urgency] || ''}`}>
+                                        {action.urgency}
+                                    </Badge>
+                                )}
                             </div>
-                            <CardTitle className="text-2xl">{action.title}</CardTitle>
+                            <CardTitle className="text-xl leading-tight">{action.title}</CardTitle>
                         </div>
-                        <Badge className={`${config.color} text-white flex items-center gap-1`}>
-                            <Icon className="w-4 h-4" />
-                            {config.label}
-                        </Badge>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Progress Bar */}
-                    {(action.status === 'in_progress' || action.status === 'acknowledged') && (
-                        <div>
-                            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                                <span>Progress</span>
-                                <span>{config.progress}%</span>
-                            </div>
-                            <Progress value={config.progress} className="h-3" />
+                <CardContent className="space-y-5">
+                    {/* Progress stepper */}
+                    <StatusStepper status={action.status} />
+
+                    {/* Reporter media */}
+                    {mediaUrls.length > 0 && (
+                        <div className="space-y-2">
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                                <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                                Evidence Photos ({mediaUrls.length})
+                            </h3>
+                            <MediaGrid urls={mediaUrls} />
                         </div>
                     )}
 
                     {/* Description */}
                     <div>
-                        <h3 className="font-semibold mb-2">Description</h3>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {action.description}
-                        </p>
+                        <h3 className="font-semibold text-sm mb-1.5">Description</h3>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{action.description}</p>
                     </div>
 
                     <Separator />
 
-                    {/* Location */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Location + Date */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex items-start gap-3">
-                            <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
+                            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div>
                                 <p className="font-semibold text-sm">Location</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {action.location_text || 'Not specified'}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {action.wards?.name || 'Unknown Ward'}
-                                    {action.constituencies && `, ${action.constituencies.name}`}
-                                    {action.counties && `, ${action.counties.name}`}
-                                </p>
+                                <p className="text-sm text-muted-foreground">{action.location_text || 'Not specified'}</p>
                             </div>
                         </div>
-
                         <div className="flex items-start gap-3">
-                            <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
+                            <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div>
                                 <p className="font-semibold text-sm">Reported</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {format(new Date(action.created_at), 'PPP')}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {formatDistanceToNow(new Date(action.created_at), { addSuffix: true })}
-                                </p>
+                                <p className="text-sm text-muted-foreground">{format(new Date(action.created_at), 'PPP')}</p>
+                                <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(action.created_at), { addSuffix: true })}</p>
                             </div>
                         </div>
                     </div>
+
+                    {/* Map embed if coords available */}
+                    {action.latitude && action.longitude && (
+                        <div className="rounded-lg overflow-hidden border border-border/50 h-48">
+                            <iframe
+                                title="Issue Location"
+                                width="100%"
+                                height="100%"
+                                loading="lazy"
+                                src={`https://www.openstreetmap.org/export/embed.html?bbox=${action.longitude - 0.005},${action.latitude - 0.005},${action.longitude + 0.005},${action.latitude + 0.005}&layer=mapnik&marker=${action.latitude},${action.longitude}`}
+                                className="border-0"
+                            />
+                        </div>
+                    )}
 
                     <Separator />
 
                     {/* Actions */}
-                    <div className="flex flex-wrap gap-3">
-                        <Button
-                            variant={hasSupported ? 'default' : 'outline'}
-                            onClick={toggleSupport}
-                            disabled={supporting}
-                            className="flex-1 md:flex-initial"
-                        >
-                            {supporting ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                                <ThumbsUp className={`w-4 h-4 mr-2 ${hasSupported ? 'fill-current' : ''}`} />
-                            )}
-                            {hasSupported ? 'Supported' : 'I Have This Issue Too'}
-                            {action.support_count > 0 && (
-                                <Badge variant="secondary" className="ml-2">
-                                    {action.support_count}
-                                </Badge>
-                            )}
-                        </Button>
-
-                        <Button variant="outline" onClick={shareToFeed}>
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={shareToFeed} size="sm">
                             <Share2 className="w-4 h-4 mr-2" />
                             Share to Feed
                         </Button>
-                    </div>
-
-                    {/* Community Support */}
-                    {action.support_count > 0 && (
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                            <div className="flex items-center gap-2 text-sm">
-                                <Users className="w-4 h-4" />
-                                <span className="font-semibold">{action.support_count}</span>
-                                <span className="text-muted-foreground">
-                                    {action.support_count === 1 ? 'person has' : 'people have'} this issue too
-                                </span>
-                            </div>
+                        <div className="flex items-center gap-2 ml-auto text-sm text-muted-foreground">
+                            <Users className="w-4 h-4" />
+                            <span>
+                                <strong>{action.support_count}</strong> {action.support_count === 1 ? 'supporter' : 'supporters'}
+                            </span>
                         </div>
-                    )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Community Evidence Thread */}
+            <Card>
+                <CardContent className="pt-5">
+                    <IssueCommentThread
+                        actionId={action.id}
+                        supportCount={action.support_count}
+                        hasSupported={hasSupported}
+                        isOwnIssue={isOwnIssue}
+                        onSupportToggle={handleSupportToggle}
+                    />
                 </CardContent>
             </Card>
 
@@ -389,30 +377,24 @@ const ActionDetail = () => {
             {updates.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Status History</CardTitle>
+                        <CardTitle className="text-base">Status History</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             {updates.map((update, index) => (
                                 <div key={update.id} className="flex gap-4">
                                     <div className="flex flex-col items-center">
-                                        <div className="w-3 h-3 rounded-full bg-primary"></div>
-                                        {index < updates.length - 1 && (
-                                            <div className="w-0.5 h-full bg-border"></div>
-                                        )}
+                                        <div className="w-3 h-3 rounded-full bg-primary mt-1" />
+                                        {index < updates.length - 1 && <div className="w-0.5 flex-1 bg-border mt-1" />}
                                     </div>
                                     <div className="flex-1 pb-4">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <Badge variant="outline" className="capitalize">
-                                                {update.new_status}
-                                            </Badge>
+                                            <Badge variant="outline" className="capitalize text-xs">{update.new_status?.replace(/_/g, ' ')}</Badge>
                                             <span className="text-xs text-muted-foreground">
                                                 {formatDistanceToNow(new Date(update.created_at), { addSuffix: true })}
                                             </span>
                                         </div>
-                                        {update.comment && (
-                                            <p className="text-sm text-muted-foreground">{update.comment}</p>
-                                        )}
+                                        {update.comment && <p className="text-sm text-muted-foreground">{update.comment}</p>}
                                     </div>
                                 </div>
                             ))}
@@ -423,29 +405,25 @@ const ActionDetail = () => {
 
             {/* Reported By */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Reported By</CardTitle>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Reported By</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            {action.profiles.avatar_url ? (
-                                <img
-                                    src={action.profiles.avatar_url}
-                                    alt={action.profiles.display_name || action.profiles.username}
-                                    className="w-full h-full rounded-full object-cover"
-                                />
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                            {action.profiles?.avatar_url ? (
+                                <img src={action.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
                                 <span className="text-lg font-semibold">
-                                    {(action.profiles.display_name || action.profiles.username).charAt(0).toUpperCase()}
+                                    {(action.profiles?.display_name || action.profiles?.username || '?').charAt(0).toUpperCase()}
                                 </span>
                             )}
                         </div>
                         <div>
-                            <p className="font-semibold">
-                                {action.profiles.display_name || action.profiles.username}
+                            <p className="font-semibold text-sm">
+                                {action.profiles?.display_name || action.profiles?.username}
                             </p>
-                            <p className="text-sm text-muted-foreground">@{action.profiles.username}</p>
+                            <p className="text-xs text-muted-foreground">@{action.profiles?.username}</p>
                         </div>
                     </div>
                 </CardContent>

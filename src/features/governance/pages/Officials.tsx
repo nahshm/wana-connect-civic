@@ -13,12 +13,27 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useGeoLocation, SUPPORTED_COUNTRIES } from '@/hooks/useGeoLocation';
 import { ClaimPositionModal } from '@/components/governance/ClaimPositionModal';
 import { copyToClipboard } from '@/lib/clipboard-utils';
+import { Link } from 'react-router-dom';
 import {
   Search, Eye, Share2, MapPin, ShieldCheck, UserPlus,
   Globe, Loader2, ChevronRight, Building2, Landmark, Users
 } from 'lucide-react';
 
 const PAGE_SIZE = 24;
+
+/** Build the position-first office URL directly from DB position_code.
+ * position_code format = "KE:nairobi:governor" → /office/ke/county/nairobi/governor
+ */
+function buildOfficeUrl(pos: Pick<PositionWithHolder, 'country_code' | 'governance_level' | 'position_code'>): string {
+  const country = pos.country_code.toLowerCase();
+  const level = pos.governance_level.toLowerCase();
+  // position_code = "KE:nairobi:governor" — take parts after country prefix
+  const parts = pos.position_code.split(':');
+  // parts[0] = country, parts[1] = jurisdiction slug, parts[2] = role slug
+  const jurisdictionSlug = (parts[1] || '').toLowerCase();
+  const roleSlug = (parts[2] || '').toLowerCase();
+  return `/office/${country}/${level}/${jurisdictionSlug}/${roleSlug}`;
+}
 
 // Governance levels with icons
 const GOVERNANCE_LEVELS = [
@@ -35,6 +50,7 @@ interface PositionWithHolder {
   governance_level: string;
   jurisdiction_name: string;
   jurisdiction_code: string | null;
+  position_code: string;
   title: string;
   term_years: number | null;
   is_elected: boolean | null;
@@ -66,6 +82,7 @@ const fetchPositionsPage = async (
             governance_level,
             jurisdiction_name,
             jurisdiction_code,
+            position_code,
             title,
             term_years,
             is_elected
@@ -99,7 +116,17 @@ const fetchPositionsPage = async (
   // Fetch office holders for these positions
   const positionIds = (positions || []).map(p => p.id);
 
-  let holdersData: any[] = [];
+  interface HolderRow {
+    id: string;
+    position_id: string;
+    user_id: string;
+    term_start: string;
+    term_end: string;
+    verification_status: string;
+    user?: { id: string; display_name: string; avatar_url: string | null } | null;
+  }
+
+  let holdersData: HolderRow[] = [];
   if (positionIds.length > 0) {
     const { data } = await supabase
       .from('office_holders')
@@ -415,37 +442,54 @@ const Officials = () => {
 
                           {/* Actions */}
                           <div className="flex gap-2 mt-4">
-                            <Button
-                              variant={hasHolder ? "default" : "outline"}
-                              size="sm"
+                            {/* Always-visible: View Office Hub */}
+                            <Link
+                              to={buildOfficeUrl(position)}
                               className="flex-1"
-                              onClick={() => {
-                                if (hasHolder) {
-                                  navigate(`/g/${position.id}`);
-                                } else {
-                                  handleClaimPosition(position);
-                                }
-                              }}
                             >
-                              {hasHolder ? (
-                                <>
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  View Profile
-                                </>
-                              ) : (
-                                <>
-                                  <UserPlus className="w-4 h-4 mr-1" />
-                                  Claim Position
-                                </>
-                              )}
-                            </Button>
+                              <Button
+                                variant={hasHolder ? 'default' : 'outline'}
+                                size="sm"
+                                className="w-full"
+                              >
+                                <Landmark className="w-4 h-4 mr-1" />
+                                View Office
+                              </Button>
+                            </Link>
+
+                            {/* Secondary: View holder profile (only if claimed) */}
+                            {hasHolder && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/g/${position.current_holder!.user!.id}`)}
+                                title="View holder's profile"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            )}
+
+                            {/* Claim (vacant only) */}
+                            {!hasHolder && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleClaimPosition(position)}
+                                title="Claim this position"
+                              >
+                                <UserPlus className="w-4 h-4" />
+                              </Button>
+                            )}
+
+                            {/* Share */}
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                const url = `${window.location.origin}/g/${position.id}`;
-                                copyToClipboard(url, 'Link copied to clipboard');
+                                const url = `${window.location.origin}${buildOfficeUrl(position)}`;
+                                copyToClipboard(url, 'Office link copied!');
                               }}
+                              title="Copy office link"
                             >
                               <Share2 className="w-4 h-4" />
                             </Button>

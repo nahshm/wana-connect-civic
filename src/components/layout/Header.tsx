@@ -66,7 +66,7 @@ export const Header = () => {
           src="/wanaiq-logo.png"
           alt="ama Logo"
           className="h-8 w-auto"
-          fetchPriority="high"
+          fetchpriority="high"
         />
         <span className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
           ama

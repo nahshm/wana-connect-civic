@@ -24,6 +24,10 @@ const Officials = lazy(() => import("@/features/governance/pages/Officials"));
 const OfficialDetail = lazy(() => import("@/features/governance/pages/OfficialDetail"));
 const ClaimPositionPage = lazy(() => import("@/features/governance/pages/ClaimPosition"));
 const BuildGovernancePage = lazy(() => import("@/features/governance/pages/BuildGovernance"));
+// NEW: Position-first Office civic hub (unclaimed + claimed)
+const OfficeHubPage = lazy(() => import("@/features/governance/pages/OfficeHubPage"));
+// NEW: Institution page (unclaimed + claimed handler)
+const InstitutionPage = lazy(() => import("@/features/governance/pages/InstitutionPage"));
 
 // LAZY LOADED: Accountability pages
 const Projects = lazy(() => import("@/features/accountability/pages/Projects"));
@@ -135,6 +139,11 @@ const App = () => (
                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
                             <Route path="/promises/:promiseId" element={<PromiseDetail />} />
                             <Route path="/discover" element={<DiscoveryDashboard />} />
+
+                            {/* Position-first Office civic hub — accessible even for unclaimed offices */}
+                            <Route path="/office/:country/:level/:jurisdiction/:role" element={<OfficeHubPage />} />
+                            {/* Institution page — accessible even without a claimed handler */}
+                            <Route path="/institution/:slug" element={<InstitutionPage />} />
 
                             {/* Profile Routes - handled by PrefixRouter for /u/, /w/, /g/ */}
                             {/* PrefixRouter detects UUIDs vs usernames and routes to OfficePage vs ProfileV2 */}

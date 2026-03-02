@@ -9,13 +9,27 @@ export interface ModerationResult {
 }
 
 export interface RoutingResult {
+  // Real institution matched from DB
+  institution_id: string | null;
+  institution_name: string;
+  institution_acronym: string | null;
+  institution_type: string;
+  institution_website: string | null;
+  institution_email: string | null;
+  institution_phone: string | null;
+  institution_address: string | null;
+  // Issue classification
   issue_type: string;
   department_slug: string;
-  department_name: string;
   jurisdiction: string;
   severity: number;
   confidence: number;
   recommended_actions: string[];
+  // AI-generated formal Kenyan complaint letter
+  formal_letter: string;
+  processing_time_ms: number;
+  // Legacy compat fields (may be undefined on new responses)
+  department_name?: string;
   required_forms?: Array<{
     form_id: string;
     form_name: string;
@@ -28,7 +42,6 @@ export interface RoutingResult {
     office_location?: string;
   };
   next_steps?: string[];
-  processing_time_ms: number;
 }
 
 export interface Source {
