@@ -404,7 +404,7 @@ export default function OfficeHubPage() {
             }
             const { data } = await supabase
                 .from('office_questions')
-                .select('id, question, answer, asked_by, asked_at, upvotes, answered_at, profiles!asked_by(username, full_name, avatar_url)')
+                .select('id, question, answer, asked_by, asked_at, upvotes, answered_at, profiles(username, full_name, avatar_url)')
                 .in('office_holder_id', holderIds)
                 .order('asked_at', { ascending: false })
                 .limit(30);
