@@ -12,7 +12,7 @@ interface Step3PersonaProps {
 
 const personas = [
   {
-    id: 'citizen',
+    id: 'active_citizen',
     title: 'Regular Citizen',
     description: 'I want to access services and report issues',
     icon: '👤',
@@ -42,9 +42,9 @@ const personas = [
     icon: '📰',
   },
   {
-    id: 'official',
-    title: 'Gov Official',
-    description: 'I want to engage with constituents and manage issues',
+    id: 'government_watcher',
+    title: 'Government Watcher',
+    description: 'I want to track budgets, accountability, and government performance',
     icon: '🏛️',
   },
   {

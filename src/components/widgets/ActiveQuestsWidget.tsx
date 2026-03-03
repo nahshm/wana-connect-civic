@@ -12,10 +12,8 @@ interface Quest {
   id: string;
   title: string;
   category: string;
-  tasks_total: number;
-  tasks_completed: number;
-  xp_reward: number;
-  badge_name?: string;
+  progress: number;
+  points: number;
 }
 
 const categoryColors = {
@@ -38,20 +36,17 @@ export const ActiveQuestsWidget = () => {
     const fetchActiveQuests = async () => {
       try {
         // Get user's in-progress quests
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('user_quests')
           .select(`
             quest_id,
             progress,
             status,
-            tasks_completed,
             quests (
               id,
               title,
               category,
-              tasks_total,
-              xp_reward,
-              badge_name
+              points
             )
           `)
           .eq('user_id', user.id)
@@ -67,10 +62,8 @@ export const ActiveQuestsWidget = () => {
             id: item.quests.id,
             title: item.quests.title,
             category: item.quests.category,
-            tasks_total: item.quests.tasks_total,
-            tasks_completed: item.tasks_completed || 0,
-            xp_reward: item.quests.xp_reward,
-            badge_name: item.quests.badge_name,
+            progress: item.progress || 0,
+            points: item.quests.points || 0,
           }));
 
         setQuests(transformedQuests);
@@ -80,15 +73,15 @@ export const ActiveQuestsWidget = () => {
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
-        const { data: completedQuests } = await supabase
+        const { data: completedQuests } = await (supabase as any)
           .from('user_quests')
-          .select('quests(xp_reward)')
+          .select('quests(points)')
           .eq('user_id', user.id)
           .eq('status', 'completed')
           .gte('completed_at', startOfMonth.toISOString());
 
         const monthlyXP = (completedQuests || []).reduce(
-          (sum: number, item: any) => sum + (item.quests?.xp_reward || 0),
+          (sum: number, item: any) => sum + (item.quests?.points || 0),
           0
         );
 
@@ -153,7 +146,6 @@ export const ActiveQuestsWidget = () => {
             {/* Quest list - responsive */}
             <div className="space-y-2">
               {quests.map((quest) => {
-                const progress = (quest.tasks_completed / quest.tasks_total) * 100;
                 const gradientColor = categoryColors[quest.category as keyof typeof categoryColors] || categoryColors.engagement;
 
                 return (
@@ -183,25 +175,18 @@ export const ActiveQuestsWidget = () => {
                             `bg-gradient-to-r ${gradientColor}`,
                             "rounded-full"
                           )}
-                          style={{ width: `${progress}%` }}
+                          style={{ width: `${quest.progress}%` }}
                         />
                       </div>
 
                       {/* Stats - responsive */}
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">
-                          {quest.tasks_completed}/{quest.tasks_total} tasks
+                          {quest.progress}% complete
                         </span>
-                        <div className="flex items-center gap-2">
-                          {quest.badge_name && (
-                            <span className="hidden sm:inline text-purple-600 dark:text-purple-400">
-                              🏆 Badge
-                            </span>
-                          )}
-                          <span className="font-semibold text-amber-600 dark:text-amber-400">
-                            {quest.xp_reward} XP
-                          </span>
-                        </div>
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          {quest.points} XP
+                        </span>
                       </div>
                     </div>
                   </Link>

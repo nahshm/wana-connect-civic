@@ -15,7 +15,7 @@ interface Quest {
   progress: number;
   quest_title: string;
   quest_description: string;
-  xp_reward: number;
+  points: number;
 }
 
 export const DashboardQuestWidget = ({ fullView = false }: { fullView?: boolean }) => {
@@ -32,7 +32,7 @@ export const DashboardQuestWidget = ({ fullView = false }: { fullView?: boolean 
           .from('user_quests')
           .select(`
             id, quest_id, status, progress,
-            quests!inner(title, description, xp_reward)
+            quests!inner(title, description, points)
           `)
           .eq('user_id', user.id)
           .in('status', ['active', 'in_progress'])
@@ -45,7 +45,7 @@ export const DashboardQuestWidget = ({ fullView = false }: { fullView?: boolean 
           progress: q.progress || 0,
           quest_title: q.quests?.title || 'Quest',
           quest_description: q.quests?.description || '',
-          xp_reward: q.quests?.xp_reward || 0,
+          points: q.quests?.points || 0,
         }));
 
         setQuests(mapped);
@@ -102,7 +102,7 @@ export const DashboardQuestWidget = ({ fullView = false }: { fullView?: boolean 
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-xs font-medium line-clamp-1">{quest.quest_title}</p>
                   <Badge variant="secondary" className="text-[9px] shrink-0">
-                    +{quest.xp_reward} XP
+                    +{quest.points} XP
                   </Badge>
                 </div>
                 {/* Progress bar */}

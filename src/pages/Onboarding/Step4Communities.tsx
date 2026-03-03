@@ -43,16 +43,8 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
     // Load geographic communities
     const geoNames = await getGeographicCommunityNames();
 
-    // Load interest-based communities
-    const { data: interestCommunities } = await supabase
-      .from('communities')
-      .select('*')
-      .in('category', ['Education', 'Healthcare', 'Infrastructure', 'Security', 'Environment'])
-      .limit(5);
-
     const allCommunities: Community[] = [
       ...geoNames.map(c => ({ ...c, isGeo: true })),
-      ...(interestCommunities || []).map(c => ({ ...c, isGeo: false })),
     ];
 
     setCommunities(allCommunities);
@@ -161,7 +153,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
           constituency: locationNames.constituency,
           ward: locationNames.ward,
 
-          persona: onboardingData.persona as 'active_citizen' | 'community_organizer' | 'civic_learner' | 'government_watcher' | 'professional',
+          persona: onboardingData.persona as any,
           onboarding_completed: true,
         })
         .eq('id', user.id);
@@ -209,9 +201,22 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         });
 
       if (communityMemberships.length > 0) {
+        // Validate that all community IDs exist before upserting
+        const idsToJoin = communityMemberships.map(m => m.community_id);
+        const { data: validCommunities } = await supabase
+          .from('communities')
+          .select('id')
+          .in('id', idsToJoin);
+        const validIds = new Set((validCommunities || []).map((c: any) => c.id));
+        const safeMemberships = communityMemberships.filter(m => validIds.has(m.community_id));
+
+        if (safeMemberships.length === 0) {
+          console.warn('No valid community IDs found for membership');
+        }
+
         const { error: membershipError } = await supabase
           .from('community_members')
-          .upsert(communityMemberships, { onConflict: 'user_id,community_id', ignoreDuplicates: true });
+          .upsert(safeMemberships, { onConflict: 'user_id,community_id', ignoreDuplicates: true });
 
         if (membershipError) {
           console.error('Error adding community memberships:', membershipError.message, membershipError);
@@ -386,7 +391,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         <div>
           <h2 className="text-xl font-semibold text-foreground">Join Your Communities</h2>
           <p className="text-sm text-muted-foreground">
-            We've selected communities based on your location and interests
+            We've selected communities based on your location
           </p>
         </div>
       </div>

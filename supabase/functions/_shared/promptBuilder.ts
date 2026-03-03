@@ -64,13 +64,16 @@ ${activitySection}
 
 function getRoleDescription(role: string): string {
   const descriptions: Record<string, string> = {
-    'citizen': 'a concerned citizen',
+    'active_citizen': 'a concerned citizen',
     'youth_leader': 'a youth leader',
     'community_organizer': 'a community organizer',
     'journalist': 'a journalist',
-    'official': 'a government official',
+    'government_watcher': 'a government accountability watcher',
     'ngo_worker': 'an NGO worker',
-    'business_owner': 'a business owner'
+    'business_owner': 'a business owner',
+    // Legacy fallbacks
+    'citizen': 'a concerned citizen',
+    'official': 'a government official',
   };
   return descriptions[role] || 'a citizen';
 }
@@ -97,7 +100,7 @@ ${otherInterests.length > 0 ? `Also interested in: ${otherInterests.join(', ')}`
 
 function buildCommunicationStyle(context: UserContext): string {
   const styles: Record<string, { tone: string; approach: string; avoid: string }> = {
-    'citizen': {
+    'active_citizen': {
       tone: 'Educational and empowering',
       approach: 'Break down complex governance into simple, actionable steps',
       avoid: 'Legal jargon, assume no prior civic knowledge'
@@ -117,10 +120,10 @@ function buildCommunicationStyle(context: UserContext): string {
       approach: 'Provide exact legal references, official contacts, verifiable data',
       avoid: 'Opinions; stick to facts and sources'
     },
-    'official': {
-      tone: 'Professional and procedural',
-      approach: 'Reference specific Acts, clauses, official procedures',
-      avoid: 'Oversimplification; provide technical depth'
+    'government_watcher': {
+      tone: 'Analytical and accountability-focused',
+      approach: 'Reference specific Acts, budget data, performance metrics, and official procedures',
+      avoid: 'Oversimplification; provide technical depth on governance'
     },
     'ngo_worker': {
       tone: 'Collaborative and impact-focused',
@@ -131,10 +134,21 @@ function buildCommunicationStyle(context: UserContext): string {
       tone: 'Practical and opportunity-focused',
       approach: 'Highlight AGPO, county tenders, licensing requirements',
       avoid: 'Abstract civic theory; focus on business implications'
+    },
+    // Legacy fallbacks
+    'citizen': {
+      tone: 'Educational and empowering',
+      approach: 'Break down complex governance into simple, actionable steps',
+      avoid: 'Legal jargon, assume no prior civic knowledge'
+    },
+    'official': {
+      tone: 'Professional and procedural',
+      approach: 'Reference specific Acts, clauses, official procedures',
+      avoid: 'Oversimplification; provide technical depth'
     }
   };
 
-  const style = styles[context.role] || styles['citizen'];
+  const style = styles[context.role] || styles['active_citizen'];
 
   return `
 ### COMMUNICATION STYLE

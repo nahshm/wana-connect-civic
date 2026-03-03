@@ -108,7 +108,7 @@ export function getRelevantQuests(
       if (aInCommunity && !bInCommunity) return -1;
       if (bInCommunity && !aInCommunity) return 1;
       
-      return b.xp_reward - a.xp_reward;
+      return b.points - a.points;
     })
     .slice(0, FEED_CONFIG.MAX_QUEST_CARDS_PER_FEED);
 }

@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 interface CommunityData {
     name: string;
     description: string;
+    category: string;
     visibility_type: 'public' | 'restricted' | 'private';
     is_mature: boolean;
     banner_url: string;
@@ -41,6 +42,7 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
     const [communityData, setCommunityData] = useState<CommunityData>({
         name: '',
         description: '',
+        category: 'discussion',
         visibility_type: 'public',
         is_mature: false,
         banner_url: '',
@@ -98,7 +100,7 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
                     name: communityData.name,
                     display_name: communityData.name.charAt(0).toUpperCase() + communityData.name.slice(1),
                     description: communityData.description,
-                    category: 'discussion',
+                    category: communityData.category,
                     visibility_type: communityData.visibility_type,
                     is_mature: communityData.is_mature,
                     banner_url: communityData.banner_url || null,
@@ -137,6 +139,7 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
                 setCommunityData({
                     name: '',
                     description: '',
+                    category: 'discussion',
                     visibility_type: 'public',
                     is_mature: false,
                     banner_url: '',

@@ -11,13 +11,11 @@ interface QuestCardProps {
     title: string;
     description: string;
     category: 'reporting' | 'attendance' | 'engagement' | 'content' | 'learning';
-    tasks_total: number;
-    xp_reward: number;
-    badge_name?: string;
+    points: number;
     available_in_community?: string;
   };
   userProgress?: {
-    tasks_completed: number;
+    progress: number;
     status: 'not_started' | 'in_progress' | 'completed';
   };
   onStartQuest?: (questId: string) => void;
@@ -42,7 +40,7 @@ const categoryColors = {
 export const QuestCard = ({ quest, userProgress, onStartQuest }: QuestCardProps) => {
   const Icon = categoryIcons[quest.category];
   const gradientColor = categoryColors[quest.category];
-  const progress = userProgress ? (userProgress.tasks_completed / quest.tasks_total) * 100 : 0;
+  const progress = userProgress?.progress || 0;
   const isCompleted = userProgress?.status === 'completed';
   const isInProgress = userProgress?.status === 'in_progress';
 
@@ -98,7 +96,7 @@ export const QuestCard = ({ quest, userProgress, onStartQuest }: QuestCardProps)
 
         {/* Title - responsive text size */}
         <h3 className="text-base sm:text-lg md:text-xl font-bold text-foreground mt-3 leading-tight">
-          {quest.badge_name || quest.title}
+          {quest.title}
         </h3>
       </CardHeader>
 
@@ -115,7 +113,7 @@ export const QuestCard = ({ quest, userProgress, onStartQuest }: QuestCardProps)
               Progress
             </span>
             <span className="font-bold text-foreground">
-              {userProgress?.tasks_completed || 0}/{quest.tasks_total} tasks
+              {progress}%
             </span>
           </div>
           
@@ -135,15 +133,8 @@ export const QuestCard = ({ quest, userProgress, onStartQuest }: QuestCardProps)
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
           <div className="flex items-center gap-1.5 sm:gap-2 text-amber-700 dark:text-amber-300 font-medium">
             <Award className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>{quest.xp_reward} XP</span>
+            <span>{quest.points} XP</span>
           </div>
-          {quest.badge_name && (
-            <div className="flex items-center gap-1.5 sm:gap-2 text-purple-700 dark:text-purple-300 font-medium">
-              <span className="text-base sm:text-lg">🏆</span>
-              <span className="hidden sm:inline">Badge</span>
-              <span className="sm:hidden">🏆</span>
-            </div>
-          )}
         </div>
 
         {/* Actions - responsive layout */}

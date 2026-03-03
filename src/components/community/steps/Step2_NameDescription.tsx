@@ -6,6 +6,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { HelpCircle, X } from 'lucide-react';
 import { useState } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { communityCategoryGroups } from '@/constants/communityCategories';
+import { cn } from '@/lib/utils';
 
 const MAX_NAME_LENGTH = 21;
 const MAX_DESC_LENGTH = 500;
@@ -16,6 +18,7 @@ interface Step2Props {
     data: {
         name: string;
         description: string;
+        category?: string;
         rules?: string;
         moderation_type?: 'admin' | 'elected' | 'community';
         tags?: string[];
@@ -111,6 +114,40 @@ export const Step2_NameDescription = ({ data, onChange }: Step2Props) => {
                 </div>
             </div>
 
+            {/* Community Category */}
+            <div className="space-y-4">
+                <div>
+                    <h3 className="text-xl font-bold">Category</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Choose a category that best describes your community <span className="text-destructive">*</span>
+                    </p>
+                </div>
+
+                {communityCategoryGroups.map((group) => (
+                    <div key={group.label} className="space-y-2">
+                        <p className="text-sm font-semibold text-muted-foreground">{group.label}</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {group.categories.map((cat) => (
+                                <button
+                                    key={cat.value}
+                                    type="button"
+                                    onClick={() => onChange({ ...data, category: cat.value })}
+                                    className={cn(
+                                        "flex items-center gap-2 p-3 rounded-lg border text-left transition-colors text-sm",
+                                        data.category === cat.value
+                                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                            : "border-border hover:border-primary/50"
+                                    )}
+                                >
+                                    <span className="text-lg shrink-0">{cat.icon}</span>
+                                    <span className="font-medium text-foreground leading-tight">{cat.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             {/* Community Guidelines */}
             <div className="space-y-6">
                 <h3 className="text-xl font-bold">Community Guidelines</h3>
@@ -187,7 +224,7 @@ export const Step2_NameDescription = ({ data, onChange }: Step2Props) => {
 
                 {/* Categories / Tags */}
                 <div className="space-y-2">
-                    <Label className="text-base font-medium">Categories / Tags</Label>
+                    <Label className="text-base font-medium">Tags</Label>
                     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background p-2">
                         {(data.tags || []).map((tag, index) => (
                             <Badge key={index} variant="secondary" className="gap-1 pr-1">
