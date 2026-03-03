@@ -13,7 +13,7 @@ export interface Quest {
   title: string;
   description: string;
   category: string;
-  xp_reward: number;
+  points: number;
   available_in_community?: string;
   userProgress?: {
     status: 'not_started' | 'in_progress' | 'completed';
