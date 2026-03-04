@@ -59,7 +59,7 @@ interface PositionWithHolder {
     term_start: string;
     term_end: string;
     verification_status: string;
-    user: {
+    user?: {
       id: string;
       display_name: string;
       avatar_url: string | null;
