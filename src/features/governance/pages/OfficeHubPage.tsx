@@ -60,8 +60,8 @@ interface GovernmentPosition {
     country_code: string;
     term_years: number | null;
     is_elected: boolean | null;
-    responsibilities: string[] | null;
-    authority_level: string | null;
+    responsibilities: string | string[] | null;
+    authority_level: number | string | null;
     next_election_date: string | null;
     banner_url: string | null;
     custom_avatar_url: string | null;
@@ -79,7 +79,7 @@ interface OfficeHolder {
     profiles: {
         id: string;
         username: string;
-        full_name: string | null;
+        display_name: string | null;
         avatar_url: string | null;
         bio: string | null;
         is_verified: boolean | null;
@@ -98,18 +98,18 @@ interface CivicAction {
     id: string;
     title: string;
     description: string | null;
-    urgency: 'high' | 'medium' | 'low' | null;
+    urgency: string | null;
     status: string | null;
     created_at: string;
     location_text: string | null;
     support_count: number | null;
 }
-interface OfficePromise { id: string; title: string; description: string | null; status: string | null; created_at: string; deadline: string | null; progress: number | null; category: string | null; }
-interface OfficeQuestion { id: string; question: string; answer: string | null; asked_by: string | null; asked_at: string; upvotes: number | null; answered_at: string | null; profiles: { username: string; full_name: string | null; avatar_url: string | null } | null; }
+interface OfficePromise { id: string; title: string; description: string | null; status: string | null; created_at: string; deadline: string | null; progress: number | null; category?: string | null; }
+interface OfficeQuestion { id: string; question: string; answer: string | null; asked_by: string | null; asked_at: string; upvotes: number | null; answered_at: string | null; profiles: { username: string; display_name: string | null; avatar_url: string | null } | null; }
 interface GovProject { id: string; title: string; description: string | null; status: string | null; planned_start_date: string | null; planned_completion_date: string | null; budget_allocated: number | null; category: string | null; }
-interface OfficeManifesto { id: string; title: string; file_url: string; file_type: string | null; year: number | null; is_pinned: boolean | null; is_verified: boolean | null; created_at: string; profiles: { username: string; full_name: string | null } | null; }
-interface OfficeProposal { id: string; title: string; description: string; status: string | null; holder_response: string | null; upvotes: number | null; created_at: string; profiles: { username: string; avatar_url: string | null } | null; }
-interface OfficePastHolder { id: string; user_id: string; verification_status: string; claimed_at: string | null; term_start: string | null; term_end: string | null; profiles: { username: string | null; full_name: string | null; avatar_url: string | null } | null; }
+interface OfficeManifesto { id: string; title: string; file_url: string; file_type: string | null; year: number | null; is_pinned: boolean | null; is_verified: boolean | null; created_at: string; uploaded_by?: string | null; profiles?: { username: string; display_name: string | null } | null; }
+interface OfficeProposal { id: string; title: string; description: string; status: string | null; holder_response?: string | null; upvotes: number | null; created_at: string; profiles: { username: string; avatar_url: string | null } | null; }
+interface OfficePastHolder { id: string; user_id: string; verification_status: string; claimed_at: string | null; term_start: string | null; term_end: string | null; profiles: { username: string | null; display_name: string | null; avatar_url: string | null } | null; }
 interface LinkedInstitution { id: string; name: string; acronym: string | null; institution_type: string | null; slug: string; website: string | null; contact_email: string | null; contact_phone: string | null; }
 /** Institution that this position directly heads (position_id FK match) */
 interface GoverningInstitution extends LinkedInstitution { description: string | null; }
@@ -324,7 +324,7 @@ export default function OfficeHubPage() {
         queryFn: async () => {
             const { data } = await supabase
                 .from('office_holders')
-                .select('id, user_id, position_id, verification_status, claimed_at, term_start, term_end, profiles(id, username, full_name, avatar_url, bio, is_verified)')
+                .select('id, user_id, position_id, verification_status, claimed_at, term_start, term_end, is_active, profiles!office_holders_user_id_fkey(id, username, display_name, avatar_url, bio, is_verified)')
                 .eq('position_id', position!.id)
                 .in('verification_status', ['verified', 'pending'])
                 .eq('is_active', true)
@@ -378,7 +378,7 @@ export default function OfficeHubPage() {
         queryFn: async () => {
             const { data } = await supabase
                 .from('office_promises')
-                .select('id, title, description, status, created_at, deadline, progress')
+                .select('id, title, description, status, created_at, deadline, progress, category')
                 .eq('office_holder_id', activeHolder!.id)
                 .order('created_at', { ascending: false })
                 .limit(20);
@@ -404,7 +404,7 @@ export default function OfficeHubPage() {
             }
             const { data } = await supabase
                 .from('office_questions')
-                .select('id, question, answer, asked_by, asked_at, upvotes, answered_at, profiles(username, full_name, avatar_url)')
+                .select('id, question, answer, asked_by, asked_at, upvotes, answered_at, profiles!office_questions_asked_by_fkey(username, display_name, avatar_url)')
                 .in('office_holder_id', holderIds)
                 .order('asked_at', { ascending: false })
                 .limit(30);
@@ -439,7 +439,7 @@ export default function OfficeHubPage() {
         queryFn: async () => {
             const { data } = await supabase
                 .from('office_manifestos')
-                .select('id, title, file_url, file_type, year, is_pinned, is_verified, created_at, uploaded_by')
+                .select('id, title, file_url, file_type, year, is_pinned, is_verified, created_at, uploaded_by, profiles!office_manifestos_uploaded_by_fkey(username, display_name)')
                 .eq('office_id', officeData!.id)
                 .order('is_pinned', { ascending: false })
                 .limit(10);
@@ -467,7 +467,7 @@ export default function OfficeHubPage() {
         queryFn: async () => {
             const { data } = await supabase
                 .from('office_holders')
-                .select('id, user_id, verification_status, claimed_at, term_start, term_end, profiles(username, full_name, avatar_url)')
+                .select('id, user_id, verification_status, claimed_at, term_start, term_end, profiles!office_holders_user_id_fkey(username, display_name, avatar_url)')
                 .eq('position_id', position!.id)
                 .order('claimed_at', { ascending: false })
                 .limit(20);
@@ -543,14 +543,14 @@ export default function OfficeHubPage() {
         enabled: !!position && !position.banner_url,
         queryFn: async () => {
             const jurisdictionName = position!.jurisdiction_name;
+            const jurisdictionSearch = jurisdictionName.replace(' County', '').replace(' Constituency', '').trim();
             const { data } = await supabase
                 .from('communities')
                 .select('banner_url, avatar_url')
-                .ilike('name', `%${jurisdictionName.replace(' County', '').replace(' Constituency', '').trim()}%`)
-                .in('community_type', ['location', 'county', 'constituency', 'ward'])
-                .limit(1)
-                .maybeSingle();
-            return data as { banner_url: string | null; avatar_url: string | null } | null;
+                .ilike('name', `%${jurisdictionSearch}%`);
+            // Filter client-side to avoid deep type instantiation
+            const match = (data || []).find((c: any) => ['location', 'county', 'constituency', 'ward'].includes(c.community_type));
+            return match ? { banner_url: match.banner_url, avatar_url: match.avatar_url } : null;
         },
     });
 
@@ -603,7 +603,7 @@ export default function OfficeHubPage() {
         mutationFn: async (proposalId: string) => {
             if (!user) throw new Error('Login required');
             const { error } = await supabase.from('office_proposals')
-                .update({ upvotes: supabase.rpc('increment', { x: 1 }) as unknown as number })
+                .update({ upvotes: (supabase.rpc as any)('increment', { x: 1 }) as unknown as number })
                 .eq('id', proposalId);
             if (error) throw error;
         },
@@ -623,14 +623,14 @@ export default function OfficeHubPage() {
             if (error) throw error;
             // Log activity
             if (activeHolder?.id) {
-                await supabase.from('office_activity_log').insert({
+                supabase.from('office_activity_log').insert({
                     office_holder_id: activeHolder.id,
                     activity_type: `proposal_${status}`,
                     title: `Proposal ${status === 'accepted' ? 'Accepted' : 'Rejected'}`,
                     description: proposalResponse.trim() || `Holder ${status} the proposal.`,
                     reference_type: 'proposal',
                     created_by: user.id,
-                }).catch(() => {});
+                }).then(() => {});
             }
         },
         onSuccess: () => {
@@ -848,7 +848,7 @@ export default function OfficeHubPage() {
                                 <Activity className="w-4 h-4 text-blue-500" />
                                 Recent Activity
                             </h3>
-                            <ActivityTimeline activities={activities} />
+                            <ActivityTimeline entries={activities} />
                         </div>
                     )}
 
@@ -1014,7 +1014,7 @@ export default function OfficeHubPage() {
                                         <div>
                                             <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{q.question}</p>
                                             <p className="text-xs text-slate-400 mt-0.5">
-                                                {q.profiles?.full_name || q.profiles?.username || 'Anonymous'} · {new Date(q.asked_at).toLocaleDateString()}
+                                                {q.profiles?.display_name || q.profiles?.username || 'Anonymous'} · {new Date(q.asked_at).toLocaleDateString()}
                                             </p>
                                         </div>
                                     </div>
@@ -1117,7 +1117,7 @@ export default function OfficeHubPage() {
                                             {m.is_pinned && <Badge className="text-[10px] px-1.5">Pinned</Badge>}
                                             {m.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />}
                                         </div>
-                                        <p className="text-xs text-slate-400">{m.year} · {m.profiles?.full_name || m.profiles?.username}</p>
+                                        <p className="text-xs text-slate-400">{m.year} · {m.profiles?.display_name || m.profiles?.username}</p>
                                     </div>
                                 </div>
                                 <a href={m.file_url} target="_blank" rel="noopener noreferrer">
@@ -1357,11 +1357,11 @@ export default function OfficeHubPage() {
                             return (
                                 <div key={holder.id} className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                                     {prof?.avatar_url
-                                        ? <img src={prof.avatar_url} alt={prof.full_name || ''} className="w-12 h-12 rounded-full object-cover border-2 border-slate-200" />
-                                        : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shrink-0">{(prof?.full_name || prof?.username || '?')[0]}</div>
+                                        ? <img src={prof.avatar_url} alt={prof.display_name || ''} className="w-12 h-12 rounded-full object-cover border-2 border-slate-200" />
+                                        : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shrink-0">{(prof?.display_name || prof?.username || '?')[0]}</div>
                                     }
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-slate-900 dark:text-slate-100">{prof?.full_name || prof?.username || 'Unknown'}</p>
+                                        <p className="font-semibold text-slate-900 dark:text-slate-100">{prof?.display_name || prof?.username || 'Unknown'}</p>
                                         <p className="text-xs text-slate-400">
                                         {holder.term_start ? new Date(holder.term_start).getFullYear() : holder.claimed_at ? new Date(holder.claimed_at).getFullYear() : '?'}
                                         {' — '}
@@ -1623,7 +1623,7 @@ export default function OfficeHubPage() {
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">{holderProfile.full_name || `@${holderProfile.username}`}</p>
+                                        <p className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">{holderProfile.display_name || `@${holderProfile.username}`}</p>
                                         <p className="text-xs text-muted-foreground truncate">View Profile</p>
                                     </div>
                                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -1702,7 +1702,7 @@ export default function OfficeHubPage() {
                 question={{
                     id: showAnswerQuestion.id,
                     question: showAnswerQuestion.question,
-                    asked_by: showAnswerQuestion.profiles?.full_name || showAnswerQuestion.profiles?.username || 'Citizen',
+                    asked_by: showAnswerQuestion.profiles?.display_name || showAnswerQuestion.profiles?.username || 'Citizen',
                     asked_at: showAnswerQuestion.asked_at,
                 }}
                 userId={user.id}
@@ -1732,7 +1732,7 @@ export default function OfficeHubPage() {
             <UpdateProjectModal
                 isOpen={!!showUpdateProject}
                 onClose={() => setShowUpdateProject(null)}
-                project={showUpdateProject}
+                project={{ ...showUpdateProject, progress_percentage: null } as any}
                 officeHolderId={activeHolder.id}
                 userId={user.id}
                 onProjectUpdated={() => {
@@ -1744,15 +1744,14 @@ export default function OfficeHubPage() {
         {position && (
             <ClaimPositionModal
                 isOpen={showClaimModal}
-                onClose={() => setShowClaimModal(false)}
-                position={position}
-                onClaimed={() => queryClient.invalidateQueries({ queryKey: ['office-holder', position.id] })}
+                onClose={() => { setShowClaimModal(false); queryClient.invalidateQueries({ queryKey: ['office-holder', position.id] }); }}
+                position={{ id: position.id, title: position.title, governanceLevel: position.governance_level, jurisdictionName: position.jurisdiction_name, countryCode: position.country_code }}
             />
         )}
 
         {/* ActionDetailSheet for issue details */}
         <ActionDetailSheet
-            issueId={selectedIssueId}
+            actionId={selectedIssueId}
             isOpen={!!selectedIssueId}
             onClose={() => setSelectedIssueId(null)}
         />

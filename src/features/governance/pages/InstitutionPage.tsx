@@ -15,7 +15,7 @@ import {
     BadgeCheck, ArrowLeft, Loader2, MessageSquare, CheckCircle2,
     ChevronRight, ExternalLink, Lock, Info, Users, Star,
     Clock, XCircle, ThumbsUp, CheckCircle, LucideIcon,
-    AlertTriangle, Send
+    AlertTriangle, Send, Filter
 } from 'lucide-react';
 import { ActionDetailSheet } from '@/components/dashboard/ActionDetailSheet';
 import { cn } from '@/lib/utils';
@@ -287,10 +287,10 @@ export default function InstitutionPage() {
         queryFn: async () => {
             const search = institution!.jurisdiction_name?.replace(' County', '').replace(' Constituency', '').trim() || '';
             if (!search) return null;
-            const { data } = await supabase
+            const { data } = await (supabase
                 .from('communities')
                 .select('banner_url, avatar_url')
-                .ilike('name', `%${search}%`)
+                .ilike('name', `%${search}%`) as any)
                 .in('community_type', ['location', 'county', 'constituency', 'ward'])
                 .limit(1)
                 .maybeSingle();
@@ -781,7 +781,7 @@ export default function InstitutionPage() {
             </div>
 
             <ActionDetailSheet 
-                issueId={selectedIssueId} 
+                actionId={selectedIssueId} 
                 isOpen={!!selectedIssueId} 
                 onClose={() => setSelectedIssueId(null)} 
             />
