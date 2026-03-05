@@ -29,25 +29,40 @@ export default function Chat() {
         if (!user) return;
 
         try {
-            // Check if chat already exists
-            // This is a simplified check. In reality, we'd query chat_participants to find a common room of type 'direct'
-            // For now, we'll just create a new one or return existing if we can find it easily.
-            // Since we don't have a complex RPC for "find common room", we will just create a new room for this demo
-            // OR we can try to find it.
+            // Find an existing direct room shared by both participants
+            const { data: myRooms } = await supabase
+                .from('chat_participants')
+                .select('room_id, chat_rooms!inner(type)')
+                .eq('user_id', user.id);
 
-            // Let's create a new room for simplicity in this iteration
+            const { data: theirRooms } = await supabase
+                .from('chat_participants')
+                .select('room_id')
+                .eq('user_id', userId);
+
+            const myRoomIds = new Set((myRooms || []).map((r) => r.room_id));
+            const sharedDirectRoom = (theirRooms || []).find(
+                (r) => myRoomIds.has(r.room_id) &&
+                    (myRooms || []).find((m) => m.room_id === r.room_id && (m.chat_rooms as { type: string } | null)?.type === 'direct')
+            );
+
+            if (sharedDirectRoom) {
+                // Resume existing room — preserve history
+                setSelectedChatId(sharedDirectRoom.room_id);
+                setSelectedChatType('direct');
+                setIsNewChat(false);
+                return;
+            }
+
+            // No existing room — create a new direct room
             const { data: room, error: roomError } = await supabase
                 .from('chat_rooms')
-                .insert({
-                    type: 'direct',
-                    created_by: user.id
-                })
+                .insert({ type: 'direct', created_by: user.id })
                 .select()
                 .single();
 
             if (roomError) throw roomError;
 
-            // Add participants
             const { error: participantsError } = await supabase
                 .from('chat_participants')
                 .insert([

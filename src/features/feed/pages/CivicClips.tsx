@@ -158,6 +158,7 @@ export const CivicClipsPage = () => {
                         category={activeCategory === 'trending' ? undefined : activeCategory || undefined}
                         hashtag={hashtag}
                         trending={activeCategory === 'trending'}
+                        sortBy={filters.sortBy as 'recent' | 'views' | 'likes'}
                     />
                 </Suspense>
             </VideoFeedErrorBoundary>

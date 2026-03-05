@@ -48,11 +48,12 @@ async function fetchChannelPosts(
         .limit(20)
         .abortSignal(signal);
 
-    const camelCasePosts = toCamelCase(postsData) || [];
-    return camelCasePosts.map((p: any) => ({
+    // Return posts directly — Supabase uses snake_case; do NOT apply toCamelCase
+    // as it breaks field names like media_urls, post_media, created_at, etc.
+    return (postsData || []).map((p) => ({
         ...p,
-        media: p.postMedia,
-    }));
+        media: p.post_media,
+    })) as unknown as Post[];
 }
 
 async function fetchChannelProjects(

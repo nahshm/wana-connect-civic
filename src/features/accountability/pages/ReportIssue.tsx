@@ -187,6 +187,7 @@ const ReportIssue = () => {
         try {
             const mediaUrls = await uploadPhotos();
 
+            // Step 1: Insert the civic action (without institution_id — FK satisfied after)
             const { data: action, error } = await (supabase as any)
                 .from('civic_actions')
                 .insert({
@@ -202,13 +203,28 @@ const ReportIssue = () => {
                     urgency: routing.severity >= 7 ? 'high' : routing.severity >= 4 ? 'medium' : 'low',
                     is_public: true,
                     media_urls: mediaUrls.length ? mediaUrls : null,
-                    // Persist matched institution from AI routing
-                    assigned_to: null, // handler assigned later
+                    assigned_to: null,
                 })
-                .select('case_number')
+                .select('id, case_number')
                 .single();
 
             if (error) throw error;
+
+            // Step 2: Route to institution via RPC (atomic, preserves formal letter & routing)
+            if (routing.institution_id) {
+                const { error: routeError } = await (supabase as any).rpc(
+                    'route_issue_to_institution',
+                    {
+                        p_action_id: action.id,
+                        p_institution_id: routing.institution_id,
+                        p_formal_letter: formalLetter || null,
+                    }
+                );
+                if (routeError) {
+                    // Non-fatal: routing failed but issue is still saved
+                    console.error('Issue routing to institution failed:', routeError);
+                }
+            }
 
             setPhotos(prev => prev.map((p, i) => ({ ...p, url: mediaUrls[i] })));
             setResult({

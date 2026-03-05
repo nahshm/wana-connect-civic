@@ -52,7 +52,7 @@ const CivicResumePage: React.FC = () => {
     const navigate = useNavigate();
     const { user: currentUser } = useAuth();
 
-    // Fetch profile data
+    // Fetch profile data — supports both /resume/:username and /resume/:uuid
     const {
         data: profile,
         isLoading,
@@ -62,12 +62,14 @@ const CivicResumePage: React.FC = () => {
         queryFn: async (): Promise<UserProfile | null> => {
             if (!username) return null;
 
-            // Direct username lookup
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('username', username)
-                .maybeSingle();
+            // Detect UUID pattern (matches standard RFC 4122 UUID v4)
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(username);
+
+            const query = supabase.from('profiles').select('*');
+            const { data, error } = await (isUuid
+                ? query.eq('id', username)
+                : query.eq('username', username)
+            ).maybeSingle();
 
             if (error) throw error;
             if (!data) return null;

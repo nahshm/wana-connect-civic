@@ -29,6 +29,7 @@ import PerformanceMonitoringTab from '../components/PerformanceMonitoringTab';
 const mainTabs = [
   { id: 'overview', label: 'Overview', icon: Activity },
   { id: 'users', label: 'User Management', icon: Users },
+  { id: 'moderation-queue', label: 'Moderation Queue', icon: ShieldAlert },
   { id: 'anonymous', label: 'Anonymous Reports', icon: ShieldAlert },
   { id: 'crisis', label: 'Crisis Management', icon: AlertTriangle },
   { id: 'ngo', label: 'NGO Partners', icon: Briefcase },
@@ -39,6 +40,7 @@ const mainTabs = [
   { id: 'institutions', label: 'Government Institutions', icon: Building },
   { id: 'agent-queue', label: 'Agent Queue', icon: Bot },
   { id: 'agent-control', label: 'Agent Control Center', icon: Sliders },
+  { id: 'civic-intel', label: 'Civic Intelligence', icon: Brain },
   { id: 'ai-insights', label: 'AI Insights', icon: Brain },
   { id: 'feature-flags', label: 'Feature Flags', icon: Settings },
   { id: 'security', label: 'Security', icon: Lock },
@@ -213,6 +215,7 @@ export default function SuperAdminDashboard() {
           <div className="p-6">
           {selectedTab === 'overview' && <OverviewTab />}
           {selectedTab === 'users' && <UserManagementTab />}
+          {selectedTab === 'moderation-queue' && <ModerationQueueTab />}
           {selectedTab === 'anonymous' && <AnonymousReportsTab />}
           {selectedTab === 'crisis' && <CrisisManagementTab />}
           {selectedTab === 'ngo' && <NGOPartnersTab />}
@@ -223,6 +226,7 @@ export default function SuperAdminDashboard() {
           {selectedTab === 'institutions' && <InstitutionsTab />}
           {selectedTab === 'agent-queue' && <AgentQueueTab />}
           {selectedTab === 'agent-control' && <AgentControlCenterTab />}
+          {selectedTab === 'civic-intel' && <CivicIntelligenceTab />}
           {selectedTab === 'ai-insights' && <AIInsightsTab />}
           {selectedTab === 'feature-flags' && <FeatureFlagsTab />}
           {selectedTab === 'security' && <SecurityTab />}
@@ -2609,6 +2613,238 @@ function GrokAIAssistant({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// H4: Moderation Queue Tab — reads content_flags table
+function ModerationQueueTab() {
+  const [flags, setFlags] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'pending' | 'reviewed' | 'all'>('pending');
+  const { toast: showToast } = useToast();
+
+  const fetchFlags = async () => {
+    setLoading(true);
+    let query = supabase
+      .from('content_flags')
+      .select(`
+        id, verdict, reason, status, created_at,
+        post:posts(id, title, author:profiles!posts_author_id_fkey(username, display_name))
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (filter !== 'all') {
+      query = query.eq('status', filter === 'pending' ? 'pending' : 'approved');
+    }
+
+    const { data, error } = await query;
+    if (error) console.error('content_flags error:', error);
+    setFlags(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchFlags(); }, [filter]);
+
+  const handleAction = async (flagId: string, action: 'approved' | 'removed' | 'escalated') => {
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from('content_flags')
+      .update({ status: action, reviewed_by: adminUser?.id, reviewed_at: new Date().toISOString() })
+      .eq('id', flagId);
+
+    if (error) {
+      showToast({ title: 'Error', description: 'Action failed', variant: 'destructive' });
+    } else {
+      showToast({ title: 'Done', description: `Flag marked as ${action}` });
+      fetchFlags();
+    }
+  };
+
+  const verdictColor: Record<string, string> = {
+    BLOCKED: 'destructive',
+    FLAGGED: 'secondary',
+    NEEDS_REVISION: 'outline',
+    APPROVED: 'default',
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Content Moderation Queue</h2>
+        <div className="flex gap-2">
+          {(['pending', 'reviewed', 'all'] as const).map(f => (
+            <Button key={f} size="sm" variant={filter === f ? 'default' : 'outline'} onClick={() => setFilter(f)}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </Button>
+          ))}
+          <Button size="sm" variant="ghost" onClick={fetchFlags}><RefreshCw className="w-4 h-4" /></Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>
+      ) : flags.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500" />
+            No pending flags. Queue is clear.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {flags.map(flag => (
+            <Card key={flag.id} className="border-l-4 border-l-orange-400">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant={verdictColor[flag.verdict] as any}>{flag.verdict}</Badge>
+                      <Badge variant="outline">{flag.status}</Badge>
+                    </div>
+                    <div className="font-medium truncate">{flag.post?.title || 'Deleted post'}</div>
+                    <div className="text-sm text-muted-foreground">
+                      by @{flag.post?.author?.username || '—'} · {new Date(flag.created_at).toLocaleDateString()}
+                    </div>
+                    {flag.reason && (
+                      <div className="text-sm text-orange-600 mt-1 italic">"{flag.reason}"</div>
+                    )}
+                  </div>
+                  {flag.status === 'pending' && (
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button size="sm" variant="outline" className="text-green-600 border-green-600"
+                        onClick={() => handleAction(flag.id, 'approved')}>
+                        <CheckCircle className="w-3 h-3 mr-1" />Approve
+                      </Button>
+                      <Button size="sm" variant="destructive"
+                        onClick={() => handleAction(flag.id, 'removed')}>
+                        <XCircle className="w-3 h-3 mr-1" />Remove
+                      </Button>
+                      <Button size="sm" variant="secondary"
+                        onClick={() => handleAction(flag.id, 'escalated')}>
+                        <AlertTriangle className="w-3 h-3 mr-1" />Escalate
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// G4: Civic Intelligence Tab — reads scout_findings from DB
+function CivicIntelligenceTab() {
+  const { data: findings, isLoading, refetch } = useQuery({
+    queryKey: ['scout-findings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('scout_findings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const severityColor: Record<string, string> = {
+    critical: 'destructive',
+    high: 'secondary',
+    medium: 'outline',
+    low: 'default',
+  };
+
+  const summary = findings ? {
+    total: findings.length,
+    critical: findings.filter((f: any) => f.severity === 'critical').length,
+    high: findings.filter((f: any) => f.severity === 'high').length,
+    patterns: [...new Set(findings.map((f: any) => f.finding_type).filter(Boolean))].length,
+  } : { total: 0, critical: 0, high: 0, patterns: 0 };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">Civic Intelligence Findings</h2>
+          <p className="text-sm text-muted-foreground">AI-detected patterns and anomalies from scout agent analysis</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <RefreshCw className="w-4 h-4 mr-2" />Refresh
+        </Button>
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <Brain className="text-purple-600 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{summary.total}</div>
+            <div className="text-sm text-muted-foreground">Total Findings</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-destructive">
+          <CardContent className="p-4">
+            <AlertTriangle className="text-destructive mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{summary.critical}</div>
+            <div className="text-sm text-muted-foreground">Critical</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-orange-500">
+          <CardContent className="p-4">
+            <ShieldAlert className="text-orange-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{summary.high}</div>
+            <div className="text-sm text-muted-foreground">High Priority</div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <BarChart3 className="text-blue-500 mb-2 w-5 h-5" />
+            <div className="text-2xl font-bold">{summary.patterns}</div>
+            <div className="text-sm text-muted-foreground">Unique Patterns</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>
+      ) : !findings || findings.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <Brain className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            No findings yet. Scout agent will populate this as it analyzes civic data.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {(findings as any[]).map((finding) => (
+            <Card key={finding.id} className={`border-l-4 ${finding.severity === 'critical' ? 'border-l-red-500' : finding.severity === 'high' ? 'border-l-orange-500' : 'border-l-yellow-400'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant={severityColor[finding.severity] as any}>{finding.severity?.toUpperCase() || 'INFO'}</Badge>
+                      {finding.finding_type && <Badge variant="outline">{finding.finding_type}</Badge>}
+                    </div>
+                    <div className="font-medium">{finding.title || finding.summary || 'Finding'}</div>
+                    {finding.description && (
+                      <div className="text-sm text-muted-foreground mt-1">{finding.description}</div>
+                    )}
+                    <div className="text-xs text-muted-foreground mt-2">
+                      {new Date(finding.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

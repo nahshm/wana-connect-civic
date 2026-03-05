@@ -19,7 +19,8 @@ export const useUnifiedFeed = ({ userId, limit = 10, sortBy = 'hot' }: UseUnifie
       const { data, error } = await (supabase.rpc as any)('get_unified_feed', {
           p_user_id: userId || null,
           p_limit_count: limit,
-          p_offset_count: offset
+          p_offset_count: offset,
+          p_sort_by: sortBy,  // H1/H8: pass sort mode so feed actually re-orders
         });
 
       if (error) throw error;

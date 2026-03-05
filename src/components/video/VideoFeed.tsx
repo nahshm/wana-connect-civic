@@ -10,9 +10,10 @@ interface VideoFeedProps {
     hashtag?: string
     userId?: string
     trending?: boolean
+    sortBy?: 'recent' | 'views' | 'likes'
 }
 
-export const VideoFeed = ({ category, hashtag, userId, trending = false }: VideoFeedProps) => {
+export const VideoFeed = ({ category, hashtag, userId, trending = false, sortBy = 'recent' }: VideoFeedProps) => {
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isMuted, setIsMuted] = useState(true) // Global mute state for all videos
     const containerRef = useRef<HTMLDivElement>(null)
@@ -26,7 +27,7 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false }: Video
         isFetchingNextPage,
         isLoading
     } = useInfiniteQuery({
-        queryKey: ['civic-clips', category, hashtag, userId, trending],
+        queryKey: ['civic-clips', category, hashtag, userId, trending, sortBy],
         staleTime: 2 * 60 * 1000, // 2 minutes - data stays fresh
         gcTime: 10 * 60 * 1000, // 10 minutes - cache time (renamed from cacheTime)
         refetchOnWindowFocus: false, // Don't refetch on tab focus
@@ -56,9 +57,11 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false }: Video
         `)
                 .eq('processing_status', 'ready')
 
-            // Order by trending (views) or recency
-            if (trending) {
+            // Order by sort preference
+            if (trending || sortBy === 'views') {
                 query = query.order('views_count', { ascending: false })
+            } else if (sortBy === 'likes') {
+                query = query.order('likes_count', { ascending: false })
             } else {
                 query = query.order('created_at', { ascending: false })
             }
