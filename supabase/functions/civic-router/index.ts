@@ -150,13 +150,14 @@ Deno.serve(async (req) => {
     const startTime = Date.now();
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // STEP 1: Fetch real government institutions from DB
+    // STEP 1: Fetch real government institutions from DB (limit to 40 to stay within Groq TPM)
     const { data: institutions, error: institutionsError } = await serviceClient
       .from("government_institutions")
       .select("id, name, acronym, institution_type, jurisdiction_type, jurisdiction_name, contact_email, contact_phone, physical_address, website")
       .eq("is_active", true)
       .eq("country_code", "KE")
-      .order("institution_type");
+      .order("institution_type")
+      .limit(40);
 
     if (institutionsError) {
       console.error("Failed to fetch institutions:", institutionsError.message);
@@ -164,10 +165,10 @@ Deno.serve(async (req) => {
 
     const institutionList: GovernmentInstitution[] = institutions || [];
 
-    // Build institution context for Groq — group by type for clarity
+    // Build compact institution context for Groq
     const institutionContext = institutionList.length > 0
       ? institutionList.map((inst) =>
-          `- ID: ${inst.id} | Name: ${inst.name}${inst.acronym ? ` (${inst.acronym})` : ""} | Type: ${inst.institution_type} | Jurisdiction: ${inst.jurisdiction_type}${inst.jurisdiction_name ? ` (${inst.jurisdiction_name})` : ""}`
+          `- ${inst.id}|${inst.name}${inst.acronym ? ` (${inst.acronym})` : ""}|${inst.institution_type}|${inst.jurisdiction_type}`
         ).join("\n")
       : "No institutions available — use best judgment based on the issue type.";
 
