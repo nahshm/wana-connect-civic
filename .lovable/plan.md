@@ -1,56 +1,55 @@
 
+Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-# Fix Remaining Build Errors: Header, InstitutionPage, OfficeHubPage, and Edge Function
+What I found
+- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
+  - Failing query pattern: `select id, source_type, title, content, created_at ...`
+  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
+- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
+- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
 
-These are pre-existing errors unrelated to the combined plan. Here are the fixes:
+Implementation plan
+1) Database migration (schema + secure access)
+- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
+- Add admin-only write policies on `vectors` using server-side role check:
+  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
+- Keep or tighten SELECT policy based on desired visibility:
+  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
 
-## 1. Header.tsx — `fetchpriority` casing (line 69)
+2) Frontend fix in `SuperAdminDashboard.tsx`
+- Keep `title` in select and insert (once column exists).
+- Add robust error handling:
+  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
+  - `handleAddDoc`: surface exact DB/RLS error in toast.
+- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
 
-Change `fetchpriority="high"` to `fetchPriority="high"` (React uses camelCase for HTML attributes).
+3) Optional consistency improvement (edge pipeline)
+- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
+- This is optional but improves UX and debugging.
 
-## 2. InstitutionPage.tsx — Two errors
+4) Verification checklist
+- Open RAG Viewer:
+  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
+  - Filtering by `source_type=kenya_constitution` returns 200.
+- Add document from UI:
+  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
+  - Non-admin users are blocked by RLS (expected).
+- Confirm no repeated vector 400s in console/network.
 
-### Missing `Filter` import (line 634)
-The code uses `<Filter className="w-12 h-12" />` but `Filter` is not imported from lucide-react. Add `Filter` to the import statement on line 13-18.
+Technical details (exact changes)
+- DB:
+  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
+  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
+- App file:
+  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
+    - retain `select('id, source_type, title, content, created_at')`
+    - retain insert payload with `title`
+    - add explicit `error` handling branches for both read/write.
+- Optional edge function:
+  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
 
-### `ActionDetailSheet` prop mismatch (line 783-787)
-The component is called with `issueId` but the interface expects `actionId`. Change `issueId={selectedIssueId}` to `actionId={selectedIssueId}`.
-
-### Excessively deep type instantiation (line 290)
-The `.in('community_type', [...])` query triggers deep type inference. Add `as any` to the query chain or cast the result explicitly to suppress the TS2589 error.
-
-## 3. OfficeHubPage.tsx — Multiple type mismatches
-
-### `responsibilities` type (lines 295, 316)
-The DB column `responsibilities` is `text` (string), but the local `GovernmentPosition` interface defines it as `string[]`. Change line 63 from `responsibilities: string[] | null` to `responsibilities: string | string[] | null`. The existing parsing logic on line 733 already handles both formats.
-
-### `is_active` missing from office_holders query (line 334)
-The `activeHolder` query selects specific columns but omits `is_active`, which the local `OfficeHolder` interface requires. It's filtered via `.eq('is_active', true)` but not selected. Add `is_active` to the select string on line 327.
-
-### `profiles` ambiguous join (lines 334, 411)
-The `office_holders` and `office_questions` tables have multiple FK paths to `profiles`. The error says to hint the column. Change `profiles(...)` to `profiles!office_holders_user_id_fkey(...)` on line 327 and `profiles!office_questions_asked_by_fkey(...)` on line 407.
-
-### `category` missing from `office_promises` query (line 381)
-The `OfficePromise` interface requires `category` but the select string omits it. Add `category` to the select on line 381.
-
-### `profiles` missing from `office_manifestos` query (line 442)
-The `OfficeManifesto` interface requires a `profiles` join but the query only selects `uploaded_by`. Add `profiles!office_manifestos_uploaded_by_fkey(username, full_name)` to the select.
-
-### `urgency` and `status` string literal types (lines 354, 378)
-The DB returns plain `string` but the interfaces expect union types like `'high' | 'medium' | 'low'`. The queries already cast with `as` but the generic type parameter on `useQuery` forces strict checking. Cast the return values through `unknown` or relax the interface types to `string`.
-
-## 4. Edge Function — openai dependency resolution
-
-The `promptBuilder.ts` edge function imports trigger a Deno type resolution error for `npm:openai@^4.52.5`. This is a Deno-specific issue — the edge function needs `openai` listed in `supabase/functions/deno.json` or a local import map.
-
-**Fix**: Check if `supabase/functions/deno.json` exists. If not, create it with the openai import mapping. If it exists, add the openai entry.
-
-## Summary
-
-| File | Fix |
-|------|-----|
-| `Header.tsx` | `fetchpriority` -> `fetchPriority` |
-| `InstitutionPage.tsx` | Add `Filter` import, fix `issueId` -> `actionId`, suppress deep type |
-| `OfficeHubPage.tsx` | Fix `responsibilities` type, add `is_active` to select, hint `profiles` joins, add `category` to promises select, add `profiles` to manifestos select, relax union types |
-| Edge function | Add openai to deno.json import map |
-
+Order of execution
+1. Apply DB migration (column + policies)
+2. Update dashboard error handling
+3. (Optional) add scout title propagation
+4. End-to-end retest of RAG viewer + add document flow
