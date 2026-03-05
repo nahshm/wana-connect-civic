@@ -38,9 +38,31 @@ interface RoutingResult {
   processing_time_ms: number;
 }
 
+function normalizeLocation(location: unknown): string | null {
+  if (!location) return null;
+
+  if (typeof location === "string") {
+    const trimmed = location.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof location === "object") {
+    const loc = location as Record<string, unknown>;
+    const parts = [loc.text, loc.ward, loc.constituency, loc.county]
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .map((value) => value.trim());
+
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+  }
+
+  return null;
+}
+
 function buildFallbackLetter(
   issueDescription: string,
-  location: string | null,
+  location: unknown,
   institutionName: string,
   institutionAcronym: string | null,
   institutionAddress: string | null,
@@ -55,6 +77,7 @@ function buildFallbackLetter(
   });
   const refNum = `WC/${now.getFullYear()}/${Math.floor(Math.random() * 90000) + 10000}`;
   const acronym = institutionAcronym ? `(${institutionAcronym})` : "";
+  const locationText = normalizeLocation(location);
   const actions = recommendedActions.length > 0
     ? recommendedActions.map((a, i) => `${i + 1}. ${a}`).join("\n")
     : "1. Conduct an immediate inspection of the reported issue\n2. Provide a written response with a timeline for resolution";
@@ -67,13 +90,13 @@ ${institutionAddress || "[Institution Address]"}
 
 Dear Sir/Madam,
 
-RE: FORMAL COMPLAINT — CIVIC ISSUE REPORT ${location ? `(${location.toUpperCase()})` : ""}
+RE: FORMAL COMPLAINT — CIVIC ISSUE REPORT ${locationText ? `(${locationText.toUpperCase()})` : ""}
 
 I write to formally bring to your attention a civic matter of ${severity >= 7 ? "critical urgency" : severity >= 4 ? "significant concern" : "concern"} that requires your office's immediate attention.
 
 The issue pertains to: ${issueDescription}
 
-${location ? `The matter is located at/in ${location} and directly affects residents of the jurisdiction under your mandate.` : "The matter directly affects residents under your jurisdiction."}
+${locationText ? `The matter is located at/in ${locationText} and directly affects residents of the jurisdiction under your mandate.` : "The matter directly affects residents under your jurisdiction."}
 
 I respectfully request that your office:
 ${actions}
@@ -132,7 +155,9 @@ Deno.serve(async (req) => {
     }
     const userId = user.id;
 
-    const { issue_description, location } = await req.json();
+    const body = await req.json();
+    const issue_description = body?.issue_description;
+    const locationText = normalizeLocation(body?.location);
 
     if (!issue_description) {
       return new Response(JSON.stringify({ error: "issue_description is required" }), {
@@ -213,7 +238,7 @@ Respond ONLY with valid JSON — no extra text:
           { role: "system", content: routingSystemPrompt },
           {
             role: "user",
-            content: `Issue: ${issue_description}${location ? `\nLocation: ${location}` : ""}`,
+            content: `Issue: ${issue_description}${locationText ? `\nLocation: ${locationText}` : ""}`,
           },
         ],
         temperature: 0.1,
@@ -310,7 +335,7 @@ Reference: ${refNum} | Generated via WanaIQ Civic Platform`;
               role: "user",
               content: `Write the formal complaint letter for this issue:
 Issue: ${issue_description}
-${location ? `Location: ${location}` : ""}
+${locationText ? `Location: ${locationText}` : ""}
 Severity: ${severity}/10
 Recommended actions: ${recommendedActions.join(", ")}
 Addressed to: ${institutionName}${matchedInstitution?.physical_address ? `, ${matchedInstitution.physical_address}` : ""}`,
@@ -337,7 +362,7 @@ Addressed to: ${institutionName}${matchedInstitution?.physical_address ? `, ${ma
     if (!formalLetter) {
       formalLetter = buildFallbackLetter(
         issue_description,
-        location,
+        locationText,
         institutionName,
         institutionAcronym,
         matchedInstitution?.physical_address || null,
@@ -352,7 +377,7 @@ Addressed to: ${institutionName}${matchedInstitution?.physical_address ? `, ${ma
     await serviceClient.from("routing_logs").insert({
       user_id: userId,
       issue_description: issue_description.substring(0, 500),
-      location: location || null,
+      location: locationText,
       issue_type: routingResult.issue_type || null,
       department_slug: routingResult.department_slug || null,
       department_name: institutionName,
