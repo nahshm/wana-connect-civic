@@ -7011,6 +7011,7 @@ export type Database = {
           metadata: Json | null
           source_id: string | null
           source_type: string | null
+          title: string | null
         }
         Insert: {
           content: string
@@ -7020,6 +7021,7 @@ export type Database = {
           metadata?: Json | null
           source_id?: string | null
           source_type?: string | null
+          title?: string | null
         }
         Update: {
           content?: string
@@ -7029,6 +7031,7 @@ export type Database = {
           metadata?: Json | null
           source_id?: string | null
           source_type?: string | null
+          title?: string | null
         }
         Relationships: []
       }
