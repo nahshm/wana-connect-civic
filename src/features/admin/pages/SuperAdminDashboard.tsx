@@ -1599,12 +1599,23 @@ function AgentControlCenterTab() {
 
   const fetchVectors = async () => {
     setRagLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let q = (supabase as any).from('vectors').select('id, source_type, title, content, created_at').order('created_at', { ascending: false }).limit(50);
-    if (ragFilter !== 'all') q = q.eq('source_type', ragFilter);
-    const { data } = await q;
-    setVectors((data ?? []) as VectorRow[]);
-    setRagLoading(false);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let q = (supabase as any).from('vectors').select('id, source_type, title, content, created_at').order('created_at', { ascending: false }).limit(50);
+      if (ragFilter !== 'all') q = q.eq('source_type', ragFilter);
+      const { data, error } = await q;
+      if (error) {
+        console.error('[RAG] fetchVectors error:', error);
+        toast.error(`Failed to load vectors: ${error.message}`);
+        return;
+      }
+      setVectors((data ?? []) as VectorRow[]);
+    } catch (err) {
+      console.error('[RAG] fetchVectors unexpected error:', err);
+      toast.error('Unexpected error loading vectors');
+    } finally {
+      setRagLoading(false);
+    }
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1636,10 +1647,24 @@ function AgentControlCenterTab() {
   const handleAddDoc = async () => {
     if (!newDoc.content.trim()) { toast.error('Content is required'); return; }
     setRagSaving(true);
-    const { error } = await supabase.from('vectors').insert({ title: newDoc.title || null, content: newDoc.content, source_type: newDoc.source_type, embedding: null });
-    if (error) toast.error('Failed to save document');
-    else { toast.success('Document added to knowledge base'); setNewDoc({ title: '', content: '', source_type: 'manual' }); setAddingDoc(false); fetchVectors(); }
-    setRagSaving(false);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from('vectors').insert({ title: newDoc.title || null, content: newDoc.content, source_type: newDoc.source_type, embedding: null });
+      if (error) {
+        console.error('[RAG] handleAddDoc error:', error);
+        toast.error(`Failed to save document: ${error.message}`);
+      } else {
+        toast.success('Document added to knowledge base');
+        setNewDoc({ title: '', content: '', source_type: 'manual' });
+        setAddingDoc(false);
+        fetchVectors();
+      }
+    } catch (err) {
+      console.error('[RAG] handleAddDoc unexpected error:', err);
+      toast.error('Unexpected error saving document');
+    } finally {
+      setRagSaving(false);
+    }
   };
 
   const draftTypeColor: Record<string, string> = {

@@ -432,6 +432,7 @@ Deno.serve(async (req: Request) => {
 
           if (vector) {
             const { error: embedErr } = await client.from("vectors").insert({
+              title: item.title.slice(0, 500),
               content: embeddingText.slice(0, 4000),
               embedding: JSON.stringify(vector),
               metadata: {
