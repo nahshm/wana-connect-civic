@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PostCard } from '@/components/posts/PostCard'
 import { Loader2, User, Users, Briefcase, Target, FolderKanban, MessageSquare } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { buildProfileLink } from '@/lib/profile-links'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -93,7 +94,7 @@ export const SearchResults = () => {
                                     {data.users.map((user: any) => (
                                         <Card key={user.id}>
                                             <CardContent className="p-4">
-                                                <Link to={`/u/${user.username}`} className="flex items-center gap-3">
+                                                <Link to={buildProfileLink({ username: user.username, is_verified: user.is_verified, official_position: user.official_position })} className="flex items-center gap-3">
                                                     <Avatar className="h-12 w-12">
                                                         <AvatarImage src={user.avatar} />
                                                         <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
@@ -214,7 +215,7 @@ export const SearchResults = () => {
                                 {data.users.map((user: any) => (
                                     <Card key={user.id}>
                                         <CardContent className="p-4">
-                                            <Link to={`/u/${user.username}`} className="flex items-center gap-3">
+                                            <Link to={buildProfileLink({ username: user.username, is_verified: user.is_verified, official_position: user.official_position })} className="flex items-center gap-3">
                                                 <Avatar className="h-12 w-12">
                                                     <AvatarImage src={user.avatar} />
                                                     <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>

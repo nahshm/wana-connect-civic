@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LayoutGrid, FileText, Users, Target, BarChart3, GraduationCap, Shield,
-  Phone, HelpCircle, Megaphone, Sword } from 'lucide-react';
+  Phone, HelpCircle, Megaphone, Sword, AlertCircle, FolderOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { DashboardQuestWidget } from '@/components/dashboard/DashboardQuestWidge
 import { DashboardLeaderboardWidget } from '@/components/dashboard/DashboardLeaderboardWidget';
 import { MyActions } from '@/components/dashboard/MyActions';
 import { CommunityIssuesFeed } from '@/components/dashboard/CommunityIssuesFeed';
+import { MyIssuesTab, MyProjectsTab, ModToolsTab } from '@/components/dashboard/PersonalActionTabs';
 
 const CivicDashboard = () => {
   const { user } = useAuth();
@@ -77,41 +78,34 @@ const CivicDashboard = () => {
 
           {/* Tabbed Content */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-5 h-10 bg-muted/50 rounded-xl p-1">
-              <TabsTrigger
-                value="overview"
-                className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
+            <TabsList className="w-full grid grid-cols-7 h-10 bg-muted/50 rounded-xl p-1">
+              <TabsTrigger value="overview" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <LayoutGrid className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Overview</span>
               </TabsTrigger>
-              <TabsTrigger
-                value="my-actions"
-                className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="my-actions" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <FileText className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">My Actions</span>
+                <span className="hidden sm:inline">Actions</span>
               </TabsTrigger>
-              <TabsTrigger
-                value="community"
-                className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="my-issues" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Issues</span>
+              </TabsTrigger>
+              <TabsTrigger value="my-projects" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Projects</span>
+              </TabsTrigger>
+              <TabsTrigger value="community" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Users className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Community</span>
               </TabsTrigger>
-              <TabsTrigger
-                value="quests"
-                className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="quests" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Sword className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Quests</span>
               </TabsTrigger>
-              <TabsTrigger
-                value="insights"
-                className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Insights</span>
+              <TabsTrigger value="mod-tools" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Shield className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Mod</span>
               </TabsTrigger>
             </TabsList>
 
@@ -125,6 +119,16 @@ const CivicDashboard = () => {
               <MyActions />
             </TabsContent>
 
+            {/* My Issues Tab — civic actions reported by this user */}
+            <TabsContent value="my-issues" className="mt-4">
+              <MyIssuesTab />
+            </TabsContent>
+
+            {/* My Projects Tab — government projects created by this user */}
+            <TabsContent value="my-projects" className="mt-4">
+              <MyProjectsTab />
+            </TabsContent>
+
             {/* Community Tab */}
             <TabsContent value="community" className="mt-4">
               <CommunityIssuesFeed />
@@ -135,60 +139,13 @@ const CivicDashboard = () => {
               <DashboardQuestWidget fullView />
             </TabsContent>
 
-            {/* Insights Tab */}
-            <TabsContent value="insights" className="mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Link to="/feed/budget">
-                  <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full border-border/60">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4 text-blue-400" />
-                        Budget Analysis
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-xs">
-                        Track government budget allocations and spending
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                <Link to="/feed/policy">
-                  <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full border-border/60">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-green-400" />
-                        Policy Updates
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-xs">
-                        Latest policy changes and legislation
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                <Link to="/c/CivicEducation">
-                  <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full border-border/60">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <GraduationCap className="w-4 h-4 text-purple-400" />
-                        Civic Education
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-xs">
-                        Learn about your rights and civic duties
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </div>
+            {/* Mod Tools Tab — for community admins/moderators */}
+            <TabsContent value="mod-tools" className="mt-4">
+              <ModToolsTab />
             </TabsContent>
           </Tabs>
         </main>
+
 
         {/* ─────── RIGHT SIDEBAR: Gamification & Social ─────── */}
         <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-3">

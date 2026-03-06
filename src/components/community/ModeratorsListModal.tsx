@@ -1,4 +1,6 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 import {
     Dialog,
     DialogContent,
@@ -68,7 +70,7 @@ export const ModeratorsListModal: React.FC<ModeratorsListModalProps> = ({
                                     </Avatar>
                                     <div>
                                         <a
-                                            href={`/u/${mod.profiles?.username}`}
+                                            href={buildProfileLink({ username: mod.profiles?.username ?? '', is_verified: mod.profiles?.is_verified, official_position: mod.profiles?.official_position })}
                                             className="font-medium text-primary hover:underline"
                                         >
                                             u/{mod.profiles?.username}

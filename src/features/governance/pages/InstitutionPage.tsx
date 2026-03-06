@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -729,7 +730,7 @@ export default function InstitutionPage() {
                                 <div className="space-y-2">
                                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                     {handlers.map((h: any) => (
-                                        <Link to={`/u/${h.profiles?.username}`} key={h.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+                                        <Link to={buildProfileLink({ username: h.profiles?.username ?? '', is_verified: h.profiles?.is_verified, official_position: h.profiles?.official_position })} key={h.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
                                             <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center overflow-hidden shrink-0 border border-emerald-200 dark:border-emerald-800">
                                                 {h.profiles?.avatar_url ? (
                                                     <img src={h.profiles.avatar_url} alt="" className="w-full h-full object-cover" />

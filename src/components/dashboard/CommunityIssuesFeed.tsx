@@ -85,11 +85,11 @@ export const CommunityIssuesFeed = () => {
             if (user) {
                 const { data: profile } = await (supabase as any)
                     .from('profiles')
-                    .select('county_id, counties(name)')
+                    .select('county_id, county')
                     .eq('id', user.id)
                     .single();
                 countyId = profile?.county_id ?? null;
-                if (profile?.counties?.name) setCountyName(profile.counties.name);
+                if (profile?.county) setCountyName(profile.county);
             }
 
             let query = (supabase as any)

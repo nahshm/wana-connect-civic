@@ -20,7 +20,8 @@ export const useUnifiedFeed = ({ userId, limit = 10, sortBy = 'hot' }: UseUnifie
           p_user_id: userId || null,
           p_limit_count: limit,
           p_offset_count: offset,
-          p_sort_by: sortBy,  // H1/H8: pass sort mode so feed actually re-orders
+          // temporarily removed p_sort_by to prevent PGRST202 errors
+          // as the DB schema does not currently support it.
         });
 
       if (error) throw error;

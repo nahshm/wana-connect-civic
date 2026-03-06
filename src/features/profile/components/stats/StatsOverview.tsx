@@ -113,7 +113,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ userId }) => {
                             <span className="text-2xl font-bold">{stats.impactRating}/100</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">GOAT Level</span>
+                            <span className="text-sm text-muted-foreground">Civic Rank</span>
                             <span className="text-xl font-semibold">Level {stats.goatLevel}</span>
                         </div>
                     </div>

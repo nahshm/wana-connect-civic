@@ -196,7 +196,7 @@ const ProfileIdentityCardContent: React.FC<ProfileIdentityCardProps> = ({
                             </div>
                         )}
 
-                        {/* GOAT Level + XP Progress */}
+                        {/* Civic Rank + XP Progress */}
                         <div className="mt-2 space-y-1">
                             <GoatBadge
                                 level={impactScore?.goatLevel || 1}

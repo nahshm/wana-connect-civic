@@ -1,5 +1,5 @@
 import React from 'react';
-import { BadgeCheck, Shield } from 'lucide-react';
+import { BadgeCheck, Shield, Star } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -104,4 +104,74 @@ export const OfficialPositionBadge: React.FC<{
     </Badge>
 );
 
+/**
+ * TrustedUserBadge — X/Twitter-style blue checkmark for /w/ verified platform members
+ * (journalists, experts, community leaders, trusted contributors)
+ * Distinct from VerifiedBadge (government officials).
+ */
+interface TrustedUserBadgeProps {
+    size?: 'xs' | 'sm' | 'md' | 'lg';
+    label?: string;
+    variant?: 'icon' | 'badge';
+    className?: string;
+}
+
+export const TrustedUserBadge: React.FC<TrustedUserBadgeProps> = ({
+    size = 'sm',
+    label,
+    variant = 'icon',
+    className,
+}) => {
+    const iconSize = sizeClasses[size];
+
+    if (variant === 'badge') {
+        return (
+            <Badge
+                className={cn(
+                    "text-[10px] bg-sky-500 hover:bg-sky-500 text-white border-0 shadow-sm shadow-sky-500/30",
+                    className
+                )}
+            >
+                <BadgeCheck className="w-3 h-3 mr-1" />
+                {label || 'Trusted Member'}
+            </Badge>
+        );
+    }
+
+    const icon = (
+        <span className="relative inline-flex">
+            <BadgeCheck
+                className={cn(
+                    iconSize,
+                    "text-sky-500 flex-shrink-0",
+                    className
+                )}
+                aria-label="Trusted Platform Member"
+            />
+            {/* Subtle pulse glow — X/Twitter aesthetic */}
+            <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-sky-400" style={{ animationDuration: '2.5s' }} />
+        </span>
+    );
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span className="inline-flex items-center cursor-help">{icon}</span>
+            </TooltipTrigger>
+            <TooltipContent>
+                <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-sky-400" />
+                    <div>
+                        <p className="font-semibold text-sm">Trusted Platform Member</p>
+                        <p className="text-xs text-muted-foreground">
+                            Verified journalist, expert, or community leader
+                        </p>
+                    </div>
+                </div>
+            </TooltipContent>
+        </Tooltip>
+    );
+};
+
 export default VerifiedBadge;
+

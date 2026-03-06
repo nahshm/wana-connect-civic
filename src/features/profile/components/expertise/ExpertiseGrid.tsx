@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { ExpertiseBadge, EXPERTISE_CONFIG } from './ExpertiseBadge';
+import { ExpertiseBadge } from './ExpertiseBadge';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface UserExpertise {
@@ -166,7 +166,7 @@ const ExpertiseGridContent: React.FC<ExpertiseGridProps> = ({
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {expertise.map((exp) => (
                         <ExpertiseBadge
-                            key={exp.id}
+                            key={exp.expertiseType}
                             expertiseType={exp.expertiseType}
                             endorsementCount={exp.endorsementCount}
                             verifiedActionsCount={exp.verifiedActionsCount}

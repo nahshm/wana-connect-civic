@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Crown, Medal } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 
 interface LeaderEntry {
   user_id: string;
@@ -94,7 +95,7 @@ export const DashboardLeaderboardWidget = () => {
               return (
                 <Link
                   key={entry.user_id}
-                  to={`/u/${entry.username}`}
+                  to={buildProfileLink({ username: entry.username, is_verified: entry.is_verified, official_position: entry.official_position })}
                   className={`flex items-center gap-2.5 p-2 rounded-lg transition-colors
                     ${isCurrentUser ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'}`}
                 >

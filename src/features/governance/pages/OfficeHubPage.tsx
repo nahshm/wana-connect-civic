@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1614,7 +1615,7 @@ export default function OfficeHubPage() {
                         </div>
                         <div className="p-4">
                             {isClaimed && holderProfile ? (
-                                <Link to={`/u/${holderProfile.username}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+                                <Link to={buildProfileLink({ username: holderProfile.username, is_verified: holderProfile.is_verified, official_position: holderProfile.official_position })} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
                                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0 border border-border/50">
                                         {holderProfile.avatar_url ? (
                                             <img src={holderProfile.avatar_url} alt="" className="w-full h-full object-cover" />

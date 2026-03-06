@@ -38,12 +38,12 @@ async function fetchCommunityByName(
         .from('communities')
         .select(`
       *,
-      community_moderators (
-        id,
-        user_id,
-        role,
-        profiles!community_moderators_user_id_fkey (username, display_name, avatar_url)
-      ),
+        community_moderators (
+            id,
+            user_id,
+            role,
+            profiles!community_moderators_user_id_fkey (username, display_name, avatar_url)
+        ),
       community_rules (*),
       community_flairs (*),
       channels (*)

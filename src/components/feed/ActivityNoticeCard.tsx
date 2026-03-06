@@ -20,6 +20,7 @@ import {
   Building2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 import { formatDistanceToNow } from 'date-fns';
 import type { ActivityType } from '@/lib/activityLogger';
 
@@ -194,7 +195,7 @@ export function ActivityNoticeCard({ activity, onClick }: ActivityNoticeCardProp
           <div className="flex-1 min-w-0">
             <p className="text-sm">
               <Link 
-                to={`/u/${activity.username}`} 
+                to={buildProfileLink({ username: activity.username, is_verified: activity.is_verified, official_position: activity.official_position })} 
                 className="font-semibold hover:underline"
               >
                 {activity.username || 'Someone'}

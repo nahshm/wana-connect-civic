@@ -2626,22 +2626,8 @@ function ModerationQueueTab() {
 
   const fetchFlags = async () => {
     setLoading(true);
-    let query = supabase
-      .from('content_flags')
-      .select(`
-        id, verdict, reason, status, created_at,
-        post:posts(id, title, author:profiles!posts_author_id_fkey(username, display_name))
-      `)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (filter !== 'all') {
-      query = query.eq('status', filter === 'pending' ? 'pending' : 'approved');
-    }
-
-    const { data, error } = await query;
-    if (error) console.error('content_flags error:', error);
-    setFlags(data || []);
+    // Disabled: content_flags table does not exist yet in schema
+    setFlags([]);
     setLoading(false);
   };
 

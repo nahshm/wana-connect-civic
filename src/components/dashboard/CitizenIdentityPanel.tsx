@@ -202,9 +202,12 @@ export const CitizenIdentityPanel = () => {
 
   return (
     <Card className="border-border/60 overflow-hidden">
-      {/* Decorative gradient header */}
-      <div className={`h-16 bg-gradient-to-br ${GOAT_RING_BG[goatLevel] || GOAT_RING_BG[0]}`}>
-        <div className="w-full h-full bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
+      {/* Decorative gradient header or custom banner */}
+      <div 
+        className={`h-32 w-full ${!profile.banner_url ? `bg-gradient-to-br ${GOAT_RING_BG[goatLevel] || GOAT_RING_BG[0]}` : 'bg-cover bg-center'}`}
+        style={profile.banner_url ? { backgroundImage: `url(${profile.banner_url})` } : undefined}
+      >
+        {!profile.banner_url && <div className="w-full h-full bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />}
       </div>
 
       <CardContent className="p-4 -mt-10 flex flex-col items-center text-center">

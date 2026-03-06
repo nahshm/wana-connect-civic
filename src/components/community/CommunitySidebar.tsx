@@ -6,6 +6,8 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Mail, Cake, PenSquare } from 'lucide-react';
 import { CommunityProfile, CommunityRule, CommunityModerator, CommunityFlair } from '@/types/index';
+import { Link } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 import { format } from 'date-fns';
 import { CommunityGuideModal } from './CommunityGuideModal';
 import { UserFlairSelector } from './UserFlairSelector';
@@ -310,7 +312,7 @@ export const CommunitySidebar = ({
                                             </AvatarFallback>
                                         </Avatar>
                                         <a
-                                            href={`/u/${mod.profiles?.username}`}
+                                            href={buildProfileLink({ username: mod.profiles?.username ?? '', is_verified: mod.profiles?.is_verified, official_position: mod.profiles?.official_position })}
                                             className="text-sm text-primary hover:underline"
                                         >
                                             u/{mod.profiles?.username}

@@ -12,7 +12,7 @@ import { copyToClipboard } from '@/lib/clipboard-utils'
 import { CivicClipAccountabilityBadge } from './CivicClipAccountabilityBadge'
 import { CivicClipProgressIndicator } from './CivicClipProgressIndicator'
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
-
+import { buildProfileLink } from '@/lib/profile-links'
 interface CivicClipCardProps {
     clip: any
     isActive: boolean
@@ -229,7 +229,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                         <div className="flex-1 min-w-0">
                             {/* Author */}
                             <Link
-                                to={`/u/${author?.username}`}
+                                to={buildProfileLink({ username: author?.username ?? '', is_verified: author?.is_verified, official_position: author?.official_position })}
                                 className="flex items-center gap-3 mb-3 group"
                             >
                                 <Avatar className="h-10 w-10 ring-2 ring-white/20">

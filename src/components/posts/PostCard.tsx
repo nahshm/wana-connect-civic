@@ -9,6 +9,7 @@ import { SafeContentRenderer } from './SafeContentRenderer';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -528,7 +529,7 @@ export const PostCard = ({
               </Link> : <span className="font-medium">Profile Post</span>}
             <span>•</span>
             <span>by</span>
-            <Link to={`/u/${post.author.username || post.author.displayName || 'anonymous'}`} className="hover:underline">
+            <Link to={buildProfileLink({ username: post.author.username || post.author.displayName || 'anonymous', is_verified: post.author.isVerified, official_position: post.author.officialPosition })} className="hover:underline">
               u/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
             <span>•</span>

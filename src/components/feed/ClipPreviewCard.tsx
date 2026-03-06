@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Play, Eye, Clock, Trophy, Star, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { buildProfileLink } from '@/lib/profile-links';
 import { formatDistanceToNow } from 'date-fns';
 
 // ============================================================================
@@ -204,7 +205,7 @@ export function AchievementCard({ achievement, onClick }: AchievementCardProps) 
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 <Link 
-                  to={`/u/${achievement.username}`}
+                  to={buildProfileLink({ username: achievement.username, is_verified: achievement.is_verified, official_position: achievement.official_position })}
                   className="font-semibold hover:underline"
                 >
                   {achievement.username || 'Someone'}

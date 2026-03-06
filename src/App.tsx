@@ -59,13 +59,11 @@ const FeatureFlagsManager = lazy(() => import("@/features/admin/pages/FeatureFla
 const PositionVerification = lazy(() => import("@/features/admin/pages/PositionVerification").then(m => ({ default: m.PositionVerification })));
 const SuperAdminDashboard = lazy(() => import("@/features/admin/pages/SuperAdminDashboard"));
 
-// LAZY LOADED: Profile V2
-const ProfileV2 = lazy(() => import("@/features/profile").then(m => ({ default: m.ProfileV2 })));
+// LAZY LOADED: Profile — CivicResumePage is the single canonical identity page
 const CivicResumePage = lazy(() => import("@/features/profile/pages/CivicResumePage"));
 
 // LAZY LOADED: Legacy pages
 const SettingsPage = lazy(() => import("./pages/Settings"));
-const Profile = lazy(() => import("./pages/Profile"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -145,11 +143,8 @@ const App = () => (
                             {/* Institution page — accessible even without a claimed handler */}
                             <Route path="/institution/:slug" element={<InstitutionPage />} />
 
-                            {/* Profile Routes - handled by PrefixRouter for /u/, /w/, /g/ */}
-                            {/* PrefixRouter detects UUIDs vs usernames and routes to OfficePage vs ProfileV2 */}
-                            <Route path="/profile/:username" element={<ProfileV2 />} />
+                            {/* Profile Routes — /resume/:username is canonical; /u/, /w/, /g/ via PrefixRouter */}
                             <Route path="/resume/:username" element={<CivicResumePage />} />
-                            <Route path="/profile" element={<ProfileV2 />} />
 
                             {/* Admin Routes */}
                             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -164,6 +159,7 @@ const App = () => (
                             <Route path="/search" element={<SearchResults />} />
                             <Route path="/civic-assistant" element={<CivicChat />} />
                             <Route path="/profile/setup" element={<ProfileSetup />} />
+                            <Route path="/settings" element={<SettingsPage />} />
 
                             {/* Functional prefix routes - handled by PrefixRouter */}
                             <Route path="/u/*" element={<PrefixRouter />} />

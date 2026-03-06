@@ -121,7 +121,7 @@ export const QuickSearchDropdown = () => {
                   {categorizedResults.users.map((user: any) => (
                     <Link
                       key={user.id}
-                      to={`/u/${user.username}`}
+                      to={buildProfileLink({ username: user.username, is_verified: user.is_verified, official_position: user.official_position })}
                       className="block px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors group"
                       onClick={() => setIsOpen(false)}
                       role="option"

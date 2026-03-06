@@ -94,7 +94,7 @@ export const SearchQuickResults = ({ results, query, onClose }: SearchQuickResul
                     {results.users.map((user: any) => (
                         <Link
                             key={user.id}
-                            to={`/u/${user.username}`}
+                            to={buildProfileLink({ username: user.username, is_verified: user.is_verified, official_position: user.official_position })}
                             onClick={onClose}
                             className="flex items-center gap-2 px-3 py-2 hover:bg-accent rounded-md"
                         >
