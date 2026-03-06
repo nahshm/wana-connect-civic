@@ -53,9 +53,9 @@ export function AppSidebar() {
   };
   const getNavCls = ({
     isActive
-  }: {
-    isActive: boolean;
-  }) => isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors';
+
+
+  }: {isActive: boolean;}) => isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors';
 
   // Handler for My Communities click
   const handleMyCommunitiesClick = (e: React.MouseEvent) => {
@@ -65,11 +65,11 @@ export function AppSidebar() {
     }
   };
   return <Sidebar collapsible="icon" variant="sidebar">
-    <SidebarContent className="gap-0 py-2 bg-popover px-[10px]">
+    <SidebarContent className="gap-0 py-2 bg-popover px-0">
       <SidebarGroup className="px-2">
         <SidebarGroupContent>
           <SidebarMenu className="gap-1">
-            {mainItems.map(item => <SidebarMenuItem key={item.title}>
+            {mainItems.map((item) => <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
                 <NavLink to={item.url} end className={getNavCls}>
                   <item.icon className="h-5 w-5" />
@@ -157,7 +157,7 @@ export function AppSidebar() {
     </SidebarContent>
 
     {/* Toggle button on right edge of sidebar */}
-    <SidebarRail />
+    <SidebarRail className="mx-0" />
 
     {/* Modals */}
     <CreateCommunityWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
