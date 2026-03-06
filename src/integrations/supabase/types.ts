@@ -1185,6 +1185,8 @@ export type Database = {
       }
       civic_actions: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
           action_level: string
           action_type: string
           assigned_to: string | null
@@ -1195,6 +1197,7 @@ export type Database = {
           county_id: string | null
           created_at: string | null
           description: string | null
+          formal_letter: string | null
           id: string
           institution_id: string | null
           is_public: boolean | null
@@ -1212,6 +1215,8 @@ export type Database = {
           ward_id: string | null
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
           action_level?: string
           action_type?: string
           assigned_to?: string | null
@@ -1222,6 +1227,7 @@ export type Database = {
           county_id?: string | null
           created_at?: string | null
           description?: string | null
+          formal_letter?: string | null
           id?: string
           institution_id?: string | null
           is_public?: boolean | null
@@ -1239,6 +1245,8 @@ export type Database = {
           ward_id?: string | null
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
           action_level?: string
           action_type?: string
           assigned_to?: string | null
@@ -1249,6 +1257,7 @@ export type Database = {
           county_id?: string | null
           created_at?: string | null
           description?: string | null
+          formal_letter?: string | null
           id?: string
           institution_id?: string | null
           is_public?: boolean | null
@@ -1266,6 +1275,13 @@ export type Database = {
           ward_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "civic_actions_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "civic_actions_assigned_to_fkey"
             columns: ["assigned_to"]
@@ -2061,6 +2077,7 @@ export type Database = {
           moderation_timestamp: string | null
           moderator_id: string | null
           official_verification_id: string | null
+          parent_comment_id: string | null
           parent_id: string | null
           post_id: string | null
           priority_level: string | null
@@ -2100,6 +2117,7 @@ export type Database = {
           moderation_timestamp?: string | null
           moderator_id?: string | null
           official_verification_id?: string | null
+          parent_comment_id?: string | null
           parent_id?: string | null
           post_id?: string | null
           priority_level?: string | null
@@ -2139,6 +2157,7 @@ export type Database = {
           moderation_timestamp?: string | null
           moderator_id?: string | null
           official_verification_id?: string | null
+          parent_comment_id?: string | null
           parent_id?: string | null
           post_id?: string | null
           priority_level?: string | null
@@ -2185,6 +2204,13 @@ export type Database = {
             columns: ["official_verification_id"]
             isOneToOne: false
             referencedRelation: "officials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -2957,6 +2983,74 @@ export type Database = {
           },
         ]
       }
+      content_flags: {
+        Row: {
+          comment_id: string | null
+          created_at: string | null
+          flagged_by_ai: boolean | null
+          id: string
+          post_id: string | null
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          verdict: string
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string | null
+          flagged_by_ai?: boolean | null
+          id?: string
+          post_id?: string | null
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          verdict: string
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string | null
+          flagged_by_ai?: boolean | null
+          id?: string
+          post_id?: string | null
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_flags_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "project_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_flags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_flags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_flags_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contractor_ratings: {
         Row: {
           communication_rating: number | null
@@ -3232,6 +3326,7 @@ export type Database = {
           funding_source: string | null
           id: string
           location: string | null
+          office_holder_id: string | null
           official_id: string
           progress_percentage: number | null
           search_vector: unknown
@@ -3253,6 +3348,7 @@ export type Database = {
           funding_source?: string | null
           id?: string
           location?: string | null
+          office_holder_id?: string | null
           official_id: string
           progress_percentage?: number | null
           search_vector?: unknown
@@ -3274,6 +3370,7 @@ export type Database = {
           funding_source?: string | null
           id?: string
           location?: string | null
+          office_holder_id?: string | null
           official_id?: string
           progress_percentage?: number | null
           search_vector?: unknown
@@ -3283,6 +3380,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "development_promises_office_holder_id_fkey"
+            columns: ["office_holder_id"]
+            isOneToOne: false
+            referencedRelation: "office_holders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "development_promises_official_id_fkey"
             columns: ["official_id"]
@@ -3330,6 +3434,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "government_positions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "election_cycles_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "election_cycles_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "election_cycles_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
           },
           {
             foreignKeyName: "election_cycles_winner_user_id_fkey"
@@ -3880,12 +4005,34 @@ export type Database = {
             referencedRelation: "government_positions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "government_institutions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "government_institutions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_institutions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
+          },
         ]
       }
       government_positions: {
         Row: {
           authority_level: number | null
           banner_url: string | null
+          budget_info: Json | null
           country_code: string
           created_at: string | null
           custom_avatar_url: string | null
@@ -3898,6 +4045,7 @@ export type Database = {
           jurisdiction_name: string
           next_election_date: string | null
           position_code: string
+          resolutions: Json | null
           responsibilities: string | null
           term_limit: number | null
           term_years: number | null
@@ -3907,6 +4055,7 @@ export type Database = {
         Insert: {
           authority_level?: number | null
           banner_url?: string | null
+          budget_info?: Json | null
           country_code: string
           created_at?: string | null
           custom_avatar_url?: string | null
@@ -3919,6 +4068,7 @@ export type Database = {
           jurisdiction_name: string
           next_election_date?: string | null
           position_code: string
+          resolutions?: Json | null
           responsibilities?: string | null
           term_limit?: number | null
           term_years?: number | null
@@ -3928,6 +4078,7 @@ export type Database = {
         Update: {
           authority_level?: number | null
           banner_url?: string | null
+          budget_info?: Json | null
           country_code?: string
           created_at?: string | null
           custom_avatar_url?: string | null
@@ -3940,6 +4091,7 @@ export type Database = {
           jurisdiction_name?: string
           next_election_date?: string | null
           position_code?: string
+          resolutions?: Json | null
           responsibilities?: string | null
           term_limit?: number | null
           term_years?: number | null
@@ -4127,6 +4279,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "government_positions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_projects_primary_official_id_fkey"
+            columns: ["primary_official_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "government_projects_primary_official_id_fkey"
+            columns: ["primary_official_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "government_projects_primary_official_id_fkey"
+            columns: ["primary_official_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
           },
           {
             foreignKeyName: "government_projects_sentiment_id_fkey"
@@ -4452,6 +4625,48 @@ export type Database = {
           },
         ]
       }
+      moderation_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string | null
+          flag_id: string | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string | null
+          flag_id?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string | null
+          flag_id?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_log_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "content_flags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderation_logs: {
         Row: {
           ai_confidence: number | null
@@ -4657,6 +4872,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "office_holders_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "office_holders_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_holders_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
+          },
+          {
             foreignKeyName: "office_holders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -4681,7 +4917,8 @@ export type Database = {
           is_pinned: boolean | null
           is_verified: boolean | null
           office_holder_id: string | null
-          office_id: string
+          office_id: string | null
+          position_id: string | null
           title: string
           uploaded_by: string
           year: number | null
@@ -4694,7 +4931,8 @@ export type Database = {
           is_pinned?: boolean | null
           is_verified?: boolean | null
           office_holder_id?: string | null
-          office_id: string
+          office_id?: string | null
+          position_id?: string | null
           title: string
           uploaded_by: string
           year?: number | null
@@ -4707,7 +4945,8 @@ export type Database = {
           is_pinned?: boolean | null
           is_verified?: boolean | null
           office_holder_id?: string | null
-          office_id?: string
+          office_id?: string | null
+          position_id?: string | null
           title?: string
           uploaded_by?: string
           year?: number | null
@@ -4721,11 +4960,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "office_manifestos_office_id_fkey"
-            columns: ["office_id"]
+            foreignKeyName: "office_manifestos_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "government_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_manifestos_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "office_manifestos_position_id_fkey"
+            columns: ["position_id"]
             isOneToOne: false
             referencedRelation: "offices"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_manifestos_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
           },
           {
             foreignKeyName: "office_manifestos_uploaded_by_fkey"
@@ -4793,7 +5053,8 @@ export type Database = {
           description: string
           holder_response: string | null
           id: string
-          office_id: string
+          office_id: string | null
+          position_id: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -4808,7 +5069,8 @@ export type Database = {
           description: string
           holder_response?: string | null
           id?: string
-          office_id: string
+          office_id?: string | null
+          position_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -4823,7 +5085,8 @@ export type Database = {
           description?: string
           holder_response?: string | null
           id?: string
-          office_id?: string
+          office_id?: string | null
+          position_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -4834,11 +5097,32 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "office_proposals_office_id_fkey"
-            columns: ["office_id"]
+            foreignKeyName: "office_proposals_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "government_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_proposals_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "office_proposals_position_id_fkey"
+            columns: ["position_id"]
             isOneToOne: false
             referencedRelation: "offices"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_proposals_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
           },
           {
             foreignKeyName: "office_proposals_reviewed_by_fkey"
@@ -4913,53 +5197,6 @@ export type Database = {
             columns: ["office_holder_id"]
             isOneToOne: false
             referencedRelation: "office_holders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      offices: {
-        Row: {
-          budget_info: Json | null
-          country_code: string
-          created_at: string
-          governance_level: string
-          id: string
-          jurisdiction_name: string | null
-          position_code: string
-          position_id: string
-          resolutions: Json | null
-          updated_at: string
-        }
-        Insert: {
-          budget_info?: Json | null
-          country_code?: string
-          created_at?: string
-          governance_level: string
-          id?: string
-          jurisdiction_name?: string | null
-          position_code: string
-          position_id: string
-          resolutions?: Json | null
-          updated_at?: string
-        }
-        Update: {
-          budget_info?: Json | null
-          country_code?: string
-          created_at?: string
-          governance_level?: string
-          id?: string
-          jurisdiction_name?: string | null
-          position_code?: string
-          position_id?: string
-          resolutions?: Json | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offices_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: true
-            referencedRelation: "government_positions"
             referencedColumns: ["id"]
           },
         ]
@@ -5136,11 +5373,13 @@ export type Database = {
           county: string | null
           county_id: string | null
           created_at: string
+          deprecated_at: string | null
           education: Json | null
           experience: Json | null
           id: string
           level: Database["public"]["Enums"]["official_level"]
           manifesto_url: string | null
+          migration_note: string | null
           name: string
           party: string | null
           photo_url: string | null
@@ -5158,11 +5397,13 @@ export type Database = {
           county?: string | null
           county_id?: string | null
           created_at?: string
+          deprecated_at?: string | null
           education?: Json | null
           experience?: Json | null
           id?: string
           level: Database["public"]["Enums"]["official_level"]
           manifesto_url?: string | null
+          migration_note?: string | null
           name: string
           party?: string | null
           photo_url?: string | null
@@ -5180,11 +5421,13 @@ export type Database = {
           county?: string | null
           county_id?: string | null
           created_at?: string
+          deprecated_at?: string | null
           education?: Json | null
           experience?: Json | null
           id?: string
           level?: Database["public"]["Enums"]["official_level"]
           manifesto_url?: string | null
+          migration_note?: string | null
           name?: string
           party?: string | null
           photo_url?: string | null
@@ -5332,6 +5575,27 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "government_positions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "position_communities_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: true
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "position_communities_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: true
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "position_communities_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: true
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
           },
         ]
       }
@@ -5596,6 +5860,7 @@ export type Database = {
           karma: number | null
           last_activity: string | null
           location: string | null
+          notification_settings: Json | null
           official_position: string | null
           official_position_id: string | null
           onboarding_completed: boolean | null
@@ -5635,6 +5900,7 @@ export type Database = {
           karma?: number | null
           last_activity?: string | null
           location?: string | null
+          notification_settings?: Json | null
           official_position?: string | null
           official_position_id?: string | null
           onboarding_completed?: boolean | null
@@ -5674,6 +5940,7 @@ export type Database = {
           karma?: number | null
           last_activity?: string | null
           location?: string | null
+          notification_settings?: Json | null
           official_position?: string | null
           official_position_id?: string | null
           onboarding_completed?: boolean | null
@@ -5698,6 +5965,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "government_positions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_official_position_id_fkey"
+            columns: ["official_position_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "profiles_official_position_id_fkey"
+            columns: ["official_position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_official_position_id_fkey"
+            columns: ["official_position_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
           },
         ]
       }
@@ -5769,6 +6057,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "government_positions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_collaborating_officials_official_id_fkey"
+            columns: ["official_id"]
+            isOneToOne: false
+            referencedRelation: "office_dashboard_snapshot"
+            referencedColumns: ["position_id"]
+          },
+          {
+            foreignKeyName: "project_collaborating_officials_official_id_fkey"
+            columns: ["official_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_collaborating_officials_official_id_fkey"
+            columns: ["official_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["position_id"]
           },
           {
             foreignKeyName: "project_collaborating_officials_project_id_fkey"
@@ -7302,6 +7611,61 @@ export type Database = {
           },
         ]
       }
+      office_dashboard_snapshot: {
+        Row: {
+          activity_last_30d: number | null
+          governance_level: string | null
+          jurisdiction_name: string | null
+          position_code: string | null
+          position_id: string | null
+          projects_total: number | null
+          promises_completed: number | null
+          promises_total: number | null
+          questions_answered: number | null
+          questions_total: number | null
+          refreshed_at: string | null
+        }
+        Relationships: []
+      }
+      offices: {
+        Row: {
+          budget_info: Json | null
+          country_code: string | null
+          created_at: string | null
+          governance_level: string | null
+          id: string | null
+          jurisdiction_name: string | null
+          position_code: string | null
+          position_id: string | null
+          resolutions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          budget_info?: Json | null
+          country_code?: string | null
+          created_at?: string | null
+          governance_level?: string | null
+          id?: string | null
+          jurisdiction_name?: string | null
+          position_code?: string | null
+          position_id?: string | null
+          resolutions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          budget_info?: Json | null
+          country_code?: string | null
+          created_at?: string | null
+          governance_level?: string | null
+          id?: string | null
+          jurisdiction_name?: string | null
+          position_code?: string | null
+          position_id?: string | null
+          resolutions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       popular_communities: {
         Row: {
           activity_score: number | null
@@ -7741,6 +8105,10 @@ export type Database = {
           similarity: number
         }[]
       }
+      profile_allows_community_visibility: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       recommend_communities: {
         Args: { p_limit?: number; p_user_id: string }
         Returns: {
@@ -7755,6 +8123,15 @@ export type Database = {
           weekly_contributions: number
           weekly_visitors: number
         }[]
+      }
+      refresh_office_dashboard_snapshot: { Args: never; Returns: undefined }
+      route_issue_to_institution: {
+        Args: {
+          p_action_id: string
+          p_formal_letter?: string
+          p_institution_id: string
+        }
+        Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
