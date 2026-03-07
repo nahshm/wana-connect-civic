@@ -16,8 +16,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ModMailDialog } from './ModMailDialog';
 import { RelatedCommunities } from './RelatedCommunities';
-import { CommunityEventsWidget } from './events/CommunityEventsWidget';
-import { CommunityPollsWidget } from './polls/CommunityPollsWidget';
 import { CommunitySettingsDialog } from './CommunitySettingsDialog';
 import { CreatePostModal } from './CreatePostModal';
 import { ModeratorsListModal } from './ModeratorsListModal';
@@ -183,12 +181,6 @@ export const CommunitySidebar = ({
                     </CardContent>
                 </Card>
 
-                {/* Events Widget */}
-                <CommunityEventsWidget communityId={community.id} isAdmin={isAdmin} />
-
-                {/* Polls Widget */}
-                <CommunityPollsWidget communityId={community.id} isAdmin={isAdmin} />
-
                 {/* User Flair Widget */}
                 {user && (
                     <Card className="bg-sidebar-background border-sidebar-border">
@@ -283,7 +275,7 @@ export const CommunitySidebar = ({
                 )}
 
                 {/* Related Communities Widget */}
-                <RelatedCommunities />
+                {community.type !== 'location' && <RelatedCommunities />}
 
                 {/* Moderators Widget */}
                 <Card className="bg-sidebar-background border-sidebar-border">

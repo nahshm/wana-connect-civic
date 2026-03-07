@@ -28,7 +28,7 @@ export const MyCommunitiesPage = () => {
             description,
             member_count,
             category,
-            icon_url,
+            avatar_url,
             banner_url
           )
         `)

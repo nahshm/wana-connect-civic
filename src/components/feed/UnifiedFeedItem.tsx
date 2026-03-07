@@ -95,9 +95,10 @@ export function UnifiedFeedItem({ item, onInteraction }: UnifiedFeedItemProps) {
         memberCount: 0 // Placeholder
       } : undefined,
       createdAt: item.created_at,
-      upvotes: item.data.upvote_count || 0,
-      downvotes: item.data.downvote_count || 0,
+      upvotes: item.data.upvotes || item.data.upvote_count || 0,
+      downvotes: item.data.downvotes || item.data.downvote_count || 0,
       commentCount: item.data.comment_count || 0,
+      userVote: item.data.user_vote || null,
       tags: [], // Default empty
       media: item.data.media || [], // Map media from RPC
       link_url: item.data.link_url || null,

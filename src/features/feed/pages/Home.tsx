@@ -308,8 +308,15 @@ export default function Index() {
                       {space.participant_count} participants • Live now
                     </p>
                   </div>
-                  <Button size="sm" asChild>
-                    <Link to={`/baraza/${space.space_id}`}>Join</Link>
+                  {/* Baraza audio feature coming soon — route /baraza/:id is not yet implemented */}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="shrink-0"
+                    title="Live audio rooms coming soon"
+                    disabled
+                  >
+                    Coming Soon
                   </Button>
                 </div>
               ))}

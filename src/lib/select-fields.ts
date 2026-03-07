@@ -33,16 +33,16 @@ export const POST_WITH_AUTHOR = `
 export const POST_WITH_RELATIONS = `
   ${POST_LIST},
   profiles!posts_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
-  communities!posts_community_id_fkey (id, name, display_name, icon_url, member_count, category)
+  communities!posts_community_id_fkey (id, name, display_name, avatar_url, member_count, category)
 ` as const;
 
 /** Full post with all relations (for detail page) */
 export const POST_FULL = `
   ${POST_DETAIL},
   profiles!posts_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
-  communities!posts_community_id_fkey (id, name, display_name, description, icon_url, member_count, category),
+  communities!posts_community_id_fkey (id, name, display_name, description, avatar_url, member_count, category),
   officials!posts_official_id_fkey (id, name, position),
-  post_media!post_media_post_id_fkey (id, url, type, caption)
+  post_media!post_media_post_id_fkey (id, file_path, file_type)
 ` as const;
 
 // ==========================================
@@ -62,8 +62,8 @@ export const PROFILE_FULL = 'id,username,display_name,avatar_url,banner_url,bio,
 export const PROFILE_WITH_STATS = `
   ${PROFILE_FULL},
   karma,
-  civic_score,
-  badges_earned
+  post_karma,
+  comment_karma
 ` as const;
 
 // ==========================================
@@ -74,7 +74,7 @@ export const PROFILE_WITH_STATS = `
 export const COMMUNITY_CARD = 'id,name,display_name,category' as const;
 
 /** Community list with description */
-export const COMMUNITY_LIST = 'id,name,display_name,description,icon_url,banner_url,member_count,category,created_at' as const;
+export const COMMUNITY_LIST = 'id,name,display_name,description,avatar_url,banner_url,member_count,category,created_at' as const;
 
 /** Full community for detail pages */
 export const COMMUNITY_FULL = `
@@ -82,14 +82,11 @@ export const COMMUNITY_FULL = `
   name,
   display_name,
   description,
-  icon_url,
+  avatar_url,
   banner_url,
   member_count,
   category,
-  created_at,
-  rules,
-  privacy_level,
-  is_official
+  created_at
 ` as const;
 
 // ==========================================
@@ -122,6 +119,8 @@ export const CHANNEL_FULL = `
 
 // ==========================================
 // NOTIFICATIONS
+// NOTE: notifications table is not yet created in DB. These constants are
+// placeholders for when the table is implemented.
 // ==========================================
 
 /** Notification minimal */

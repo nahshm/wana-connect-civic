@@ -9,13 +9,15 @@ import { CreatePollDialog } from './CreatePollDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { DetailedPollCard } from './DetailedPollCard';
 
 interface CommunityPollsWidgetProps {
     communityId: string;
     isAdmin: boolean;
+    community?: any;
 }
 
-export const CommunityPollsWidget: React.FC<CommunityPollsWidgetProps> = ({ communityId, isAdmin }) => {
+export const CommunityPollsWidget: React.FC<CommunityPollsWidgetProps> = ({ communityId, isAdmin, community }) => {
     const [polls, setPolls] = useState<any[]>([]);
     const [userVotes, setUserVotes] = useState<Record<string, number>>({});
     const [pollResults, setPollResults] = useState<Record<string, number[]>>({}); // pollId -> [countValidOption0, countValidOption1...]
@@ -121,83 +123,55 @@ export const CommunityPollsWidget: React.FC<CommunityPollsWidgetProps> = ({ comm
 
     return (
         <>
-            <Card className="bg-sidebar-background border-sidebar-border">
-                <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm font-bold uppercase text-sidebar-muted-foreground flex items-center gap-2">
-                        <BarChart2 className="w-4 h-4" />
-                        Active Polls
-                    </CardTitle>
-                    {isAdmin && (
+            <div className="w-full max-w-3xl mx-auto">
+                {/* Header Actions */}
+                {isAdmin && (
+                    <div className="flex justify-end mb-6">
                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
                             onClick={() => setCreatePollOpen(true)}
+                            className="rounded-full shadow-sm"
                         >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Poll
                         </Button>
-                    )}
-                </CardHeader>
-                <CardContent className="pt-0 space-y-4">
-                    {polls.length === 0 ? (
-                        <div className="text-sm text-sidebar-muted-foreground text-center py-4">
-                            No active polls.
-                            {isAdmin && <div className="mt-2 text-xs text-primary cursor-pointer" onClick={() => setCreatePollOpen(true)}>Create one?</div>}
-                        </div>
-                    ) : (
-                        polls.map(poll => {
+                    </div>
+                )}
+
+                {/* Polls List */}
+                {polls.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground py-16 border border-dashed border-border bg-card/50 rounded-xl">
+                        <BarChart2 className="w-12 h-12 mb-4 opacity-50" />
+                        <h3 className="text-xl font-bold text-foreground mb-2">No active polls</h3>
+                        <p className="max-w-sm text-center mb-6">Engage your community by asking for their opinion on important matters.</p>
+                        {isAdmin && (
+                            <Button onClick={() => setCreatePollOpen(true)} className="rounded-full">
+                                <Plus className="w-4 h-4 mr-2" /> Create one now
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {polls.map(poll => {
                             const hasVoted = userVotes.hasOwnProperty(poll.id);
                             const totalVotes = pollResults[poll.id]?.reduce((a, b) => a + b, 0) || 0;
+                            const userChoice = hasVoted ? userVotes[poll.id] : undefined;
 
                             return (
-                                <div key={poll.id} className="space-y-3 pb-4 border-b border-sidebar-border last:border-0 last:pb-0">
-                                    <h3 className="font-semibold text-sm">{poll.question}</h3>
-
-                                    {!hasVoted ? (
-                                        <RadioGroup onValueChange={(val) => handleVote(poll.id, parseInt(val))}>
-                                            <div className="space-y-2">
-                                                {(Array.isArray(poll.options) ? poll.options : []).map((option: string, idx: number) => (
-                                                    <div key={idx} className="flex items-center space-x-2">
-                                                        <RadioGroupItem value={idx.toString()} id={`poll-${poll.id}-${idx}`} />
-                                                        <Label htmlFor={`poll-${poll.id}-${idx}`} className="text-sm cursor-pointer font-normal">
-                                                            {option}
-                                                        </Label>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </RadioGroup>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {(Array.isArray(poll.options) ? poll.options : []).map((option: string, idx: number) => {
-                                                const count = pollResults[poll.id]?.[idx] || 0;
-                                                const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-                                                const isWinner = totalVotes > 0 && count === Math.max(...pollResults[poll.id]);
-                                                const isUserChoice = userVotes[poll.id] === idx;
-
-                                                return (
-                                                    <div key={idx} className="space-y-1">
-                                                        <div className="flex justify-between text-xs">
-                                                            <span className={`flex items-center gap-1 ${isWinner ? 'font-bold text-primary' : ''}`}>
-                                                                {option}
-                                                                {isUserChoice && <CheckCircle2 className="w-3 h-3 text-green-500" />}
-                                                            </span>
-                                                            <span>{percentage}%</span>
-                                                        </div>
-                                                        <Progress value={percentage} className="h-2" />
-                                                    </div>
-                                                );
-                                            })}
-                                            <div className="text-xs text-sidebar-muted-foreground text-right mt-1">
-                                                {totalVotes} votes
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                                <DetailedPollCard 
+                                    key={poll.id}
+                                    poll={poll}
+                                    hasVoted={hasVoted}
+                                    userChoice={userChoice}
+                                    results={pollResults[poll.id] || []}
+                                    totalVotes={totalVotes}
+                                    onVote={handleVote}
+                                    bannerUrl={community?.banner_url}
+                                />
                             );
-                        })
-                    )}
-                </CardContent>
-            </Card>
+                        })}
+                    </div>
+                )}
+            </div>
 
             <CreatePollDialog
                 isOpen={createPollOpen}

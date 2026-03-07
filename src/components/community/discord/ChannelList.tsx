@@ -164,6 +164,43 @@ const ChannelList: React.FC<ChannelListProps> = ({
                 {/* Channels - ScrollArea for auto-hiding scrollbars */}
                 <ScrollArea className="flex-1">
                     <div className="p-2 space-y-3">
+                        {/* Virtual Interactive Channels */}
+                        <div className="mb-3">
+                            <h3 className="flex items-center px-2 py-1 text-xs font-bold text-sidebar-muted-foreground uppercase tracking-wide">
+                                Interactive
+                            </h3>
+                            <div className="space-y-0.5">
+                                <button
+                                    onClick={() => onChange('virtual-events')}
+                                    className={cn(
+                                        'w-full flex items-center px-2 py-1.5 rounded text-sm font-medium transition-colors group',
+                                        activeChannel === 'virtual-events'
+                                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                                    )}
+                                >
+                                    <span className="w-4 h-4 mr-2 flex items-center justify-center text-sm flex-shrink-0">
+                                        📅
+                                    </span>
+                                    <span className="truncate flex-1 text-left">Upcoming Events</span>
+                                </button>
+                                <button
+                                    onClick={() => onChange('virtual-polls')}
+                                    className={cn(
+                                        'w-full flex items-center px-2 py-1.5 rounded text-sm font-medium transition-colors group',
+                                        activeChannel === 'virtual-polls'
+                                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                                    )}
+                                >
+                                    <span className="w-4 h-4 mr-2 flex items-center justify-center text-sm flex-shrink-0">
+                                        📊
+                                    </span>
+                                    <span className="truncate flex-1 text-left">Active Polls</span>
+                                </button>
+                            </div>
+                        </div>
+
                     {Object.entries(groupedChannels).map(([category, categoryChannels]) => {
                         if (categoryChannels.length === 0) return null;
                         const isCollapsed = collapsedCategories.has(category);

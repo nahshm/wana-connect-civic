@@ -56,21 +56,27 @@ async function fetchCommunityByName(
 
     const communityData = toCamelCase(data);
 
-    // Fetch weekly visitors count (Reddit-style metric)
-    const { data: weeklyVisitors } = await supabase
-        .rpc('get_weekly_visitors', { community_uuid: communityData.id })
+    // Fetch all-time distinct visitors
+    const { data: visitsData } = await supabase
+        .from('community_visits')
+        .select('user_id')
+        .eq('community_id', communityData.id)
+        .abortSignal(signal);
+    
+    const totalVisitors = new Set(visitsData?.map(v => v.user_id) || []).size;
+
+    // Fetch total posts as baseline for contributions
+    const { count: totalPosts } = await supabase
+        .from('posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('community_id', communityData.id)
         .abortSignal(signal);
 
-    // Fetch weekly contributions count (posts + comments in last 7 days)
-    const { data: weeklyContributions } = await supabase
-        .rpc('get_weekly_contributions', { community_uuid: communityData.id })
-        .abortSignal(signal);
-
-    // Attach weekly stats to community data
-    communityData.weeklyVisitors = weeklyVisitors || 0;
-    communityData.weekly_visitors = weeklyVisitors || 0; // For snake_case references
-    communityData.weeklyContributions = weeklyContributions || 0;
-    communityData.weekly_contributions = weeklyContributions || 0; // For snake_case references
+    // Attach total stats to community data
+    communityData.weeklyVisitors = totalVisitors || 0;
+    communityData.weekly_visitors = totalVisitors || 0; 
+    communityData.weeklyContributions = totalPosts || 0;
+    communityData.weekly_contributions = totalPosts || 0; 
 
     // Log this visit (for tracking weekly visitors)
     if (userId) {

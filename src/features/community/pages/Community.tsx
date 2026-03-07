@@ -18,7 +18,9 @@ import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';
 import { CreateChannelDialog } from '@/components/community/discord/CreateChannelDialog';
-import { Menu, X, Loader2 } from 'lucide-react';
+import { CommunityEventsWidget } from '@/components/community/events/CommunityEventsWidget'; // Added
+import { CommunityPollsWidget } from '@/components/community/polls/CommunityPollsWidget'; // Added
+import { Menu, X, Loader2 } from 'lucide-react'; // Original lucide-react import
 
 // Loading skeleton component
 const CommunityLoadingSkeleton = () => (
@@ -301,24 +303,46 @@ const Community = () => {
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <h2 className="font-bold text-foreground">
-              #{allChannels.find(c => c.id === activeChannelId)?.name}
+            <h2 className="font-bold text-foreground flex items-center gap-2">
+              {activeChannelId === 'virtual-events' ? (
+                <><span>📅</span> Upcoming Events</>
+              ) : activeChannelId === 'virtual-polls' ? (
+                <><span>📊</span> Active Polls</>
+              ) : (
+                `#${allChannels.find(c => c.id === activeChannelId)?.name || 'channel'}`
+              )}
             </h2>
             <div className="w-10" /> {/* Spacer for centering */}
           </div>
 
           {/* Channel Content */}
-          {activeChannelId && !activeChannel ? (
+          {activeChannelId && !activeChannel && !activeChannelId.startsWith('virtual-') ? (
             <div className="flex items-center justify-center p-8 h-full">
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
                 <span className="text-sm text-muted-foreground">Loading channel...</span>
               </div>
             </div>
+          ) : activeChannelId === 'virtual-events' ? (
+            <div className="p-4 md:p-8 max-w-3xl mx-auto h-full flex flex-col">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">📅 Upcoming Events</h2>
+                <p className="text-muted-foreground">Join or schedule civic events in your community.</p>
+              </div>
+              <CommunityEventsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
+            </div>
+          ) : activeChannelId === 'virtual-polls' ? (
+             <div className="p-4 md:p-8 max-w-3xl mx-auto h-full flex flex-col">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">📊 Active Polls</h2>
+                <p className="text-muted-foreground">Have your voice heard on important civic matters.</p>
+              </div>
+              <CommunityPollsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
+            </div>
           ) : (
             <ChannelContent
               channelId={activeChannelId}
-              channel={allChannels.find(c => c.id === activeChannelId)}
+              channel={activeChannel}
               levelType={currentLevel.type}
               locationValue={currentLevel.name}
               communityId={community.id}

@@ -6,13 +6,15 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateEventDialog } from './CreateEventDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { DetailedEventCard } from './DetailedEventCard';
 
 interface CommunityEventsWidgetProps {
     communityId: string;
     isAdmin: boolean;
+    community?: any;
 }
 
-export const CommunityEventsWidget: React.FC<CommunityEventsWidgetProps> = ({ communityId, isAdmin }) => {
+export const CommunityEventsWidget: React.FC<CommunityEventsWidgetProps> = ({ communityId, isAdmin, community }) => {
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [createEventOpen, setCreateEventOpen] = useState(false);
@@ -56,60 +58,44 @@ export const CommunityEventsWidget: React.FC<CommunityEventsWidgetProps> = ({ co
 
     return (
         <>
-            <Card className="bg-sidebar-background border-sidebar-border">
-                <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm font-bold uppercase text-sidebar-muted-foreground flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Upcoming Events
-                    </CardTitle>
-                    {isAdmin && (
+            <div className="w-full max-w-3xl mx-auto">
+                {/* Header Actions */}
+                {isAdmin && (
+                    <div className="flex justify-end mb-6">
                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
                             onClick={() => setCreateEventOpen(true)}
+                            className="rounded-full shadow-sm"
                         >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-4 h-4 mr-2" />
+                            Schedule Event
                         </Button>
-                    )}
-                </CardHeader>
-                <CardContent className="pt-0">
-                    {events.length === 0 ? (
-                        <div className="text-sm text-sidebar-muted-foreground text-center py-4">
-                            No upcoming events.
-                            {isAdmin && <div className="mt-2 text-xs text-primary cursor-pointer" onClick={() => setCreateEventOpen(true)}>Schedule one?</div>}
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {events.map((event) => (
-                                <div key={event.id} className="relative pl-3 border-l-2 border-primary/20">
-                                    <div className="text-xs font-bold text-primary mb-0.5">
-                                        {format(new Date(event.start_time), 'MMM d, h:mm a')}
-                                    </div>
-                                    <div className="font-semibold text-sm text-sidebar-foreground line-clamp-1">
-                                        {event.title}
-                                    </div>
-                                    <div className="flex items-center gap-1 text-xs text-sidebar-muted-foreground mt-1">
-                                        {event.location_type === 'online' ? (
-                                            <Video className="w-3 h-3" />
-                                        ) : (
-                                            <MapPin className="w-3 h-3" />
-                                        )}
-                                        <span className="truncate max-w-[150px]">
-                                            {event.location_type === 'online' ? 'Online' : (typeof event.location_data === 'string' ? event.location_data : event.location_data?.address || 'Physical Location')}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                            {events.length >= 3 && (
-                                <div className="text-xs text-center pt-1">
-                                    <a href="#" className="text-primary hover:underline">View all events</a>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                    </div>
+                )}
+
+                {/* Events List */}
+                {events.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground py-16 border border-dashed border-border bg-card/50 rounded-xl">
+                        <Calendar className="w-12 h-12 mb-4 opacity-50" />
+                        <h3 className="text-xl font-bold text-foreground mb-2">No upcoming events</h3>
+                        <p className="max-w-sm text-center mb-6">There are currently no scheduled events for this community.</p>
+                        {isAdmin && (
+                            <Button onClick={() => setCreateEventOpen(true)} className="rounded-full">
+                                <Plus className="w-4 h-4 mr-2" /> Schedule one now
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {events.map((event) => (
+                            <DetailedEventCard 
+                                key={event.id} 
+                                event={event} 
+                                bannerUrl={community?.banner_url} 
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
 
             <CreateEventDialog
                 isOpen={createEventOpen}

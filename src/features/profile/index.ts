@@ -2,7 +2,7 @@
 // Civic Profile 2.0 - "The Civic Resume"
 
 // Pages
-export { ProfileV2, ActionCenter } from './pages';
+export { ActionCenter } from './pages';
 
 // Hooks
 export {

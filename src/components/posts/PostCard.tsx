@@ -17,8 +17,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef, useEffect } from 'react';
-import { useVerification } from '@/hooks/useVerification';
-import VerificationPanel from '@/components/verification/VerificationPanel';
 import SentimentBar from '@/components/verification/SentimentBar';
 interface PostCardProps {
   post: Post;
@@ -56,20 +54,154 @@ export const PostCard = ({
   const [isSaved, setIsSaved] = useState(false);
   const [showSavedTooltip, setShowSavedTooltip] = useState(false);
 
-  // Handle bookmark/save with tooltip
-  const handleSave = () => {
+  // Local optimistic state for voting
+  const [localVote, setLocalVote] = useState<typeof post.userVote>(post.userVote);
+  const [localScore, setLocalScore] = useState((post.upvotes || 0) - (post.downvotes || 0));
+
+  useEffect(() => {
+    setLocalVote(post.userVote);
+    setLocalScore((post.upvotes || 0) - (post.downvotes || 0));
+  }, [post.userVote, post.upvotes, post.downvotes]);
+
+  const handleVoteAction = async (voteType: 'up' | 'down') => {
     if (!user) {
       authModal.open('login');
       return;
     }
-    setIsSaved(true);
-    setShowSavedTooltip(true);
-    setTimeout(() => setShowSavedTooltip(false), 2000);
-    toast({
-      title: '🔖 Saved!',
-      description: 'Post saved to your collection.',
-      duration: 2000
-    });
+
+    // Optimistic toggle
+    const isRemovingVote = localVote === voteType;
+    let scoreDiff = 0;
+
+    if (isRemovingVote) {
+      setLocalVote(null);
+      scoreDiff = voteType === 'up' ? -1 : 1;
+    } else {
+      scoreDiff = localVote === 'up' && voteType === 'down' ? -2 :
+                  localVote === 'down' && voteType === 'up' ? 2 :
+                  voteType === 'up' ? 1 : -1;
+      setLocalVote(voteType);
+    }
+    
+    setLocalScore(prev => prev + scoreDiff);
+
+    // If there's a parent handler passed down, call it too just in case it wants to do anything
+    if (onVote) {
+      onVote(post.id, isRemovingVote ? null as any : voteType);
+    }
+
+    try {
+      if (isRemovingVote) {
+        await supabase.from('votes').delete().eq('post_id', post.id).eq('user_id', user.id);
+      } else {
+        // Find existing vote to update or insert new one
+        const { data: existingVote } = await supabase.from('votes').select('vote_type').eq('post_id', post.id).eq('user_id', user.id).maybeSingle();
+        
+        if (existingVote) {
+            await supabase.from('votes').update({ vote_type: voteType }).eq('post_id', post.id).eq('user_id', user.id);
+        } else {
+            await supabase.from('votes').insert({ post_id: post.id, user_id: user.id, vote_type: voteType });
+        }
+      }
+    } catch (e) {
+      console.error('Vote failed', e);
+      // Revert optimism if failed
+      setLocalVote(localVote);
+      setLocalScore(prev => prev - scoreDiff);
+      toast({
+        title: 'Error',
+        description: 'Failed to register your vote.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle bookmark/save with tooltip
+  const handleSave = async () => {
+    if (!user) {
+      authModal.open('login');
+      return;
+    }
+    
+    // Optimistic update
+    const newIsSaved = !isSaved;
+    setIsSaved(newIsSaved);
+    
+    // Prepare for toast notification
+    if (newIsSaved) {
+      setShowSavedTooltip(true);
+      setTimeout(() => setShowSavedTooltip(false), 2000);
+      toast({
+        title: '🔖 Saved!',
+        description: 'Post saved to your collection.',
+        duration: 2000
+      });
+    } else {
+      toast({
+        title: '🔖 Removed',
+        description: 'Post removed from your saved items.',
+        duration: 2000
+      });
+    }
+
+    try {
+      if (newIsSaved) {
+        // Insert into saved_items
+        const { error } = await supabase.from('saved_items').insert({
+          user_id: user.id,
+          item_type: 'post',
+          item_id: post.id
+        });
+        if (error) throw error;
+      } else {
+        // Remove from saved_items
+        const { error } = await supabase.from('saved_items')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_type', 'post')
+          .eq('item_id', post.id);
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error saving post:', error);
+      // Revert optimistic update on failure
+      setIsSaved(!newIsSaved);
+      toast({
+        title: 'Error',
+        description: 'Could not update saved status.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    const postUrl = `${window.location.origin}${getPostLink()}`;
+    const shareData = {
+      title: post.title || 'Civic Post',
+      text: `Check out this post on WanaIQ: ${post.title}`,
+      url: postUrl
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(postUrl);
+        toast({
+          title: 'Link Copied',
+          description: 'Post link copied to clipboard.',
+        });
+      } catch (err) {
+        console.error('Failed to copy link:', err);
+      }
+    }
   };
 
   // Safe date formatting helper to prevent "Invalid time value" errors
@@ -98,15 +230,8 @@ export const PostCard = ({
     }
   };
 
-  // Verification system  
-  const {
-    verification,
-    castVote,
-    isCastingVote
-  } = useVerification({
-    contentId: post.id,
-    contentType: 'post'
-  });
+  // Verify author is current user
+
   const isAuthor = user && post.author.id === user.id;
 
   // Helper to get the correct post link based on community context
@@ -241,7 +366,7 @@ export const PostCard = ({
 
   // Handle community data that might be under 'community' or 'community_id' alias
   const communityData = post.community || (post as any).community_id;
-  const getVoteScore = () => post.upvotes - post.downvotes;
+  const getVoteScore = () => localScore;
   const getRoleColor = (role?: string) => {
     switch (role) {
       case 'official':
@@ -254,7 +379,8 @@ export const PostCard = ({
         return 'bg-muted text-muted-foreground';
     }
   };
-  const formatNumber = (num: number) => {
+  const formatNumber = (num?: number | null) => {
+    if (num == null) return '0';
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     }
@@ -510,13 +636,13 @@ export const PostCard = ({
     return <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
         {/* Vote Column */}
         <div className="flex flex-col items-center p-2 w-12 bg-sidebar-background/50">
-          <Button variant="ghost" size="sm" aria-label={`Upvote post: ${post.title}`} aria-pressed={post.userVote === 'up'} onClick={() => onVote(post.id, 'up')} className={`h-6 w-6 p-0 ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green'}`}>
+          <Button variant="ghost" size="sm" aria-label={`Upvote post: ${post.title}`} aria-pressed={localVote === 'up'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('up'); }} className={`h-6 w-6 p-0 ${localVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green'}`}>
             <ArrowUp className="w-4 h-4" />
           </Button>
           <span className="text-xs font-medium text-sidebar-foreground py-1">
             {formatNumber(getVoteScore())}
           </span>
-          <Button variant="ghost" size="sm" aria-label="Downvote post" aria-pressed={post.userVote === 'down'} onClick={() => onVote(post.id, 'down')} className={`h-6 w-6 p-0 ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red'}`}>
+          <Button variant="ghost" size="sm" aria-label="Downvote post" aria-pressed={localVote === 'down'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('down'); }} className={`h-6 w-6 p-0 ${localVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-sidebar-muted-foreground hover:text-civic-red'}`}>
             <ArrowDown className="w-4 h-4" />
           </Button>
         </div>
@@ -544,21 +670,52 @@ export const PostCard = ({
             </h3>
           </Link>
 
-          <div className="flex items-center space-x-4 mt-2">
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-sidebar-muted-foreground hover:bg-sidebar-accent" asChild>
-              <Link to={getPostLink()}>
-                <MessageCircle className="w-3 h-3 mr-1" />
-                {post.commentCount}
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-sidebar-muted-foreground hover:bg-sidebar-accent">
-              <Share className="w-3 h-3 mr-1" />
-              Share
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-sidebar-muted-foreground hover:bg-sidebar-accent">
-              <Bookmark className="w-3 h-3 mr-1" />
-              Save
-            </Button>
+          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1 scrollbar-none">
+            {/* Comments Pill */}
+            <Link to={getPostLink()} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3 h-8 text-muted-foreground hover:text-foreground group text-decoration-none">
+              <MessageCircle className="w-4 h-4 stroke-[1.5]" />
+              <span className="text-xs font-bold">{formatNumber(post.commentCount)}</span>
+            </Link>
+
+            {/* Share Pill */}
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3.5 h-9 text-muted-foreground hover:text-foreground">
+              <Share className="w-5 h-5 stroke-[1.5]" />
+              <span className="text-xs font-bold hidden sm:inline">Share</span>
+            </button>
+
+            {/* Save Pill */}
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} className={`flex items-center gap-1.5 rounded-full px-3 h-8 transition-colors ${isSaved ? 'bg-civic-green/10 text-civic-green' : 'bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground'}`}>
+              <Bookmark className="w-4 h-4 stroke-[1.5]" />
+              <span className="text-xs font-bold hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+            </button>
+            
+            {/* More Options Pill */}
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center justify-center w-8 h-8 rounded-full bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors ml-auto sm:ml-0" onClick={(e) => e.stopPropagation()}>
+                  <MoreHorizontal className="w-4 h-4 stroke-[1.5]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-lg font-medium text-sm">
+                <DropdownMenuItem>
+                  <Bell className="mr-2 h-4 w-4" />
+                  Follow post
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  Show fewer posts like this
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSave}>
+                  <Bookmark className="mr-2 h-4 w-4" />
+                  {isSaved ? 'Unsave' : 'Save'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive">
+                  <Flag className="mr-2 h-4 w-4" />
+                  Report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>;
@@ -571,7 +728,7 @@ export const PostCard = ({
           <div className="flex items-start gap-2.5 mb-2">
             {/* Left: Avatar - smaller like Reddit */}
             <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarImage src={communityData?.icon || post.author.avatar} />
+              <AvatarImage src={communityData?.avatarUrl || communityData?.avatar_url || communityData?.icon || post.author?.avatarUrl || post.author?.avatar || (post.author as any)?.avatar_url} />
               <AvatarFallback className="text-xs bg-civic-green/10 text-civic-green font-semibold">
                 {(communityData?.name || post.author.displayName || 'U')[0]?.toUpperCase()}
               </AvatarFallback>
@@ -732,49 +889,59 @@ export const PostCard = ({
           {/* Sentiment Bar - only show if available */}
           {(post as any).sentiment && <SentimentBar sentiment={(post as any).sentiment} className="mb-3" />}
 
-          {/* Verification Panel */}
-          <VerificationPanel verification={verification} onVote={castVote} isLoading={isCastingVote} />
-
-          {/* Actions - Reddit-style pill buttons */}
-          <div className="flex items-center gap-2 mt-2 -ml-1">
-            {/* Vote group - pill shaped */}
-            <div className="flex items-center bg-muted/50 rounded-full">
-              <button aria-label={`Upvote post: ${post.title}`} aria-pressed={post.userVote === 'up'} onClick={() => onVote(post.id, 'up')} className={`p-2 rounded-l-full transition-colors ${post.userVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-muted-foreground hover:text-civic-green hover:bg-muted'}`}>
-                <ArrowUp className="w-4 h-4" />
+          {/* Action Bar - Reddit Style Unified Buttons */}
+          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1 scrollbar-none">
+            {/* Upvotes/Downvotes Pill */}
+            <div className="flex items-center bg-muted/40 hover:bg-muted/60 transition-colors rounded-full h-9">
+              <button 
+                aria-label="Upvote" 
+                aria-pressed={localVote === 'up'} 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('up'); }} 
+                className={`flex items-center justify-center h-full px-2.5 rounded-l-full transition-colors ${localVote === 'up' ? 'text-[#D93900] bg-[#D93900]/10' : 'text-muted-foreground hover:bg-muted hover:text-[#D93900]'}`}
+              >
+                <ArrowUp className="w-5 h-5 stroke-[1.5]" />
               </button>
-              <span className="text-xs font-medium px-1 min-w-[1.5rem] text-center">
+              
+              <span className={`text-xs font-bold px-1 min-w-[1.5rem] text-center ${localVote === 'up' ? 'text-[#D93900]' : localVote === 'down' ? 'text-[#6A5CFF]' : 'text-foreground'}`}>
                 {formatNumber(getVoteScore())}
               </span>
-              <button aria-label="Downvote post" aria-pressed={post.userVote === 'down'} onClick={() => onVote(post.id, 'down')} className={`p-2 rounded-r-full transition-colors ${post.userVote === 'down' ? 'text-civic-red bg-civic-red/10' : 'text-muted-foreground hover:text-civic-red hover:bg-muted'}`}>
-                <ArrowDown className="w-4 h-4" />
+              
+              <button 
+                aria-label="Downvote" 
+                aria-pressed={localVote === 'down'} 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('down'); }} 
+                className={`flex items-center justify-center h-full px-2.5 rounded-r-full transition-colors ${localVote === 'down' ? 'text-[#6A5CFF] bg-[#6A5CFF]/10' : 'text-muted-foreground hover:bg-muted hover:text-[#6A5CFF]'}`}
+              >
+                <ArrowDown className="w-5 h-5 stroke-[1.5]" />
               </button>
             </div>
 
-            {/* Comments - pill shaped */}
-            <Link to={getPostLink()} className="flex items-center gap-1.5 bg-muted/50 rounded-full px-3 py-2 hover:bg-muted transition-colors">
-              <MessageCircle className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs font-medium">{post.commentCount}</span>
+            {/* Comments Pill */}
+            <Link to={getPostLink()} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3.5 h-9 text-muted-foreground hover:text-foreground group text-decoration-none">
+              <MessageCircle className="w-5 h-5 stroke-[1.5]" />
+              <span className="text-xs font-bold">{formatNumber(post.commentCount)}</span>
             </Link>
 
-            {/* Share - pill shaped */}
-            <button className="flex items-center gap-1.5 bg-muted/50 rounded-full px-3 py-2 hover:bg-muted transition-colors">
-              <Share className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs font-medium hidden sm:inline">Share</span>
+            {/* Share Pill */}
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3.5 h-9 text-muted-foreground hover:text-foreground">
+              <Share className="w-5 h-5 stroke-[1.5]" />
+              <span className="text-xs font-bold hidden sm:inline">Share</span>
             </button>
 
-            {/* Save - pill shaped */}
-            <button onClick={handleSave} className={`flex items-center gap-1.5 rounded-full px-3 py-2 transition-colors ${isSaved ? 'bg-civic-green/10 text-civic-green' : 'bg-muted/50 hover:bg-muted text-muted-foreground'}`}>
-              <Bookmark className="w-4 h-4" />
+            {/* Save Pill */}
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} className={`flex items-center gap-1.5 rounded-full px-3.5 h-9 transition-colors ${isSaved ? 'bg-civic-green/10 text-civic-green' : 'bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground'}`}>
+              <Bookmark className="w-5 h-5 stroke-[1.5]" />
+              <span className="text-xs font-bold hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
             </button>
 
-            {/* More options - pill shaped */}
+            {/* More Options Pill - Using the new UI styling */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <button className="p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors">
-                  <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                <button className="flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors ml-auto sm:ml-0" onClick={(e) => e.stopPropagation()}>
+                  <MoreHorizontal className="w-5 h-5 stroke-[1.5]" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card border-border">
+              <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-lg font-medium text-sm">
                 {isAuthor && <>
                     <DropdownMenuItem onClick={() => navigate(`/edit-post/${post.id}`)}>
                       <Edit className="w-4 h-4 mr-2" />

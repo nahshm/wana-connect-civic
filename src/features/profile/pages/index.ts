@@ -1,3 +1,3 @@
 // Profile feature pages
-export { ProfileV2 } from './ProfileV2';
+// ProfileV2 has been absorbed into CivicResumePage.tsx
 export { ActionCenter } from './ActionCenter';
