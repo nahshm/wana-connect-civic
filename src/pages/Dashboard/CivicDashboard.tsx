@@ -35,10 +35,10 @@ const CivicDashboard = () => {
   return (
     <div className="container mx-auto px-2 sm:px-4 pb-6">
       {/* ========= 3-COLUMN CIVIC CONTROL ROOM ========= */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[260px_1fr_280px] gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
 
-        {/* ─────── LEFT SIDEBAR: Citizen Identity (hidden below xl) ─────── */}
-        <aside className="hidden xl:block xl:sticky xl:top-16 xl:self-start space-y-4 order-2 xl:order-1">
+        {/* ─────── LEFT SIDEBAR: Citizen Identity ─────── */}
+        <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
           <CitizenIdentityPanel />
 
           {/* Civic Resources (compact) */}
