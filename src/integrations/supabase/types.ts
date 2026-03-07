@@ -8044,6 +8044,7 @@ export type Database = {
         Args: {
           p_limit_count?: number
           p_offset_count?: number
+          p_sort_by?: string
           p_user_id?: string
         }
         Returns: {

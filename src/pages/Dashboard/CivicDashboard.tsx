@@ -35,10 +35,10 @@ const CivicDashboard = () => {
   return (
     <div className="container mx-auto px-2 sm:px-4 pb-6">
       {/* ========= 3-COLUMN CIVIC CONTROL ROOM ========= */}
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_280px] gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[260px_1fr_280px] gap-4 lg:gap-5">
 
-        {/* ─────── LEFT SIDEBAR: Citizen Identity ─────── */}
-        <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
+        {/* ─────── LEFT SIDEBAR: Citizen Identity (hidden below xl) ─────── */}
+        <aside className="hidden xl:block xl:sticky xl:top-16 xl:self-start space-y-4 order-2 xl:order-1">
           <CitizenIdentityPanel />
 
           {/* Civic Resources (compact) */}
@@ -72,13 +72,13 @@ const CivicDashboard = () => {
         </aside>
 
         {/* ─────── CENTER: Main Content Area ─────── */}
-        <main className="min-w-0 space-y-4 order-1 lg:order-2">
+        <main className="min-w-0 space-y-4 order-1 xl:order-2">
           {/* Quick Action Bar */}
           <QuickActionBar />
 
           {/* Tabbed Content */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-7 h-10 bg-muted/50 rounded-xl p-1">
+            <TabsList className="w-full flex overflow-x-auto sm:grid sm:grid-cols-7 h-10 bg-muted/50 rounded-xl p-1 no-scrollbar">
               <TabsTrigger value="overview" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <LayoutGrid className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Overview</span>
@@ -148,7 +148,7 @@ const CivicDashboard = () => {
 
 
         {/* ─────── RIGHT SIDEBAR: Gamification & Social ─────── */}
-        <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-3">
+        <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-3 xl:order-3">
           <DashboardQuestWidget />
           <DashboardLeaderboardWidget />
         </aside>
