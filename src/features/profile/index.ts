@@ -23,7 +23,6 @@ export {
 
 // Components - Scorecard
 export {
-    OfficialScorecard,
     PromiseMeter,
     ProjectHealth
 } from './components/scorecard';
