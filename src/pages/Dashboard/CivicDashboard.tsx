@@ -38,7 +38,7 @@ const CivicDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
 
         {/* ─────── LEFT SIDEBAR: Citizen Identity ─────── */}
-        <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
+        <aside className="hidden lg:block lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
           <CitizenIdentityPanel />
 
           {/* Civic Resources (compact) */}
