@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { SearchResults } from '@/hooks/useSearch'
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
+import { buildProfileLink } from '@/lib/profile-links'
 
 interface SearchQuickResultsProps {
     results?: SearchResults

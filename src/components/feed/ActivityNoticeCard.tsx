@@ -195,7 +195,7 @@ export function ActivityNoticeCard({ activity, onClick }: ActivityNoticeCardProp
           <div className="flex-1 min-w-0">
             <p className="text-sm">
               <Link 
-                to={buildProfileLink({ username: activity.username, is_verified: activity.is_verified, official_position: activity.official_position })} 
+                to={buildProfileLink({ username: activity.username ?? '' })} 
                 className="font-semibold hover:underline"
               >
                 {activity.username || 'Someone'}

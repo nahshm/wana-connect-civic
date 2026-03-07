@@ -106,7 +106,7 @@ const ActionDetail = () => {
                 .from('civic_actions')
                 .select(`
           *,
-          profiles:user_id(username, display_name, avatar_url)
+          profiles!civic_actions_user_id_fkey(username, display_name, avatar_url)
         `)
                 .eq('id', id)
                 .single();

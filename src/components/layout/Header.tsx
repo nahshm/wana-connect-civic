@@ -52,7 +52,7 @@ export const Header = () => {
   // Generate the correct profile URL with prefix
   const profileUrl = profile?.username
     ? `${getProfilePrefix(profile)}${profile.username}`
-    : buildProfileLink({ username: user?.username ?? '', is_verified: user?.is_verified, official_position: user?.official_position });
+    : buildProfileLink({ username: profile?.username ?? '' });
 
   return <header className="sticky top-0 z-10 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
     <div className="w-full h-14 sm:h-16 flex items-center justify-between gap-2 sm:px-[16px] px-[12px]">
@@ -67,7 +67,7 @@ export const Header = () => {
           src="/wanaiq-logo.png"
           alt="ama Logo"
           className="h-8 w-auto"
-          fetchpriority="high"
+          fetchPriority="high"
         />
         <span className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
           ama

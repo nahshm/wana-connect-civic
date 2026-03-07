@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Share2, Settings, Star, MapPin, Calendar } from 'lucide-react';
+import { ArrowLeft, Share2, Settings, Star, MapPin, Calendar, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 

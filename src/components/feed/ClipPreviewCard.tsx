@@ -205,7 +205,7 @@ export function AchievementCard({ achievement, onClick }: AchievementCardProps) 
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 <Link 
-                  to={buildProfileLink({ username: achievement.username, is_verified: achievement.is_verified, official_position: achievement.official_position })}
+                  to={buildProfileLink({ username: achievement.username ?? '' })}
                   className="font-semibold hover:underline"
                 >
                   {achievement.username || 'Someone'}
