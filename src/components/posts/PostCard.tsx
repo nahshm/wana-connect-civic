@@ -728,7 +728,7 @@ export const PostCard = ({
           <div className="flex items-start gap-2.5 mb-2">
             {/* Left: Avatar - smaller like Reddit */}
             <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarImage src={communityData?.avatarUrl || communityData?.avatar_url || communityData?.icon || post.author?.avatarUrl || post.author?.avatar || (post.author as any)?.avatar_url} />
+              <AvatarImage src={communityData?.avatarUrl || communityData?.avatar_url || communityData?.icon || post.author?.avatar || (post.author as any)?.avatar_url} />
               <AvatarFallback className="text-xs bg-civic-green/10 text-civic-green font-semibold">
                 {(communityData?.name || post.author.displayName || 'U')[0]?.toUpperCase()}
               </AvatarFallback>

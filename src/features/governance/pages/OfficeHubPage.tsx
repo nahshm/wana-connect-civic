@@ -1615,7 +1615,7 @@ export default function OfficeHubPage() {
                         </div>
                         <div className="p-4">
                             {isClaimed && holderProfile ? (
-                                <Link to={buildProfileLink({ username: holderProfile.username, is_verified: holderProfile.is_verified, official_position: holderProfile.official_position })} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+                                <Link to={buildProfileLink({ username: holderProfile.username, is_verified: holderProfile.is_verified })} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
                                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0 border border-border/50">
                                         {holderProfile.avatar_url ? (
                                             <img src={holderProfile.avatar_url} alt="" className="w-full h-full object-cover" />

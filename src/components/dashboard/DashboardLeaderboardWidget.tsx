@@ -95,7 +95,7 @@ export const DashboardLeaderboardWidget = () => {
               return (
                 <Link
                   key={entry.user_id}
-                  to={buildProfileLink({ username: entry.username, is_verified: entry.is_verified, official_position: entry.official_position })}
+                  to={buildProfileLink({ username: entry.username })}
                   className={`flex items-center gap-2.5 p-2 rounded-lg transition-colors
                     ${isCurrentUser ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'}`}
                 >

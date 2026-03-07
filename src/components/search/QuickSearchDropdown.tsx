@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useSearch } from '@/hooks/useSearch';
 import { useDebounce } from '@/hooks/useDebounce';
+import { buildProfileLink } from '@/lib/profile-links';
 
 export const QuickSearchDropdown = () => {
   const [query, setQuery] = useState('');
