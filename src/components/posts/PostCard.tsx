@@ -425,7 +425,7 @@ export const PostCard = ({
   const renderMedia = () => {
     if (!post.media || post.media.length === 0) return null;
     return <div className="mb-3">
-        {post.media.length === 1 ? <div className="relative w-full flex justify-center overflow-hidden border border-sidebar-border bg-black/5 group">
+        {post.media.length === 1 ? <div className="relative w-full flex justify-center overflow-hidden border border-sidebar-border bg-black/5 rounded-xl group">
             {/* Blurred Background Layer - Absolute to fill the container defined by foreground */}
             <div className="absolute inset-0 z-0 opacity-60">
                 {post.media[0].file_type?.startsWith('image/') ?
@@ -452,14 +452,14 @@ export const PostCard = ({
             src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
             alt="Post media"
             loading="lazy"
-            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md transition-transform duration-500 group-hover:scale-[1.01]" /> :
+            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md rounded-xl transition-transform duration-500 group-hover:scale-[1.01]" /> :
 
           post.media[0].file_type?.startsWith('video/') ?
           <div className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
                   <video
               ref={videoRef}
               src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-              className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-sm"
+              className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl"
               playsInline />
 
                   {!isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20 m-auto pointer-events-none">
@@ -473,9 +473,9 @@ export const PostCard = ({
           null}
             </div>
           </div> : <div className="grid grid-cols-2 gap-2">
-            {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-lg overflow-hidden border border-sidebar-border">
-                {media.file_type?.startsWith('image/') ? <img src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} alt={`Post media ${index + 1}`} loading="lazy" className="w-full h-32 object-cover" /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
-                    <video ref={index === 0 ? secondVideoRef : undefined} src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} className="w-full h-32 object-cover" playsInline />
+            {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-xl overflow-hidden border border-sidebar-border relative">
+                {media.file_type?.startsWith('image/') ? <img src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} alt={`Post media ${index + 1}`} loading="lazy" className="w-full h-32 object-cover rounded-xl" /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer h-full" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
+                    <video ref={index === 0 ? secondVideoRef : undefined} src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} className="w-full h-32 object-cover rounded-xl" playsInline />
                     {index === 0 && !isSecondPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="bg-white/90 rounded-full p-2">
                           <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">
@@ -550,12 +550,12 @@ export const PostCard = ({
       <div className="mb-3">
         {/* Embedded video/media frame */}
         {embed &&
-        <div className="rounded-lg overflow-hidden border border-sidebar-border mb-2 bg-black/5 flex justify-center">
+        <div className="rounded-xl overflow-hidden border border-sidebar-border mb-2 bg-black/5 flex justify-center">
             {embed.type === 'youtube' &&
-          <div className="w-full aspect-video">
+          <div className="w-full aspect-video rounded-xl overflow-hidden">
                 <iframe
               src={embed.url}
-              className="w-full h-full"
+              className="w-full h-full rounded-xl"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               title="YouTube video player" />
@@ -576,10 +576,10 @@ export const PostCard = ({
           }
 
             {embed.type === 'x' &&
-          <div className="w-full max-w-[500px]">
+          <div className="w-full max-w-[500px] rounded-xl overflow-hidden">
                 <iframe
               src={embed.url}
-              className="w-full h-[500px]" // Initial height, X embeds usually resize themselves but iframe needs base height
+              className="w-full h-[500px] rounded-xl" // Initial height, X embeds usually resize themselves but iframe needs base height
               title="X post" />
 
               </div>
@@ -593,7 +593,7 @@ export const PostCard = ({
           href={post.link_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block rounded-lg overflow-hidden border border-sidebar-border hover:border-primary/40 transition-colors group/link"
+          className="block rounded-xl overflow-hidden border border-sidebar-border hover:border-primary/40 transition-colors group/link"
           onClick={(e) => e.stopPropagation()}>
 
             {post.link_image &&

@@ -33,17 +33,17 @@ export const CommunityGuideModal = ({ community, trigger }: CommunityGuideModalP
                     
                     <DialogHeader className="mb-4">
                         <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight">
-                            Welcome to r/{community.name}
+                            Welcome to c/{community.name}
                         </DialogTitle>
                     </DialogHeader>
 
                     <div className="text-muted-foreground space-y-4 mb-8 text-sm sm:text-base leading-relaxed">
                         <p>
-                            Hi {user?.user_metadata?.username || 'there'}, we're glad you're here!
+                            Hi {user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.user_metadata?.username || 'there'}, we're glad you're here!
                         </p>
                         <p>
                             To keep our community safe and productive, please remember to be respectful, 
-                            focus on civic topics relevant to <strong>{community.name}</strong>, and avoid any NSFW or harmful content.
+                            focus on civic topics relevant to <strong>c/{community.name}</strong>, and avoid any NSFW or harmful content.
                         </p>
                         <ul className="text-left mt-4 space-y-3">
                             <li className="flex gap-2 items-start">
