@@ -231,4 +231,4 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
     );
 
     export default OfficialScorecard;
-*/ 
+*/
