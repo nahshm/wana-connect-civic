@@ -72,7 +72,7 @@ const CivicDashboard = () => {
         </aside>
 
         {/* ─────── CENTER: Main Content Area ─────── */}
-        <main className="min-w-0 space-y-4 order-1 lg:order-2">
+        <main className="min-w-0 space-y-4 order-1 xl:order-2">
           {/* Quick Action Bar */}
           <QuickActionBar />
 
