@@ -1,55 +1,41 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+# Fix: Build Error + Dashboard Responsive Layout
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+## 1. Fix Build Error (OfficialScorecard.tsx)
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+The file has imports at lines 1-12, then a block comment from line 16 to line 234 wrapping the entire component body. The `*/` on line 234 causes a TS parse error.
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+**Fix**: Remove the barrel export instead of uncommenting broken code. Delete the `OfficialScorecard` export from `src/features/profile/components/scorecard/index.ts` since nothing consumes it. This is the safest fix — no dead export, no build error, code preserved for future use.
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+## 2. Dashboard Responsive Improvements
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+The current `CivicDashboard` uses `grid-cols-1 lg:grid-cols-[260px_1fr_280px]`. This means:
+- Below `lg` (1024px): all 3 columns stack vertically in a single column
+- There's no intermediate breakpoint — it jumps from 3-col to 1-col with no 2-col stage
+- The sidebar (AppSidebar) stays visible at `md` while the dashboard tries to fit 3 columns, causing compression
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+**Changes to `CivicDashboard.tsx`**:
+- Add `xl` breakpoint for the full 3-column layout (sidebar + center + right)
+- At `lg`, use 2-column layout (center + right), hide left CitizenIdentity panel (it duplicates sidebar info)
+- At `md` and below, single column with reordered sections
+- Make the 7-tab grid responsive: use horizontal scroll on small screens instead of cramming 7 tabs
+
+## 3. Sidebar Collapses First
+
+The AppSidebar uses `collapsible="icon"` — on desktop it shrinks to icons. On mobile (`<768px`) it becomes a sheet. The gap is **768px–1024px** where the sidebar is fully expanded AND the dashboard is single-column.
+
+**Changes to `AppSidebar.tsx`**:
+- Set default sidebar state to collapsed at `md` breakpoint so the sidebar auto-collapses to icon-only mode when viewport is between 768–1280px, giving the dashboard more room
+
+**Changes to `AppLayout.tsx`**:
+- No structural changes needed — the sidebar collapse handles the space issue
+
+## Summary of file changes
+
+| File | Change |
+|------|--------|
+| `scorecard/index.ts` | Remove `OfficialScorecard` export |
+| `CivicDashboard.tsx` | Responsive grid: `xl:3-col`, `lg:2-col`, `<lg:1-col`; scrollable tabs on mobile |
+| `AppSidebar.tsx` | Default to collapsed state at medium viewports |
+
