@@ -68,7 +68,7 @@ const CommunityUnifiedFeed: React.FC<{ communityId: string; communityName?: stri
     return (
         <div className="p-4 md:p-6">
             <div className="max-w-4xl mx-auto">
-                <CreatePostInput />
+                <CreatePostInput communityId={communityId} communityName={communityName} />
                 <FeedSortBar
                     sortBy={sortBy}
                     onSortChange={setSortBy}
