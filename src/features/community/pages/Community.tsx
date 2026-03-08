@@ -325,6 +325,7 @@ const Community = () => {
             communityId={community.id}
             hasAvatar={!!community.avatarUrl}
             hasBanner={!!community.bannerUrl}
+            hasRules={rules.length > 0}
             isAdmin={isAdmin}
             isModerator={isModerator}
             onUpdateNow={() => settingsTriggerRef.current?.click()}

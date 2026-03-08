@@ -6,6 +6,7 @@ interface CommunitySetupReminderProps {
   communityId: string;
   hasAvatar: boolean;
   hasBanner: boolean;
+  hasRules: boolean;
   isAdmin: boolean;
   isModerator: boolean;
   onUpdateNow: () => void;
@@ -32,6 +33,7 @@ export const CommunitySetupReminder: React.FC<CommunitySetupReminderProps> = ({
   communityId,
   hasAvatar,
   hasBanner,
+  hasRules,
   isAdmin,
   isModerator,
   onUpdateNow,
@@ -40,19 +42,20 @@ export const CommunitySetupReminder: React.FC<CommunitySetupReminderProps> = ({
 
   useEffect(() => {
     if (!(isAdmin || isModerator)) return;
-    if (hasAvatar && hasBanner) return;
+    if (hasAvatar && hasBanner && hasRules) return;
     if (isDismissed(communityId)) return;
     setVisible(true);
-  }, [communityId, hasAvatar, hasBanner, isAdmin, isModerator]);
+  }, [communityId, hasAvatar, hasBanner, hasRules, isAdmin, isModerator]);
 
   if (!visible) return null;
 
   const missingItems = [
     !hasAvatar && 'avatar',
     !hasBanner && 'banner',
+    !hasRules && 'rules',
   ].filter(Boolean);
 
-  const message = `Your community is missing a custom ${missingItems.join(' & ')}. Make it stand out!`;
+  const message = `Your community is missing ${missingItems.join(', ')}. Complete your setup to stand out!`;
 
   const handleDismiss = () => {
     try {

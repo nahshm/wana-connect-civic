@@ -81,25 +81,21 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
 
         setIsCreating(true);
         try {
-            const { error } = await supabase
-                .from('communities')
-                .insert({
-                    name: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-                    display_name: data.name,
-                    description: data.description,
-                    category: data.category,
-                    visibility_type: data.visibility_type,
-                    is_mature: data.is_mature,
-                    banner_url: data.banner_url || null,
-                    avatar_url: data.avatar_url || null,
-                    created_by: user.id
-                })
-                .select()
-                .single();
+            const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+            const { data: communityId, error } = await supabase
+                .rpc('create_community_ratelimited', {
+                    p_name: slug,
+                    p_display_name: data.name,
+                    p_description: data.description,
+                    p_category: data.category,
+                    p_visibility_type: data.visibility_type,
+                    p_is_mature: data.is_mature,
+                });
 
             if (error) throw error;
+            if (!communityId) throw new Error('Rate limit exceeded. Please try again later.');
 
-            const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
             toast({ title: 'Success!', description: `c/${data.name} has been created` });
             handleClose();
             navigate(`/community/${slug}`);

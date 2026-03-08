@@ -7935,25 +7935,50 @@ export type Database = {
         Args: { p_content: string; p_parent_id?: string; p_post_id: string }
         Returns: string
       }
-      create_community_ratelimited: {
-        Args: {
-          p_category: string
-          p_description: string
-          p_display_name: string
-          p_name: string
-        }
-        Returns: string
-      }
-      create_community_with_channels: {
-        Args: {
-          p_category: string
-          p_description: string
-          p_display_name: string
-          p_name: string
-          p_user_id: string
-        }
-        Returns: string
-      }
+      create_community_ratelimited:
+        | {
+            Args: {
+              p_category: string
+              p_description: string
+              p_display_name: string
+              p_name: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_category: string
+              p_description: string
+              p_display_name: string
+              p_is_mature?: boolean
+              p_name: string
+              p_visibility_type?: string
+            }
+            Returns: string
+          }
+      create_community_with_channels:
+        | {
+            Args: {
+              p_category: string
+              p_description: string
+              p_display_name: string
+              p_name: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_category: string
+              p_description: string
+              p_display_name: string
+              p_is_mature?: boolean
+              p_name: string
+              p_user_id: string
+              p_visibility_type?: string
+            }
+            Returns: string
+          }
       create_post_ratelimited: {
         Args: {
           p_community_id: string
