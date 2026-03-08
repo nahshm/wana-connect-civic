@@ -492,11 +492,36 @@ const PostDetail = () => {
     }
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ is_deleted: true, content: '[deleted]' })
+        .eq('id', commentId)
+        .eq('author_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state recursively
+      const markDeleted = (comments: Comment[]): Comment[] =>
+        comments.map(c => {
+          if (c.id === commentId) return { ...c, isDeleted: true, content: '[deleted]' };
+          if (c.replies) return { ...c, replies: markDeleted(c.replies) };
+          return c;
+        });
+
+      setComments(prev => markDeleted(prev));
+      toast({ title: "Comment deleted" });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast({ title: "Error", description: "Failed to delete comment", variant: "destructive" });
+    }
+  };
+
   // PostCard handles DB calls for voting — this only updates parent state for sidebar stats
   const handleVote = (_postId: string, _voteType: 'up' | 'down') => {
     // PostCard manages optimistic UI + Supabase calls internally.
-    // We don't duplicate the DB call here to avoid 409 conflicts.
-    // The post state will be synced via PostCard's local state.
   };
 
 
