@@ -41,13 +41,25 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
 
   const current = steps[step];
 
+  const MAX_HIGHLIGHT_W = 500;
+  const MAX_HIGHLIGHT_H = 400;
+
   const measureTarget = useCallback(() => {
     if (!current?.target) {
       setTargetRect(null);
       return;
     }
-    const el = document.querySelector(`[data-tour="${current.target}"]`);
+    const el = document.querySelector(`[data-tour="${current.target}"]`) as HTMLElement | null;
     if (!el) {
+      setTargetRect(null);
+      return;
+    }
+    // Detect hidden elements (display:none, hidden class, zero size)
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') {
+      setTargetRect(null);
+      return;
+    }
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) {
       setTargetRect(null);
       return;
     }
@@ -56,11 +68,23 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
       const rect = el.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const top = Math.max(0, rect.top);
-      const left = Math.max(0, rect.left);
-      const width = Math.min(rect.right, vw) - left;
-      const height = Math.min(rect.bottom, vh) - top;
-      setTargetRect({ top, left, width: Math.max(0, width), height: Math.max(0, height) });
+      // Clamp to viewport
+      let top = Math.max(0, rect.top);
+      let left = Math.max(0, rect.left);
+      let width = Math.max(0, Math.min(rect.right, vw) - left);
+      let height = Math.max(0, Math.min(rect.bottom, vh) - top);
+      // Cap dimensions — centre the cutout on the element if it's too large
+      if (width > MAX_HIGHLIGHT_W) {
+        const cx = left + width / 2;
+        width = MAX_HIGHLIGHT_W;
+        left = Math.max(0, Math.min(cx - width / 2, vw - width));
+      }
+      if (height > MAX_HIGHLIGHT_H) {
+        const cy = top + height / 2;
+        height = MAX_HIGHLIGHT_H;
+        top = Math.max(0, Math.min(cy - height / 2, vh - height));
+      }
+      setTargetRect({ top, left, width, height });
     });
   }, [current]);
 
