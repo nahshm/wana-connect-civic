@@ -775,10 +775,34 @@ export function ChannelChatWindow({
                                                                     </span>
                                                                 </div>
 
-                                                                {/* Message text with auto-linked URLs */}
-                                                                {msg.content && (
-                                                                    <MessageContent content={msg.content} />
-                                                                )}
+                                                                {/* Message text with auto-linked URLs or edit input */}
+                                                                {editingMessage?.id === msg.id ? (
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        <Input
+                                                                            ref={editInputRef}
+                                                                            value={editContent}
+                                                                            onChange={(e) => setEditContent(e.target.value)}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') handleEditSave();
+                                                                                if (e.key === 'Escape') cancelEditing();
+                                                                            }}
+                                                                            className="flex-1 h-8 text-sm"
+                                                                        />
+                                                                        <Button size="icon" className="h-7 w-7" onClick={handleEditSave}>
+                                                                            <Check className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing}>
+                                                                            <X className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </div>
+                                                                ) : msg.content ? (
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <MessageContent content={msg.content} />
+                                                                        {msg.edited_at && (
+                                                                            <span className="text-[10px] text-muted-foreground italic">(edited)</span>
+                                                                        )}
+                                                                    </div>
+                                                                ) : null}
 
                                                                 {/* Media attachments */}
                                                                 {msg.media_urls && msg.media_urls.length > 0 && (
