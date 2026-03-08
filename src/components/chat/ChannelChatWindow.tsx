@@ -407,6 +407,9 @@ export function ChannelChatWindow({
         setMessages(prev => [...prev, optimisticMessage]);
         setNewMessage('');
         setReplyingTo(null);
+        // Stop typing indicator
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingChannelRef.current?.send({ type: 'broadcast', event: 'stop_typing', payload: { user_id: user.id } });
         setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
         const insertPayload: any = {
