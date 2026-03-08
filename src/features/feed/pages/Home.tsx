@@ -142,29 +142,7 @@ function GuestFeed() {
     }
   }, []);
 
-  // Fetch user's community memberships
-  const fetchUserCommunities = useCallback(async () => {
-    if (!user) {
-      setUserCommunityIds([]);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('community_members')
-        .select('community_id')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      if (data) {
-        const communityIds = data.map(item => item.community_id);
-        setUserCommunityIds(communityIds);
-      }
-    } catch (error) {
-      console.error('Error fetching user communities:', error);
-    }
-  }, [user]);
+  // Guest feed: no user community memberships needed
 
   // Initial data fetch for sidebars (Feed is handled by React Query)
   useEffect(() => {
