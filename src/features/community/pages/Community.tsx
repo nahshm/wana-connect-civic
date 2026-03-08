@@ -304,7 +304,7 @@ const Community = () => {
           <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -319,6 +319,16 @@ const Community = () => {
             </h2>
             <div className="w-10" /> {/* Spacer for centering */}
           </div>
+
+          {/* Admin/Mod Setup Reminder */}
+          <CommunitySetupReminder
+            communityId={community.id}
+            hasAvatar={!!community.avatarUrl}
+            hasBanner={!!community.bannerUrl}
+            isAdmin={isAdmin}
+            isModerator={isModerator}
+            onUpdateNow={() => setSettingsOpen(true)}
+          />
 
           {/* Channel Content */}
           {activeChannelId && !activeChannel && !activeChannelId.startsWith('virtual-') ? (
