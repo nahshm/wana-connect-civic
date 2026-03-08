@@ -97,12 +97,14 @@ const ChannelList: React.FC<ChannelListProps> = ({
         }
     };
 
-    // Group channels with FEED first
+    // Group channels by category only (type determines rendering, not placement)
+    // Sort by position within each group
+    const sortByPosition = (a: Channel, b: Channel) => (a.position ?? 99) - (b.position ?? 99);
     const groupedChannels = {
-        FEED: channels.filter(c => c.category === 'FEED' || c.type === 'feed'),
-        INFO: channels.filter(c => c.category === 'INFO' && c.type !== 'feed'),
-        MONITORING: channels.filter(c => c.category === 'MONITORING' && c.type !== 'feed'),
-        ENGAGEMENT: channels.filter(c => c.category === 'ENGAGEMENT' && c.type !== 'feed'),
+        FEED: channels.filter(c => c.category === 'FEED').sort(sortByPosition),
+        INFO: channels.filter(c => c.category === 'INFO').sort(sortByPosition),
+        MONITORING: channels.filter(c => c.category === 'MONITORING').sort(sortByPosition),
+        ENGAGEMENT: channels.filter(c => c.category === 'ENGAGEMENT').sort(sortByPosition),
     };
 
     const renderChannelButton = (channel: Channel) => {
