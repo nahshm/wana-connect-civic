@@ -240,7 +240,7 @@ interface CommunityTileProps {
     tierLabel?: string;
 }
 
-function CommunityTile({ community, role, isMod, tierLabel }: CommunityTileProps) {
+function CommunityTile({ community, isMod, tierLabel }: CommunityTileProps) {
     const displayName = community.display_name || community.name;
 
     return (
