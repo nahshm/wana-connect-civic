@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Upload, Image as ImageIcon } from 'lucide-react';
+import { Settings, Upload, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { CommunityProfile } from '@/types/index';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
