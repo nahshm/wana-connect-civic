@@ -316,16 +316,6 @@ function GuestFeed() {
           </ScrollArea>
         </div>
       </aside>
-
-      {/* Community Join Dialog */}
-      {joinDialogState && (
-        <CommunityJoinDialog
-          isOpen={joinDialogState.isOpen}
-          onClose={() => setJoinDialogState(null)}
-          communityName={joinDialogState.communityName}
-          onJoin={handleJoinConfirm}
-        />
-      )}
     </div>
   );
 }
