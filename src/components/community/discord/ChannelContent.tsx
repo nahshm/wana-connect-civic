@@ -16,6 +16,7 @@ import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInView } from 'react-intersection-observer';
 import { Video, Mic } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ChannelContentProps {
     channelId: string;
@@ -151,33 +152,33 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     if (channel?.category === 'MONITORING' || ['our-leaders', 'projects-watch', 'promises-watch'].includes(channel?.name || '')) {
         if (channel?.name === 'our-leaders') {
             if (levelType === 'COMMUNITY') {
-                return <div className="flex-1 overflow-auto h-full p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
+            return <ScrollArea className="flex-1"><div className="p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div></ScrollArea>;
             }
             return (
-                <div className="flex-1 overflow-auto h-full">
+                <ScrollArea className="flex-1">
                     <SectionErrorBoundary section="Leaders Grid">
                         <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />
                     </SectionErrorBoundary>
-                </div>
+                </ScrollArea>
             );
         }
         if (channel?.name === 'projects-watch') {
             return (
-                <div className="flex-1 overflow-auto h-full">
+                <ScrollArea className="flex-1">
                     <SectionErrorBoundary section="Projects Watch">
                         <ProjectsGrid projects={projects} loading={projectsLoading} />
                     </SectionErrorBoundary>
-                </div>
+                </ScrollArea>
             );
         }
         if (channel?.name === 'promises-watch') {
             if (levelType === 'COMMUNITY') return null;
             return (
-                <div className="flex-1 overflow-auto h-full">
+                <ScrollArea className="flex-1">
                     <SectionErrorBoundary section="Promises Watch">
                         <PromisesGrid levelType={levelType} locationValue={locationValue} />
                     </SectionErrorBoundary>
-                </div>
+                </ScrollArea>
             );
         }
     }
@@ -195,7 +196,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 3. VIDEO CHANNELS (Baraza — Coming Soon)
     if (channel?.type === 'video') {
-        return <div className="flex-1 overflow-auto h-full"><BarazaPlaceholder channelName={channel.name} /></div>;
+        return <ScrollArea className="flex-1"><BarazaPlaceholder channelName={channel.name} /></ScrollArea>;
     }
 
     // 4. CHAT CHANNELS (Text/Voice/Announcement)
@@ -212,12 +213,12 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 5. FEED CHANNELS — Use unified feed with sort/infinite scroll
     if (channel?.type === 'feed' && communityId) {
-        return <div className="flex-1 overflow-auto h-full"><CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} /></div>;
+        return <ScrollArea className="flex-1"><CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} /></ScrollArea>;
     }
 
     // 6. FALLBACK: POST FEED (Legacy)
     return (
-        <div className="flex-1 overflow-auto h-full">
+        <ScrollArea className="flex-1">
             <div className="p-4 md:p-6">
                 <div className="max-w-4xl mx-auto">
                     <CreatePostInput />
@@ -248,7 +249,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </ScrollArea>
     );
 };
 
