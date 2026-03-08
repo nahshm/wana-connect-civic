@@ -47,7 +47,7 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
       return;
     }
     const el = document.querySelector(`[data-tour="${current.target}"]`);
-    if (!el) {
+    if (!el || (el as HTMLElement).offsetParent === null || el.getBoundingClientRect().width === 0) {
       setTargetRect(null);
       return;
     }
