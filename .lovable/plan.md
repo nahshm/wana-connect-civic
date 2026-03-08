@@ -1,55 +1,58 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+# Channel Order Mismatch in Geographic Communities
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+## Root Causes Found
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+### Bug 1: `type='feed'` filter steals MONITORING channels into FEED category
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+In `ChannelList.tsx` line 102-104, the grouping logic is:
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+```
+FEED: channels.filter(c => c.category === 'FEED' || c.type === 'feed'),
+MONITORING: channels.filter(c => c.category === 'MONITORING' && c.type !== 'feed'),
+```
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+The seed function (latest migration) sets `our-leaders`, `projects-watch`, and `promises-watch` to `type='feed'`. Because of the `|| c.type === 'feed'` condition, these three MONITORING channels get pulled into the FEED category. This means:
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+- **FEED category shows**: community-feed, our-leaders, projects-watch, promises-watch
+- **Civic Watch (MONITORING) shows**: only project-tracker (the forum)
+- This is the primary mismatch
+
+### Bug 2: Inconsistent channel types across old vs new communities
+
+Old communities (Nairobi, EmbakasiEast, Utawala) have `our-leaders`, `projects-watch`, `promises-watch` as `type='text'`. Newer communities created after the latest migration have them as `type='feed'`. This means the grouping bug only manifests on **newly created** communities, while old ones happen to work correctly (because `type='text'` doesn't trigger the feed filter).
+
+### Bug 3: No position-based ordering in the query
+
+`useCommunity.ts` fetches `channels(*)` with no `order` clause. The DB returns channels in insertion order, which happens to match position order for seeded channels, but any manually created channels will appear at the end regardless of their position value.
+
+## Plan
+
+### Fix 1: Fix the grouping logic in ChannelList.tsx (line 101-105)
+
+Group channels **only by their `category` field**, removing the `type === 'feed'` override. The `type` field describes the channel's rendering behavior (feed view, chat, forum), NOT its category placement.
+
+```
+FEED: channels.filter(c => c.category === 'FEED'),
+INFO: channels.filter(c => c.category === 'INFO'),
+MONITORING: channels.filter(c => c.category === 'MONITORING'),
+ENGAGEMENT: channels.filter(c => c.category === 'ENGAGEMENT'),
+```
+
+### Fix 2: Standardize channel types in DB
+
+SQL migration to update the MONITORING channels to `type='text'` (they use special name-based routing in ChannelContent anyway — LeadersGrid, ProjectsGrid, PromisesGrid). Also update the seed function to use `type='text'` for these channels.
+
+### Fix 3: Add position ordering to channel query
+
+In `useCommunity.ts`, change `channels(*)` to fetch with ordering. Since PostgREST embedded resource ordering requires the syntax `channels(*).order(position)` or sorting client-side, sort channels by position on the client after fetch.
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/community/discord/ChannelList.tsx` | Fix grouping to use category only, sort by position |
+| `src/hooks/useCommunity.ts` | Sort channels by position after fetch |
+| SQL migration | Standardize MONITORING channel types to `text`, update seed function |
+
