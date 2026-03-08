@@ -55,12 +55,6 @@ function GuestFeed() {
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
-  const [userCommunityIds, setUserCommunityIds] = useState<string[]>([]);
-  const [joinDialogState, setJoinDialogState] = useState<{
-    isOpen: boolean;
-    communityId: string;
-    communityName: string;
-  } | null>(null);
 
   // React Query Hook for Unified Feed
   const { 
