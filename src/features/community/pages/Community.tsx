@@ -368,7 +368,7 @@ const Community = () => {
               isAdmin={isAdmin}
             />
           )}
-        </ScrollArea>
+        </div>
 
         {/* Right Sidebar - Fixed + Responsive */}
         <aside data-tour="tour-sidebar" className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
