@@ -110,11 +110,11 @@ const App = () => (
                     <Route path="/onboarding" element={<OnboardingFlow />} />
                     <Route path="/welcome" element={<WelcomeDashboard />} />
                     <Route path="/civic-clips" element={<CivicClipsPage />} />
-                    <Route path="/" element={<Index />} />
                     <Route path="/*" element={
                       <AppLayout>
                         <Suspense fallback={<LoadingFallback />}>
                           <Routes>
+                            <Route path="/" element={<Index />} />
                             <Route path="/dashboard" element={<CivicDashboard />} />
                             <Route path="/dashboard/report" element={<ReportIssue />} />
                             <Route path="/report-an-issue" element={<ReportIssue />} />
