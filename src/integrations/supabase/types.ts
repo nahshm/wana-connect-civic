@@ -8077,24 +8077,43 @@ export type Database = {
           window_start: string
         }[]
       }
-      get_unified_feed: {
-        Args: {
-          p_community_id?: string
-          p_limit_count?: number
-          p_offset_count?: number
-          p_sort_by?: string
-          p_user_id?: string
-        }
-        Returns: {
-          avatar_url: string
-          created_at: string
-          data: Json
-          id: string
-          type: string
-          user_id: string
-          username: string
-        }[]
-      }
+      get_unified_feed:
+        | {
+            Args: {
+              p_community_id?: string
+              p_limit_count?: number
+              p_offset_count?: number
+              p_sort_by?: string
+              p_user_id?: string
+            }
+            Returns: {
+              avatar_url: string
+              created_at: string
+              data: Json
+              id: string
+              type: string
+              user_id: string
+              username: string
+            }[]
+          }
+        | {
+            Args: {
+              p_community_id?: string
+              p_limit_count?: number
+              p_offset_count?: number
+              p_sort_by?: string
+              p_user_id?: string
+            }
+            Returns: {
+              avatar_url: string
+              created_at: string
+              data: Json
+              id: string
+              type: string
+              user_id: string
+              username: string
+            }[]
+          }
       get_user_warning_count: { Args: { p_user_id: string }; Returns: number }
       get_weekly_contributions: {
         Args: { community_uuid: string }

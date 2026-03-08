@@ -14,8 +14,7 @@ interface FeedSortBarProps {
 }
 
 const sortOptions = [
-  { value: 'best', label: 'Best' },
-  { value: 'hot', label: 'Hot' },
+  { value: 'hot', label: 'Best' },
   { value: 'new', label: 'New' },
   { value: 'top', label: 'Top' },
   { value: 'rising', label: 'Rising' },
@@ -27,7 +26,7 @@ export const FeedSortBar = ({
   viewMode,
   onViewModeChange,
 }: FeedSortBarProps) => {
-  const currentSort = sortOptions.find(opt => opt.value === sortBy) || sortOptions[1];
+  const currentSort = sortOptions.find(opt => opt.value === sortBy) || sortOptions[0];
 
   return (
     <div className="flex items-center gap-2 py-2 px-1">
@@ -41,8 +40,8 @@ export const FeedSortBar = ({
           {sortOptions.map((option) => (
             <DropdownMenuItem
               key={option.value}
-              onClick={() => onSortChange(option.value === 'best' ? 'hot' : option.value as any)}
-              className={`cursor-pointer ${sortBy === option.value || (option.value === 'best' && sortBy === 'hot') ? 'bg-muted' : ''}`}
+              onClick={() => onSortChange(option.value as any)}
+              className={`cursor-pointer ${sortBy === option.value ? 'bg-muted' : ''}`}
             >
               {option.label}
             </DropdownMenuItem>
