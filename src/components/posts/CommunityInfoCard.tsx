@@ -16,6 +16,7 @@ interface CommunityInfoCardProps {
     description?: string;
     memberCount?: number;
     category?: string;
+    type?: string | null;
   };
 }
 
