@@ -42,6 +42,8 @@ import {
     Trash2,
     X,
     Loader2,
+    Pencil,
+    Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
@@ -49,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from './EmojiPicker';
 import { MessageContent } from './MessageContent';
 import { MessageMedia } from './MessageMedia';
+import { TypingIndicator } from './TypingIndicator';
 
 // Quick reaction emojis
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '✅'];
@@ -67,6 +70,7 @@ interface Message {
     reply_to_id?: string | null;
     media_urls?: string[];
     media_type?: string | null;
+    edited_at?: string | null;
     sender?: {
         id: string;
         username: string;
@@ -105,10 +109,16 @@ export function ChannelChatWindow({
     const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [editContent, setEditContent] = useState('');
+    const [typingUsers, setTypingUsers] = useState<{ id: string; username: string }[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const editInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
     // ─── Fetch Messages + Reactions ───
     const fetchMessages = useCallback(async () => {
@@ -166,7 +176,7 @@ export function ChannelChatWindow({
 
         fetchMessages();
 
-        // Realtime: messages
+        // Realtime: messages (INSERT + UPDATE + DELETE)
         const channel = supabase
             .channel(`channel:${channelId}`)
             .on(
@@ -187,12 +197,12 @@ export function ChannelChatWindow({
                         reply_to_id: payload.new.reply_to_id,
                         media_urls: payload.new.media_urls || [],
                         media_type: payload.new.media_type,
+                        edited_at: payload.new.edited_at,
                         sender: senderData || { id: payload.new.sender_id, username: 'Unknown' },
                         reactions: {},
                     };
 
                     setMessages((prev) => {
-                        // Deduplicate: remove optimistic temp message or same-id
                         const filtered = prev.filter(m => m.id !== newMsg.id && !(m.id.startsWith('temp-') && m.content === newMsg.content && m.sender_id === newMsg.sender_id));
                         return [...filtered, newMsg];
                     });
@@ -202,6 +212,17 @@ export function ChannelChatWindow({
                     } else {
                         setUnreadCount(prev => prev + 1);
                     }
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `channel_id=eq.${channelId}` },
+                (payload) => {
+                    setMessages((prev) => prev.map(m =>
+                        m.id === payload.new.id
+                            ? { ...m, content: payload.new.content, edited_at: payload.new.edited_at }
+                            : m
+                    ));
                 }
             )
             .on(
@@ -220,7 +241,6 @@ export function ChannelChatWindow({
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'message_reactions' },
                 (payload) => {
-                    // Refetch reactions for simplicity on any change
                     if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
                         const msgId = (payload.new as any)?.message_id || (payload.old as any)?.message_id;
                         if (msgId) {
@@ -244,9 +264,32 @@ export function ChannelChatWindow({
             )
             .subscribe();
 
+        // Typing indicator: broadcast channel
+        const typingChannel = supabase.channel(`typing:${channelId}`);
+        typingChannel
+            .on('broadcast', { event: 'typing' }, ({ payload: p }) => {
+                if (p.user_id === user?.id) return;
+                setTypingUsers(prev => {
+                    const exists = prev.find(u => u.id === p.user_id);
+                    if (!exists) return [...prev, { id: p.user_id, username: p.username }];
+                    return prev;
+                });
+                // Auto-remove after 3s
+                setTimeout(() => {
+                    setTypingUsers(prev => prev.filter(u => u.id !== p.user_id));
+                }, 3000);
+            })
+            .on('broadcast', { event: 'stop_typing' }, ({ payload: p }) => {
+                setTypingUsers(prev => prev.filter(u => u.id !== p.user_id));
+            })
+            .subscribe();
+        typingChannelRef.current = typingChannel;
+
         return () => {
             supabase.removeChannel(channel);
             supabase.removeChannel(reactionsChannel);
+            supabase.removeChannel(typingChannel);
+            typingChannelRef.current = null;
         };
     }, [channelId, fetchMessages]);
 
@@ -364,6 +407,9 @@ export function ChannelChatWindow({
         setMessages(prev => [...prev, optimisticMessage]);
         setNewMessage('');
         setReplyingTo(null);
+        // Stop typing indicator
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingChannelRef.current?.send({ type: 'broadcast', event: 'stop_typing', payload: { user_id: user.id } });
         setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
         const insertPayload: any = {
@@ -424,6 +470,68 @@ export function ChannelChatWindow({
             await supabase
                 .from('message_reactions')
                 .insert({ message_id: messageId, emoji, user_id: user.id });
+        }
+    };
+
+    // ─── Typing Broadcast ───
+    const broadcastTyping = useCallback(() => {
+        if (!user || !typingChannelRef.current) return;
+        const username = profile?.username || profile?.displayName || user.email?.split('@')[0] || 'Someone';
+        typingChannelRef.current.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { user_id: user.id, username },
+        });
+
+        // Clear previous timeout and set new stop-typing
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+            typingChannelRef.current?.send({
+                type: 'broadcast',
+                event: 'stop_typing',
+                payload: { user_id: user.id },
+            });
+        }, 2000);
+    }, [user, profile]);
+
+    // ─── Message Editing ───
+    const startEditing = (msg: Message) => {
+        setEditingMessage(msg);
+        setEditContent(msg.content);
+        setTimeout(() => editInputRef.current?.focus(), 50);
+    };
+
+    const cancelEditing = () => {
+        setEditingMessage(null);
+        setEditContent('');
+    };
+
+    const handleEditSave = async () => {
+        if (!editingMessage || !editContent.trim()) return;
+        if (editContent.trim() === editingMessage.content) {
+            cancelEditing();
+            return;
+        }
+
+        // Optimistic
+        const newContent = editContent.trim();
+        const editedAt = new Date().toISOString();
+        setMessages(prev => prev.map(m =>
+            m.id === editingMessage.id ? { ...m, content: newContent, edited_at: editedAt } : m
+        ));
+        cancelEditing();
+
+        const { error } = await supabase
+            .from('chat_messages')
+            .update({ content: newContent, edited_at: editedAt } as any)
+            .eq('id', editingMessage.id);
+
+        if (error) {
+            // Revert
+            setMessages(prev => prev.map(m =>
+                m.id === editingMessage.id ? { ...m, content: editingMessage.content, edited_at: editingMessage.edited_at } : m
+            ));
+            toast.error('Failed to edit message');
         }
     };
 
@@ -670,10 +778,34 @@ export function ChannelChatWindow({
                                                                     </span>
                                                                 </div>
 
-                                                                {/* Message text with auto-linked URLs */}
-                                                                {msg.content && (
-                                                                    <MessageContent content={msg.content} />
-                                                                )}
+                                                                {/* Message text with auto-linked URLs or edit input */}
+                                                                {editingMessage?.id === msg.id ? (
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        <Input
+                                                                            ref={editInputRef}
+                                                                            value={editContent}
+                                                                            onChange={(e) => setEditContent(e.target.value)}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') handleEditSave();
+                                                                                if (e.key === 'Escape') cancelEditing();
+                                                                            }}
+                                                                            className="flex-1 h-8 text-sm"
+                                                                        />
+                                                                        <Button size="icon" className="h-7 w-7" onClick={handleEditSave}>
+                                                                            <Check className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing}>
+                                                                            <X className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </div>
+                                                                ) : msg.content ? (
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <MessageContent content={msg.content} />
+                                                                        {msg.edited_at && (
+                                                                            <span className="text-[10px] text-muted-foreground italic">(edited)</span>
+                                                                        )}
+                                                                    </div>
+                                                                ) : null}
 
                                                                 {/* Media attachments */}
                                                                 {msg.media_urls && msg.media_urls.length > 0 && (
@@ -749,6 +881,16 @@ export function ChannelChatWindow({
                                                                     {isMe && (
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>
+                                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => startEditing(msg)}>
+                                                                                    <Pencil className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Edit</TooltipContent>
+                                                                        </Tooltip>
+                                                                    )}
+                                                                    {isMe && (
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
                                                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteMessage(msg.id)}>
                                                                                     <Trash2 className="h-4 w-4" />
                                                                                 </Button>
@@ -767,6 +909,11 @@ export function ChannelChatWindow({
                                                         <ContextMenuItem onClick={() => handleCopyMessage(msg.content)}>
                                                             <Copy className="h-4 w-4 mr-2" /> Copy Text
                                                         </ContextMenuItem>
+                                                        {isMe && (
+                                                            <ContextMenuItem onClick={() => startEditing(msg)}>
+                                                                <Pencil className="h-4 w-4 mr-2" /> Edit Message
+                                                            </ContextMenuItem>
+                                                        )}
                                                         <ContextMenuSeparator />
                                                         <ContextMenuItem className="text-destructive focus:text-destructive">
                                                             <Flag className="h-4 w-4 mr-2" /> Report Message
@@ -921,6 +1068,9 @@ export function ChannelChatWindow({
                     </div>
                 )}
 
+                {/* Typing Indicator */}
+                <TypingIndicator typingUsers={typingUsers} />
+
                 {/* Input Bar */}
                 <div className="p-4 border-t bg-card/50">
                     {isReadOnly ? (
@@ -960,7 +1110,7 @@ export function ChannelChatWindow({
                                     ref={inputRef}
                                     placeholder={replyingTo ? 'Type your reply...' : `Message #${channelName}`}
                                     value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onChange={(e) => { setNewMessage(e.target.value); broadcastTyping(); }}
                                     className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-11"
                                 />
 
