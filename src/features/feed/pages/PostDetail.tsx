@@ -512,57 +512,11 @@ const PostDetail = () => {
     }
   };
 
-  const handleVote = async (postId: string, voteType: 'up' | 'down') => {
-    if (!user) {
-      authModal.open('login');
-      return;
-    }
-
-    try {
-      const { data: existingVote } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('post_id', postId)
-        .maybeSingle();
-
-      if (existingVote) {
-        if (existingVote.vote_type === voteType) {
-          await supabase.from('votes').delete().eq('id', existingVote.id);
-        } else {
-          await supabase.from('votes').update({ vote_type: voteType }).eq('id', existingVote.id);
-        }
-      } else {
-        await supabase.from('votes').insert({
-          user_id: user.id,
-          post_id: postId,
-          vote_type: voteType,
-        });
-      }
-
-      setPost(prev => {
-        if (!prev) return prev;
-        const currentVote = prev.userVote;
-        let upvotes = prev.upvotes;
-        let downvotes = prev.downvotes;
-        let newVote: 'up' | 'down' | null = voteType;
-
-        if (currentVote === 'up') upvotes--;
-        if (currentVote === 'down') downvotes--;
-
-        if (currentVote === voteType) {
-          newVote = null;
-        } else {
-          if (voteType === 'up') upvotes++;
-          if (voteType === 'down') downvotes++;
-        }
-
-        return { ...prev, upvotes, downvotes, userVote: newVote };
-      });
-    } catch (error) {
-      console.error('Error voting:', error);
-      toast({ title: "Error", description: "Failed to vote", variant: "destructive" });
-    }
+  // PostCard handles DB calls for voting — this only updates parent state for sidebar stats
+  const handleVote = (_postId: string, _voteType: 'up' | 'down') => {
+    // PostCard manages optimistic UI + Supabase calls internally.
+    // We don't duplicate the DB call here to avoid 409 conflicts.
+    // The post state will be synced via PostCard's local state.
   };
 
   const handleToggleSave = async () => {
