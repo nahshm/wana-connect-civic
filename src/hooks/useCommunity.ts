@@ -111,12 +111,17 @@ async function fetchCommunityByName(
         }
     }
 
+    // Sort channels by position for consistent ordering
+    const sortedChannels = (communityData.channels || []).sort(
+        (a: any, b: any) => (a.position ?? 99) - (b.position ?? 99)
+    );
+
     return {
         community: communityData,
         moderators: communityData.communityModerators || [],
         rules: communityData.communityRules || [],
         flairs: communityData.communityFlairs || [],
-        channels: communityData.channels || [],
+        channels: sortedChannels,
         isMember,
         isModerator,
         isAdmin,
