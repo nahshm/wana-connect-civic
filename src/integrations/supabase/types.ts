@@ -990,6 +990,8 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          media_type: string | null
+          media_urls: string[] | null
           reply_to_id: string | null
           room_id: string | null
           sender_id: string | null
@@ -1000,6 +1002,8 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          media_type?: string | null
+          media_urls?: string[] | null
           reply_to_id?: string | null
           room_id?: string | null
           sender_id?: string | null
@@ -1010,6 +1014,8 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          media_type?: string | null
+          media_urls?: string[] | null
           reply_to_id?: string | null
           room_id?: string | null
           sender_id?: string | null
