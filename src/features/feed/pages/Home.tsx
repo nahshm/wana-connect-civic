@@ -30,6 +30,17 @@ interface BarazaSpace {
 }
 
 export default function Index() {
+  const { user } = useAuth();
+
+  // Authenticated users land on My Communities
+  if (user) {
+    return <Navigate to="/my-communities" replace />;
+  }
+
+  return <GuestFeed />;
+}
+
+function GuestFeed() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [barazaSpaces, setBarazaSpaces] = useState<BarazaSpace[]>([]);
   const barazaEnabled = useFeatureToggle('baraza');
