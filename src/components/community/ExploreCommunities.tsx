@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Community } from '@/types';
-import { ExploreCommunityCard } from './ExploreCommunityCommunityCard';
+import { ExploreCommunityCard } from './ExploreCommunityCard';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ExploreCommunitiesProps {
