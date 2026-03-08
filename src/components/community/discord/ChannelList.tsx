@@ -14,6 +14,7 @@ interface Channel {
     is_locked?: boolean;
     description?: string;
     emoji_prefix?: string | null;
+    position?: number | null;
 }
 
 interface ChannelListProps {
