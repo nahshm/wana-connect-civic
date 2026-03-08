@@ -1065,6 +1065,9 @@ export function ChannelChatWindow({
                     </div>
                 )}
 
+                {/* Typing Indicator */}
+                <TypingIndicator typingUsers={typingUsers} />
+
                 {/* Input Bar */}
                 <div className="p-4 border-t bg-card/50">
                     {isReadOnly ? (
