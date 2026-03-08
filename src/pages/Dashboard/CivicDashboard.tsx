@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageTour } from '@/components/tour/PageTour';
+import { DASHBOARD_TOUR_KEY, DASHBOARD_TOUR_STEPS } from '@/components/tour/DashboardTourSteps';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LayoutGrid, FileText, Users, Target, BarChart3, GraduationCap, Shield,
   Phone, HelpCircle, Megaphone, Sword, AlertCircle, FolderOpen } from 'lucide-react';
@@ -34,11 +36,12 @@ const CivicDashboard = () => {
 
   return (
     <div className="container mx-auto px-2 sm:px-4 pb-6">
+      <PageTour tourKey={DASHBOARD_TOUR_KEY} steps={DASHBOARD_TOUR_STEPS} userId={user?.id} />
       {/* ========= 3-COLUMN CIVIC CONTROL ROOM ========= */}
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
 
         {/* ─────── LEFT SIDEBAR: Citizen Identity ─────── */}
-        <aside className="hidden lg:block lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
+        <aside data-tour="tour-citizen-identity" className="hidden lg:block lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
           <CitizenIdentityPanel />
 
           {/* Civic Resources (compact) */}
@@ -74,10 +77,10 @@ const CivicDashboard = () => {
         {/* ─────── CENTER: Main Content Area ─────── */}
         <main className="min-w-0 space-y-4 order-1 lg:order-2">
           {/* Quick Action Bar */}
-          <QuickActionBar />
+          <div data-tour="tour-quick-actions"><QuickActionBar /></div>
 
           {/* Tabbed Content */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs data-tour="tour-dashboard-tabs" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full flex overflow-x-auto sm:grid sm:grid-cols-7 h-10 bg-muted/50 rounded-xl p-1 no-scrollbar">
               <TabsTrigger value="overview" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <LayoutGrid className="w-3.5 h-3.5" />
@@ -148,7 +151,7 @@ const CivicDashboard = () => {
 
 
         {/* ─────── RIGHT SIDEBAR: Gamification & Social ─────── */}
-        <aside className="space-y-4 order-3 hidden xl:block self-start lg:sticky lg:top-16">
+        <aside data-tour="tour-quest-widget" className="space-y-4 order-3 hidden xl:block self-start lg:sticky lg:top-16">
           <DashboardQuestWidget />
           <DashboardLeaderboardWidget />
         </aside>

@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { ActionDetailSheet } from '@/components/dashboard/ActionDetailSheet';
 import { cn } from '@/lib/utils';
+import { PageTour } from '@/components/tour/PageTour';
+import { INSTITUTION_TOUR_KEY, INSTITUTION_TOUR_STEPS } from '@/components/tour/InstitutionTourSteps';
 
 const STATUS_CONFIG: Record<string, { icon: LucideIcon; color: string; label: string }> = {
     submitted:     { icon: Clock,         color: 'bg-gray-500',   label: 'Submitted' },
@@ -329,6 +331,7 @@ export default function InstitutionPage() {
 
     return (
         <div className="container mx-auto px-2 sm:px-4 pb-6 mt-4">
+            <PageTour tourKey={INSTITUTION_TOUR_KEY} steps={INSTITUTION_TOUR_STEPS} userId={user?.id} />
             {/* Back */}
             <div className="mb-4">
                 <Button variant="ghost" className="gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2" onClick={() => navigate(-1)}>
@@ -340,7 +343,7 @@ export default function InstitutionPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
                 
                 {/* ─────── LEFT SIDEBAR: Institution Identity ─────── */}
-                <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
+                <aside data-tour="tour-institution-profile" className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
                     <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-sm">
                         {/* Top banner — custom → community fallback → solid gradient */}
                         <div className="h-24 relative overflow-hidden">
@@ -541,7 +544,7 @@ export default function InstitutionPage() {
                     </div>
 
                     {/* ─── Tabs ─── */}
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InstitutionTab)} className="w-full space-y-4">
+                    <Tabs data-tour="tour-institution-tabs" value={activeTab} onValueChange={(v) => setActiveTab(v as InstitutionTab)} className="w-full space-y-4">
                         <div className="overflow-x-auto pb-1 scrollbar-hide">
                             <TabsList className="inline-flex h-auto w-auto min-w-full sm:min-w-0 p-1.5 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                         {TABS.map(tab => (
