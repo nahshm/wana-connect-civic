@@ -1,52 +1,55 @@
 
+Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-# Fix: Independent Panel Scrolling — Root Cause Found
+What I found
+- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
+  - Failing query pattern: `select id, source_type, title, content, created_at ...`
+  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
+- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
+- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
 
-## The Real Problem
+Implementation plan
+1) Database migration (schema + secure access)
+- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
+- Add admin-only write policies on `vectors` using server-side role check:
+  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
+- Keep or tighten SELECT policy based on desired visibility:
+  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
 
-The height chain is broken at the **top level**, not inside the community page. Two ancestors force minimum viewport height, which means `flex-1` children can grow beyond the viewport instead of being constrained:
+2) Frontend fix in `SuperAdminDashboard.tsx`
+- Keep `title` in select and insert (once column exists).
+- Add robust error handling:
+  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
+  - `handleAddDoc`: surface exact DB/RLS error in toast.
+- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
 
-```text
-SidebarProvider div:  min-h-svh  ← forces 100vh MINIMUM, allows growth
-  AppLayout div:      min-h-screen  ← also forces 100vh MINIMUM
-    Header:           ~56px
-    div flex-1:       overflow-hidden  ← WANTS to constrain, but parent grows
-      SidebarInset:   min-h-0 (overrides min-h-svh) ✓
-        main h-full:  Community page
-```
+3) Optional consistency improvement (edge pipeline)
+- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
+- This is optional but improves UX and debugging.
 
-Because the root containers use **minimum** height (not fixed height), `overflow-hidden` on the content wrapper cannot actually clip or constrain. The content just pushes the parent taller, causing the whole page to scroll as one block.
+4) Verification checklist
+- Open RAG Viewer:
+  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
+  - Filtering by `source_type=kenya_constitution` returns 200.
+- Add document from UI:
+  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
+  - Non-admin users are blocked by RLS (expected).
+- Confirm no repeated vector 400s in console/network.
 
-## Fix
+Technical details (exact changes)
+- DB:
+  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
+  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
+- App file:
+  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
+    - retain `select('id, source_type, title, content, created_at')`
+    - retain insert payload with `title`
+    - add explicit `error` handling branches for both read/write.
+- Optional edge function:
+  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
 
-### 1. `src/App.tsx` — Kill SidebarProvider's min-h-svh
-Add className to override the built-in `min-h-svh` on the SidebarProvider wrapper:
-```tsx
-<SidebarProvider defaultOpen={...} className="!min-h-0">
-```
-
-### 2. `src/components/layout/AppLayout.tsx` — Lock root to viewport height
-Change from `min-h-screen` (growable) to `h-screen` (fixed) and add `overflow-hidden`:
-```tsx
-<div className="h-screen flex flex-col w-full bg-background overflow-hidden">
-```
-Also remove the nested `<main className="h-full">` wrapper since `SidebarInset` already renders as `<main>` — the duplicate nesting can confuse height resolution:
-```tsx
-<SidebarInset className={cn(
-  "flex-1 w-full min-h-0",
-  isCommunityPage ? "overflow-hidden" : "overflow-auto"
-)}>
-  {children}
-</SidebarInset>
-```
-
-### Result
-With a fixed viewport-height root, every `flex-1` and `h-full` downstream resolves to actual pixel values. Each `ScrollArea` in the community page (level selector, channel list, channel content, right sidebar) will independently scroll within its constrained panel.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Add `className="!min-h-0"` to `SidebarProvider` |
-| `src/components/layout/AppLayout.tsx` | `min-h-screen` → `h-screen overflow-hidden`; remove nested `<main>` |
-
+Order of execution
+1. Apply DB migration (column + policies)
+2. Update dashboard error handling
+3. (Optional) add scout title propagation
+4. End-to-end retest of RAG viewer + add document flow

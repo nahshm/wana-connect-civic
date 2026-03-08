@@ -100,7 +100,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <AuthModal />
-            <SidebarProvider defaultOpen={window.innerWidth >= 1280}>
+            <SidebarProvider defaultOpen={window.innerWidth >= 1280} className="!min-h-0">
             <BrowserRouter>
               <OnboardingGuard>
                 <Suspense fallback={<LoadingFallback />}>
