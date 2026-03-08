@@ -147,31 +147,37 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
         );
     }
 
-    // 1. MONITORING CHANNELS (Grid Views)
+    // 1. MONITORING CHANNELS (Grid Views) — wrapped in scroll container
     if (channel?.category === 'MONITORING' || ['our-leaders', 'projects-watch', 'promises-watch'].includes(channel?.name || '')) {
         if (channel?.name === 'our-leaders') {
             if (levelType === 'COMMUNITY') {
-                return <div className="p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
+                return <div className="flex-1 overflow-auto h-full p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
             }
             return (
-                <SectionErrorBoundary section="Leaders Grid">
-                    <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />
-                </SectionErrorBoundary>
+                <div className="flex-1 overflow-auto h-full">
+                    <SectionErrorBoundary section="Leaders Grid">
+                        <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />
+                    </SectionErrorBoundary>
+                </div>
             );
         }
         if (channel?.name === 'projects-watch') {
             return (
-                <SectionErrorBoundary section="Projects Watch">
-                    <ProjectsGrid projects={projects} loading={projectsLoading} />
-                </SectionErrorBoundary>
+                <div className="flex-1 overflow-auto h-full">
+                    <SectionErrorBoundary section="Projects Watch">
+                        <ProjectsGrid projects={projects} loading={projectsLoading} />
+                    </SectionErrorBoundary>
+                </div>
             );
         }
         if (channel?.name === 'promises-watch') {
             if (levelType === 'COMMUNITY') return null;
             return (
-                <SectionErrorBoundary section="Promises Watch">
-                    <PromisesGrid levelType={levelType} locationValue={locationValue} />
-                </SectionErrorBoundary>
+                <div className="flex-1 overflow-auto h-full">
+                    <SectionErrorBoundary section="Promises Watch">
+                        <PromisesGrid levelType={levelType} locationValue={locationValue} />
+                    </SectionErrorBoundary>
+                </div>
             );
         }
     }
@@ -189,7 +195,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 3. VIDEO CHANNELS (Baraza — Coming Soon)
     if (channel?.type === 'video') {
-        return <BarazaPlaceholder channelName={channel.name} />;
+        return <div className="flex-1 overflow-auto h-full"><BarazaPlaceholder channelName={channel.name} /></div>;
     }
 
     // 4. CHAT CHANNELS (Text/Voice/Announcement)
@@ -206,38 +212,40 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 5. FEED CHANNELS — Use unified feed with sort/infinite scroll
     if (channel?.type === 'feed' && communityId) {
-        return <CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} />;
+        return <div className="flex-1 overflow-auto h-full"><CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} /></div>;
     }
 
     // 6. FALLBACK: POST FEED (Legacy)
     return (
-        <div className="p-4 md:p-6">
-            <div className="max-w-4xl mx-auto">
-                <CreatePostInput />
-                <div className="mt-4 space-y-4">
-                    {postsLoading ? (
-                        <div className="space-y-4">
-                            {[...Array(3)].map((_, i) => (
-                                <Card key={i} className="animate-pulse">
-                                    <CardContent className="p-6">
-                                        <div className="h-32 bg-muted rounded" />
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    ) : posts.length > 0 ? (
-                        posts.map((post) => (
-                            <PostCard key={post.id} post={post} onVote={() => { }} />
-                        ))
-                    ) : (
-                        <Card>
-                            <CardContent className="text-center py-12">
-                                <p className="text-muted-foreground">
-                                    No posts yet in this channel. Be the first to post!
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
+        <div className="flex-1 overflow-auto h-full">
+            <div className="p-4 md:p-6">
+                <div className="max-w-4xl mx-auto">
+                    <CreatePostInput />
+                    <div className="mt-4 space-y-4">
+                        {postsLoading ? (
+                            <div className="space-y-4">
+                                {[...Array(3)].map((_, i) => (
+                                    <Card key={i} className="animate-pulse">
+                                        <CardContent className="p-6">
+                                            <div className="h-32 bg-muted rounded" />
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : posts.length > 0 ? (
+                            posts.map((post) => (
+                                <PostCard key={post.id} post={post} onVote={() => { }} />
+                            ))
+                        ) : (
+                            <Card>
+                                <CardContent className="text-center py-12">
+                                    <p className="text-muted-foreground">
+                                        No posts yet in this channel. Be the first to post!
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
