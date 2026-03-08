@@ -1,55 +1,79 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+# Understanding Check: Tier Community Channels vs. Interest Community Channels
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+## Example — "Report an Issue" Channel
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+Your tier communities (County, Constituency, Ward) are auto-joined during onboarding. Every user in Nairobi County is automatically in `c/Nairobi`. These tier communities already have channel categories:
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+- **FEED** — posts, feed
+- **INFO** — announcements, resources  
+- **MONITORING** — projects, promises, leaders (Civic Watch)
+- **ENGAGEMENT** — general-chat, events, polls
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+Now imagine someone creates an interest community like `c/NairobiCyclists`. If that community also creates a `#report-issues` channel, a `#projects` channel, and a `#leaders` channel — those **duplicate** what the tier community already provides.
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+**The correct pattern:**
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+| Function | Where it lives | Why |
+|----------|---------------|-----|
+| Report a pothole on Bike Lane X | `c/Nairobi` → `#report-issues` (MONITORING) | It's a civic issue tied to geography — the county government handles it |
+| Track road project progress | `c/Nairobi` → `#projects` (MONITORING) | Accountability is location-bound |
+| Discuss best cycling routes | `c/NairobiCyclists` → `#general` (ENGAGEMENT) | Interest-specific discussion |
+| Organize a group ride | `c/NairobiCyclists` → `#events` (ENGAGEMENT) | Community-specific activity |
+
+So `c/NairobiCyclists` should **not** have MONITORING channels (projects, promises, leaders, report-issues) because those are civic functions handled by the tier community. Interest communities should focus on FEED and ENGAGEMENT channels.
+
+---
+
+# Implementation Plan
+
+## Phase 1: Route Landing Page Logic
+
+**File: `src/features/feed/pages/Home.tsx`**
+
+- If `user` is authenticated → redirect to `/my-communities` (or render MyCommunitiesPage inline)
+- If guest (no user) → show the current unified feed as the "National Feed"
+- This is a simple conditional at the top of the `Index` component
+
+## Phase 2: Enhance MyCommunitiesPage as the Logged-in Home
+
+**File: `src/features/community/pages/MyCommunitiesPage.tsx`**
+
+Current state: a static list of cards grouped by location vs. interest. Needs to become an active dashboard:
+
+- **Activity summary strip** at top: unread counts / recent activity badges per community
+- **Quick-switch tiles** for tier communities (County → Constituency → Ward) with activity indicators
+- **Interest communities** section below with last-active sorting
+- **"Explore more"** CTA linking to `/communities?view=explore`
+- Clicking any community tile navigates to `/c/{name}` (existing behavior)
+
+## Phase 3: Channel Category Enforcement for Non-Tier Communities
+
+**File: `src/components/community/discord/CreateChannelDialog.tsx`**
+
+- Detect if the community is a tier/location community (category === 'location' or matched to user geo)
+- **Tier communities**: allow all 4 channel categories (FEED, INFO, MONITORING, ENGAGEMENT)
+- **Interest/org communities**: only allow FEED and ENGAGEMENT categories — hide MONITORING and INFO from the category picker
+- This prevents duplication of civic functions (projects, promises, leaders, issue reporting) in non-geographic communities
+
+**File: `src/components/community/discord/ChannelList.tsx`**
+
+- No structural change needed — it already renders by category. The enforcement happens at creation time.
+
+## Phase 4: Smart Feed Ordering (Future-Ready)
+
+The unified feed RPC `get_unified_feed` already exists. The personalization layer (engagement, urgency, relevance) is a backend concern. For now:
+
+- Add a `community_id` filter param so the feed can be scoped per community
+- The existing `sortBy` param (hot/new/top/rising) provides basic ordering
+- True personalization (user interests, engagement history) requires an edge function or DB function update — flag this for a separate iteration
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `src/features/feed/pages/Home.tsx` | Auth check: redirect logged-in users to `/my-communities`, keep feed for guests |
+| `src/features/community/pages/MyCommunitiesPage.tsx` | Add activity indicators, quick-switch tier tiles, better layout as "home" |
+| `src/components/community/discord/CreateChannelDialog.tsx` | Restrict channel categories for non-tier communities |
+
