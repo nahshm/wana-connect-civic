@@ -354,9 +354,9 @@ export function ChannelChatWindow({
             media_type: uploaded?.type || null,
             sender: {
                 id: user.id,
-                username: user.email?.split('@')[0] || 'You',
-                display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
-                avatar_url: user.user_metadata?.avatar_url,
+                username: profile?.username || user.email?.split('@')[0] || 'You',
+                display_name: profile?.displayName || user.user_metadata?.display_name || user.email?.split('@')[0],
+                avatar_url: profile?.avatar || user.user_metadata?.avatar_url,
             },
             reactions: {},
         };
