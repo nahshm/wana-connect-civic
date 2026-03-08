@@ -271,25 +271,6 @@ const PostDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user?.id]);
 
-  // Check if post is saved
-  useEffect(() => {
-    const checkSavedStatus = async () => {
-      if (!user || !id) return;
-      try {
-        const { data: savedData } = await supabase
-          .from('saved_items')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('item_type', 'post')
-          .eq('item_id', id)
-          .maybeSingle();
-        setIsSaved(!!savedData);
-      } catch (error) {
-        console.error('Error checking saved status:', error);
-      }
-    };
-    checkSavedStatus();
-  }, [user, id]);
 
   const handleAddComment = async (content: string, parentId?: string) => {
     if (!user) {
