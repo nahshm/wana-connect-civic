@@ -223,6 +223,32 @@ export const CommunitySettingsDialog: React.FC<CommunitySettingsDialogProps> = (
                                 </div>
                             </div>
                         </TabsContent>
+
+                        <TabsContent value="advanced" className="space-y-6 py-4">
+                            <div className="space-y-2">
+                                <Label>Platform Tour</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Replay the guided walkthrough to learn about community features.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        localStorage.removeItem('platform-tour-completed');
+                                        localStorage.removeItem(`admin-tour-completed-${community.id}`);
+                                        toast({
+                                            title: 'Tour restarted',
+                                            description: 'The walkthrough will appear when you close settings.',
+                                        });
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    Restart Tour
+                                </Button>
+                            </div>
+                        </TabsContent>
                     </Tabs>
 
                     <DialogFooter className="py-4 mt-auto">
