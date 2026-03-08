@@ -65,7 +65,7 @@ export const EmptyFeedState = () => {
             </Link>
           </Button>
         ) : (
-          <Button size="lg" onClick={() => authModal.open('register')}>
+          <Button size="lg" onClick={() => authModal.open('signup')}>
             <PlusCircle className="w-5 h-5 mr-2" />
             Create an Account
           </Button>
