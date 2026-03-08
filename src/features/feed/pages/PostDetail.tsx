@@ -9,7 +9,7 @@ import { useCommunityData } from '@/hooks/useCommunityData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Share2, Bookmark, Flag, MoreHorizontal, MessageSquare, Eye, TrendingUp, Shield, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Flag, MoreHorizontal, MessageSquare, Eye, TrendingUp, Shield, ExternalLink } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
