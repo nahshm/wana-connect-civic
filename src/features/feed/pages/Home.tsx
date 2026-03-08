@@ -51,7 +51,7 @@ function GuestFeed() {
   const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('hot');
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
 
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const authModal = useAuthModal();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
