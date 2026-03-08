@@ -299,7 +299,7 @@ const Community = () => {
         </div>
 
         {/* Main Content Area - ScrollArea for auto-hiding scrollbars */}
-        <ScrollArea className="flex-1 bg-background">
+        <ScrollArea data-tour="tour-main-content" className="flex-1 bg-background">
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
             <button
