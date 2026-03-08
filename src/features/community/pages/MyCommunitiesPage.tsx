@@ -235,7 +235,7 @@ interface CommunityTileProps {
         avatar_url?: string | null;
         location_type?: string | null;
     };
-    role: string;
+    
     isMod: boolean;
     tierLabel?: string;
 }
