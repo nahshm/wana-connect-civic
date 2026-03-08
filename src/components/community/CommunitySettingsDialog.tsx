@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Upload, Image as ImageIcon } from 'lucide-react';
+import { Settings, Upload, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { CommunityProfile } from '@/types/index';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -133,9 +133,10 @@ export const CommunitySettingsDialog: React.FC<CommunitySettingsDialogProps> = (
 
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
                     <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="general">General</TabsTrigger>
                             <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                            <TabsTrigger value="advanced">Advanced</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="general" className="space-y-4 py-4">
@@ -220,6 +221,32 @@ export const CommunitySettingsDialog: React.FC<CommunitySettingsDialogProps> = (
                                         Recommended 1920x384px. Max 5MB.
                                     </p>
                                 </div>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="advanced" className="space-y-6 py-4">
+                            <div className="space-y-2">
+                                <Label>Platform Tour</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Replay the guided walkthrough to learn about community features.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        localStorage.removeItem('platform-tour-completed');
+                                        localStorage.removeItem(`admin-tour-completed-${community.id}`);
+                                        toast({
+                                            title: 'Tour restarted',
+                                            description: 'The walkthrough will appear when you close settings.',
+                                        });
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    Restart Tour
+                                </Button>
                             </div>
                         </TabsContent>
                     </Tabs>
