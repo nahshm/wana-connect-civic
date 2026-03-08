@@ -382,7 +382,7 @@ const Community = () => {
           onClose={() => setCreateChannelOpen(false)}
           communityId={community.id}
           onChannelCreated={handleChannelCreated}
-          isTierCommunity={community.type === 'location' || community.category === 'location'}
+          isTierCommunity={community.type === 'location'}
         />
       )}
     </div>
