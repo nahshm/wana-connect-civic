@@ -407,7 +407,7 @@ const Community = () => {
           community={community}
           onUpdate={() => refetch()}
           trigger={
-            <button ref={settingsTriggerRef} className="hidden" aria-hidden="true" />
+            <button ref={settingsTriggerRef} data-tour="tour-settings" className="hidden" aria-hidden="true" />
           }
         />
       )}
