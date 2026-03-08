@@ -8042,6 +8042,7 @@ export type Database = {
       }
       get_unified_feed: {
         Args: {
+          p_community_id?: string
           p_limit_count?: number
           p_offset_count?: number
           p_sort_by?: string
