@@ -1,46 +1,55 @@
 
+Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-# Fix: Tooltip Placement Fallback When No Room
+What I found
+- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
+  - Failing query pattern: `select id, source_type, title, content, created_at ...`
+  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
+- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
+- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
 
-## Problem
-The tooltip goes out of bounds when the target element is large and there isn't enough space on the specified placement side. The highlight/spotlight is fine — only the tooltip positioning needs a fallback.
+Implementation plan
+1) Database migration (schema + secure access)
+- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
+- Add admin-only write policies on `vectors` using server-side role check:
+  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
+- Keep or tighten SELECT policy based on desired visibility:
+  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
 
-## Solution (single file: `PageTour.tsx`)
+2) Frontend fix in `SuperAdminDashboard.tsx`
+- Keep `title` in select and insert (once column exists).
+- Add robust error handling:
+  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
+  - `handleAddDoc`: surface exact DB/RLS error in toast.
+- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
 
-Replace the static `placement` switch with smart fallback logic:
+3) Optional consistency improvement (edge pipeline)
+- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
+- This is optional but improves UX and debugging.
 
-1. **Check available space** on the preferred side before committing to it
-2. **Fall back** through a priority chain: preferred → `bottom` → `center`
-3. **Visibility check**: if target element is hidden (`offsetWidth === 0`), treat as centered step
+4) Verification checklist
+- Open RAG Viewer:
+  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
+  - Filtering by `source_type=kenya_constitution` returns 200.
+- Add document from UI:
+  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
+  - Non-admin users are blocked by RLS (expected).
+- Confirm no repeated vector 400s in console/network.
 
-### Logic
+Technical details (exact changes)
+- DB:
+  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
+  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
+- App file:
+  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
+    - retain `select('id, source_type, title, content, created_at')`
+    - retain insert payload with `title`
+    - add explicit `error` handling branches for both read/write.
+- Optional edge function:
+  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
 
-```text
-For a given placement (e.g. 'right'):
-  spaceRight = viewport.width - (target.left + target.width)
-  if spaceRight < tooltipWidth + 32 → try 'bottom'
-  
-  spaceBelow = viewport.height - (target.top + target.height)  
-  if spaceBelow < tooltipHeight + 32 → fall back to 'center'
-  
-  'center' = fixed centered overlay (always fits)
-```
-
-Same logic applies for `left` (check space to the left) and `bottom` (check space below).
-
-### Changes in `getTooltipStyle()`
-
-- Compute `resolvedPlacement` by checking if preferred side has room (≥ `tooltipWidth + 32` for horizontal, ≥ `tooltipHeight + 32` for vertical)
-- If not enough room, try `bottom`; if still not enough, use `center` (translate -50%/-50%)
-- The highlight cutout remains unchanged — it correctly clamps to viewport already
-
-### Hidden element detection in `measureTarget()`
-
-- After querying the element, check `(el as HTMLElement).offsetParent === null` or `el.getBoundingClientRect().width === 0`
-- If hidden, set `targetRect(null)` so the step renders as centered
-
-## File
-| File | Change |
-|------|--------|
-| `src/components/tour/PageTour.tsx` | Add placement fallback logic in `getTooltipStyle()`, add hidden element check in `measureTarget()` |
-
+Order of execution
+1. Apply DB migration (column + policies)
+2. Update dashboard error handling
+3. (Optional) add scout title propagation
+4. End-to-end retest of RAG viewer + add document flow

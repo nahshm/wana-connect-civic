@@ -47,7 +47,7 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
       return;
     }
     const el = document.querySelector(`[data-tour="${current.target}"]`);
-    if (!el) {
+    if (!el || (el as HTMLElement).offsetParent === null || el.getBoundingClientRect().width === 0) {
       setTargetRect(null);
       return;
     }
@@ -92,39 +92,61 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
     return Math.min(Math.max(16, rawTop), window.innerHeight - tooltipH - 16);
   };
 
-  const getTooltipStyle = (): React.CSSProperties => {
-    if (isCentered) {
-      return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-    }
-    const r = targetRect!;
-    const placement = current.placement || 'right';
-    const tooltipWidth = 340;
-    const gap = 16;
+  const centerStyle: React.CSSProperties = { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
 
-    switch (placement) {
+  const getTooltipStyle = (): React.CSSProperties => {
+    if (isCentered) return centerStyle;
+
+    const r = targetRect!;
+    const preferred = current.placement || 'right';
+    const tooltipWidth = 340;
+    const tooltipH = tooltipRef.current?.offsetHeight || 280;
+    const gap = 16;
+    const margin = 16;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const spaceRight = vw - (r.left + r.width);
+    const spaceLeft = r.left;
+    const spaceBelow = vh - (r.top + r.height);
+
+    const canFit = (side: string) => {
+      if (side === 'right') return spaceRight >= tooltipWidth + gap + margin;
+      if (side === 'left') return spaceLeft >= tooltipWidth + gap + margin;
+      if (side === 'bottom') return spaceBelow >= tooltipH + gap + margin;
+      return true;
+    };
+
+    // Resolve placement: preferred → bottom → center
+    let resolved = preferred;
+    if (!canFit(preferred)) {
+      resolved = canFit('bottom') ? 'bottom' : 'center';
+    }
+
+    switch (resolved) {
       case 'right':
         return {
           position: 'fixed',
           top: clampTop(r.top + r.height / 2 - 100),
-          left: Math.min(r.left + r.width + gap, window.innerWidth - tooltipWidth - 16),
-          maxWidth: `min(${tooltipWidth}px, calc(100vw - ${r.left + r.width + gap + 16}px))`,
+          left: Math.min(r.left + r.width + gap, vw - tooltipWidth - margin),
+          maxWidth: `min(${tooltipWidth}px, calc(100vw - ${r.left + r.width + gap + margin}px))`,
         };
       case 'left':
         return {
           position: 'fixed',
           top: clampTop(r.top + r.height / 2 - 100),
           right: `calc(100vw - ${r.left - gap}px)`,
-          maxWidth: `min(${tooltipWidth}px, ${r.left - gap - 16}px)`,
+          maxWidth: `min(${tooltipWidth}px, ${r.left - gap - margin}px)`,
         };
       case 'bottom':
         return {
           position: 'fixed',
           top: clampTop(r.top + r.height + gap),
-          left: Math.max(16, Math.min(r.left + r.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 16)),
+          left: Math.max(margin, Math.min(r.left + r.width / 2 - tooltipWidth / 2, vw - tooltipWidth - margin)),
           maxWidth: tooltipWidth,
         };
       default:
-        return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+        return centerStyle;
     }
   };
 
