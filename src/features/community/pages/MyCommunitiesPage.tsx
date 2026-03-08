@@ -40,7 +40,6 @@ export const MyCommunitiesPage = () => {
                 .from('community_members')
                 .select(`
                     joined_at,
-                    role,
                     communities (
                         id, name, display_name, description, member_count,
                         category, avatar_url, banner_url, type, location_type
@@ -50,7 +49,7 @@ export const MyCommunitiesPage = () => {
                 .order('joined_at', { ascending: false });
 
             if (error) throw error;
-            return (data || []) as MemberCommunity[];
+            return (data || []) as unknown as MemberCommunity[];
         },
         enabled: !!user?.id,
         retry: 2,
