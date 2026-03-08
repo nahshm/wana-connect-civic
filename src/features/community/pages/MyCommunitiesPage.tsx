@@ -81,7 +81,7 @@ export const MyCommunitiesPage = () => {
         });
 
     const interestCommunities = (memberCommunities || [])
-        .filter((m) => m.communities?.type !== 'location' && m.communities?.category !== 'location');
+        .filter((m) => m.communities?.type !== 'location');
 
     const modIds = new Set((moderatedCommunities || []).map((m: any) => m.communities?.id));
 
