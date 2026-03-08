@@ -146,13 +146,15 @@ export function CommunityInfoCard({ community }: CommunityInfoCardProps) {
 
         {/* Action Buttons */}
         <div className="space-y-2.5 pt-1">
-          <Button
-            className="w-full font-semibold shadow-sm"
-            variant={isFollowing ? 'outline' : 'default'}
-            onClick={() => setIsFollowing(!isFollowing)}
-          >
-            {isFollowing ? 'Following' : 'Follow Community'}
-          </Button>
+          {community.type !== 'location' && (
+            <Button
+              className="w-full font-semibold shadow-sm"
+              variant={isFollowing ? 'outline' : 'default'}
+              onClick={() => setIsFollowing(!isFollowing)}
+            >
+              {isFollowing ? 'Following' : 'Follow Community'}
+            </Button>
+          )}
           <Button className="w-full font-semibold" variant="outline" asChild>
             <Link to={`/c/${community.name}`}>
               View Community

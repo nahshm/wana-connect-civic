@@ -98,6 +98,7 @@ const PostDetail = () => {
             description: postData.communities.description || '',
             memberCount: postData.communities.member_count || 0,
             category: postData.communities.category as 'governance' | 'civic-education' | 'accountability' | 'discussion',
+            type: postData.communities.type || null,
           } : undefined,
           upvotes: postData.upvotes || 0,
           downvotes: postData.downvotes || 0,
