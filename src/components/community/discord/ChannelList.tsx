@@ -14,6 +14,7 @@ interface Channel {
     is_locked?: boolean;
     description?: string;
     emoji_prefix?: string | null;
+    position?: number | null;
 }
 
 interface ChannelListProps {
@@ -98,11 +99,13 @@ const ChannelList: React.FC<ChannelListProps> = ({
     };
 
     // Group channels with FEED first
+    // Sort channels by position within each category
+    const sorted = [...channels].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     const groupedChannels = {
-        FEED: channels.filter(c => c.category === 'FEED' || c.type === 'feed'),
-        INFO: channels.filter(c => c.category === 'INFO' && c.type !== 'feed'),
-        MONITORING: channels.filter(c => c.category === 'MONITORING' && c.type !== 'feed'),
-        ENGAGEMENT: channels.filter(c => c.category === 'ENGAGEMENT' && c.type !== 'feed'),
+        FEED: sorted.filter(c => c.category === 'FEED' || c.type === 'feed'),
+        INFO: sorted.filter(c => c.category === 'INFO' && c.type !== 'feed'),
+        MONITORING: sorted.filter(c => c.category === 'MONITORING' && c.type !== 'feed'),
+        ENGAGEMENT: sorted.filter(c => c.category === 'ENGAGEMENT' && c.type !== 'feed'),
     };
 
     const renderChannelButton = (channel: Channel) => {
