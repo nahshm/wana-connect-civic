@@ -1401,7 +1401,7 @@ export default function OfficeHubPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
                 
                 {/* ─────── LEFT SIDEBAR: Office Identity ─────── */}
-                <aside className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
+                <aside data-tour="tour-office-profile" className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
                     <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-sm">
                         {/* Top banner — custom → community fallback → solid gradient */}
                         <div className="h-24 relative overflow-hidden">
