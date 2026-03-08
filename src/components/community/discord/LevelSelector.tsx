@@ -37,7 +37,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ levels }) => {
     };
 
     return (
-        <div data-tour="tour-level-selector" className="w-14 min-w-14 md:w-[60px] bg-sidebar-background flex flex-col items-center py-4 space-y-3 border-r border-sidebar-border flex-shrink-0">
+        <div data-tour="tour-level-selector" className="w-14 min-w-14 md:w-[60px] bg-sidebar-background flex flex-col border-r border-sidebar-border flex-shrink-0 h-full min-h-0 overflow-hidden">
+          <ScrollArea className="flex-1">
+            <div className="flex flex-col items-center py-4 space-y-3">
             {levels.map((level) => {
                 if (level.type === 'SEPARATOR') {
                     return (
