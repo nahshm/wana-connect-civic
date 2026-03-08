@@ -77,7 +77,7 @@ const CivicDashboard = () => {
         {/* ─────── CENTER: Main Content Area ─────── */}
         <main className="min-w-0 space-y-4 order-1 lg:order-2">
           {/* Quick Action Bar */}
-          <QuickActionBar />
+          <div data-tour="tour-quick-actions"><QuickActionBar /></div>
 
           {/* Tabbed Content */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
