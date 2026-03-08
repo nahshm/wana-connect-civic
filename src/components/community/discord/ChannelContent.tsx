@@ -147,31 +147,37 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
         );
     }
 
-    // 1. MONITORING CHANNELS (Grid Views)
+    // 1. MONITORING CHANNELS (Grid Views) — wrapped in scroll container
     if (channel?.category === 'MONITORING' || ['our-leaders', 'projects-watch', 'promises-watch'].includes(channel?.name || '')) {
         if (channel?.name === 'our-leaders') {
             if (levelType === 'COMMUNITY') {
-                return <div className="p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
+                return <div className="flex-1 overflow-auto h-full p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
             }
             return (
-                <SectionErrorBoundary section="Leaders Grid">
-                    <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />
-                </SectionErrorBoundary>
+                <div className="flex-1 overflow-auto h-full">
+                    <SectionErrorBoundary section="Leaders Grid">
+                        <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />
+                    </SectionErrorBoundary>
+                </div>
             );
         }
         if (channel?.name === 'projects-watch') {
             return (
-                <SectionErrorBoundary section="Projects Watch">
-                    <ProjectsGrid projects={projects} loading={projectsLoading} />
-                </SectionErrorBoundary>
+                <div className="flex-1 overflow-auto h-full">
+                    <SectionErrorBoundary section="Projects Watch">
+                        <ProjectsGrid projects={projects} loading={projectsLoading} />
+                    </SectionErrorBoundary>
+                </div>
             );
         }
         if (channel?.name === 'promises-watch') {
             if (levelType === 'COMMUNITY') return null;
             return (
-                <SectionErrorBoundary section="Promises Watch">
-                    <PromisesGrid levelType={levelType} locationValue={locationValue} />
-                </SectionErrorBoundary>
+                <div className="flex-1 overflow-auto h-full">
+                    <SectionErrorBoundary section="Promises Watch">
+                        <PromisesGrid levelType={levelType} locationValue={locationValue} />
+                    </SectionErrorBoundary>
+                </div>
             );
         }
     }
