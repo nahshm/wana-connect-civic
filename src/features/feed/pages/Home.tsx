@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, TrendingUp, Users, Plus, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
@@ -16,7 +16,6 @@ import { SELECT_FIELDS } from '@/lib/select-fields';
 import { Community } from '@/types';
 import { useFeatureToggle } from '@/hooks/useFeatureToggle';
 import { FeedErrorBoundary } from '@/components/feed/FeedErrorBoundary';
-import { CommunityJoinDialog } from '@/components/community/CommunityJoinDialog';
 import { UnifiedFeedItem, FeedItem, UnifiedFeedItemSkeleton, EmptyFeedState } from '@/components/feed/UnifiedFeedItem';
 import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 
@@ -30,6 +29,17 @@ interface BarazaSpace {
 }
 
 export default function Index() {
+  const { user } = useAuth();
+
+  // Authenticated users land on My Communities
+  if (user) {
+    return <Navigate to="/my-communities" replace />;
+  }
+
+  return <GuestFeed />;
+}
+
+function GuestFeed() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [barazaSpaces, setBarazaSpaces] = useState<BarazaSpace[]>([]);
   const barazaEnabled = useFeatureToggle('baraza');
@@ -40,17 +50,11 @@ export default function Index() {
   const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('hot');
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
 
-  const { user } = useAuth();
+  // GuestFeed: no authenticated user (they're redirected to /my-communities)
   const authModal = useAuthModal();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
-  const [userCommunityIds, setUserCommunityIds] = useState<string[]>([]);
-  const [joinDialogState, setJoinDialogState] = useState<{
-    isOpen: boolean;
-    communityId: string;
-    communityName: string;
-  } | null>(null);
 
   // React Query Hook for Unified Feed
   const { 
@@ -62,7 +66,7 @@ export default function Index() {
     isError,
     error
   } = useUnifiedFeed({ 
-    userId: user?.id,
+    userId: undefined,
     limit: 10,
     sortBy 
   });
@@ -131,42 +135,19 @@ export default function Index() {
     }
   }, []);
 
-  // Fetch user's community memberships
-  const fetchUserCommunities = useCallback(async () => {
-    if (!user) {
-      setUserCommunityIds([]);
-      return;
-    }
+  // Guest feed: no user community memberships needed
 
-    try {
-      const { data, error } = await supabase
-        .from('community_members')
-        .select('community_id')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      if (data) {
-        const communityIds = data.map(item => item.community_id);
-        setUserCommunityIds(communityIds);
-      }
-    } catch (error) {
-      console.error('Error fetching user communities:', error);
-    }
-  }, [user]);
-
-  // Initial data fetch for sidebars (Feed is handled by React Query)
+  // Initial data fetch for sidebars
   useEffect(() => {
     const loadSideData = async () => {
       await Promise.all([
         fetchCommunities(),
         barazaEnabled ? fetchBarazaSpaces() : Promise.resolve(),
-        fetchUserCommunities(),
       ]);
     };
 
     loadSideData();
-  }, [fetchCommunities, fetchBarazaSpaces, barazaEnabled, fetchUserCommunities]);
+  }, [fetchCommunities, fetchBarazaSpaces, barazaEnabled]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -194,48 +175,10 @@ export default function Index() {
     // and they can call this if a global refresh is needed.
   }, []);
 
-  // Handle community join
-  const handleJoinCommunity = useCallback((communityId: string, communityName: string) => {
-    if (!user) {
-      authModal.open('login');
-      return;
-    }
-    setJoinDialogState({ isOpen: true, communityId, communityName });
-  }, [user, authModal]);
-
-  const handleJoinConfirm = useCallback(async () => {
-    if (!user || !joinDialogState) return;
-
-    try {
-      const { error } = await supabase
-        .from('community_members')
-        .insert({
-          user_id: user.id,
-          community_id: joinDialogState.communityId,
-          role: 'member'
-        });
-
-      if (error) throw error;
-
-      setUserCommunityIds(prev => [...prev, joinDialogState.communityId]);
-      
-      toast({
-        title: '✅ Joined!',
-        description: `Welcome to c/${joinDialogState.communityName}!`,
-        duration: 3000,
-      });
-
-      await fetchUserCommunities();
-      setJoinDialogState(null);
-    } catch (error) {
-      console.error('Error joining community:', error);
-      toast({
-        title: 'Failed to join',
-        description: 'Could not join community. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  }, [user, joinDialogState, toast, fetchUserCommunities]);
+  // Handle community join — guests are prompted to log in
+  const handleJoinCommunity = useCallback((_communityId: string, _communityName: string) => {
+    authModal.open('login');
+  }, [authModal]);
 
   if (isLoading) {
     return (
@@ -366,16 +309,6 @@ export default function Index() {
           </ScrollArea>
         </div>
       </aside>
-
-      {/* Community Join Dialog */}
-      {joinDialogState && (
-        <CommunityJoinDialog
-          isOpen={joinDialogState.isOpen}
-          onClose={() => setJoinDialogState(null)}
-          communityName={joinDialogState.communityName}
-          onJoin={handleJoinConfirm}
-        />
-      )}
     </div>
   );
 }

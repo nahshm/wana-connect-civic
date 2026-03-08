@@ -21,11 +21,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Channel categories available per community type
+const TIER_CHANNEL_TYPES = [
+    { value: 'text', label: 'Text Channel', category: 'ENGAGEMENT' },
+    { value: 'announcement', label: 'Announcement', category: 'INFO' },
+    { value: 'projects', label: 'Projects', category: 'MONITORING' },
+    { value: 'issues', label: 'Report Issues', category: 'MONITORING' },
+    { value: 'promises', label: 'Promise Tracker', category: 'MONITORING' },
+];
+
+const INTEREST_CHANNEL_TYPES = [
+    { value: 'text', label: 'Text Channel', category: 'ENGAGEMENT' },
+    { value: 'announcement', label: 'Announcement', category: 'FEED' },
+];
+
 interface CreateChannelDialogProps {
     isOpen: boolean;
     onClose: () => void;
     communityId: string;
     onChannelCreated: (channel: any) => void;
+    /** Whether this community is a tier/location community */
+    isTierCommunity?: boolean;
 }
 
 export const CreateChannelDialog: React.FC<CreateChannelDialogProps> = ({
@@ -33,12 +49,15 @@ export const CreateChannelDialog: React.FC<CreateChannelDialogProps> = ({
     onClose,
     communityId,
     onChannelCreated,
+    isTierCommunity = false,
 }) => {
     const [name, setName] = useState('');
     const [type, setType] = useState('text');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+
+    const channelTypes = isTierCommunity ? TIER_CHANNEL_TYPES : INTEREST_CHANNEL_TYPES;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -90,7 +109,9 @@ export const CreateChannelDialog: React.FC<CreateChannelDialogProps> = ({
                 <DialogHeader>
                     <DialogTitle>Create Channel</DialogTitle>
                     <DialogDescription>
-                        Add a new discussion channel to your community.
+                        {isTierCommunity
+                            ? 'Add a channel to your location community. Monitoring channels (projects, issues, promises) are exclusive to tier communities.'
+                            : 'Add a discussion channel to your community.'}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,10 +122,12 @@ export const CreateChannelDialog: React.FC<CreateChannelDialogProps> = ({
                                 <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="text">Text Channel</SelectItem>
-                                <SelectItem value="announcement">Announcement</SelectItem>
-                                {/* Voice support can be added later */}
-                                {/* <SelectItem value="voice">Voice Channel</SelectItem> */}
+                                {channelTypes.map((ct) => (
+                                    <SelectItem key={ct.value} value={ct.value}>
+                                        {ct.label}
+                                        <span className="ml-2 text-xs text-muted-foreground">({ct.category})</span>
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
