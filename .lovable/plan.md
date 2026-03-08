@@ -1,33 +1,55 @@
 
+Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-# Fix: Community Layout Overlapping Platform Header
+What I found
+- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
+  - Failing query pattern: `select id, source_type, title, content, created_at ...`
+  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
+- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
+- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
 
-## Problem
-`Community.tsx` uses `h-screen` (100vh) on its outer container. But it renders inside `AppLayout`, which has a `Header` at the top. So the community page is 100vh tall starting below the header, meaning it overflows by exactly the header height. The channel sidebar (with `z-40`) and level selector render on top of the platform header.
+Implementation plan
+1) Database migration (schema + secure access)
+- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
+- Add admin-only write policies on `vectors` using server-side role check:
+  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
+- Keep or tighten SELECT policy based on desired visibility:
+  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
 
-## Root Cause
+2) Frontend fix in `SuperAdminDashboard.tsx`
+- Keep `title` in select and insert (once column exists).
+- Add robust error handling:
+  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
+  - `handleAddDoc`: surface exact DB/RLS error in toast.
+- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
 
-```text
-AppLayout (min-h-screen, flex-col)
-  ├── Header (~64px)
-  └── flex-1 overflow-hidden
-       └── SidebarInset (flex-1, overflow-auto)
-            └── main (h-full)
-                 └── Community (h-screen ← THIS IS THE BUG)
-                      └── flex h-full (also 100vh, overflows)
-```
+3) Optional consistency improvement (edge pipeline)
+- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
+- This is optional but improves UX and debugging.
 
-`h-screen` = 100vh regardless of parent. It should be `h-full` to fill the remaining space after the header.
+4) Verification checklist
+- Open RAG Viewer:
+  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
+  - Filtering by `source_type=kenya_constitution` returns 200.
+- Add document from UI:
+  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
+  - Non-admin users are blocked by RLS (expected).
+- Confirm no repeated vector 400s in console/network.
 
-## Fix
+Technical details (exact changes)
+- DB:
+  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
+  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
+- App file:
+  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
+    - retain `select('id, source_type, title, content, created_at')`
+    - retain insert payload with `title`
+    - add explicit `error` handling branches for both read/write.
+- Optional edge function:
+  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
 
-**File: `src/features/community/pages/Community.tsx`** (line 264)
-
-Change the outer container from `h-screen` to `h-full`:
-```
-Before: <div className="h-screen bg-background overflow-hidden">
-After:  <div className="h-full bg-background overflow-hidden">
-```
-
-This single change makes the community page fill only the space available below the header, preventing the channel sidebar and level selector from overlapping the platform header. All internal `h-full` references will then correctly cascade from the parent's constrained height.
-
+Order of execution
+1. Apply DB migration (column + policies)
+2. Update dashboard error handling
+3. (Optional) add scout title propagation
+4. End-to-end retest of RAG viewer + add document flow
