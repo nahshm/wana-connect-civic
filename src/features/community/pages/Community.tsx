@@ -291,9 +291,6 @@ const Community = () => {
             isAdmin={isAdmin}
             isTierCommunity={community?.type === 'location'}
             onAddChannel={() => setCreateChannelOpen(true)}
-            communityName={community?.name}
-            communityAvatarUrl={community?.avatarUrl}
-            communityBannerUrl={community?.bannerUrl}
           />
         </div>
 

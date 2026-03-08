@@ -68,6 +68,33 @@ export const CommunitySidebar = ({
 
     return (
         <div className="space-y-0">
+            {/* Banner and Avatar - matching Profile page pattern */}
+            <div className="relative mb-4">
+                {/* Banner */}
+                <div
+                    className="h-24 w-full bg-cover bg-center"
+                    style={{
+                        backgroundImage: community.bannerUrl
+                            ? `url(${community.bannerUrl})`
+                            : 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--civic-blue)) 100%)',
+                    }}
+                />
+
+                {/* Avatar and Name - overlapping banner */}
+                <div className="px-4">
+                    <div className="relative flex items-end gap-3 -mt-12">
+                        <Avatar className="w-20 h-20 border-4 border-sidebar-background">
+                            <AvatarImage src={community.avatarUrl || undefined} />
+                            <AvatarFallback className="text-2xl">{community.name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 pb-1">
+                            <a href={`/c/${community.name}`} className="font-bold text-xl hover:underline block text-sidebar-foreground">
+                                c/{community.name}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Content with sticky positioning */}
             <div className="space-y-4 sticky top-20 px-4">
