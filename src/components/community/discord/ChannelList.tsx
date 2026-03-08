@@ -37,6 +37,7 @@ const ChannelList: React.FC<ChannelListProps> = ({
     isAdmin = false,
     isModerator = false,
     communityId = '',
+    isTierCommunity = false,
     onAddChannel,
     onChannelUpdate,
 }) => {
