@@ -333,40 +333,26 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
       )}
 
       {/* Comments list */}
-      {!user ? (
-        <div className="text-center py-8">
-          <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-foreground mb-1">
-            {comments.length} comment{comments.length !== 1 ? 's' : ''}
-          </p>
-          <p className="text-xs text-muted-foreground mb-3">Sign in to view and join the discussion</p>
-          <Button size="sm" onClick={() => authModal.open('login')}>
-            <LogIn className="h-3.5 w-3.5 mr-1.5" />
-            Sign In
-          </Button>
-        </div>
-      ) : (
-        <div className="divide-y divide-border/40">
-          {sortedComments.length === 0 ? (
-            <div className="text-center py-10">
-              <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-              <p className="text-sm text-muted-foreground">
-                No comments yet. Be the first to share your thoughts.
-              </p>
-            </div>
-          ) : (
-            sortedComments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                onReply={handleReply}
-                onVote={onVoteComment}
-                onDelete={onDeleteComment}
-              />
-            ))
-          )}
-        </div>
-      )}
+      <div className="divide-y divide-border/40">
+        {sortedComments.length === 0 ? (
+          <div className="text-center py-10">
+            <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-sm text-muted-foreground">
+              No comments yet. Be the first to share your thoughts.
+            </p>
+          </div>
+        ) : (
+          sortedComments.map((comment) => (
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              onReply={handleReply}
+              onVote={onVoteComment}
+              onDelete={onDeleteComment}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 };
