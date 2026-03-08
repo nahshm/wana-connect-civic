@@ -400,6 +400,25 @@ const Community = () => {
           isTierCommunity={community.type === 'location'}
         />
       )}
+
+      {/* Settings Dialog (opened from setup reminder) */}
+      {community && settingsOpen && (
+        <CommunitySettingsDialog
+          community={community}
+          onUpdate={() => {
+            setSettingsOpen(false);
+            refetch();
+          }}
+          trigger={<span />}
+        />
+      )}
+
+      {/* Platform Navigation Tour */}
+      <PlatformTour
+        communityId={community.id}
+        isAdmin={isAdmin}
+        isModerator={isModerator}
+      />
     </div>
   );
 };
