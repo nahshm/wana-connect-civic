@@ -72,7 +72,7 @@ const Community = () => {
   const [activeChannelId, setActiveChannelId] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Local channels for optimistic updates when new channel created
   const [newChannels, setNewChannels] = useState<any[]>([]);
