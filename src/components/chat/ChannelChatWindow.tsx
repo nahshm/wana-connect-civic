@@ -70,6 +70,7 @@ interface Message {
     reply_to_id?: string | null;
     media_urls?: string[];
     media_type?: string | null;
+    edited_at?: string | null;
     sender?: {
         id: string;
         username: string;
