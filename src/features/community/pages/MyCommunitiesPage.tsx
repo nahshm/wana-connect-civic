@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface MemberCommunity {
     joined_at: string;
-    role: string;
     communities: {
         id: string;
         name: string;
