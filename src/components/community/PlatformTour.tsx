@@ -97,6 +97,7 @@ interface PlatformTourProps {
   communityId: string;
   isAdmin: boolean;
   isModerator: boolean;
+  userId?: string;
 }
 
 interface Rect {
