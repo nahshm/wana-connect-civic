@@ -218,7 +218,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 6. FALLBACK: POST FEED (Legacy)
     return (
-        <div className="flex-1 overflow-auto h-full">
+        <ScrollArea className="flex-1">
             <div className="p-4 md:p-6">
                 <div className="max-w-4xl mx-auto">
                     <CreatePostInput />
@@ -249,7 +249,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </ScrollArea>
     );
 };
 
