@@ -417,6 +417,7 @@ const Community = () => {
         communityId={community.id}
         isAdmin={isAdmin}
         isModerator={isModerator}
+        userId={user?.id}
       />
     </div>
   );
