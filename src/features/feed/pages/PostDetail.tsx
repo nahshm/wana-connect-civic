@@ -27,7 +27,7 @@ const PostDetail = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [postLoading, setPostLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
+  
   const { user } = useAuth();
   const authModal = useAuthModal();
   const { toast } = useToast();
