@@ -92,7 +92,7 @@ export function ChannelChatWindow({
     channelEmoji,
     isReadOnly = false
 }: ChannelChatWindowProps) {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
