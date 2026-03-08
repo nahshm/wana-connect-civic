@@ -153,6 +153,7 @@ const ChannelList: React.FC<ChannelListProps> = ({
 
                     {isAdmin && (
                         <Button
+                            data-tour="tour-add-channel"
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-sidebar-muted-foreground hover:text-sidebar-foreground"
