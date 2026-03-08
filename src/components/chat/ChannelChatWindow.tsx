@@ -176,7 +176,7 @@ export function ChannelChatWindow({
 
         fetchMessages();
 
-        // Realtime: messages
+        // Realtime: messages (INSERT + UPDATE + DELETE)
         const channel = supabase
             .channel(`channel:${channelId}`)
             .on(
@@ -197,12 +197,12 @@ export function ChannelChatWindow({
                         reply_to_id: payload.new.reply_to_id,
                         media_urls: payload.new.media_urls || [],
                         media_type: payload.new.media_type,
+                        edited_at: payload.new.edited_at,
                         sender: senderData || { id: payload.new.sender_id, username: 'Unknown' },
                         reactions: {},
                     };
 
                     setMessages((prev) => {
-                        // Deduplicate: remove optimistic temp message or same-id
                         const filtered = prev.filter(m => m.id !== newMsg.id && !(m.id.startsWith('temp-') && m.content === newMsg.content && m.sender_id === newMsg.sender_id));
                         return [...filtered, newMsg];
                     });
@@ -212,6 +212,17 @@ export function ChannelChatWindow({
                     } else {
                         setUnreadCount(prev => prev + 1);
                     }
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `channel_id=eq.${channelId}` },
+                (payload) => {
+                    setMessages((prev) => prev.map(m =>
+                        m.id === payload.new.id
+                            ? { ...m, content: payload.new.content, edited_at: payload.new.edited_at }
+                            : m
+                    ));
                 }
             )
             .on(
@@ -230,7 +241,6 @@ export function ChannelChatWindow({
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'message_reactions' },
                 (payload) => {
-                    // Refetch reactions for simplicity on any change
                     if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
                         const msgId = (payload.new as any)?.message_id || (payload.old as any)?.message_id;
                         if (msgId) {
@@ -254,9 +264,32 @@ export function ChannelChatWindow({
             )
             .subscribe();
 
+        // Typing indicator: broadcast channel
+        const typingChannel = supabase.channel(`typing:${channelId}`);
+        typingChannel
+            .on('broadcast', { event: 'typing' }, ({ payload: p }) => {
+                if (p.user_id === user?.id) return;
+                setTypingUsers(prev => {
+                    const exists = prev.find(u => u.id === p.user_id);
+                    if (!exists) return [...prev, { id: p.user_id, username: p.username }];
+                    return prev;
+                });
+                // Auto-remove after 3s
+                setTimeout(() => {
+                    setTypingUsers(prev => prev.filter(u => u.id !== p.user_id));
+                }, 3000);
+            })
+            .on('broadcast', { event: 'stop_typing' }, ({ payload: p }) => {
+                setTypingUsers(prev => prev.filter(u => u.id !== p.user_id));
+            })
+            .subscribe();
+        typingChannelRef.current = typingChannel;
+
         return () => {
             supabase.removeChannel(channel);
             supabase.removeChannel(reactionsChannel);
+            supabase.removeChannel(typingChannel);
+            typingChannelRef.current = null;
         };
     }, [channelId, fetchMessages]);
 
