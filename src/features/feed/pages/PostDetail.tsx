@@ -134,7 +134,8 @@ const PostDetail = () => {
     };
 
     fetchPost();
-  }, [id, user, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
 
   useEffect(() => {
     if (post?.title) {
