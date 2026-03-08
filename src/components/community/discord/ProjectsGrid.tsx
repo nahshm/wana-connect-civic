@@ -17,12 +17,12 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({ projects, loading }) => {
         return (
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 {[...Array(4)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-lg border border-slate-200 h-[400px] animate-pulse">
-                        <div className="h-48 bg-slate-200 rounded-t-lg" />
+                    <div key={i} className="bg-card rounded-lg border border-border h-[400px] animate-pulse">
+                        <div className="h-48 bg-muted rounded-t-lg" />
                         <div className="p-4 space-y-4">
-                            <div className="h-6 bg-slate-200 rounded w-3/4" />
-                            <div className="h-4 bg-slate-200 rounded w-full" />
-                            <div className="h-4 bg-slate-200 rounded w-1/2" />
+                            <div className="h-6 bg-muted rounded w-3/4" />
+                            <div className="h-4 bg-muted rounded w-full" />
+                            <div className="h-4 bg-muted rounded w-1/2" />
                         </div>
                     </div>
                 ))}
@@ -34,11 +34,11 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({ projects, loading }) => {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center">
                         <Hammer className="mr-3 h-8 w-8 text-orange-500" />
                         Community-Reported Projects
                     </h2>
-                    <p className="text-slate-500 text-sm mt-1">
+                    <p className="text-muted-foreground text-sm mt-1">
                         Track development projects in your area
                     </p>
                 </div>
@@ -53,7 +53,7 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({ projects, loading }) => {
 
             {projects.length === 0 ? (
                 <div className="bg-card rounded-lg border border-border p-12 text-center">
-                    <Hammer className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                    <Hammer className="w-16 h-16 mx-auto mb-4 text-muted-foreground/40" />
                     <h3 className="text-lg font-semibold mb-2">No Projects Reported</h3>
                     <p className="text-sm text-muted-foreground mb-4">
                         Be the first to report a development project in your area.

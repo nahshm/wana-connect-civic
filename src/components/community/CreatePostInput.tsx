@@ -6,12 +6,21 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const CreatePostInput = () => {
+interface CreatePostInputProps {
+    communityId?: string;
+    communityName?: string;
+}
+
+export const CreatePostInput = ({ communityId, communityName }: CreatePostInputProps) => {
     const navigate = useNavigate();
     const { user } = useAuth();
 
     const handleFocus = () => {
-        navigate('/create');
+        const params = new URLSearchParams();
+        if (communityName) params.set('community', communityName);
+        if (communityId) params.set('communityId', communityId);
+        const qs = params.toString();
+        navigate(`/create${qs ? `?${qs}` : ''}`);
     };
 
     return (
