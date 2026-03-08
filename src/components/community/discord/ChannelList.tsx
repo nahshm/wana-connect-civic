@@ -169,8 +169,8 @@ const ChannelList: React.FC<ChannelListProps> = ({
                 {/* Channels - ScrollArea for auto-hiding scrollbars */}
                 <ScrollArea className="flex-1">
                     <div className="p-2 space-y-3">
-                        {/* Virtual Interactive Channels — only for tier (geographic) communities */}
-                        {isTierCommunity && (
+                        {/* Virtual Interactive Channels — shown for all communities */}
+                        {(
                         <div className="mb-3">
                             <h3 className="flex items-center px-2 py-1 text-xs font-bold text-sidebar-muted-foreground uppercase tracking-wide">
                                 Interactive
