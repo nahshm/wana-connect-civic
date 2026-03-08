@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Post } from '@/types';
 import { PostCard } from '@/components/posts/PostCard';
 import { CreatePostInput } from '@/components/community/CreatePostInput';
@@ -10,6 +10,12 @@ import ForumChannel from './ForumChannel';
 import { GovernmentProject } from '@/types';
 import { ChannelChatWindow } from '@/components/chat/ChannelChatWindow';
 import { SectionErrorBoundary } from '@/components/community/CommunityErrorBoundary';
+import { FeedSortBar } from '@/components/feed/FeedSortBar';
+import { UnifiedFeedItem, UnifiedFeedItemSkeleton, EmptyFeedState } from '@/components/feed/UnifiedFeedItem';
+import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
+import { useAuth } from '@/contexts/AuthContext';
+import { useInView } from 'react-intersection-observer';
+import { Video, Mic } from 'lucide-react';
 
 interface ChannelContentProps {
     channelId: string;
@@ -20,8 +26,7 @@ interface ChannelContentProps {
     postsLoading: boolean;
     projectsLoading: boolean;
     isAdmin?: boolean;
-    communityId?: string; // For membership validation in LeadersGrid
-    // New prop for full channel object
+    communityId?: string;
     channel?: {
         id: string;
         name: string;
@@ -30,6 +35,93 @@ interface ChannelContentProps {
         is_locked?: boolean;
     };
 }
+
+/** Community Feed using the unified feed RPC */
+const CommunityUnifiedFeed: React.FC<{ communityId: string }> = ({ communityId }) => {
+    const { user } = useAuth();
+    const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('new');
+    const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
+
+    const {
+        data,
+        isLoading,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
+    } = useUnifiedFeed({
+        userId: user?.id,
+        communityId,
+        sortBy,
+        limit: 15,
+    });
+
+    const { ref: loadMoreRef } = useInView({
+        onChange: (inView) => {
+            if (inView && hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+            }
+        },
+    });
+
+    const feedItems = data?.pages.flat() ?? [];
+
+    return (
+        <div className="p-4 md:p-6">
+            <div className="max-w-4xl mx-auto">
+                <CreatePostInput />
+                <FeedSortBar
+                    sortBy={sortBy}
+                    onSortChange={setSortBy}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                />
+                <div className="mt-2 space-y-4">
+                    {isLoading ? (
+                        <div className="space-y-4">
+                            <UnifiedFeedItemSkeleton />
+                            <UnifiedFeedItemSkeleton />
+                            <UnifiedFeedItemSkeleton />
+                        </div>
+                    ) : feedItems.length > 0 ? (
+                        <>
+                            {feedItems.map(item => (
+                                <UnifiedFeedItem key={item.id} item={item} />
+                            ))}
+                            <div ref={loadMoreRef}>
+                                {isFetchingNextPage && <UnifiedFeedItemSkeleton />}
+                                {!hasNextPage && feedItems.length > 0 && (
+                                    <p className="text-center text-muted-foreground text-sm py-8">
+                                        You've reached the end
+                                    </p>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <EmptyFeedState />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/** Baraza Coming Soon placeholder */
+const BarazaPlaceholder: React.FC<{ channelName: string }> = ({ channelName }) => (
+    <div className="flex flex-col items-center justify-center p-12 h-full min-h-[400px]">
+        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+            <Video className="w-10 h-10 text-primary" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Baraza — Coming Soon</h2>
+        <p className="text-muted-foreground text-center max-w-md mb-4">
+            Live audio & video community gatherings are being built. 
+            Soon you'll be able to host and join real-time civic discussions here.
+        </p>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Mic className="w-4 h-4" />
+            <span>Voice & Video Rooms</span>
+        </div>
+    </div>
+);
 
 const ChannelContent: React.FC<ChannelContentProps> = ({
     channelId,
@@ -56,7 +148,6 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     }
 
     // 1. MONITORING CHANNELS (Grid Views)
-    // We must check by NAME because channelId is now a UUID from the DB
     if (channel?.category === 'MONITORING' || ['our-leaders', 'projects-watch', 'promises-watch'].includes(channel?.name || '')) {
         if (channel?.name === 'our-leaders') {
             if (levelType === 'COMMUNITY') {
@@ -96,7 +187,12 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
         );
     }
 
-    // 3. CHAT CHANNELS (Text/Voice/Announcement)
+    // 3. VIDEO CHANNELS (Baraza — Coming Soon)
+    if (channel?.type === 'video') {
+        return <BarazaPlaceholder channelName={channel.name} />;
+    }
+
+    // 4. CHAT CHANNELS (Text/Voice/Announcement)
     if (channel?.type === 'text' || channel?.type === 'announcement' || channel?.type === 'voice' || channel?.type === 'chat') {
         const isReadOnly = channel.type === 'announcement' && !isAdmin;
         return (
@@ -108,42 +204,44 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
         );
     }
 
-    // 4. FALLBACK: POST FEED (Feed type or Legacy)
+    // 5. FEED CHANNELS — Use unified feed with sort/infinite scroll
+    if (channel?.type === 'feed' && communityId) {
+        return <CommunityUnifiedFeed communityId={communityId} />;
+    }
+
+    // 6. FALLBACK: POST FEED (Legacy)
     return (
         <div className="p-4 md:p-6">
-            {/* Max-width container for readability on ultra-wide screens */}
             <div className="max-w-4xl mx-auto">
                 <CreatePostInput />
-
-            <div className="mt-4 space-y-4">
-                {postsLoading ? (
-                    <div className="space-y-4">
-                        {[...Array(3)].map((_, i) => (
-                            <Card key={i} className="animate-pulse">
-                                <CardContent className="p-6">
-                                    <div className="h-32 bg-slate-200 rounded" />
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                ) : posts.length > 0 ? (
-                    posts.map((post) => (
-                        <PostCard key={post.id} post={post} onVote={() => { }} />
-                    ))
-                ) : (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <p className="text-muted-foreground">
-                                No posts yet in this channel. Be the first to post!
-                            </p>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
+                <div className="mt-4 space-y-4">
+                    {postsLoading ? (
+                        <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <Card key={i} className="animate-pulse">
+                                    <CardContent className="p-6">
+                                        <div className="h-32 bg-muted rounded" />
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : posts.length > 0 ? (
+                        posts.map((post) => (
+                            <PostCard key={post.id} post={post} onVote={() => { }} />
+                        ))
+                    ) : (
+                        <Card>
+                            <CardContent className="text-center py-12">
+                                <p className="text-muted-foreground">
+                                    No posts yet in this channel. Be the first to post!
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
 export default ChannelContent;
-

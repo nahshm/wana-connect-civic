@@ -289,6 +289,7 @@ const Community = () => {
             }}
             levelName={currentLevel.name}
             isAdmin={isAdmin}
+            isTierCommunity={community?.type === 'location'}
             onAddChannel={() => setCreateChannelOpen(true)}
           />
         </div>
