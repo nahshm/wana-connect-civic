@@ -133,9 +133,10 @@ export const CommunitySettingsDialog: React.FC<CommunitySettingsDialogProps> = (
 
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
                     <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="general">General</TabsTrigger>
                             <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                            <TabsTrigger value="advanced">Advanced</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="general" className="space-y-4 py-4">
