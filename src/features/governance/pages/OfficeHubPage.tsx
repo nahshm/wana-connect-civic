@@ -1582,7 +1582,7 @@ export default function OfficeHubPage() {
                         ))}
                     </div>
 
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as OfficeTab)} className="w-full space-y-4">
+                    <Tabs data-tour="tour-office-tabs" value={activeTab} onValueChange={(v) => setActiveTab(v as OfficeTab)} className="w-full space-y-4">
                         <div className="overflow-x-auto pb-1 scrollbar-hide">
                             <TabsList className="inline-flex h-auto w-auto min-w-full sm:min-w-0 p-1.5 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                                 {TABS.map(tab => (
