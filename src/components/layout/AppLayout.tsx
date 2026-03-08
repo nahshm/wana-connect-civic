@@ -16,7 +16,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       {/* Sidebar and content below header */}
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
-        <SidebarInset className="flex-1 w-full overflow-auto">
+        <SidebarInset className="flex-1 w-full min-h-0 overflow-auto">
           <main className="h-full">
             {children}
           </main>
