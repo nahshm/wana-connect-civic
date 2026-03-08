@@ -210,6 +210,8 @@ const ChannelList: React.FC<ChannelListProps> = ({
 
                     {Object.entries(groupedChannels).map(([category, categoryChannels]) => {
                         if (categoryChannels.length === 0) return null;
+                        // Hide MONITORING category for non-tier (interest/org) communities
+                        if (category === 'MONITORING' && !isTierCommunity) return null;
                         const isCollapsed = collapsedCategories.has(category);
 
                         return (
