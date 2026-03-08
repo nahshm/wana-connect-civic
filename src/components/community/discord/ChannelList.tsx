@@ -29,6 +29,9 @@ interface ChannelListProps {
     isTierCommunity?: boolean;
     onAddChannel?: () => void;
     onChannelUpdate?: () => void;
+    communityName?: string;
+    communityAvatarUrl?: string;
+    communityBannerUrl?: string;
 }
 
 const ChannelList: React.FC<ChannelListProps> = ({
