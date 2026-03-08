@@ -181,7 +181,6 @@ export const MyCommunitiesPage = () => {
                             <CommunityTile
                                 key={member.communities.id}
                                 community={member.communities}
-                                role={member.role}
                                 isMod={modIds.has(member.communities.id)}
                             />
                         ))}
