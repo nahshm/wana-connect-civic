@@ -95,26 +95,6 @@ export function CommunityInfoCard({ community }: CommunityInfoCardProps) {
         </Link>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        {/* Members Stats */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
-            <Users className="w-4 h-4 text-primary mx-auto mb-2" />
-            <p className="text-[10px] text-muted-foreground text-center mb-1">Members</p>
-            <p className="font-bold text-2xl text-primary text-center">
-              {loading ? '...' : (stats?.member_count || 0).toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-900/10 rounded-xl p-4 border border-green-200/50 dark:border-green-800/30">
-            <Activity className="w-4 h-4 text-green-600 dark:text-green-500 mx-auto mb-2" />
-            <p className="text-[10px] text-muted-foreground text-center mb-1">Online</p>
-            <p className="font-bold text-2xl text-green-600 dark:text-green-500 text-center">
-              {loading ? '...' : stats?.online_count || 0}
-            </p>
-          </div>
-        </div>
-
-        <Separator className="bg-border/60" />
-
         {/* Posts Count */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2.5 text-muted-foreground">
