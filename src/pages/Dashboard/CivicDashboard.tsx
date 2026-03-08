@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageTour } from '@/components/tour/PageTour';
+import { DASHBOARD_TOUR_KEY, DASHBOARD_TOUR_STEPS } from '@/components/tour/DashboardTourSteps';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LayoutGrid, FileText, Users, Target, BarChart3, GraduationCap, Shield,
   Phone, HelpCircle, Megaphone, Sword, AlertCircle, FolderOpen } from 'lucide-react';
