@@ -339,7 +339,7 @@ const Community = () => {
               </div>
             </div>
           ) : activeChannelId === 'virtual-events' ? (
-            <div className="flex-1 overflow-auto h-full">
+            <ScrollArea className="flex-1">
               <div className="p-4 md:p-8 max-w-3xl mx-auto">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold mb-2">📅 Upcoming Events</h2>
@@ -347,7 +347,7 @@ const Community = () => {
                 </div>
                 <CommunityEventsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
               </div>
-            </div>
+            </ScrollArea>
           ) : activeChannelId === 'virtual-polls' ? (
             <div className="flex-1 overflow-auto h-full">
               <div className="p-4 md:p-8 max-w-3xl mx-auto">
