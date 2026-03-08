@@ -603,6 +603,7 @@ const PostDetail = () => {
                 comments={comments}
                 onAddComment={handleAddComment}
                 onVoteComment={handleVoteComment}
+                onDeleteComment={handleDeleteComment}
               />
             )}
 
