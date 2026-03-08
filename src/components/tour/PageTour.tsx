@@ -54,7 +54,13 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     requestAnimationFrame(() => {
       const rect = el.getBoundingClientRect();
-      setTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const top = Math.max(0, rect.top);
+      const left = Math.max(0, rect.left);
+      const width = Math.min(rect.right, vw) - left;
+      const height = Math.min(rect.bottom, vh) - top;
+      setTargetRect({ top, left, width: Math.max(0, width), height: Math.max(0, height) });
     });
   }, [current]);
 
@@ -81,6 +87,11 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
   const isCentered = !current.target || !targetRect;
   const padding = 8;
 
+  const clampTop = (rawTop: number): number => {
+    const tooltipH = tooltipRef.current?.offsetHeight || 280;
+    return Math.min(Math.max(16, rawTop), window.innerHeight - tooltipH - 16);
+  };
+
   const getTooltipStyle = (): React.CSSProperties => {
     if (isCentered) {
       return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
@@ -94,22 +105,22 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
       case 'right':
         return {
           position: 'fixed',
-          top: Math.max(16, r.top + r.height / 2 - 100),
-          left: r.left + r.width + gap,
+          top: clampTop(r.top + r.height / 2 - 100),
+          left: Math.min(r.left + r.width + gap, window.innerWidth - tooltipWidth - 16),
           maxWidth: `min(${tooltipWidth}px, calc(100vw - ${r.left + r.width + gap + 16}px))`,
         };
       case 'left':
         return {
           position: 'fixed',
-          top: Math.max(16, r.top + r.height / 2 - 100),
+          top: clampTop(r.top + r.height / 2 - 100),
           right: `calc(100vw - ${r.left - gap}px)`,
           maxWidth: `min(${tooltipWidth}px, ${r.left - gap - 16}px)`,
         };
       case 'bottom':
         return {
           position: 'fixed',
-          top: r.top + r.height + gap,
-          left: Math.max(16, r.left + r.width / 2 - tooltipWidth / 2),
+          top: clampTop(r.top + r.height + gap),
+          left: Math.max(16, Math.min(r.left + r.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 16)),
           maxWidth: tooltipWidth,
         };
       default:
