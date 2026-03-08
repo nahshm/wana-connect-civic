@@ -2079,6 +2079,7 @@ export type Database = {
           hidden_reason: string | null
           id: string
           is_collapsed: boolean | null
+          is_deleted: boolean
           is_hidden: boolean | null
           is_official_response: boolean | null
           moderation_reason: string | null
@@ -2119,6 +2120,7 @@ export type Database = {
           hidden_reason?: string | null
           id?: string
           is_collapsed?: boolean | null
+          is_deleted?: boolean
           is_hidden?: boolean | null
           is_official_response?: boolean | null
           moderation_reason?: string | null
@@ -2159,6 +2161,7 @@ export type Database = {
           hidden_reason?: string | null
           id?: string
           is_collapsed?: boolean | null
+          is_deleted?: boolean
           is_hidden?: boolean | null
           is_official_response?: boolean | null
           moderation_reason?: string | null

@@ -9,8 +9,7 @@ import { useCommunityData } from '@/hooks/useCommunityData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Flag, MoreHorizontal, MessageSquare, Eye, TrendingUp, Shield, ExternalLink } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ArrowLeft, MessageSquare, Eye, TrendingUp, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -237,6 +236,7 @@ const PostDetail = () => {
             depth: commentData.depth || 0,
             isCollapsed: commentData.is_collapsed || false,
             moderationStatus: commentData.moderation_status as 'approved' | 'pending' | 'removed',
+            isDeleted: commentData.is_deleted || false,
             awards,
             replies: []
           };
@@ -400,6 +400,7 @@ const PostDetail = () => {
           depth: commentData.depth || 0,
           isCollapsed: commentData.is_collapsed || false,
           moderationStatus: commentData.moderation_status as 'approved' | 'pending' | 'removed',
+          isDeleted: commentData.is_deleted || false,
           awards,
           replies: []
         };
@@ -493,11 +494,36 @@ const PostDetail = () => {
     }
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ is_deleted: true, content: '[deleted]' })
+        .eq('id', commentId)
+        .eq('author_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state recursively
+      const markDeleted = (comments: Comment[]): Comment[] =>
+        comments.map(c => {
+          if (c.id === commentId) return { ...c, isDeleted: true, content: '[deleted]' };
+          if (c.replies) return { ...c, replies: markDeleted(c.replies) };
+          return c;
+        });
+
+      setComments(prev => markDeleted(prev));
+      toast({ title: "Comment deleted" });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast({ title: "Error", description: "Failed to delete comment", variant: "destructive" });
+    }
+  };
+
   // PostCard handles DB calls for voting — this only updates parent state for sidebar stats
   const handleVote = (_postId: string, _voteType: 'up' | 'down') => {
     // PostCard manages optimistic UI + Supabase calls internally.
-    // We don't duplicate the DB call here to avoid 409 conflicts.
-    // The post state will be synced via PostCard's local state.
   };
 
 
@@ -563,27 +589,6 @@ const PostDetail = () => {
               />
             </div>
 
-            {/* Post action bar */}
-            <div className="flex items-center gap-1 mb-6 -mt-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
-                    <MoreHorizontal className="h-3.5 w-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => window.open(window.location.href, '_blank')}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open in new tab
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Flag className="h-4 w-4 mr-2" />
-                    Report
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
 
             <Separator className="mb-6" />
 
@@ -600,6 +605,7 @@ const PostDetail = () => {
                 comments={comments}
                 onAddComment={handleAddComment}
                 onVoteComment={handleVoteComment}
+                onDeleteComment={handleDeleteComment}
               />
             )}
 

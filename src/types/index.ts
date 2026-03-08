@@ -132,6 +132,7 @@ export interface Comment {
   moderatorId?: string;
   moderationReason?: string;
   moderationTimestamp?: Date;
+  isDeleted?: boolean;
 }
 
 export interface CommentFlair {

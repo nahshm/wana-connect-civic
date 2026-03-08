@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUp, ArrowDown, MessageSquare, MoreHorizontal, Reply, Flag, Share2, LogIn } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ArrowUp, ArrowDown, MessageSquare, Reply, Share2, LogIn, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { CommentAwardDisplay } from './CommentAwardDisplay';
@@ -12,6 +11,7 @@ import { CommentInput } from './CommentInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { SafeContentRenderer } from './SafeContentRenderer';
+import DeletedComment from './DeletedComment';
 import type { Comment } from '@/types';
 
 interface CommentSectionProps {
@@ -19,18 +19,21 @@ interface CommentSectionProps {
   comments?: Comment[];
   onAddComment?: (content: string, parentId?: string) => void;
   onVoteComment?: (commentId: string, vote: 'up' | 'down') => void;
+  onDeleteComment?: (commentId: string) => void;
 }
 
 interface CommentItemProps {
   comment: Comment;
   onReply?: (content: string, parentId: string) => void;
   onVote?: (commentId: string, vote: 'up' | 'down') => void;
+  onDelete?: (commentId: string) => void;
   depth?: number;
 }
 
-const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) => {
+const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentItemProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -44,9 +47,19 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
     onVote?.(comment.id, vote);
   };
 
+  const handleDelete = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    onDelete?.(comment.id);
+    setConfirmDelete(false);
+  };
+
   const getVoteScore = () => comment.upvotes - comment.downvotes;
   const maxDepth = 6;
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
+  const isOwner = user?.id === comment.author.id;
 
   // Thread colors for visual depth
   const threadColors = [
@@ -58,6 +71,32 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
     'border-pink-400/30',
   ];
   const threadColor = threadColors[depth % threadColors.length];
+
+  // Show deleted placeholder
+  if (comment.isDeleted) {
+    return (
+      <div className={`relative ${depth > 0 ? 'ml-4 pl-3' : ''}`}>
+        {depth > 0 && (
+          <div className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-full border-l-2 ${threadColor}`} />
+        )}
+        <DeletedComment />
+        {shouldShowReplies && (
+          <div>
+            {comment.replies!.map((reply) => (
+              <CommentItem
+                key={reply.id}
+                comment={reply}
+                onReply={onReply}
+                onVote={onVote}
+                onDelete={onDelete}
+                depth={depth + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`relative ${depth > 0 ? 'ml-4 pl-3' : ''}`}>
@@ -167,20 +206,21 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
                 <Share2 className="h-3 w-3" />
               </button>
 
-              {/* More */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
-                    <MoreHorizontal className="h-3.5 w-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem>
-                    <Flag className="h-4 w-4 mr-2" />
-                    Report
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Delete own comment */}
+              {isOwner && (
+                <button
+                  onClick={handleDelete}
+                  onBlur={() => setConfirmDelete(false)}
+                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full transition-colors font-medium ${
+                    confirmDelete
+                      ? 'text-destructive bg-destructive/10'
+                      : 'text-muted-foreground hover:text-destructive hover:bg-muted/50'
+                  }`}
+                >
+                  <Trash2 className="h-3 w-3" />
+                  {confirmDelete ? 'Confirm?' : ''}
+                </button>
+              )}
             </div>
 
             {/* Inline reply input */}
@@ -213,6 +253,7 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
               comment={reply}
               onReply={onReply}
               onVote={onVote}
+              onDelete={onDelete}
               depth={depth + 1}
             />
           ))}
@@ -222,7 +263,7 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
   );
 };
 
-export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment }: CommentSectionProps) => {
+export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment, onDeleteComment }: CommentSectionProps) => {
   const [sortBy, setSortBy] = useState<'best' | 'top' | 'new'>('best');
   const { user } = useAuth();
   const authModal = useAuthModal();
@@ -320,6 +361,7 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
                 comment={comment}
                 onReply={handleReply}
                 onVote={onVoteComment}
+                onDelete={onDeleteComment}
               />
             ))
           )}
