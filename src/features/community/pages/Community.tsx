@@ -274,9 +274,9 @@ const Community = () => {
 
         {/* Left Navigation (Level Rail + Channel List) */}
         <div className={`
-          flex h-full z-40 transition-transform duration-300 ease-in-out bg-background
-          md:relative md:translate-x-0 md:flex-shrink-0
-          absolute inset-y-0 left-0 shadow-2xl md:shadow-none
+          flex h-full min-h-0 transition-transform duration-300 ease-in-out bg-background
+          md:relative md:translate-x-0 md:flex-shrink-0 md:z-0
+          absolute inset-y-0 left-0 z-40 shadow-2xl md:shadow-none
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           max-w-[300px] md:max-w-none
         `}>
