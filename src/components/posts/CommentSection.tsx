@@ -1,20 +1,18 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { ArrowUp, ArrowDown, MessageSquare, MoreHorizontal, Reply, Flag, Share2, LogIn } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { CommentAwardDisplay } from './CommentAwardDisplay';
 import { CommentAwardButton } from './CommentAwardButton';
+import { CommentInput } from './CommentInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { SafeContentRenderer } from './SafeContentRenderer';
-import type { Comment, User } from '@/types';
+import type { Comment } from '@/types';
 
 interface CommentSectionProps {
   postId: string;
@@ -32,21 +30,14 @@ interface CommentItemProps {
 
 const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) => {
   const [isReplying, setIsReplying] = useState(false);
-  const [replyContent, setReplyContent] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleReply = () => {
-    if (replyContent.trim()) {
-      onReply?.(replyContent, comment.id);
-      setReplyContent('');
-      setIsReplying(false);
-      toast({
-        title: "Reply Posted",
-        description: "Your reply has been added.",
-      });
-    }
+  const handleReply = (content: string) => {
+    onReply?.(content, comment.id);
+    setIsReplying(false);
+    toast({ title: "Reply posted" });
   };
 
   const handleVote = (vote: 'up' | 'down') => {
@@ -54,39 +45,43 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
   };
 
   const getVoteScore = () => comment.upvotes - comment.downvotes;
-
   const maxDepth = 6;
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
 
+  // Thread colors for visual depth
+  const threadColors = [
+    'border-primary/30',
+    'border-blue-400/30',
+    'border-green-400/30',
+    'border-amber-400/30',
+    'border-purple-400/30',
+    'border-pink-400/30',
+  ];
+  const threadColor = threadColors[depth % threadColors.length];
+
   return (
-    <div className={`relative ${depth > 0 ? 'ml-6' : ''}`}>
-      {/* Thread line with BOLD collapse button for nested comments */}
+    <div className={`relative ${depth > 0 ? 'ml-4 pl-3' : ''}`}>
+      {/* Thread line for nested */}
       {depth > 0 && (
-        <>
-          {/* Vertical line */}
-          <div className="absolute left-0 top-0 bottom-0 w-px bg-border" />
-
-          {/* Horizontal connector curve */}
-          <div className="absolute left-0 top-4 w-3 h-px bg-border" />
-
-          {/* BOLD Collapse button ON the line */}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute left-[-5px] top-[10px] w-4 h-4 bg-background border-2 border-foreground/40 rounded-sm flex items-center justify-center text-xs font-bold leading-none text-foreground hover:border-foreground hover:bg-accent z-10 shadow-sm"
-          >
-            {isCollapsed ? '+' : '−'}
-          </button>
-        </>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-full border-l-2 ${threadColor} hover:border-primary cursor-pointer transition-colors`}
+          aria-label={isCollapsed ? 'Expand thread' : 'Collapse thread'}
+        />
       )}
 
-      <div className={`py-2 ${depth > 0 ? 'pl-4' : 'pl-2'} pr-2 hover:bg-accent/30 rounded-sm transition-colors`}>
-        {/* Compact Header - Avatar + Username + Time */}
-        <div className="flex items-center gap-1.5 text-xs mb-1.5">
+      <div className="py-2">
+        {/* Header */}
+        <div className="flex items-center gap-1.5 text-xs mb-1">
           <Avatar className="h-5 w-5">
             <AvatarImage src={comment.author.avatar} />
-            <AvatarFallback>{(comment.author.displayName || comment.author.username || '?')[0]?.toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="text-[10px]">
+              {(comment.author.displayName || comment.author.username || '?')[0]?.toUpperCase()}
+            </AvatarFallback>
           </Avatar>
-          <span className="font-medium text-foreground">{comment.author.displayName || comment.author.username}</span>
+          <span className="font-semibold text-foreground hover:underline cursor-pointer">
+            {comment.author.displayName || comment.author.username}
+          </span>
           {comment.author.isVerified && (
             <Badge variant="secondary" className="h-4 px-1 text-[10px] leading-none">
               {comment.author.role === 'official' ? 'Official' : '✓'}
@@ -94,95 +89,92 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
           )}
           <span className="text-muted-foreground">·</span>
           <span className="text-muted-foreground">
-            {formatDistanceToNow(comment.createdAt, { addSuffix: true }).replace('about ', '').replace(' ago', '')}
+            {formatDistanceToNow(comment.createdAt, { addSuffix: true }).replace('about ', '')}
           </span>
 
-          {/* BOLD Collapse button for top-level comments (no thread line) */}
+          {/* Collapse for top-level */}
           {depth === 0 && (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-foreground hover:text-primary px-1 text-xs font-bold border-2 border-foreground/40 rounded-sm w-5 h-4 flex items-center justify-center leading-none hover:border-foreground"
+              className="ml-1 text-muted-foreground hover:text-foreground text-[10px] font-mono"
             >
-              {isCollapsed ? '+' : '−'}
+              [{isCollapsed ? '+' : '−'}]
             </button>
           )}
         </div>
 
         {!isCollapsed && (
           <>
-            {/* Comment Content */}
+            {/* Content */}
             <SafeContentRenderer
               content={comment.content || ''}
-              className="mb-1.5 text-sm leading-snug"
+              className="text-sm leading-relaxed text-foreground/90 mb-1.5"
             />
 
-            {/* Comment Awards Display */}
+            {/* Awards */}
             {comment.awards && comment.awards.length > 0 && (
               <div className="mb-1">
                 <CommentAwardDisplay awards={comment.awards} size="sm" />
               </div>
             )}
 
-            {/* Inline Actions - Vote + Reply + Award + Share */}
-            <div className="flex items-center gap-1 mt-1">
-              {/* Upvote */}
-              <button
-                onClick={() => handleVote('up')}
-                className={`p-0.5 hover:bg-accent rounded transition-colors ${comment.userVote === 'up' ? 'text-civic-green' : 'text-muted-foreground hover:text-civic-green'
+            {/* Actions bar */}
+            <div className="flex items-center gap-0.5 -ml-1">
+              {/* Vote group */}
+              <div className="flex items-center rounded-full bg-muted/50 hover:bg-muted transition-colors">
+                <button
+                  onClick={() => handleVote('up')}
+                  className={`p-1 rounded-l-full transition-colors ${
+                    comment.userVote === 'up' ? 'text-primary' : 'text-muted-foreground hover:text-primary'
                   }`}
-              >
-                <ArrowUp className="h-3.5 w-3.5" />
-              </button>
-
-              {/* Vote Score */}
-              <span className={`text-xs font-medium min-w-[24px] text-center ${comment.userVote === 'up' ? 'text-civic-green' :
-                comment.userVote === 'down' ? 'text-civic-red' :
-                  'text-foreground'
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </button>
+                <span className={`text-xs font-semibold min-w-[20px] text-center ${
+                  comment.userVote === 'up' ? 'text-primary' :
+                  comment.userVote === 'down' ? 'text-destructive' : 'text-foreground'
                 }`}>
-                {getVoteScore()}
-              </span>
-
-              {/* Downvote */}
-              <button
-                onClick={() => handleVote('down')}
-                className={`p-0.5 hover:bg-accent rounded transition-colors ${comment.userVote === 'down' ? 'text-civic-red' : 'text-muted-foreground hover:text-civic-red'
+                  {getVoteScore()}
+                </span>
+                <button
+                  onClick={() => handleVote('down')}
+                  className={`p-1 rounded-r-full transition-colors ${
+                    comment.userVote === 'down' ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'
                   }`}
-              >
-                <ArrowDown className="h-3.5 w-3.5" />
-              </button>
+                >
+                  <ArrowDown className="h-3.5 w-3.5" />
+                </button>
+              </div>
 
               {/* Reply */}
               <button
                 onClick={() => setIsReplying(!isReplying)}
-                className="text-xs px-1.5 py-0.5 text-muted-foreground hover:bg-accent hover:text-foreground rounded transition-colors font-medium"
+                className="flex items-center gap-1 text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors font-medium"
               >
-                <Reply className="h-3 w-3 inline mr-0.5" />
+                <Reply className="h-3 w-3" />
                 Reply
               </button>
 
               {/* Award */}
-              <div className="flex items-center">
-                <CommentAwardButton
-                  commentId={comment.id}
-                  userRole={user?.role as any}
-                  size="sm"
-                />
-              </div>
+              <CommentAwardButton
+                commentId={comment.id}
+                userRole={user?.role as any}
+                size="sm"
+              />
 
               {/* Share */}
-              <button className="text-xs px-1.5 py-0.5 text-muted-foreground hover:bg-accent hover:text-foreground rounded transition-colors font-medium">
-                <Share2 className="h-3 w-3 inline mr-0.5" />
-                Share
+              <button className="flex items-center gap-1 text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors font-medium">
+                <Share2 className="h-3 w-3" />
               </button>
 
-              {/* More options */}
+              {/* More */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground rounded transition-colors ml-auto">
+                  <button className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
                     <MoreHorizontal className="h-3.5 w-3.5" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="start">
                   <DropdownMenuItem>
                     <Flag className="h-4 w-4 mr-2" />
                     Report
@@ -191,37 +183,21 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
               </DropdownMenu>
             </div>
 
-            {/* Reply Form */}
+            {/* Inline reply input */}
             {isReplying && (
-              <div className="mt-2 space-y-2 pl-2 border-l-2 border-border">
-                <Textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Write a reply..."
-                  rows={3}
-                  className="text-sm"
+              <div className="mt-2 mb-1">
+                <CommentInput
+                  placeholder={`Reply to ${comment.author.displayName || comment.author.username}...`}
+                  onSubmit={handleReply}
+                  autoFocus
+                  className="border-border/60"
                 />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleReply}
-                    disabled={!replyContent.trim()}
-                    className="h-7"
-                  >
-                    Reply
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsReplying(false);
-                      setReplyContent('');
-                    }}
-                    className="h-7"
-                  >
-                    Cancel
-                  </Button>
-                </div>
+                <button
+                  onClick={() => setIsReplying(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground mt-1 ml-1"
+                >
+                  Cancel
+                </button>
               </div>
             )}
           </>
@@ -247,21 +223,12 @@ const CommentItem = ({ comment, onReply, onVote, depth = 0 }: CommentItemProps) 
 };
 
 export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment }: CommentSectionProps) => {
-  const [newComment, setNewComment] = useState('');
   const [sortBy, setSortBy] = useState<'best' | 'top' | 'new'>('best');
   const { user } = useAuth();
   const authModal = useAuthModal();
-  const { toast } = useToast();
 
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      onAddComment?.(newComment);
-      setNewComment('');
-      toast({
-        title: "Comment Added",
-        description: "Your comment has been posted.",
-      });
-    }
+  const handleAddComment = (content: string) => {
+    onAddComment?.(content);
   };
 
   const handleReply = (content: string, parentId: string) => {
@@ -276,7 +243,6 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case 'best':
       default:
-        // Wilson score interval for "best" sorting
         const scoreA = a.upvotes + a.downvotes > 0 ? a.upvotes / (a.upvotes + a.downvotes) : 0;
         const scoreB = b.upvotes + b.downvotes > 0 ? b.upvotes / (b.upvotes + b.downvotes) : 0;
         return scoreB - scoreA;
@@ -284,104 +250,67 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
   });
 
   return (
-    <div className="space-y-4">
-      {/* Comment Form - Require Auth */}
+    <div className="space-y-3">
+      {/* Minimalist comment input */}
       {!user ? (
-        <Card className="border-2 border-dashed">
-          <CardContent className="p-6 text-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="bg-civic-blue/10 rounded-full p-3">
-                <LogIn className="h-6 w-6 text-civic-blue" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Sign in to comment</h3>
-                <p className="text-sm text-muted-foreground">Join the discussion by logging in or creating an account</p>
-              </div>
-              <Button onClick={() => authModal.open('login')} className="mt-2">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In to Comment
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <button
+          onClick={() => authModal.open('login')}
+          className="w-full flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground hover:border-primary/30 transition-colors"
+        >
+          <LogIn className="w-4 h-4" />
+          Sign in to comment
+        </button>
       ) : (
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <Textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="What are your thoughts?"
-                rows={4}
-                className="resize-none"
-              />
-              <div className="flex justify-between items-center">
-                <div className="text-xs text-muted-foreground">
-                  {newComment.length}/10,000 characters
-                </div>
-                <Button
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim()}
-                >
-                  Comment
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <CommentInput
+          placeholder="Add a comment..."
+          onSubmit={handleAddComment}
+        />
       )}
 
-      {/* Sort Options */}
+      {/* Sort + count bar */}
       {comments.length > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Sort by:</span>
-          <div className="flex gap-1">
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-sm font-semibold text-foreground">
+            {comments.length} Comment{comments.length !== 1 ? 's' : ''}
+          </span>
+          <div className="flex gap-0.5">
             {(['best', 'top', 'new'] as const).map((option) => (
-              <Button
+              <button
                 key={option}
-                variant={sortBy === option ? 'default' : 'ghost'}
-                size="sm"
                 onClick={() => setSortBy(option)}
-                className="h-7 px-3 text-xs"
+                className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
+                  sortBy === option
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
               >
                 {option.charAt(0).toUpperCase() + option.slice(1)}
-              </Button>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      <Separator />
-
-      {/* Comments List - Require Auth to View */}
+      {/* Comments list */}
       {!user ? (
-        <Card className="border-2 border-dashed">
-          <CardContent className="p-8 text-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="bg-civic-green/10 rounded-full p-4">
-                <MessageSquare className="h-8 w-8 text-civic-green" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">Sign in to view {comments.length} comment{comments.length !== 1 ? 's' : ''}</h3>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Join the conversation and see what others are saying about this post
-                </p>
-              </div>
-              <Button onClick={() => authModal.open('login')} size="lg" className="mt-2">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In to View Comments
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center py-8">
+          <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-foreground mb-1">
+            {comments.length} comment{comments.length !== 1 ? 's' : ''}
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">Sign in to view and join the discussion</p>
+          <Button size="sm" onClick={() => authModal.open('login')}>
+            <LogIn className="h-3.5 w-3.5 mr-1.5" />
+            Sign In
+          </Button>
+        </div>
       ) : (
-        <div>
+        <div className="divide-y divide-border/40">
           {sortedComments.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <h3 className="font-semibold mb-1">No comments yet</h3>
+            <div className="text-center py-10">
+              <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
               <p className="text-sm text-muted-foreground">
-                Be the first to share your thoughts on this post.
+                No comments yet. Be the first to share your thoughts.
               </p>
             </div>
           ) : (
