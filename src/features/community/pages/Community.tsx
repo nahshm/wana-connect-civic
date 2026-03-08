@@ -327,7 +327,7 @@ const Community = () => {
             hasBanner={!!community.bannerUrl}
             isAdmin={isAdmin}
             isModerator={isModerator}
-            onUpdateNow={() => setSettingsOpen(true)}
+            onUpdateNow={() => settingsTriggerRef.current?.click()}
           />
 
           {/* Channel Content */}
