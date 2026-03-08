@@ -563,27 +563,6 @@ const PostDetail = () => {
               />
             </div>
 
-            {/* Post action bar */}
-            <div className="flex items-center gap-1 mb-6 -mt-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
-                    <MoreHorizontal className="h-3.5 w-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => window.open(window.location.href, '_blank')}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open in new tab
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Flag className="h-4 w-4 mr-2" />
-                    Report
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
 
             <Separator className="mb-6" />
 
