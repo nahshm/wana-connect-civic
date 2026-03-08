@@ -268,7 +268,8 @@ const PostDetail = () => {
     };
 
     fetchComments();
-  }, [id, user, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
 
   // Check if post is saved
   useEffect(() => {
