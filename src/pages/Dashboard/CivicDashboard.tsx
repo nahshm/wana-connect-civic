@@ -151,7 +151,7 @@ const CivicDashboard = () => {
 
 
         {/* ─────── RIGHT SIDEBAR: Gamification & Social ─────── */}
-        <aside className="space-y-4 order-3 hidden xl:block self-start lg:sticky lg:top-16">
+        <aside data-tour="tour-quest-widget" className="space-y-4 order-3 hidden xl:block self-start lg:sticky lg:top-16">
           <DashboardQuestWidget />
           <DashboardLeaderboardWidget />
         </aside>
