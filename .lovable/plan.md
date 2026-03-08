@@ -1,58 +1,55 @@
 
+Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-# Fix: Community Layout Overflowing Platform Header
+What I found
+- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
+  - Failing query pattern: `select id, source_type, title, content, created_at ...`
+  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
+- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
+- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
 
-## Root Cause
+Implementation plan
+1) Database migration (schema + secure access)
+- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
+- Add admin-only write policies on `vectors` using server-side role check:
+  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
+- Keep or tighten SELECT policy based on desired visibility:
+  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
 
-`SidebarInset` (from shadcn/ui sidebar) has a default class of `min-h-svh` (100svh minimum height). This prevents the flex layout from constraining the component's height to the space below the header. Combined with `overflow-auto` on `AppLayout`, the entire community page (channel sidebar, level selector, content) grows to full viewport height and scrolls as one block — overlapping the platform header.
+2) Frontend fix in `SuperAdminDashboard.tsx`
+- Keep `title` in select and insert (once column exists).
+- Add robust error handling:
+  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
+  - `handleAddDoc`: surface exact DB/RLS error in toast.
+- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
 
-```text
-AppLayout root:       min-h-screen flex-col
-  Header:             ~56px
-  flex-1 overflow-hidden:
-    SidebarInset:     min-h-svh ← BUG: forces 100vh minimum
-      main h-full:
-        Community h-full: resolves to 100vh, not remaining space
-```
+3) Optional consistency improvement (edge pipeline)
+- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
+- This is optional but improves UX and debugging.
 
-## Fix
+4) Verification checklist
+- Open RAG Viewer:
+  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
+  - Filtering by `source_type=kenya_constitution` returns 200.
+- Add document from UI:
+  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
+  - Non-admin users are blocked by RLS (expected).
+- Confirm no repeated vector 400s in console/network.
 
-### File: `src/components/layout/AppLayout.tsx`
+Technical details (exact changes)
+- DB:
+  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
+  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
+- App file:
+  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
+    - retain `select('id, source_type, title, content, created_at')`
+    - retain insert payload with `title`
+    - add explicit `error` handling branches for both read/write.
+- Optional edge function:
+  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
 
-Two changes to the `SidebarInset`:
-1. Add `min-h-0` to override the default `min-h-svh` — allows flex to constrain height to the remaining space after the header
-2. Change `overflow-auto` to `overflow-hidden` — prevents the SidebarInset from scrolling as a whole; each page (community, feed, etc.) manages its own scroll internally
-
-```tsx
-<SidebarInset className="flex-1 w-full min-h-0 overflow-hidden">
-  <main className="h-full">
-    {children}
-  </main>
-</SidebarInset>
-```
-
-### File: Other pages that rely on SidebarInset scrolling
-
-Since we're changing `overflow-auto` to `overflow-hidden`, any page that currently relies on the parent scrolling will need its own scroll wrapper. Need to check the main page routes (feed, profile, post detail, etc.) to ensure they have their own scroll containers. If they don't, we wrap their content in a `ScrollArea` or `overflow-auto` div at the page level.
-
-Let me verify — the community page already handles its own scroll (each section has `ScrollArea`). Other pages likely render long content that previously scrolled via `SidebarInset overflow-auto`. For those, we add `overflow-auto` at the `<main>` level only for non-community routes, OR simpler: keep `overflow-auto` on `main` and add `overflow-hidden` on community page's container (which we already have with `h-full overflow-hidden`).
-
-**Revised approach**: Keep `overflow-auto` on SidebarInset but add `min-h-0` to fix the height constraint. The community page already has `overflow-hidden` on its root div, so it won't scroll with the parent. Other pages that need scrolling will continue to work.
-
-### Final changes:
-
-**`src/components/layout/AppLayout.tsx`** (line 19):
-```tsx
-<SidebarInset className="flex-1 w-full min-h-0 overflow-auto">
-```
-
-Adding `min-h-0` overrides the built-in `min-h-svh`, allowing `flex-1` to properly constrain the height. The community page's `h-full overflow-hidden` will then correctly resolve to the remaining viewport space after the header. Other pages keep scrolling normally via `overflow-auto`.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/layout/AppLayout.tsx` | Add `min-h-0` to `SidebarInset` className |
-
-Single-line fix. This resolves the header overlap, the whole-page scrolling, and ensures each community section scrolls independently.
-
+Order of execution
+1. Apply DB migration (column + policies)
+2. Update dashboard error handling
+3. (Optional) add scout title propagation
+4. End-to-end retest of RAG viewer + add document flow
