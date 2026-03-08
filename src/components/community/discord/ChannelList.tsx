@@ -151,10 +151,35 @@ const ChannelList: React.FC<ChannelListProps> = ({
     return (
         <TooltipProvider>
             <div className="w-52 min-w-52 max-w-60 md:w-60 bg-sidebar-background flex flex-col overflow-hidden border-r border-sidebar-border flex-shrink-0">
+                {/* Community Banner + Avatar */}
+                <div className="relative">
+                    <div
+                        className="h-20 w-full bg-cover bg-center"
+                        style={{
+                            backgroundImage: communityBannerUrl
+                                ? `url(${communityBannerUrl})`
+                                : 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)',
+                        }}
+                    />
+                    <div className="px-3 pb-2">
+                        <div className="relative flex items-end gap-2 -mt-6">
+                            <Avatar className="w-12 h-12 border-2 border-sidebar-background flex-shrink-0">
+                                <AvatarImage src={communityAvatarUrl || undefined} />
+                                <AvatarFallback className="text-lg">{(communityName || levelName)?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0 pb-0.5">
+                                <span className="font-bold text-sm text-sidebar-foreground truncate block">
+                                    {communityName || levelName}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Level Header */}
-                <div className="p-4 border-b border-sidebar-border bg-sidebar-background flex items-center justify-between group">
+                <div className="px-4 py-2 border-b border-sidebar-border bg-sidebar-background flex items-center justify-between group">
                     <button className="flex-1 flex items-center justify-between text-left hover:bg-sidebar-accent/50 rounded px-2 py-1 transition-colors mr-2">
-                        <span className="font-bold text-sidebar-foreground truncate">{levelName}</span>
+                        <span className="font-semibold text-sm text-sidebar-foreground truncate">{levelName}</span>
                         <ChevronDown className="w-4 h-4 text-sidebar-muted-foreground group-hover:text-sidebar-foreground flex-shrink-0" />
                     </button>
 
