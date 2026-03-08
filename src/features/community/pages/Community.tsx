@@ -18,8 +18,11 @@ import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';
 import { CreateChannelDialog } from '@/components/community/discord/CreateChannelDialog';
-import { CommunityEventsWidget } from '@/components/community/events/CommunityEventsWidget'; // Added
-import { CommunityPollsWidget } from '@/components/community/polls/CommunityPollsWidget'; // Added
+import { CommunityEventsWidget } from '@/components/community/events/CommunityEventsWidget';
+import { CommunityPollsWidget } from '@/components/community/polls/CommunityPollsWidget';
+import { CommunitySetupReminder } from '@/components/community/CommunitySetupReminder';
+import { PlatformTour } from '@/components/community/PlatformTour';
+import { CommunitySettingsDialog } from '@/components/community/CommunitySettingsDialog';
 import { Menu, X, Loader2 } from 'lucide-react'; // Original lucide-react import
 
 // Loading skeleton component
