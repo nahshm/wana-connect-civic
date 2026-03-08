@@ -182,48 +182,10 @@ function GuestFeed() {
     // and they can call this if a global refresh is needed.
   }, []);
 
-  // Handle community join
-  const handleJoinCommunity = useCallback((communityId: string, communityName: string) => {
-    if (!user) {
-      authModal.open('login');
-      return;
-    }
-    setJoinDialogState({ isOpen: true, communityId, communityName });
-  }, [user, authModal]);
-
-  const handleJoinConfirm = useCallback(async () => {
-    if (!user || !joinDialogState) return;
-
-    try {
-      const { error } = await supabase
-        .from('community_members')
-        .insert({
-          user_id: user.id,
-          community_id: joinDialogState.communityId,
-          role: 'member'
-        });
-
-      if (error) throw error;
-
-      setUserCommunityIds(prev => [...prev, joinDialogState.communityId]);
-      
-      toast({
-        title: '✅ Joined!',
-        description: `Welcome to c/${joinDialogState.communityName}!`,
-        duration: 3000,
-      });
-
-      await fetchUserCommunities();
-      setJoinDialogState(null);
-    } catch (error) {
-      console.error('Error joining community:', error);
-      toast({
-        title: 'Failed to join',
-        description: 'Could not join community. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  }, [user, joinDialogState, toast, fetchUserCommunities]);
+  // Handle community join — guests are prompted to log in
+  const handleJoinCommunity = useCallback((_communityId: string, _communityName: string) => {
+    authModal.open('login');
+  }, [authModal]);
 
   if (isLoading) {
     return (
