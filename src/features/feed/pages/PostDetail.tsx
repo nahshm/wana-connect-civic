@@ -612,26 +612,6 @@ const PostDetail = () => {
 
             {/* Post action bar */}
             <div className="flex items-center gap-1 mb-6 -mt-2">
-              <button
-                onClick={handleToggleSave}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                  isSaved
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                <Bookmark className="h-3.5 w-3.5" fill={isSaved ? 'currentColor' : 'none'} />
-                {isSaved ? 'Saved' : 'Save'}
-              </button>
-
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                Share
-              </button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
