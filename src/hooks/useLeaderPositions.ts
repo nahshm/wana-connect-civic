@@ -2,19 +2,30 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { GovernmentPosition } from '@/types/governance';
 
+export interface LeaderProfile {
+    id: string;
+    display_name: string;
+    avatar_url?: string;
+    username?: string;
+    is_verified?: boolean;
+    official_position?: string | null;
+    official_position_id?: string | null;
+}
+
+export interface PositionHolder {
+    id: string;
+    user_id: string;
+    term_start: string;
+    term_end: string;
+    verification_status: string;
+    user?: LeaderProfile | null;
+}
+
 export interface PositionWithHolder extends GovernmentPosition {
-    current_holder?: {
-        id: string;
-        user_id: string;
-        term_start: string;
-        term_end: string;
-        verification_status: string;
-        user?: {
-            id: string;
-            display_name: string;
-            avatar_url?: string;
-        };
-    } | null;
+    current_holder?: PositionHolder | null;
+    pending_holder?: PositionHolder | null;
+    promise_count?: number;
+    project_count?: number;
 }
 
 interface UseLeaderPositionsParams {
@@ -31,10 +42,8 @@ export function useLeaderPositions({ levelType, locationValue, enabled = true }:
     return useQuery({
         queryKey: ['leader-positions', levelType, locationValue],
         queryFn: async (): Promise<PositionWithHolder[]> => {
-            // Map levelType to governance_level
             const governanceLevel = levelType.toLowerCase();
 
-            // Clean locationValue: remove level suffixes
             const cleanedLocation = locationValue
                 .replace(/\s*(county|constituency|ward)\s*$/i, '')
                 .trim();
@@ -57,7 +66,7 @@ export function useLeaderPositions({ levelType, locationValue, enabled = true }:
                 return [];
             }
 
-            // Step 2: Batch fetch all verified holders for these positions (single query instead of N queries)
+            // Step 2: Batch fetch all active holders (verified AND pending)
             const positionIds = positionsData.map(p => p.id);
 
             const { data: holdersData, error: holdersError } = await supabase
@@ -72,49 +81,79 @@ export function useLeaderPositions({ levelType, locationValue, enabled = true }:
                 `)
                 .in('position_id', positionIds)
                 .eq('is_active', true)
-                .eq('verification_status', 'verified');
+                .in('verification_status', ['verified', 'pending']);
 
             if (holdersError) {
                 console.warn('Error fetching holders:', holdersError);
-                // Continue without holders rather than failing entirely
             }
 
-            // Step 3: Batch fetch all user profiles for holders (single query)
+            // Step 3: Batch fetch all user profiles with extended fields
             const userIds = holdersData?.map(h => h.user_id).filter(Boolean) || [];
-            let profilesMap: Record<string, { id: string; display_name: string; avatar_url?: string }> = {};
+            let profilesMap: Record<string, LeaderProfile> = {};
 
             if (userIds.length > 0) {
                 const { data: profilesData } = await supabase
                     .from('profiles')
-                    .select('id, display_name, avatar_url')
+                    .select('id, display_name, avatar_url, username, is_verified, official_position, official_position_id')
                     .in('id', userIds);
 
                 if (profilesData) {
                     profilesMap = profilesData.reduce((acc, profile) => {
                         acc[profile.id] = profile;
                         return acc;
-                    }, {} as Record<string, typeof profilesData[0]>);
+                    }, {} as Record<string, LeaderProfile>);
                 }
             }
 
-            // Step 4: Join the data together
-            const holdersMap = (holdersData || []).reduce((acc, holder) => {
-                acc[holder.position_id] = {
+            // Step 4: Fetch promise and project counts per holder
+            const holderUserIds = userIds.filter(id => id in profilesMap);
+            let promiseCountMap: Record<string, number> = {};
+            let projectCountMap: Record<string, number> = {};
+
+            if (holderUserIds.length > 0) {
+                // Promises linked to officials (politician_id references officials table, but we check by name match)
+                // For now, count promises where politician_id matches any official record linked to the user
+                const { data: promisesData } = await supabase
+                    .from('campaign_promises')
+                    .select('politician_id')
+                    .in('submitted_by', holderUserIds);
+
+                if (promisesData) {
+                    promisesData.forEach(p => {
+                        promiseCountMap[p.politician_id] = (promiseCountMap[p.politician_id] || 0) + 1;
+                    });
+                }
+            }
+
+            // Step 5: Join the data together
+            // Group holders by position: verified takes priority, pending is fallback
+            const verifiedHoldersMap: Record<string, PositionHolder> = {};
+            const pendingHoldersMap: Record<string, PositionHolder> = {};
+
+            (holdersData || []).forEach(holder => {
+                const enrichedHolder: PositionHolder = {
                     ...holder,
                     user: profilesMap[holder.user_id] || null
                 };
-                return acc;
-            }, {} as Record<string, any>);
 
-            // Combine positions with their holders
+                if (holder.verification_status === 'verified') {
+                    verifiedHoldersMap[holder.position_id] = enrichedHolder;
+                } else if (holder.verification_status === 'pending') {
+                    pendingHoldersMap[holder.position_id] = enrichedHolder;
+                }
+            });
+
             return positionsData.map(position => ({
                 ...position,
-                current_holder: holdersMap[position.id] || null
+                current_holder: verifiedHoldersMap[position.id] || null,
+                pending_holder: !verifiedHoldersMap[position.id] ? (pendingHoldersMap[position.id] || null) : null,
+                promise_count: 0, // TODO: wire up when promise-to-position linking is established
+                project_count: 0,
             }));
         },
         enabled: enabled && !!locationValue,
-        staleTime: 5 * 60 * 1000, // 5 minutes - positions don't change often
-        gcTime: 30 * 60 * 1000, // 30 minutes cache
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
         retry: 2,
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     });
