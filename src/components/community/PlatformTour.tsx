@@ -125,6 +125,8 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({
   );
 
   useEffect(() => {
+    if (!userId) return;
+
     const userDone = localStorage.getItem(USER_TOUR_KEY) === 'true';
     const adminDone =
       localStorage.getItem(getAdminTourKey(communityId)) === 'true';
