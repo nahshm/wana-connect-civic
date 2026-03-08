@@ -470,6 +470,68 @@ export function ChannelChatWindow({
         }
     };
 
+    // ─── Typing Broadcast ───
+    const broadcastTyping = useCallback(() => {
+        if (!user || !typingChannelRef.current) return;
+        const username = profile?.username || profile?.displayName || user.email?.split('@')[0] || 'Someone';
+        typingChannelRef.current.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { user_id: user.id, username },
+        });
+
+        // Clear previous timeout and set new stop-typing
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+            typingChannelRef.current?.send({
+                type: 'broadcast',
+                event: 'stop_typing',
+                payload: { user_id: user.id },
+            });
+        }, 2000);
+    }, [user, profile]);
+
+    // ─── Message Editing ───
+    const startEditing = (msg: Message) => {
+        setEditingMessage(msg);
+        setEditContent(msg.content);
+        setTimeout(() => editInputRef.current?.focus(), 50);
+    };
+
+    const cancelEditing = () => {
+        setEditingMessage(null);
+        setEditContent('');
+    };
+
+    const handleEditSave = async () => {
+        if (!editingMessage || !editContent.trim()) return;
+        if (editContent.trim() === editingMessage.content) {
+            cancelEditing();
+            return;
+        }
+
+        // Optimistic
+        const newContent = editContent.trim();
+        const editedAt = new Date().toISOString();
+        setMessages(prev => prev.map(m =>
+            m.id === editingMessage.id ? { ...m, content: newContent, edited_at: editedAt } : m
+        ));
+        cancelEditing();
+
+        const { error } = await supabase
+            .from('chat_messages')
+            .update({ content: newContent, edited_at: editedAt } as any)
+            .eq('id', editingMessage.id);
+
+        if (error) {
+            // Revert
+            setMessages(prev => prev.map(m =>
+                m.id === editingMessage.id ? { ...m, content: editingMessage.content, edited_at: editingMessage.edited_at } : m
+            ));
+            toast.error('Failed to edit message');
+        }
+    };
+
     // ─── Delete / Copy / Reply ───
     const handleDeleteMessage = async (messageId: string) => {
         const deletedMessage = messages.find(m => m.id === messageId);
