@@ -3,21 +3,21 @@ import { useParams, Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PostCard } from '@/components/posts/PostCard';
 import { CommentSection } from '@/components/posts/CommentSection';
-import { VotingColumn } from '@/components/posts/VotingColumn';
-import { AboutPostCard } from '@/components/posts/AboutPostCard';
 import { CommunityInfoCard } from '@/components/posts/CommunityInfoCard';
 import { RelatedPostsCard } from '@/components/posts/RelatedPostsCard';
 import { useCommunityData } from '@/hooks/useCommunityData';
-import { RightSidebar } from '@/components/layout/RightSidebar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, Shield, Calendar, Share, Bookmark, EyeOff } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, Share2, Bookmark, Flag, MoreHorizontal, MessageSquare, Eye, TrendingUp, Shield, ExternalLink } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useVerification } from '@/hooks/useVerification';
+import { copyToClipboard } from '@/lib/clipboard-utils';
 import type { Comment, Post, CommentAward } from '@/types';
 
 const PostDetail = () => {
@@ -28,12 +28,10 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [postLoading, setPostLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
   const { user } = useAuth();
   const authModal = useAuthModal();
   const { toast } = useToast();
-  
-  // Get verification data
+
   const { verification } = useVerification({
     contentId: id || '',
     contentType: 'post'
@@ -47,7 +45,6 @@ const PostDetail = () => {
       try {
         setPostLoading(true);
 
-        // Fetch post with author, community, and official information
         const { data: postData, error: postError } = await supabase
           .from('posts')
           .select(`
@@ -62,7 +59,6 @@ const PostDetail = () => {
 
         if (postError) {
           if (postError.code === 'PGRST116') {
-            // Post not found
             setPost(null);
           } else {
             throw postError;
@@ -70,7 +66,6 @@ const PostDetail = () => {
           return;
         }
 
-        // Fetch user vote if authenticated
         let userVote: 'up' | 'down' | null = null;
         if (user) {
           const { data: voteData } = await supabase
@@ -85,7 +80,6 @@ const PostDetail = () => {
           }
         }
 
-        // Transform the data to match our interface
         const transformedPost: Post = {
           id: postData.id,
           title: postData.title,
@@ -114,7 +108,7 @@ const PostDetail = () => {
           userVote,
           contentSensitivity: (postData.content_sensitivity as 'public' | 'sensitive' | 'crisis') || 'public',
           isNgoVerified: postData.is_ngo_verified || false,
-          media: postData.post_media?.map(m => ({
+          media: postData.post_media?.map((m: any) => ({
             id: m.id.toString(),
             post_id: m.post_id,
             file_path: m.file_path,
@@ -142,7 +136,6 @@ const PostDetail = () => {
     fetchPost();
   }, [id, user, toast]);
 
-  // Set page title when post is loaded
   useEffect(() => {
     if (post?.title) {
       document.title = post.title;
@@ -159,7 +152,6 @@ const PostDetail = () => {
       try {
         setLoading(true);
 
-        // Fetch comments with nested replies and awards
         const { data: commentsData, error } = await supabase
           .from('comments')
           .select(`
@@ -169,24 +161,9 @@ const PostDetail = () => {
               id,
               awarded_at,
               comment_awards!award_id (
-                id,
-                name,
-                display_name,
-                description,
-                points,
-                category,
-                color,
-                background_color,
-                icon,
-                is_enabled,
-                sort_order,
-                created_at,
-                updated_at
+                id, name, display_name, description, points, category, color, background_color, icon, is_enabled, sort_order, created_at, updated_at
               ),
-              profiles!awarded_by (
-                id,
-                display_name
-              )
+              profiles!awarded_by (id, display_name)
             )
           `)
           .eq('post_id', id)
@@ -195,7 +172,6 @@ const PostDetail = () => {
 
         if (error) throw error;
 
-        // Fetch user votes for comments if authenticated
         const commentVotes: { [commentId: string]: 'up' | 'down' } = {};
         if (user && commentsData && commentsData.length > 0) {
           const commentIds = commentsData.map(c => c.id);
@@ -212,15 +188,12 @@ const PostDetail = () => {
           });
         }
 
-        // Transform comments data
         const transformedComments: Comment[] = [];
         const commentMap = new Map<string, Comment>();
 
         commentsData?.forEach(commentData => {
-          // Get user vote for this comment
           const userVote = commentVotes[commentData.id] || null;
 
-          // Transform awards data
           const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: any) => ({
             id: assignment.comment_awards.id,
             name: assignment.comment_awards.name,
@@ -270,14 +243,12 @@ const PostDetail = () => {
           commentMap.set(comment.id, comment);
 
           if (comment.parentId) {
-            // This is a reply
             const parentComment = commentMap.get(comment.parentId);
             if (parentComment) {
               parentComment.replies = parentComment.replies || [];
               parentComment.replies.push(comment);
             }
           } else {
-            // This is a top-level comment
             transformedComments.push(comment);
           }
         });
@@ -298,13 +269,11 @@ const PostDetail = () => {
     fetchComments();
   }, [id, user, toast]);
 
-  // Check if post is saved or hidden
+  // Check if post is saved
   useEffect(() => {
-    const checkSavedHiddenStatus = async () => {
+    const checkSavedStatus = async () => {
       if (!user || !id) return;
-
       try {
-        // Check if saved
         const { data: savedData } = await supabase
           .from('saved_items')
           .select('id')
@@ -312,25 +281,12 @@ const PostDetail = () => {
           .eq('item_type', 'post')
           .eq('item_id', id)
           .maybeSingle();
-
         setIsSaved(!!savedData);
-
-        // Check if hidden
-        const { data: hiddenData } = await supabase
-          .from('hidden_items')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('item_type', 'post')
-          .eq('item_id', id)
-          .maybeSingle();
-
-        setIsHidden(!!hiddenData);
       } catch (error) {
-        console.error('Error checking saved/hidden status:', error);
+        console.error('Error checking saved status:', error);
       }
     };
-
-    checkSavedHiddenStatus();
+    checkSavedStatus();
   }, [user, id]);
 
   const handleAddComment = async (content: string, parentId?: string) => {
@@ -340,17 +296,22 @@ const PostDetail = () => {
     }
 
     try {
-      // Calculate depth for the new comment
       let depth = 0;
       if (parentId) {
-        const parentComment = comments.find(c => c.id === parentId);
-        if (parentComment) {
-          depth = parentComment.depth + 1;
-        }
+        const findDepth = (comments: Comment[]): number => {
+          for (const c of comments) {
+            if (c.id === parentId) return c.depth + 1;
+            if (c.replies) {
+              const d = findDepth(c.replies);
+              if (d > 0) return d;
+            }
+          }
+          return 0;
+        };
+        depth = findDepth(comments);
       }
 
-      // Insert comment into Supabase
-      const { data: commentData, error } = await supabase
+      const { error } = await supabase
         .from('comments')
         .insert({
           post_id: id,
@@ -362,54 +323,28 @@ const PostDetail = () => {
           upvotes: 0,
           downvotes: 0,
           is_collapsed: false
-        })
-        .select(`
-          *,
-          profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role)
-        `)
-        .single();
+        });
 
       if (error) throw error;
 
-      // Update post's comment count
+      // Update comment count
       await supabase
         .from('posts')
-        .update({
-          comment_count: (post?.commentCount || 0) + 1
-        })
+        .update({ comment_count: (post?.commentCount || 0) + 1 })
         .eq('id', id);
 
-      // Update local post state
       setPost(prev => prev ? { ...prev, commentCount: prev.commentCount + 1 } : null);
 
-      // Refetch comments to ensure UI consistency
+      // Refetch comments
       const { data: commentsData, error: fetchError } = await supabase
         .from('comments')
         .select(`
           *,
           profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
           comment_award_assignments!comment_id (
-            id,
-            awarded_at,
-            comment_awards!award_id (
-              id,
-              name,
-              display_name,
-              description,
-              points,
-              category,
-              color,
-              background_color,
-              icon,
-              is_enabled,
-              sort_order,
-              created_at,
-              updated_at
-            ),
-            profiles!awarded_by (
-              id,
-              display_name
-            )
+            id, awarded_at,
+            comment_awards!award_id (id, name, display_name, description, points, category, color, background_color, icon, is_enabled, sort_order, created_at, updated_at),
+            profiles!awarded_by (id, display_name)
           )
         `)
         .eq('post_id', id)
@@ -418,7 +353,6 @@ const PostDetail = () => {
 
       if (fetchError) throw fetchError;
 
-      // Fetch user votes for comments
       const commentVotes: { [commentId: string]: 'up' | 'down' } = {};
       if (commentsData && commentsData.length > 0) {
         const commentIds = commentsData.map(c => c.id);
@@ -435,14 +369,12 @@ const PostDetail = () => {
         });
       }
 
-      // Transform comments data
       const transformedComments: Comment[] = [];
       const commentMap = new Map<string, Comment>();
 
       commentsData?.forEach(commentData => {
         const userVote = commentVotes[commentData.id] || null;
 
-        // Transform awards data
         const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: any) => ({
           id: assignment.comment_awards.id,
           name: assignment.comment_awards.name,
@@ -503,16 +435,12 @@ const PostDetail = () => {
       });
 
       setComments(transformedComments);
-
-      toast({
-        title: "Comment posted",
-        description: "Your comment has been added successfully.",
-      });
+      toast({ title: "Comment posted" });
     } catch (error) {
       console.error('Error adding comment:', error);
       toast({
         title: "Error",
-        description: "Failed to post comment. Please try again.",
+        description: "Failed to post comment",
         variant: "destructive",
       });
     }
@@ -525,7 +453,6 @@ const PostDetail = () => {
     }
 
     try {
-      // Check if user already voted on this comment
       const { data: existingVote } = await supabase
         .from('votes')
         .select('*')
@@ -535,43 +462,30 @@ const PostDetail = () => {
 
       if (existingVote) {
         if (existingVote.vote_type === vote) {
-          // Remove vote
-          await supabase
-            .from('votes')
-            .delete()
-            .eq('id', existingVote.id);
+          await supabase.from('votes').delete().eq('id', existingVote.id);
         } else {
-          // Update vote
-          await supabase
-            .from('votes')
-            .update({ vote_type: vote })
-            .eq('id', existingVote.id);
+          await supabase.from('votes').update({ vote_type: vote }).eq('id', existingVote.id);
         }
       } else {
-        // Create new vote
-        await supabase
-          .from('votes')
-          .insert({
-            user_id: user.id,
-            comment_id: commentId,
-            vote_type: vote,
-          });
+        await supabase.from('votes').insert({
+          user_id: user.id,
+          comment_id: commentId,
+          vote_type: vote,
+        });
       }
 
-      // Update local comment state
-      setComments(prev =>
-        prev.map(comment => {
+      // Update local state recursively
+      const updateVoteInComments = (comments: Comment[]): Comment[] =>
+        comments.map(comment => {
           if (comment.id === commentId) {
             const currentVote = comment.userVote;
             let newUpvotes = comment.upvotes;
             let newDownvotes = comment.downvotes;
             let newUserVote: 'up' | 'down' | null = vote;
 
-            // Remove previous vote
             if (currentVote === 'up') newUpvotes--;
             if (currentVote === 'down') newDownvotes--;
 
-            // Add new vote (or remove if same)
             if (currentVote === vote) {
               newUserVote = null;
             } else {
@@ -579,58 +493,20 @@ const PostDetail = () => {
               if (vote === 'down') newDownvotes++;
             }
 
-            return {
-              ...comment,
-              upvotes: newUpvotes,
-              downvotes: newDownvotes,
-              userVote: newUserVote
-            };
+            return { ...comment, upvotes: newUpvotes, downvotes: newDownvotes, userVote: newUserVote };
           }
 
-          // Handle nested replies
           if (comment.replies) {
-            return {
-              ...comment,
-              replies: comment.replies.map(reply =>
-                reply.id === commentId
-                  ? (() => {
-                    const currentVote = reply.userVote;
-                    let newUpvotes = reply.upvotes;
-                    let newDownvotes = reply.downvotes;
-                    let newUserVote: 'up' | 'down' | null = vote;
-
-                    if (currentVote === 'up') newUpvotes--;
-                    if (currentVote === 'down') newDownvotes--;
-
-                    if (currentVote === vote) {
-                      newUserVote = null;
-                    } else {
-                      if (vote === 'up') newUpvotes++;
-                      if (vote === 'down') newDownvotes++;
-                    }
-
-                    return {
-                      ...reply,
-                      upvotes: newUpvotes,
-                      downvotes: newDownvotes,
-                      userVote: newUserVote
-                    };
-                  })()
-                  : reply
-              )
-            };
+            return { ...comment, replies: updateVoteInComments(comment.replies) };
           }
 
           return comment;
-        })
-      );
+        });
+
+      setComments(prev => updateVoteInComments(prev));
     } catch (error) {
       console.error('Error voting on comment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to vote on comment",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to vote", variant: "destructive" });
     }
   };
 
@@ -641,7 +517,6 @@ const PostDetail = () => {
     }
 
     try {
-      // Check if user already voted
       const { data: existingVote } = await supabase
         .from('votes')
         .select('*')
@@ -651,30 +526,18 @@ const PostDetail = () => {
 
       if (existingVote) {
         if (existingVote.vote_type === voteType) {
-          // Remove vote
-          await supabase
-            .from('votes')
-            .delete()
-            .eq('id', existingVote.id);
+          await supabase.from('votes').delete().eq('id', existingVote.id);
         } else {
-          // Update vote
-          await supabase
-            .from('votes')
-            .update({ vote_type: voteType })
-            .eq('id', existingVote.id);
+          await supabase.from('votes').update({ vote_type: voteType }).eq('id', existingVote.id);
         }
       } else {
-        // Create new vote
-        await supabase
-          .from('votes')
-          .insert({
-            user_id: user.id,
-            post_id: postId,
-            vote_type: voteType,
-          });
+        await supabase.from('votes').insert({
+          user_id: user.id,
+          post_id: postId,
+          vote_type: voteType,
+        });
       }
 
-      // Update local post state
       setPost(prev => {
         if (!prev) return prev;
         const currentVote = prev.userVote;
@@ -682,15 +545,12 @@ const PostDetail = () => {
         let downvotes = prev.downvotes;
         let newVote: 'up' | 'down' | null = voteType;
 
-        // Remove previous vote
         if (currentVote === 'up') upvotes--;
         if (currentVote === 'down') downvotes--;
 
-        // If clicking same vote, remove it
         if (currentVote === voteType) {
           newVote = null;
         } else {
-          // Add new vote
           if (voteType === 'up') upvotes++;
           if (voteType === 'down') downvotes++;
         }
@@ -699,54 +559,12 @@ const PostDetail = () => {
       });
     } catch (error) {
       console.error('Error voting:', error);
-      toast({
-        title: "Error",
-        description: "Failed to vote on post",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to vote", variant: "destructive" });
     }
   };
 
-  // Show loading skeleton while post is being fetched
-  if (postLoading) {
-    return (
-      <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
-        <div className="flex-1 max-w-2xl">
-          <Skeleton className="h-8 w-32 mb-4" />
-          <div className="space-y-4">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error only when loading is complete and post is not found
-  if (!post) {
-    return (
-      <div className="flex gap-6 max-w-screen-xl mx-auto px-4 py-6">
-        <div className="flex-1 max-w-4xl">
-          <div className="text-center py-8">
-            <h1 className="text-2xl font-bold mb-2">Post Not Found</h1>
-            <p className="text-muted-foreground mb-4">
-              The post you're looking for doesn't exist or has been removed.
-            </p>
-            <Button asChild>
-              <Link to="/">Return to Feed</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Get verification data
-  // Toggle save/hide handlers
   const handleToggleSave = async () => {
     if (!user || !post) return;
-
     try {
       if (isSaved) {
         await supabase
@@ -760,50 +578,75 @@ const PostDetail = () => {
       } else {
         await supabase
           .from('saved_items')
-          .insert({
-            user_id: user.id,
-            item_type: 'post',
-            item_id: post.id
-          });
+          .insert({ user_id: user.id, item_type: 'post', item_id: post.id });
         setIsSaved(true);
-        toast({ title: 'Saved successfully' });
+        toast({ title: 'Saved' });
       }
     } catch (error) {
       console.error('Error toggling save:', error);
-      toast({ title: 'Error', description: 'Failed to update save status', variant: 'destructive' });
+      toast({ title: 'Error', variant: 'destructive' });
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-[1400px] mx-auto px-4 py-6">
-        {/* Back Navigation */}
-        <Button variant="ghost" asChild className="mb-4 text-muted-foreground hover:text-foreground">
-          <Link to={post.community ? `/c/${post.community.name}` : "/"} className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            {post.community ? `Back to c/${post.community.name}` : "Back to Feed"}
-          </Link>
+  const handleShare = () => {
+    copyToClipboard(window.location.href, 'Link copied!');
+  };
+
+  // Loading skeleton
+  if (postLoading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <Skeleton className="h-6 w-24 mb-4" />
+        <Skeleton className="h-8 w-3/4 mb-3" />
+        <Skeleton className="h-4 w-1/2 mb-6" />
+        <Skeleton className="h-48 w-full mb-4" />
+        <Skeleton className="h-10 w-full mb-6" />
+        <div className="space-y-3">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <h1 className="text-xl font-bold mb-2">Post Not Found</h1>
+        <p className="text-sm text-muted-foreground mb-4">
+          This post doesn't exist or has been removed.
+        </p>
+        <Button asChild size="sm">
+          <Link to="/">Return to Feed</Link>
         </Button>
+      </div>
+    );
+  }
 
-        {/* Three-Column Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[80px_1fr_350px] gap-6">
-          
-          {/* LEFT COLUMN: Voting Actions (Desktop only, sticky) */}
-          <div className="hidden lg:block">
-            <div className="sticky top-20">
-              <VotingColumn
-                post={post}
-                onVote={handleVote}
-                isSaved={isSaved}
-                onToggleSave={handleToggleSave}
-              />
+  const voteScore = post.upvotes - post.downvotes;
+  const upvoteRatio = post.upvotes + post.downvotes > 0
+    ? Math.round((post.upvotes / (post.upvotes + post.downvotes)) * 100)
+    : 0;
+
+  return (
+    <div className="h-full bg-background">
+      <div className="flex h-full">
+        {/* Main content - scrollable */}
+        <div className="flex-1 min-w-0 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-4 py-4">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 mb-4 text-sm">
+              <Link
+                to={post.community ? `/c/${post.community.name}` : "/"}
+                className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>{post.community ? `c/${post.community.name}` : 'Feed'}</span>
+              </Link>
             </div>
-          </div>
 
-          {/* MAIN CONTENT */}
-          <div className="min-w-0">
-            {/* Post Content */}
-            <div className="mb-6">
+            {/* Post content rendered by PostCard in detail mode */}
+            <div className="mb-4">
               <PostCard
                 post={post}
                 onVote={handleVote}
@@ -811,13 +654,56 @@ const PostDetail = () => {
               />
             </div>
 
-            {/* Comments Section */}
+            {/* Post action bar */}
+            <div className="flex items-center gap-1 mb-6 -mt-2">
+              <button
+                onClick={handleToggleSave}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                  isSaved
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <Bookmark className="h-3.5 w-3.5" fill={isSaved ? 'currentColor' : 'none'} />
+                {isSaved ? 'Saved' : 'Save'}
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                Share
+              </button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => window.open(window.location.href, '_blank')}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open in new tab
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Flag className="h-4 w-4 mr-2" />
+                    Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <Separator className="mb-6" />
+
+            {/* Comments */}
             {loading ? (
               <div className="space-y-4">
-                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-20 w-full ml-6" />
-                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-20 w-full" />
               </div>
             ) : (
               <CommentSection
@@ -827,18 +713,36 @@ const PostDetail = () => {
                 onVoteComment={handleVoteComment}
               />
             )}
-          </div>
 
-          {/* RIGHT SIDEBAR: Metadata & Related Content (fixed + responsive) */}
-          <aside className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0">
-            <div className="fixed top-16 right-0 lg:w-80 xl:w-96 h-[calc(100vh-4rem)] border-l border-border bg-background">
-              <ScrollArea className="h-full">
-                <div className="p-4 space-y-4">
-              {/* About Post Card */}
-              <AboutPostCard
-                post={post}
-                verification={verification as any}
-              />
+            {/* Bottom spacer */}
+            <div className="h-12" />
+          </div>
+        </div>
+
+        {/* Right sidebar - desktop only */}
+        <aside className="hidden xl:block w-80 flex-shrink-0 border-l border-border">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              {/* Compact post stats */}
+              <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Post Stats</h3>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className={`text-lg font-bold ${voteScore > 0 ? 'text-primary' : voteScore < 0 ? 'text-destructive' : 'text-foreground'}`}>
+                      {voteScore > 0 ? '+' : ''}{voteScore}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Score</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{post.commentCount}</p>
+                    <p className="text-[10px] text-muted-foreground">Comments</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{upvoteRatio}%</p>
+                    <p className="text-[10px] text-muted-foreground">Upvoted</p>
+                  </div>
+                </div>
+              </div>
 
               {/* Community Info Card */}
               {post.community && (
@@ -851,12 +755,10 @@ const PostDetail = () => {
                 communityId={post.community?.id}
                 tags={post.tags}
               />
-                </div>
-              </ScrollArea>
             </div>
+          </ScrollArea>
         </aside>
       </div>
-    </div>
     </div>
   );
 };
