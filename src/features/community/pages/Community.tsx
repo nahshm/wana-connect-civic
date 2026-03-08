@@ -402,14 +402,13 @@ const Community = () => {
       )}
 
       {/* Settings Dialog (opened from setup reminder) */}
-      {community && settingsOpen && (
+      {community && (
         <CommunitySettingsDialog
           community={community}
-          onUpdate={() => {
-            setSettingsOpen(false);
-            refetch();
-          }}
-          trigger={<span />}
+          onUpdate={() => refetch()}
+          trigger={
+            <button ref={settingsTriggerRef} className="hidden" aria-hidden="true" />
+          }
         />
       )}
 
