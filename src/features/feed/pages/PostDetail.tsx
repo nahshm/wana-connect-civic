@@ -9,7 +9,7 @@ import { useCommunityData } from '@/hooks/useCommunityData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Share2, Bookmark, Flag, MoreHorizontal, MessageSquare, Eye, TrendingUp, Shield, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Flag, MoreHorizontal, MessageSquare, Eye, TrendingUp, Shield, ExternalLink } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +27,7 @@ const PostDetail = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [postLoading, setPostLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
+  
   const { user } = useAuth();
   const authModal = useAuthModal();
   const { toast } = useToast();
@@ -271,25 +271,6 @@ const PostDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user?.id]);
 
-  // Check if post is saved
-  useEffect(() => {
-    const checkSavedStatus = async () => {
-      if (!user || !id) return;
-      try {
-        const { data: savedData } = await supabase
-          .from('saved_items')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('item_type', 'post')
-          .eq('item_id', id)
-          .maybeSingle();
-        setIsSaved(!!savedData);
-      } catch (error) {
-        console.error('Error checking saved status:', error);
-      }
-    };
-    checkSavedStatus();
-  }, [user, id]);
 
   const handleAddComment = async (content: string, parentId?: string) => {
     if (!user) {
@@ -519,34 +500,6 @@ const PostDetail = () => {
     // The post state will be synced via PostCard's local state.
   };
 
-  const handleToggleSave = async () => {
-    if (!user || !post) return;
-    try {
-      if (isSaved) {
-        await supabase
-          .from('saved_items')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('item_type', 'post')
-          .eq('item_id', post.id);
-        setIsSaved(false);
-        toast({ title: 'Removed from saved' });
-      } else {
-        await supabase
-          .from('saved_items')
-          .insert({ user_id: user.id, item_type: 'post', item_id: post.id });
-        setIsSaved(true);
-        toast({ title: 'Saved' });
-      }
-    } catch (error) {
-      console.error('Error toggling save:', error);
-      toast({ title: 'Error', variant: 'destructive' });
-    }
-  };
-
-  const handleShare = () => {
-    copyToClipboard(window.location.href, 'Link copied!');
-  };
 
   // Loading skeleton
   if (postLoading) {
@@ -612,26 +565,6 @@ const PostDetail = () => {
 
             {/* Post action bar */}
             <div className="flex items-center gap-1 mb-6 -mt-2">
-              <button
-                onClick={handleToggleSave}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                  isSaved
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                <Bookmark className="h-3.5 w-3.5" fill={isSaved ? 'currentColor' : 'none'} />
-                {isSaved ? 'Saved' : 'Save'}
-              </button>
-
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                Share
-              </button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
