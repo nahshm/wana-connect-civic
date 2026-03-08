@@ -24,6 +24,7 @@ interface ChannelListProps {
     isAdmin?: boolean;
     isModerator?: boolean;
     communityId?: string;
+    isTierCommunity?: boolean;
     onAddChannel?: () => void;
     onChannelUpdate?: () => void;
 }
