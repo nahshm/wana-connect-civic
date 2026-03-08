@@ -1,55 +1,32 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+# Fix: Gate Tour Behind Auth + Keep AuthModal Working for Guests
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+## Two Changes
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+### 1. Gate Platform Tour behind authentication
+The `PlatformTour` component currently triggers based only on `localStorage`. Guests (no `user`) should never see the tour since they can't interact with most features.
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+**File: `src/components/community/PlatformTour.tsx`**
+- Add a `userId` prop (optional string)
+- In the `useEffect` that decides whether to open, add an early return if `!userId`
+- This ensures only logged-in users see the tour
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+**File: `src/features/community/pages/Community.tsx`**
+- Pass `userId={user?.id}` to `<PlatformTour>`
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+### 2. AuthModal is already correct — no changes needed
+The existing `AuthModal` component already:
+- Supports login and signup modes
+- Includes OAuth (Google, Apple, GitHub), magic link, and email/password
+- Is triggered via `useAuthModal().open('login')` throughout the codebase (PostCard votes, saves, community joins, post creation, etc.)
+- Is rendered globally in `App.tsx`
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+The current auth flow for guests is already working correctly — when unauthenticated users try to vote, save, join, or create content, the auth modal opens. No replacement is needed; the AuthModal IS the correct/original auth component.
+
+### Summary of code changes
+| File | Change |
+|------|--------|
+| `src/components/community/PlatformTour.tsx` | Add `userId` prop, skip tour if falsy |
+| `src/features/community/pages/Community.tsx` | Pass `userId={user?.id}` to PlatformTour |
+
