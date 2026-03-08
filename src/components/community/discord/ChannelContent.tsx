@@ -16,6 +16,7 @@ import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInView } from 'react-intersection-observer';
 import { Video, Mic } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ChannelContentProps {
     channelId: string;
