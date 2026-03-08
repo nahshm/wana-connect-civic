@@ -1,62 +1,55 @@
 
+Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-# Channel Chat: Full E2E with Media, Emojis, Links, Reactions
+What I found
+- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
+  - Failing query pattern: `select id, source_type, title, content, created_at ...`
+  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
+- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
+- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
 
-## What We're Building
+Implementation plan
+1) Database migration (schema + secure access)
+- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
+- Add admin-only write policies on `vectors` using server-side role check:
+  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
+- Keep or tighten SELECT policy based on desired visibility:
+  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
 
-Making channel chat fully functional: file/image uploads, emoji picker in input, persistent reactions via `message_reactions` table, clickable link detection in messages, and inline media rendering.
+2) Frontend fix in `SuperAdminDashboard.tsx`
+- Keep `title` in select and insert (once column exists).
+- Add robust error handling:
+  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
+  - `handleAddDoc`: surface exact DB/RLS error in toast.
+- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
 
-## Database Changes
+3) Optional consistency improvement (edge pipeline)
+- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
+- This is optional but improves UX and debugging.
 
-**Migration: `chat_messages` + storage**
-- Add `media_urls TEXT[] DEFAULT '{}'` and `media_type TEXT` columns to `chat_messages`
-- Create `chat-media` public storage bucket with RLS (authenticated upload, public read, owner delete)
+4) Verification checklist
+- Open RAG Viewer:
+  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
+  - Filtering by `source_type=kenya_constitution` returns 200.
+- Add document from UI:
+  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
+  - Non-admin users are blocked by RLS (expected).
+- Confirm no repeated vector 400s in console/network.
 
-## New Components
+Technical details (exact changes)
+- DB:
+  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
+  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
+- App file:
+  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
+    - retain `select('id, source_type, title, content, created_at')`
+    - retain insert payload with `title`
+    - add explicit `error` handling branches for both read/write.
+- Optional edge function:
+  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
 
-### 1. `src/components/chat/EmojiPicker.tsx`
-Categorized emoji grid in a Popover. ~100 common emojis across 6 categories (Smileys, Gestures, Hearts, Activities, Objects, Symbols). Clicking an emoji inserts it at cursor position in the input or calls `onSelect(emoji)`.
-
-### 2. `src/components/chat/MessageMedia.tsx`
-Renders `media_urls` inline in messages:
-- **Images**: Thumbnails (max-w-sm, rounded, clickable to open full-size in a Dialog lightbox)
-- **Files**: Download card with filename + download link
-- Uses Supabase `getPublicUrl` for the `chat-media` bucket
-
-### 3. `src/components/chat/LinkPreview.tsx`
-Simple link detection in message text — wraps URLs in clickable `<a>` tags with `target="_blank"`. No external preview fetching, just makes URLs clickable with proper styling.
-
-## Changes to `ChannelChatWindow.tsx`
-
-### Reactions → Database
-- On `fetchMessages`: batch-fetch from `message_reactions` for loaded message IDs, group by `message_id` + `emoji`
-- `handleReaction`: upsert/delete in `message_reactions` (replace the console.log placeholder)
-- Subscribe to realtime on `message_reactions` for live updates
-
-### Media Upload
-- **Paperclip button**: opens file picker (`*/*`, max 10MB), uploads to `chat-media/{userId}/{timestamp}_{filename}`
-- **Image button**: opens file picker (`image/*`), same upload flow
-- **Plus button**: shows small dropdown with "Upload File" / "Upload Image"
-- Preview bar below input showing pending attachments (thumbnails for images, filename chips for files)
-- On send: upload files first, then insert message with `media_urls` array and `media_type`
-
-### Emoji Picker
-- Wire Smile button in input bar to open `EmojiPicker` popover
-- On select: append emoji to `newMessage` text
-
-### Link Detection
-- Replace plain `<p>` message rendering with a component that auto-links URLs (`https://...`, `http://...`) into clickable anchors
-
-### Message Rendering
-- After text content, render `<MessageMedia urls={msg.media_urls} type={msg.media_type} />` if media exists
-
-## Files to Change
-
-| File | Action |
-|------|--------|
-| SQL migration | Add columns + storage bucket |
-| `src/components/chat/EmojiPicker.tsx` | **New** |
-| `src/components/chat/MessageMedia.tsx` | **New** |
-| `src/components/chat/MessageContent.tsx` | **New** — renders text with auto-linked URLs |
-| `src/components/chat/ChannelChatWindow.tsx` | Wire everything together |
-
+Order of execution
+1. Apply DB migration (column + policies)
+2. Update dashboard error handling
+3. (Optional) add scout title propagation
+4. End-to-end retest of RAG viewer + add document flow
