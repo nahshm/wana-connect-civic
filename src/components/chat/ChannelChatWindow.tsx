@@ -878,6 +878,16 @@ export function ChannelChatWindow({
                                                                     {isMe && (
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>
+                                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => startEditing(msg)}>
+                                                                                    <Pencil className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Edit</TooltipContent>
+                                                                        </Tooltip>
+                                                                    )}
+                                                                    {isMe && (
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
                                                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteMessage(msg.id)}>
                                                                                     <Trash2 className="h-4 w-4" />
                                                                                 </Button>
@@ -896,6 +906,11 @@ export function ChannelChatWindow({
                                                         <ContextMenuItem onClick={() => handleCopyMessage(msg.content)}>
                                                             <Copy className="h-4 w-4 mr-2" /> Copy Text
                                                         </ContextMenuItem>
+                                                        {isMe && (
+                                                            <ContextMenuItem onClick={() => startEditing(msg)}>
+                                                                <Pencil className="h-4 w-4 mr-2" /> Edit Message
+                                                            </ContextMenuItem>
+                                                        )}
                                                         <ContextMenuSeparator />
                                                         <ContextMenuItem className="text-destructive focus:text-destructive">
                                                             <Flag className="h-4 w-4 mr-2" /> Report Message
