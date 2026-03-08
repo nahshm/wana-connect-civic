@@ -26,14 +26,11 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
 
       const rpcParams: Record<string, unknown> = {
         p_user_id: userId || null,
+        p_community_id: communityId || null,
         p_limit_count: limit,
         p_offset_count: offset,
         p_sort_by: SORT_MAP[sortBy] || 'newest',
       };
-
-      if (communityId) {
-        rpcParams.p_community_id = communityId;
-      }
 
       const { data, error } = await (supabase.rpc as any)('get_unified_feed', rpcParams);
 
