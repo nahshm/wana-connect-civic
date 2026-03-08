@@ -37,7 +37,7 @@ interface ChannelContentProps {
 }
 
 /** Community Feed using the unified feed RPC */
-const CommunityUnifiedFeed: React.FC<{ communityId: string }> = ({ communityId }) => {
+const CommunityUnifiedFeed: React.FC<{ communityId: string; communityName?: string }> = ({ communityId, communityName }) => {
     const { user } = useAuth();
     const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('new');
     const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
