@@ -45,6 +45,9 @@ const ChannelList: React.FC<ChannelListProps> = ({
     isTierCommunity = false,
     onAddChannel,
     onChannelUpdate,
+    communityName,
+    communityAvatarUrl,
+    communityBannerUrl,
 }) => {
     // Track collapsed categories (persist in localStorage)
     const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(() => {
