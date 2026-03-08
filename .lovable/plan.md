@@ -1,55 +1,36 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+## Fix HomeSidebar: Column Name Bug + Engagement-Based Ranking
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+### Root Cause
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+The sidebar query fails with **HTTP 400** because it references `communities.icon` — that column doesn't exist. The correct column is `avatar_url`. This is why "Recent Posts" shows nothing.
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+### Changes
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+**File: `src/components/feed/HomeSidebar.tsx`**
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+1. **Fix the broken query** — change `icon` to `avatar_url` in the posts select join and communities query
+2. **Update all references** — `community_icon` → use `avatar_url`, `comm.icon` → `comm.avatar_url`
+3. **Rank Popular Communities by engagement** — instead of `ORDER BY member_count DESC`, use a composite score: `member_count + (recent post count * 10) + (recent comment count * 5)` via a subquery, so communities with actual activity rank higher than dormant ones with high member counts
+4. **Add `display_name` to communities query** — show display name when available, fall back to `c/{name}`
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+### Technical Detail
+
+Posts query fix:
+```
+community:communities(name, avatar_url)  // was: icon
+```
+
+Communities query — rank by engagement:
+```sql
+.from('communities')
+.select('id, name, display_name, avatar_url, member_count')
+.order('member_count', { ascending: false })
+.limit(5)
+```
+
+Since recent activity data requires subqueries not easily done in PostgREST, we'll fetch the top 10 by member_count, then re-sort client-side by checking which ones have posts in the current feed items (already loaded). This avoids a new RPC while still surfacing active communities.
+
+Alternatively, a simpler approach: fetch communities that appear most in recent posts (the posts we already fetched for "Recent Posts") and merge them with the member_count-sorted list, prioritizing communities with recent content.
+
