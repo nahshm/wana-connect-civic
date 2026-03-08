@@ -299,7 +299,7 @@ const Community = () => {
         </div>
 
         {/* Main Content Area - ScrollArea for auto-hiding scrollbars */}
-        <ScrollArea className="flex-1 bg-background">
+        <ScrollArea data-tour="tour-main-content" className="flex-1 bg-background">
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
             <button
@@ -371,7 +371,7 @@ const Community = () => {
         </ScrollArea>
 
         {/* Right Sidebar - Fixed + Responsive */}
-        <aside className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
+        <aside data-tour="tour-sidebar" className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
           <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] border-l border-sidebar-border bg-sidebar-background">
             <ScrollArea className="h-full">
               <div className="p-4 space-y-4 sm:space-y-6">
@@ -407,7 +407,7 @@ const Community = () => {
           community={community}
           onUpdate={() => refetch()}
           trigger={
-            <button ref={settingsTriggerRef} className="hidden" aria-hidden="true" />
+            <button ref={settingsTriggerRef} data-tour="tour-settings" className="hidden" aria-hidden="true" />
           }
         />
       )}
