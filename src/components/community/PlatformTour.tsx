@@ -97,6 +97,7 @@ interface PlatformTourProps {
   communityId: string;
   isAdmin: boolean;
   isModerator: boolean;
+  userId?: string;
 }
 
 interface Rect {
@@ -110,6 +111,7 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({
   communityId,
   isAdmin,
   isModerator,
+  userId,
 }) => {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -123,6 +125,8 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({
   );
 
   useEffect(() => {
+    if (!userId) return;
+
     const userDone = localStorage.getItem(USER_TOUR_KEY) === 'true';
     const adminDone =
       localStorage.getItem(getAdminTourKey(communityId)) === 'true';
