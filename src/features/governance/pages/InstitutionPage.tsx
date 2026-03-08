@@ -331,6 +331,7 @@ export default function InstitutionPage() {
 
     return (
         <div className="container mx-auto px-2 sm:px-4 pb-6 mt-4">
+            <PageTour tourKey={INSTITUTION_TOUR_KEY} steps={INSTITUTION_TOUR_STEPS} userId={user?.id} />
             {/* Back */}
             <div className="mb-4">
                 <Button variant="ghost" className="gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2" onClick={() => navigate(-1)}>
