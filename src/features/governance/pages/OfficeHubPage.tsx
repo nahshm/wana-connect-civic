@@ -28,6 +28,8 @@ import { AnswerQuestionModal } from '@/components/governance/AnswerQuestionModal
 import { AddProjectModal } from '@/components/governance/AddProjectModal';
 import { UpdateProjectModal } from '@/components/governance/UpdateProjectModal';
 import { ClaimPositionModal } from '@/components/governance/ClaimPositionModal';
+import { PageTour } from '@/components/tour/PageTour';
+import { OFFICE_HUB_TOUR_KEY, OFFICE_HUB_TOUR_STEPS } from '@/components/tour/OfficeHubTourSteps';
 import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG: Record<string, { icon: LucideIcon; color: string; label: string }> = {
