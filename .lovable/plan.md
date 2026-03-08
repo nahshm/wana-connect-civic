@@ -1,55 +1,38 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+# Fix: Clamp Tour Spotlight & Tooltip to Viewport
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+## Problem
+When a tour step targets a large component (e.g., full-height sidebar, main content area), the highlight cutout and tooltip extend beyond the visible viewport. Users can't reach the Next/Skip buttons without resizing their browser.
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+## Root Cause
+- `getBoundingClientRect()` returns the element's full dimensions, which can be taller/wider than the viewport
+- The tooltip position is calculated from the raw rect, so it can land off-screen
+- No clamping to viewport bounds exists
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+## Fix (single file: `PageTour.tsx`)
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+### 1. Clamp the highlight rect to the visible viewport
+After measuring with `getBoundingClientRect()`, intersect the rect with the viewport so the cutout never exceeds visible bounds:
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+```typescript
+// Clamp rect to viewport
+const clampedRect = {
+  top: Math.max(0, rect.top),
+  left: Math.max(0, rect.left),
+  width: Math.min(rect.right, window.innerWidth) - Math.max(0, rect.left),
+  height: Math.min(rect.bottom, window.innerHeight) - Math.max(0, rect.top),
+};
+```
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+### 2. Clamp tooltip vertical position to viewport
+After calculating tooltip style, ensure `top` stays within `[16px, viewportHeight - tooltipHeight - 16px]`. Use a post-render measurement of the tooltip via `tooltipRef` to get its actual height, then adjust.
+
+### 3. Add max-height to highlight
+Cap highlight height at `window.innerHeight - 32px` as a safety net.
+
+## Files
+| File | Change |
+|------|--------|
+| `src/components/tour/PageTour.tsx` | Clamp target rect to viewport, clamp tooltip position |
+
