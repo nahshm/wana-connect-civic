@@ -42,6 +42,8 @@ import {
     Trash2,
     X,
     Loader2,
+    Pencil,
+    Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
@@ -49,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from './EmojiPicker';
 import { MessageContent } from './MessageContent';
 import { MessageMedia } from './MessageMedia';
+import { TypingIndicator } from './TypingIndicator';
 
 // Quick reaction emojis
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '✅'];
