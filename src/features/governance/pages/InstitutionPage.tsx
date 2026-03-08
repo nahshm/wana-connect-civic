@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { ActionDetailSheet } from '@/components/dashboard/ActionDetailSheet';
 import { cn } from '@/lib/utils';
+import { PageTour } from '@/components/tour/PageTour';
+import { INSTITUTION_TOUR_KEY, INSTITUTION_TOUR_STEPS } from '@/components/tour/InstitutionTourSteps';
 
 const STATUS_CONFIG: Record<string, { icon: LucideIcon; color: string; label: string }> = {
     submitted:     { icon: Clock,         color: 'bg-gray-500',   label: 'Submitted' },
