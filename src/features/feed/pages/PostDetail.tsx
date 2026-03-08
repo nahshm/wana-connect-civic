@@ -400,6 +400,7 @@ const PostDetail = () => {
           depth: commentData.depth || 0,
           isCollapsed: commentData.is_collapsed || false,
           moderationStatus: commentData.moderation_status as 'approved' | 'pending' | 'removed',
+          isDeleted: commentData.is_deleted || false,
           awards,
           replies: []
         };
