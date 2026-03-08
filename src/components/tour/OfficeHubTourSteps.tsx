@@ -15,7 +15,7 @@ export const OFFICE_HUB_TOUR_STEPS: TourStep[] = [
   {
     icon: <Shield className="h-8 w-8 text-primary" />,
     title: 'Office Profile',
-    description: 'The left panel shows the office holder's profile, verification status, and key statistics about their term in office.',
+    description: 'The left panel shows the office holder\'s profile, verification status, and key statistics about their term in office.',
     target: 'tour-office-profile',
     placement: 'right',
   },

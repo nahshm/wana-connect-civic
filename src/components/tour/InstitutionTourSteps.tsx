@@ -9,13 +9,13 @@ export const INSTITUTION_TOUR_STEPS: TourStep[] = [
   {
     icon: <Building2 className="h-8 w-8 text-primary" />,
     title: 'Welcome to the Institution Page!',
-    description: 'This page shows a government institution's profile, mandate, and the issues citizens have raised about it.',
+    description: 'This page shows a government institution\'s profile, mandate, and the issues citizens have raised about it.',
     placement: 'center',
   },
   {
     icon: <Shield className="h-8 w-8 text-primary" />,
     title: 'Institution Profile',
-    description: 'View the institution's mandate, contact details, and verification status. Learn what this institution is responsible for.',
+    description: 'View the institution\'s mandate, contact details, and verification status. Learn what this institution is responsible for.',
     target: 'tour-institution-profile',
     placement: 'right',
   },
