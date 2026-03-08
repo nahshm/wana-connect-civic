@@ -46,7 +46,7 @@ async function fetchCommunityByName(
         ),
       community_rules (*),
       community_flairs (*),
-      channels (*order(position))
+      channels (*)
     `)
         .eq('name', communityName)
         .abortSignal(signal)
