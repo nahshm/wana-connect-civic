@@ -500,34 +500,6 @@ const PostDetail = () => {
     // The post state will be synced via PostCard's local state.
   };
 
-  const handleToggleSave = async () => {
-    if (!user || !post) return;
-    try {
-      if (isSaved) {
-        await supabase
-          .from('saved_items')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('item_type', 'post')
-          .eq('item_id', post.id);
-        setIsSaved(false);
-        toast({ title: 'Removed from saved' });
-      } else {
-        await supabase
-          .from('saved_items')
-          .insert({ user_id: user.id, item_type: 'post', item_id: post.id });
-        setIsSaved(true);
-        toast({ title: 'Saved' });
-      }
-    } catch (error) {
-      console.error('Error toggling save:', error);
-      toast({ title: 'Error', variant: 'destructive' });
-    }
-  };
-
-  const handleShare = () => {
-    copyToClipboard(window.location.href, 'Link copied!');
-  };
 
   // Loading skeleton
   if (postLoading) {
