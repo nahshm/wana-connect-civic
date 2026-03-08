@@ -36,6 +36,7 @@ const CivicDashboard = () => {
 
   return (
     <div className="container mx-auto px-2 sm:px-4 pb-6">
+      <PageTour tourKey={DASHBOARD_TOUR_KEY} steps={DASHBOARD_TOUR_STEPS} userId={user?.id} />
       {/* ========= 3-COLUMN CIVIC CONTROL ROOM ========= */}
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
 
