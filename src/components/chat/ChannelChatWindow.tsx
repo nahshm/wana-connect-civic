@@ -109,10 +109,16 @@ export function ChannelChatWindow({
     const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [editContent, setEditContent] = useState('');
+    const [typingUsers, setTypingUsers] = useState<{ id: string; username: string }[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const editInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
     // ─── Fetch Messages + Reactions ───
     const fetchMessages = useCallback(async () => {
