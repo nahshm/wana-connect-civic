@@ -144,18 +144,17 @@ function GuestFeed() {
 
   // Guest feed: no user community memberships needed
 
-  // Initial data fetch for sidebars (Feed is handled by React Query)
+  // Initial data fetch for sidebars
   useEffect(() => {
     const loadSideData = async () => {
       await Promise.all([
         fetchCommunities(),
         barazaEnabled ? fetchBarazaSpaces() : Promise.resolve(),
-        fetchUserCommunities(),
       ]);
     };
 
     loadSideData();
-  }, [fetchCommunities, fetchBarazaSpaces, barazaEnabled, fetchUserCommunities]);
+  }, [fetchCommunities, fetchBarazaSpaces, barazaEnabled]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
