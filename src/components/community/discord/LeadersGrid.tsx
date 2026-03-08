@@ -23,10 +23,12 @@ interface LeadersGridProps {
 
 // --- Authority Tiers ---
 const AUTHORITY_TIERS = [
-    { label: 'Executive Leadership', min: 90, max: 100, icon: Crown, color: 'text-amber-600 dark:text-amber-400' },
-    { label: 'Legislative Representatives', min: 70, max: 89, icon: Landmark, color: 'text-primary' },
-    { label: 'Ward Representatives', min: 50, max: 69, icon: Building2, color: 'text-emerald-600 dark:text-emerald-400' },
-    { label: 'Other Positions', min: 0, max: 49, icon: Users, color: 'text-muted-foreground' },
+    { label: 'National Leadership', min: 90, max: 100, icon: Crown, color: 'text-amber-600 dark:text-amber-400' },
+    { label: 'County Executive', min: 68, max: 89, icon: Crown, color: 'text-primary' },
+    { label: 'County Legislators', min: 63, max: 67, icon: Landmark, color: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Constituency Representatives', min: 55, max: 62, icon: Building2, color: 'text-emerald-600 dark:text-emerald-400' },
+    { label: 'Ward Representatives', min: 40, max: 54, icon: Users, color: 'text-purple-600 dark:text-purple-400' },
+    { label: 'Other Positions', min: 0, max: 39, icon: Users, color: 'text-muted-foreground' },
 ];
 
 function groupByTier(positions: PositionWithHolder[]) {
