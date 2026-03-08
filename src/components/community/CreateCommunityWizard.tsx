@@ -84,8 +84,8 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
             const { error } = await supabase
                 .from('communities')
                 .insert({
-                    name: data.name,
-                    display_name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
+                    name: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+                    display_name: data.name,
                     description: data.description,
                     category: data.category,
                     visibility_type: data.visibility_type,
