@@ -217,33 +217,35 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 6. FALLBACK: POST FEED (Legacy)
     return (
-        <div className="p-4 md:p-6">
-            <div className="max-w-4xl mx-auto">
-                <CreatePostInput />
-                <div className="mt-4 space-y-4">
-                    {postsLoading ? (
-                        <div className="space-y-4">
-                            {[...Array(3)].map((_, i) => (
-                                <Card key={i} className="animate-pulse">
-                                    <CardContent className="p-6">
-                                        <div className="h-32 bg-muted rounded" />
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    ) : posts.length > 0 ? (
-                        posts.map((post) => (
-                            <PostCard key={post.id} post={post} onVote={() => { }} />
-                        ))
-                    ) : (
-                        <Card>
-                            <CardContent className="text-center py-12">
-                                <p className="text-muted-foreground">
-                                    No posts yet in this channel. Be the first to post!
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
+        <div className="flex-1 overflow-auto h-full">
+            <div className="p-4 md:p-6">
+                <div className="max-w-4xl mx-auto">
+                    <CreatePostInput />
+                    <div className="mt-4 space-y-4">
+                        {postsLoading ? (
+                            <div className="space-y-4">
+                                {[...Array(3)].map((_, i) => (
+                                    <Card key={i} className="animate-pulse">
+                                        <CardContent className="p-6">
+                                            <div className="h-32 bg-muted rounded" />
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : posts.length > 0 ? (
+                            posts.map((post) => (
+                                <PostCard key={post.id} post={post} onVote={() => { }} />
+                            ))
+                        ) : (
+                            <Card>
+                                <CardContent className="text-center py-12">
+                                    <p className="text-muted-foreground">
+                                        No posts yet in this channel. Be the first to post!
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
