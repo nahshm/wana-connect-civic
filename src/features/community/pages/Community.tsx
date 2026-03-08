@@ -262,7 +262,7 @@ const Community = () => {
 
   return (
     <div className="h-full bg-background overflow-hidden">
-      <div className="flex h-full w-full overflow-hidden bg-background relative">
+      <div className="flex h-full w-full overflow-hidden bg-background relative min-h-0">
 
         {/* Mobile Backdrop */}
         {mobileMenuOpen && (
