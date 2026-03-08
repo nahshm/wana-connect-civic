@@ -111,6 +111,7 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({
   communityId,
   isAdmin,
   isModerator,
+  userId,
 }) => {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
