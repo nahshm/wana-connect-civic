@@ -16,7 +16,6 @@ import { SELECT_FIELDS } from '@/lib/select-fields';
 import { Community } from '@/types';
 import { useFeatureToggle } from '@/hooks/useFeatureToggle';
 import { FeedErrorBoundary } from '@/components/feed/FeedErrorBoundary';
-import { CommunityJoinDialog } from '@/components/community/CommunityJoinDialog';
 import { UnifiedFeedItem, FeedItem, UnifiedFeedItemSkeleton, EmptyFeedState } from '@/components/feed/UnifiedFeedItem';
 import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 
