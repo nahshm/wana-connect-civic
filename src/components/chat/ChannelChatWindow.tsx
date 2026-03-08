@@ -1107,7 +1107,7 @@ export function ChannelChatWindow({
                                     ref={inputRef}
                                     placeholder={replyingTo ? 'Type your reply...' : `Message #${channelName}`}
                                     value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onChange={(e) => { setNewMessage(e.target.value); broadcastTyping(); }}
                                     className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-11"
                                 />
 
