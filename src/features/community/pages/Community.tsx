@@ -18,8 +18,11 @@ import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';
 import { CreateChannelDialog } from '@/components/community/discord/CreateChannelDialog';
-import { CommunityEventsWidget } from '@/components/community/events/CommunityEventsWidget'; // Added
-import { CommunityPollsWidget } from '@/components/community/polls/CommunityPollsWidget'; // Added
+import { CommunityEventsWidget } from '@/components/community/events/CommunityEventsWidget';
+import { CommunityPollsWidget } from '@/components/community/polls/CommunityPollsWidget';
+import { CommunitySetupReminder } from '@/components/community/CommunitySetupReminder';
+import { PlatformTour } from '@/components/community/PlatformTour';
+import { CommunitySettingsDialog } from '@/components/community/CommunitySettingsDialog';
 import { Menu, X, Loader2 } from 'lucide-react'; // Original lucide-react import
 
 // Loading skeleton component
@@ -69,6 +72,7 @@ const Community = () => {
   const [activeChannelId, setActiveChannelId] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
+  const settingsTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Local channels for optimistic updates when new channel created
   const [newChannels, setNewChannels] = useState<any[]>([]);
@@ -300,7 +304,7 @@ const Community = () => {
           <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -315,6 +319,16 @@ const Community = () => {
             </h2>
             <div className="w-10" /> {/* Spacer for centering */}
           </div>
+
+          {/* Admin/Mod Setup Reminder */}
+          <CommunitySetupReminder
+            communityId={community.id}
+            hasAvatar={!!community.avatarUrl}
+            hasBanner={!!community.bannerUrl}
+            isAdmin={isAdmin}
+            isModerator={isModerator}
+            onUpdateNow={() => settingsTriggerRef.current?.click()}
+          />
 
           {/* Channel Content */}
           {activeChannelId && !activeChannel && !activeChannelId.startsWith('virtual-') ? (
@@ -386,6 +400,24 @@ const Community = () => {
           isTierCommunity={community.type === 'location'}
         />
       )}
+
+      {/* Settings Dialog (opened from setup reminder) */}
+      {community && (
+        <CommunitySettingsDialog
+          community={community}
+          onUpdate={() => refetch()}
+          trigger={
+            <button ref={settingsTriggerRef} className="hidden" aria-hidden="true" />
+          }
+        />
+      )}
+
+      {/* Platform Navigation Tour */}
+      <PlatformTour
+        communityId={community.id}
+        isAdmin={isAdmin}
+        isModerator={isModerator}
+      />
     </div>
   );
 };
