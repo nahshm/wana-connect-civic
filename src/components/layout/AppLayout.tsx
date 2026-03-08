@@ -14,20 +14,15 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const isCommunityPage = location.pathname.startsWith('/c/');
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background">
-      {/* Header spans full width at the top */}
+    <div className="h-screen flex flex-col w-full bg-background overflow-hidden">
       <Header />
-
-      {/* Sidebar and content below header */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <AppSidebar />
         <SidebarInset className={cn(
           "flex-1 w-full min-h-0",
           isCommunityPage ? "overflow-hidden" : "overflow-auto"
         )}>
-          <main className="h-full">
-            {children}
-          </main>
+          {children}
         </SidebarInset>
       </div>
     </div>
