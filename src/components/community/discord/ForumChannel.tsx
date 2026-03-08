@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -111,6 +111,14 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
     const [hoveredReplyId, setHoveredReplyId] = useState<string | null>(null);
     const [emojiPickerOpen, setEmojiPickerOpen] = useState<string | null>(null);
     const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+    const [replyEmojiOpen, setReplyEmojiOpen] = useState(false);
+    const repliesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            repliesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
 
     // Fetch threads
     const { data: threads, isLoading: threadsLoading } = useQuery({
@@ -128,7 +136,6 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
 
             if (error) throw error;
 
-            // Note: Reactions disabled until types are regenerated
             return (data || []).map(t => ({
                 ...t,
                 reactions: {}
@@ -151,7 +158,6 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
 
             if (error) throw error;
 
-            // Note: Reactions disabled until types are regenerated
             return (data || []).map(r => ({
                 ...r,
                 reactions: {}
@@ -200,9 +206,14 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['forum-replies', selectedThread?.id] });
             queryClient.invalidateQueries({ queryKey: ['forum-threads', channelId] });
+            // Optimistic reply count update
+            if (selectedThread) {
+                setSelectedThread(prev => prev ? { ...prev, reply_count: (prev.reply_count || 0) + 1 } : prev);
+            }
             setReplyContent('');
             setReplyingTo(null);
             toast.success('Reply posted!');
+            scrollToBottom();
         },
         onError: (error) => toast.error('Failed: ' + error.message),
     });
@@ -214,7 +225,6 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
         const reply = replies?.find(r => r.id === replyId);
         const hasReacted = reply?.reactions?.[emoji]?.includes(user.id);
 
-        // Optimistic update only
         queryClient.setQueryData(['forum-replies', selectedThread?.id], (old: ForumReply[] | undefined) => {
             if (!old) return old;
             return old.map(r => {
@@ -233,7 +243,6 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
             });
         });
         setEmojiPickerOpen(null);
-        console.log('Reaction toggled (local only):', { replyId, emoji, hasReacted });
     };
 
     // Delete reply
@@ -249,6 +258,11 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
 
     const handleCopy = (content: string) => {
         copyToClipboard(content, 'Copied!');
+    };
+
+    const insertEmojiToReply = (emoji: string) => {
+        setReplyContent(prev => prev + emoji);
+        setReplyEmojiOpen(false);
     };
 
     const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -273,7 +287,6 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
         }
     });
 
-    // Toggle reply thread expansion
     const toggleReplyThread = (replyId: string) => {
         setExpandedReplies(prev => {
             const next = new Set(prev);
@@ -379,7 +392,6 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
                                                         <span className="flex items-center gap-1">
                                                             <Clock className="h-3 w-3" /> {formatDistanceToNow(new Date(thread.created_at), { addSuffix: true })}
                                                         </span>
-                                                        {/* Thread Reactions */}
                                                         {thread.reactions && Object.keys(thread.reactions).length > 0 && (
                                                             <div className="flex gap-1">
                                                                 {Object.entries(thread.reactions).slice(0, 3).map(([emoji, users]) => (
@@ -657,6 +669,8 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
                             })}
                         </div>
                     )}
+                    {/* Scroll anchor */}
+                    <div ref={repliesEndRef} />
                 </ScrollArea>
 
                 {/* Reply Preview */}
@@ -678,20 +692,36 @@ export function ForumChannel({ channelId, channelName, communityId }: ForumChann
                 {!selectedThread.locked ? (
                     <div className="p-4 border-t">
                         <div className="flex items-center gap-2 bg-background border rounded-lg">
-                            <Button type="button" variant="ghost" size="icon" className="h-11 w-11">
-                                <Plus className="h-5 w-5" />
-                            </Button>
                             <Textarea
                                 placeholder={replyingTo ? "Write your reply..." : "Add to the discussion..."}
                                 value={replyContent}
                                 onChange={(e) => setReplyContent(e.target.value)}
-                                className="flex-1 border-0 bg-transparent resize-none min-h-[44px] max-h-[120px] focus-visible:ring-0"
+                                className="flex-1 border-0 bg-transparent resize-none min-h-[44px] max-h-[120px] focus-visible:ring-0 pl-4"
                                 rows={1}
                             />
                             <div className="flex items-center gap-1 pr-2">
-                                <Button type="button" variant="ghost" size="icon" className="h-9 w-9">
-                                    <Smile className="h-5 w-5" />
-                                </Button>
+                                <Popover open={replyEmojiOpen} onOpenChange={setReplyEmojiOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9">
+                                            <Smile className="h-5 w-5" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-2" align="end">
+                                        <div className="flex gap-1 flex-wrap max-w-[200px]">
+                                            {QUICK_REACTIONS.map(emoji => (
+                                                <Button
+                                                    key={emoji}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 text-lg"
+                                                    onClick={() => insertEmojiToReply(emoji)}
+                                                >
+                                                    {emoji}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                                 <Button
                                     onClick={() => postReplyMutation.mutate()}
                                     disabled={!replyContent.trim() || postReplyMutation.isPending}

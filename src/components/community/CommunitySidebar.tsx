@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Mail, Cake, PenSquare } from 'lucide-react';
 import { CommunityProfile, CommunityRule, CommunityModerator, CommunityFlair } from '@/types/index';
-import { Link } from 'react-router-dom';
 import { buildProfileLink } from '@/lib/profile-links';
 import { format } from 'date-fns';
 import { CommunityGuideModal } from './CommunityGuideModal';
@@ -30,6 +29,32 @@ interface CommunitySidebarProps {
     onFilterByFlair?: (flairId: string | null) => void;
     selectedFlairId?: string | null;
 }
+
+/** Extracted sub-component to avoid useState inside IIFE */
+const CollapsibleDescription: React.FC<{ description: string }> = ({ description }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const maxLength = 150;
+    const shouldCollapse = description.length > maxLength;
+    const displayText = shouldCollapse && !isExpanded
+        ? description.slice(0, maxLength) + '...'
+        : description;
+
+    return (
+        <div className="mb-4">
+            <p className="text-sm text-sidebar-foreground leading-relaxed">
+                {displayText}
+            </p>
+            {shouldCollapse && (
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-xs text-primary hover:underline mt-1"
+                >
+                    {isExpanded ? 'See less' : 'See more'}
+                </button>
+            )}
+        </div>
+    );
+};
 
 export const CommunitySidebar = ({
     community,
@@ -61,16 +86,14 @@ export const CommunitySidebar = ({
 
     const handleFlairClick = (flairId: string) => {
         if (onFilterByFlair) {
-            // Toggle off if same flair clicked again
             onFilterByFlair(selectedFlairId === flairId ? null : flairId);
         }
     };
 
     return (
         <div className="space-y-0">
-            {/* Banner and Avatar - matching Profile page pattern */}
+            {/* Banner and Avatar */}
             <div className="relative mb-4">
-                {/* Banner */}
                 <div
                     className="h-24 w-full bg-cover bg-center"
                     style={{
@@ -79,8 +102,6 @@ export const CommunitySidebar = ({
                             : 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--civic-blue)) 100%)',
                     }}
                 />
-
-                {/* Avatar and Name - overlapping banner */}
                 <div className="px-4">
                     <div className="relative flex items-end gap-3 -mt-12">
                         <Avatar className="w-20 h-20 border-4 border-sidebar-background">
@@ -112,32 +133,7 @@ export const CommunitySidebar = ({
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
-
-                        {(() => {
-                            const [isExpanded, setIsExpanded] = React.useState(false);
-                            const description = community.description || '';
-                            const maxLength = 150;
-                            const shouldCollapse = description.length > maxLength;
-                            const displayText = shouldCollapse && !isExpanded
-                                ? description.slice(0, maxLength) + '...'
-                                : description;
-
-                            return (
-                                <div className="mb-4">
-                                    <p className="text-sm text-sidebar-foreground leading-relaxed">
-                                        {displayText}
-                                    </p>
-                                    {shouldCollapse && (
-                                        <button
-                                            onClick={() => setIsExpanded(!isExpanded)}
-                                            className="text-xs text-primary hover:underline mt-1"
-                                        >
-                                            {isExpanded ? 'See less' : 'See more'}
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })()}
+                        <CollapsibleDescription description={community.description || ''} />
 
                         <div className="flex items-center gap-2 text-sm text-sidebar-muted-foreground mb-4">
                             <Cake className="w-4 h-4" />
@@ -253,8 +249,7 @@ export const CommunitySidebar = ({
                                     <Badge
                                         key={flair.id}
                                         variant={selectedFlairId === flair.id ? "default" : "secondary"}
-                                        className={`cursor-pointer hover:bg-sidebar-accent transition-colors rounded-full px-3 ${selectedFlairId === flair.id ? 'ring-2 ring-primary' : ''
-                                            }`}
+                                        className={`cursor-pointer hover:bg-sidebar-accent transition-colors rounded-full px-3 ${selectedFlairId === flair.id ? 'ring-2 ring-primary' : ''}`}
                                         onClick={() => handleFlairClick(flair.id)}
                                     >
                                         {flair.name}
@@ -339,6 +334,6 @@ export const CommunitySidebar = ({
                     communityName={community.name}
                 />
             </div>
-        </div >
+        </div>
     );
 };

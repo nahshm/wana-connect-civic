@@ -37,7 +37,7 @@ interface ChannelContentProps {
 }
 
 /** Community Feed using the unified feed RPC */
-const CommunityUnifiedFeed: React.FC<{ communityId: string }> = ({ communityId }) => {
+const CommunityUnifiedFeed: React.FC<{ communityId: string; communityName?: string }> = ({ communityId, communityName }) => {
     const { user } = useAuth();
     const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('new');
     const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
@@ -68,7 +68,7 @@ const CommunityUnifiedFeed: React.FC<{ communityId: string }> = ({ communityId }
     return (
         <div className="p-4 md:p-6">
             <div className="max-w-4xl mx-auto">
-                <CreatePostInput />
+                <CreatePostInput communityId={communityId} communityName={communityName} />
                 <FeedSortBar
                     sortBy={sortBy}
                     onSortChange={setSortBy}
@@ -206,7 +206,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 5. FEED CHANNELS — Use unified feed with sort/infinite scroll
     if (channel?.type === 'feed' && communityId) {
-        return <CommunityUnifiedFeed communityId={communityId} />;
+        return <CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} />;
     }
 
     // 6. FALLBACK: POST FEED (Legacy)
