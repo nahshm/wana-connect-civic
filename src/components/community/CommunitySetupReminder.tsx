@@ -6,6 +6,7 @@ interface CommunitySetupReminderProps {
   communityId: string;
   hasAvatar: boolean;
   hasBanner: boolean;
+  hasRules: boolean;
   isAdmin: boolean;
   isModerator: boolean;
   onUpdateNow: () => void;
