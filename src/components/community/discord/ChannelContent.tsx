@@ -152,33 +152,33 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     if (channel?.category === 'MONITORING' || ['our-leaders', 'projects-watch', 'promises-watch'].includes(channel?.name || '')) {
         if (channel?.name === 'our-leaders') {
             if (levelType === 'COMMUNITY') {
-                return <div className="flex-1 overflow-auto h-full p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div>;
+            return <ScrollArea className="flex-1"><div className="p-8 text-center text-muted-foreground">Global Identity features are only available for geographic communities (County/Constituency/Ward).</div></ScrollArea>;
             }
             return (
-                <div className="flex-1 overflow-auto h-full">
+                <ScrollArea className="flex-1">
                     <SectionErrorBoundary section="Leaders Grid">
                         <LeadersGrid levelType={levelType} locationValue={locationValue} communityId={communityId} />
                     </SectionErrorBoundary>
-                </div>
+                </ScrollArea>
             );
         }
         if (channel?.name === 'projects-watch') {
             return (
-                <div className="flex-1 overflow-auto h-full">
+                <ScrollArea className="flex-1">
                     <SectionErrorBoundary section="Projects Watch">
                         <ProjectsGrid projects={projects} loading={projectsLoading} />
                     </SectionErrorBoundary>
-                </div>
+                </ScrollArea>
             );
         }
         if (channel?.name === 'promises-watch') {
             if (levelType === 'COMMUNITY') return null;
             return (
-                <div className="flex-1 overflow-auto h-full">
+                <ScrollArea className="flex-1">
                     <SectionErrorBoundary section="Promises Watch">
                         <PromisesGrid levelType={levelType} locationValue={locationValue} />
                     </SectionErrorBoundary>
-                </div>
+                </ScrollArea>
             );
         }
     }
