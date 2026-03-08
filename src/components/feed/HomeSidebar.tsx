@@ -1,106 +1,198 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Users, ArrowUp, MessageSquare } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ArrowUp, MessageSquare, Users, X } from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 
-interface TrendingPost {
+interface RecentPost {
   id: string;
   title: string;
-  community: string;
+  created_at: string;
   upvotes: number;
-  comments: number;
+  comment_count: number;
+  community_name: string;
+  community_icon: string | null;
+  thumbnail: string | null;
+  link_image: string | null;
 }
 
-interface Community {
+interface PopularCommunity {
   id: string;
   name: string;
-  members: number;
-  description: string;
+  icon: string | null;
+  member_count: number;
 }
 
-export const HomeSidebar = () => {
-  const [trendingPosts, setTrendingPosts] = useState<TrendingPost[]>([]);
-  const [communities, setCommunities] = useState<Community[]>([]);
+interface HomeSidebarProps {
+  userId?: string;
+}
+
+export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
+  const { toast } = useToast();
+  const authModal = useAuthModal();
+  const [recentPosts, setRecentPosts] = useState<RecentPost[]>([]);
+  const [communities, setCommunities] = useState<PopularCommunity[]>([]);
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
+  const [showRecent, setShowRecent] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       const [postsRes, commRes] = await Promise.all([
         supabase
           .from('posts')
-          .select('id, title, upvotes, comment_count, community:communities(name)')
-          .order('upvotes', { ascending: false })
-          .limit(5),
+          .select('id, title, created_at, upvotes, comment_count, link_image, community:communities(name, icon), media:post_media(file_path, file_type)')
+          .order('created_at', { ascending: false })
+          .limit(6),
         supabase
           .from('communities')
-          .select('id, name, member_count, description')
+          .select('id, name, icon, member_count')
           .order('member_count', { ascending: false })
           .limit(5),
       ]);
 
       if (postsRes.data) {
-        setTrendingPosts(postsRes.data.map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          community: p.community?.name ? `c/${p.community.name}` : 'General',
-          upvotes: p.upvotes || 0,
-          comments: p.comment_count || 0,
-        })));
+        setRecentPosts(postsRes.data.map((p: any) => {
+          const imageMedia = (p.media || []).find((m: any) => m.file_type?.startsWith('image'));
+          return {
+            id: p.id,
+            title: p.title,
+            created_at: p.created_at,
+            upvotes: p.upvotes || 0,
+            comment_count: p.comment_count || 0,
+            community_name: p.community?.name || 'General',
+            community_icon: p.community?.icon || null,
+            thumbnail: imageMedia?.file_path || null,
+            link_image: p.link_image || null,
+          };
+        }));
       }
 
       if (commRes.data) {
         setCommunities(commRes.data.map((c: any) => ({
           id: c.id,
           name: c.name,
-          members: c.member_count || 0,
-          description: c.description || '',
+          icon: c.icon || null,
+          member_count: c.member_count || 0,
         })));
       }
     };
     fetchData();
   }, []);
 
+  // Check membership for communities
+  useEffect(() => {
+    if (!userId || communities.length === 0) return;
+    const checkMembership = async () => {
+      const { data } = await supabase
+        .from('community_members')
+        .select('community_id')
+        .eq('user_id', userId)
+        .in('community_id', communities.map(c => c.id));
+      if (data) {
+        setJoinedIds(new Set(data.map(m => m.community_id)));
+      }
+    };
+    checkMembership();
+  }, [userId, communities]);
+
+  const handleJoin = useCallback(async (communityId: string) => {
+    if (!userId) {
+      authModal.open('login');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('community_members')
+        .insert({ community_id: communityId, user_id: userId });
+      if (error) throw error;
+      setJoinedIds(prev => new Set([...prev, communityId]));
+      toast({ title: 'Joined!' });
+    } catch (err: any) {
+      if (err?.code === '23505') {
+        setJoinedIds(prev => new Set([...prev, communityId]));
+      } else {
+        toast({ title: 'Error', description: 'Could not join.', variant: 'destructive' });
+      }
+    }
+  }, [userId, authModal, toast]);
+
+  const thumbUrl = (post: RecentPost) => {
+    if (post.thumbnail) {
+      const { data } = supabase.storage.from('post-media').getPublicUrl(post.thumbnail);
+      return data?.publicUrl || null;
+    }
+    return post.link_image || null;
+  };
+
   return (
     <div className="space-y-4">
-      {/* Trending Posts */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-          <TrendingUp className="w-3.5 h-3.5" />
-          Trending Today
-        </h3>
-        <div className="space-y-1">
-          {trendingPosts.map((post, i) => (
-            <Link
-              key={post.id}
-              to={`/post/${post.id}`}
-              className="flex items-start gap-2.5 p-2 -mx-1 rounded-lg hover:bg-accent/50 transition-colors group"
+      {/* Recent Posts */}
+      {showRecent && recentPosts.length > 0 && (
+        <div className="rounded-xl border border-border bg-card">
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Recent Posts
+            </h3>
+            <button
+              onClick={() => setShowRecent(false)}
+              className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
             >
-              <span className="text-xs font-bold text-muted-foreground/60 w-4 pt-0.5 text-right">
-                {i + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
-                  {post.title}
-                </p>
-                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                  <span>{post.community}</span>
-                  <span className="flex items-center gap-0.5">
-                    <ArrowUp className="w-3 h-3" />
-                    {post.upvotes}
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    <MessageSquare className="w-3 h-3" />
-                    {post.comments}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-          {trendingPosts.length === 0 && (
-            <p className="text-xs text-muted-foreground py-2">No trending posts yet.</p>
-          )}
+              Clear
+            </button>
+          </div>
+          <div className="divide-y divide-border/50">
+            {recentPosts.map(post => {
+              const img = thumbUrl(post);
+              return (
+                <Link
+                  key={post.id}
+                  to={`/post/${post.id}`}
+                  className="flex items-start gap-3 px-4 py-3 hover:bg-accent/50 transition-colors group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                      <Avatar className="h-4 w-4">
+                        {post.community_icon && <AvatarImage src={post.community_icon} />}
+                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                          {post.community_name[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>c/{post.community_name}</span>
+                      <span className="text-muted-foreground/50">·</span>
+                      <span>{formatDistanceToNowStrict(new Date(post.created_at), { addSuffix: false })} ago</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                      {post.title}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-0.5">
+                        <ArrowUp className="w-3 h-3" />
+                        {post.upvotes}
+                      </span>
+                      <span className="flex items-center gap-0.5">
+                        <MessageSquare className="w-3 h-3" />
+                        {post.comment_count}
+                      </span>
+                    </div>
+                  </div>
+                  {img && (
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                      loading="lazy"
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Popular Communities */}
       <div className="rounded-xl border border-border bg-card p-4">
@@ -109,29 +201,44 @@ export const HomeSidebar = () => {
           Popular Communities
         </h3>
         <div className="space-y-1">
-          {communities.map((comm) => (
-            <Link
-              key={comm.id}
-              to={`/c/${comm.name}`}
-              className="flex items-center justify-between p-2 -mx-1 rounded-lg hover:bg-accent/50 transition-colors group"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                  c/{comm.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {comm.members.toLocaleString()} members
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 px-3 text-xs flex-shrink-0 ml-2"
+          {communities.map(comm => {
+            const joined = joinedIds.has(comm.id);
+            return (
+              <div
+                key={comm.id}
+                className="flex items-center justify-between p-2 -mx-1 rounded-lg hover:bg-accent/50 transition-colors"
               >
-                View
-              </Button>
-            </Link>
-          ))}
+                <Link to={`/c/${comm.name}`} className="min-w-0 flex-1 flex items-center gap-2.5">
+                  <Avatar className="h-8 w-8">
+                    {comm.icon && <AvatarImage src={comm.icon} />}
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {comm.name[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      c/{comm.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {comm.member_count.toLocaleString()} members
+                    </p>
+                  </div>
+                </Link>
+                <Button
+                  size="sm"
+                  variant={joined ? "outline" : "default"}
+                  className="h-7 px-3 text-xs flex-shrink-0 ml-2"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!joined) handleJoin(comm.id);
+                  }}
+                  disabled={joined}
+                >
+                  {joined ? 'Joined' : 'Join'}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -144,7 +251,7 @@ export const HomeSidebar = () => {
           <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
           <Link to="/rules" className="hover:text-foreground transition-colors">Rules</Link>
         </div>
-        <p className="text-xs text-muted-foreground/60 mt-2">ama Inc © 2024</p>
+        <p className="text-xs text-muted-foreground/60 mt-2">ama Inc © 2026</p>
       </div>
     </div>
   );

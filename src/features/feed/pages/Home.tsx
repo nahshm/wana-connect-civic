@@ -9,7 +9,6 @@ import { EmptyFeedState } from '@/components/feed/EmptyFeedState';
 import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 import { supabase } from '@/integrations/supabase/client';
 import { HomeSidebar } from '@/components/feed/HomeSidebar';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Index() {
   const { user } = useAuth();
@@ -92,8 +91,6 @@ export default function Index() {
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const handleInteraction = useCallback(() => {}, []);
-
   const handleJoinCommunity = useCallback(async (communityId: string, communityName: string) => {
     if (!user) {
       authModal.open('login');
@@ -116,8 +113,8 @@ export default function Index() {
   }, [user, authModal, toast]);
 
   return (
-    <div className="flex h-full">
-      {/* Feed Column - scrolls naturally with parent SidebarInset */}
+    <div className="flex w-full">
+      {/* Feed Column */}
       <div className="flex-1 min-w-0 px-4 sm:px-6 py-4">
         <div className="max-w-2xl mx-auto">
           <FeedSortBar
@@ -129,7 +126,7 @@ export default function Index() {
 
           <FeedErrorBoundary>
             {isLoading ? (
-              <div className="space-y-3 mt-2">
+              <div className="divide-y divide-border/50">
                 <UnifiedFeedItemSkeleton />
                 <UnifiedFeedItemSkeleton />
                 <UnifiedFeedItemSkeleton />
@@ -137,7 +134,7 @@ export default function Index() {
             ) : feedItems.length === 0 ? (
               <EmptyFeedState />
             ) : (
-              <div className="space-y-3 mt-2">
+              <div className="divide-y divide-border/50">
                 {feedItems.map(item => {
                   const communityId = item.data?.community_id;
                   const isMember = communityId ? memberCommunityIds.has(communityId) : true;
@@ -145,7 +142,6 @@ export default function Index() {
                     <UnifiedFeedItem
                       key={item.id}
                       item={item}
-                      onInteraction={handleInteraction}
                       isMember={isMember}
                       onJoinCommunity={handleJoinCommunity}
                     />
@@ -165,13 +161,11 @@ export default function Index() {
         </div>
       </div>
 
-      {/* Right Sidebar - fixed position, own scroll */}
-      <aside className="hidden xl:flex w-[300px] flex-shrink-0 border-l border-border">
-        <ScrollArea className="h-[calc(100vh-4rem)] w-full">
-          <div className="p-4">
-            <HomeSidebar />
-          </div>
-        </ScrollArea>
+      {/* Right Sidebar — sticky, scrolls independently */}
+      <aside className="hidden xl:block w-[312px] flex-shrink-0">
+        <div className="sticky top-0 max-h-screen overflow-y-auto p-4 space-y-4">
+          <HomeSidebar userId={user?.id} />
+        </div>
       </aside>
     </div>
   );
