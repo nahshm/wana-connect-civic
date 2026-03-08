@@ -213,7 +213,7 @@ export const MyCommunitiesPage = () => {
                             <CommunityTile
                                 key={mod.communities.id}
                                 community={mod.communities}
-                                role="moderator"
+                                
                                 isMod
                             />
                         ))}
