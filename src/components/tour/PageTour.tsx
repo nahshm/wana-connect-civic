@@ -41,13 +41,25 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
 
   const current = steps[step];
 
+  const MAX_HIGHLIGHT_W = 500;
+  const MAX_HIGHLIGHT_H = 400;
+
   const measureTarget = useCallback(() => {
     if (!current?.target) {
       setTargetRect(null);
       return;
     }
-    const el = document.querySelector(`[data-tour="${current.target}"]`);
+    const el = document.querySelector(`[data-tour="${current.target}"]`) as HTMLElement | null;
     if (!el) {
+      setTargetRect(null);
+      return;
+    }
+    // Detect hidden elements (display:none, hidden class, zero size)
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') {
+      setTargetRect(null);
+      return;
+    }
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) {
       setTargetRect(null);
       return;
     }
@@ -56,11 +68,23 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
       const rect = el.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const top = Math.max(0, rect.top);
-      const left = Math.max(0, rect.left);
-      const width = Math.min(rect.right, vw) - left;
-      const height = Math.min(rect.bottom, vh) - top;
-      setTargetRect({ top, left, width: Math.max(0, width), height: Math.max(0, height) });
+      // Clamp to viewport
+      let top = Math.max(0, rect.top);
+      let left = Math.max(0, rect.left);
+      let width = Math.max(0, Math.min(rect.right, vw) - left);
+      let height = Math.max(0, Math.min(rect.bottom, vh) - top);
+      // Cap dimensions — centre the cutout on the element if it's too large
+      if (width > MAX_HIGHLIGHT_W) {
+        const cx = left + width / 2;
+        width = MAX_HIGHLIGHT_W;
+        left = Math.max(0, Math.min(cx - width / 2, vw - width));
+      }
+      if (height > MAX_HIGHLIGHT_H) {
+        const cy = top + height / 2;
+        height = MAX_HIGHLIGHT_H;
+        top = Math.max(0, Math.min(cy - height / 2, vh - height));
+      }
+      setTargetRect({ top, left, width, height });
     });
   }, [current]);
 
@@ -93,38 +117,56 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
   };
 
   const getTooltipStyle = (): React.CSSProperties => {
-    if (isCentered) {
-      return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-    }
+    const centered: React.CSSProperties = { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+    if (isCentered) return centered;
+
     const r = targetRect!;
-    const placement = current.placement || 'right';
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
     const tooltipWidth = 340;
     const gap = 16;
+    const minSideSpace = tooltipWidth + gap + 16;
+
+    // Determine effective placement with fallback
+    let placement = current.placement || 'right';
+    const spaceRight = vw - (r.left + r.width + padding);
+    const spaceLeft = r.left - padding;
+    const spaceBottom = vh - (r.top + r.height + padding);
+
+    if (placement === 'right' && spaceRight < minSideSpace) {
+      placement = spaceLeft >= minSideSpace ? 'left' : spaceBottom >= 200 ? 'bottom' : 'center';
+    } else if (placement === 'left' && spaceLeft < minSideSpace) {
+      placement = spaceRight >= minSideSpace ? 'right' : spaceBottom >= 200 ? 'bottom' : 'center';
+    } else if (placement === 'bottom' && spaceBottom < 200) {
+      placement = spaceRight >= minSideSpace ? 'right' : spaceLeft >= minSideSpace ? 'left' : 'center';
+    }
+
+    if (placement === 'center') return centered;
 
     switch (placement) {
       case 'right':
         return {
           position: 'fixed',
           top: clampTop(r.top + r.height / 2 - 100),
-          left: Math.min(r.left + r.width + gap, window.innerWidth - tooltipWidth - 16),
-          maxWidth: `min(${tooltipWidth}px, calc(100vw - ${r.left + r.width + gap + 16}px))`,
+          left: Math.min(r.left + r.width + padding + gap, vw - tooltipWidth - 16),
+          maxWidth: tooltipWidth,
         };
       case 'left':
         return {
           position: 'fixed',
           top: clampTop(r.top + r.height / 2 - 100),
-          right: `calc(100vw - ${r.left - gap}px)`,
-          maxWidth: `min(${tooltipWidth}px, ${r.left - gap - 16}px)`,
+          left: Math.max(16, r.left - padding - gap - tooltipWidth),
+          maxWidth: tooltipWidth,
         };
       case 'bottom':
         return {
           position: 'fixed',
-          top: clampTop(r.top + r.height + gap),
-          left: Math.max(16, Math.min(r.left + r.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 16)),
+          top: clampTop(r.top + r.height + padding + gap),
+          left: Math.max(16, Math.min(r.left + r.width / 2 - tooltipWidth / 2, vw - tooltipWidth - 16)),
           maxWidth: tooltipWidth,
         };
       default:
-        return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+        return centered;
     }
   };
 
