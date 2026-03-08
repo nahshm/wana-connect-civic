@@ -73,7 +73,7 @@ function GuestFeed() {
     isError,
     error
   } = useUnifiedFeed({ 
-    userId: user?.id,
+    userId: undefined,
     limit: 10,
     sortBy 
   });
