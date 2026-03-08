@@ -339,20 +339,24 @@ const Community = () => {
               </div>
             </div>
           ) : activeChannelId === 'virtual-events' ? (
-            <div className="p-4 md:p-8 max-w-3xl mx-auto h-full flex flex-col">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">📅 Upcoming Events</h2>
-                <p className="text-muted-foreground">Join or schedule civic events in your community.</p>
+            <div className="flex-1 overflow-auto h-full">
+              <div className="p-4 md:p-8 max-w-3xl mx-auto">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold mb-2">📅 Upcoming Events</h2>
+                  <p className="text-muted-foreground">Join or schedule civic events in your community.</p>
+                </div>
+                <CommunityEventsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
               </div>
-              <CommunityEventsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
             </div>
           ) : activeChannelId === 'virtual-polls' ? (
-             <div className="p-4 md:p-8 max-w-3xl mx-auto h-full flex flex-col">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">📊 Active Polls</h2>
-                <p className="text-muted-foreground">Have your voice heard on important civic matters.</p>
+            <div className="flex-1 overflow-auto h-full">
+              <div className="p-4 md:p-8 max-w-3xl mx-auto">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold mb-2">📊 Active Polls</h2>
+                  <p className="text-muted-foreground">Have your voice heard on important civic matters.</p>
+                </div>
+                <CommunityPollsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
               </div>
-              <CommunityPollsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
             </div>
           ) : (
             <ChannelContent
