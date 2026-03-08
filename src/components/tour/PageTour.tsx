@@ -54,7 +54,13 @@ export const PageTour: React.FC<PageTourProps> = ({ tourKey, steps, userId }) =>
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     requestAnimationFrame(() => {
       const rect = el.getBoundingClientRect();
-      setTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const top = Math.max(0, rect.top);
+      const left = Math.max(0, rect.left);
+      const width = Math.min(rect.right, vw) - left;
+      const height = Math.min(rect.bottom, vh) - top;
+      setTargetRect({ top, left, width: Math.max(0, width), height: Math.max(0, height) });
     });
   }, [current]);
 
