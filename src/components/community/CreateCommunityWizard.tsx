@@ -3,9 +3,9 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
-import { Step1_CommunityType } from './steps/Step1_CommunityType';
+import { Step1_Topic } from './steps/Step1_Topic';
 import { Step2_NameDescription } from './steps/Step2_NameDescription';
-import { Step3_Styling } from './steps/Step3_Styling';
+import { Step3_CommunityType } from './steps/Step3_CommunityType';
 import { CommunityPreview } from './CommunityPreview';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,10 +21,19 @@ interface CommunityData {
     is_mature: boolean;
     banner_url: string;
     avatar_url: string;
-    rules?: string;
-    moderation_type?: 'admin' | 'elected' | 'community';
-    tags?: string[];
 }
+
+const INITIAL_DATA: CommunityData = {
+    name: '',
+    description: '',
+    category: '',
+    visibility_type: 'public',
+    is_mature: false,
+    banner_url: '',
+    avatar_url: '',
+};
+
+const MAX_STEPS = 3;
 
 interface CreateCommunityWizardProps {
     isOpen: boolean;
@@ -39,92 +48,66 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
 
     const [step, setStep] = useState(1);
     const [isCreating, setIsCreating] = useState(false);
-    const [communityData, setCommunityData] = useState<CommunityData>({
-        name: '',
-        description: '',
-        category: 'discussion',
-        visibility_type: 'public',
-        is_mature: false,
-        banner_url: '',
-        avatar_url: '',
-        rules: '',
-        moderation_type: 'admin',
-        tags: []
-    });
+    const [data, setData] = useState<CommunityData>(INITIAL_DATA);
 
-    const MAX_STEPS = 3;
+    const canProceed = () => {
+        if (step === 1) return !!data.category;
+        if (step === 2) return !!data.name.trim() && !!data.description.trim();
+        return true;
+    };
 
     const handleNext = () => {
-        if (step === 2) {
-            if (!communityData.name.trim()) {
-                toast({
-                    title: "Name required",
-                    description: "Please enter a community name",
-                    variant: "destructive"
-                });
-                return;
-            }
-            if (!communityData.description.trim()) {
-                toast({
-                    title: "Description required",
-                    description: "Please enter a community description",
-                    variant: "destructive"
-                });
-                return;
-            }
+        if (!canProceed()) {
+            const messages: Record<number, { title: string; description: string }> = {
+                1: { title: 'Topic required', description: 'Please select a topic for your community' },
+                2: { title: 'Details required', description: 'Please enter a name and description' },
+            };
+            const msg = messages[step];
+            if (msg) toast({ ...msg, variant: 'destructive' });
+            return;
         }
-
-        if (step < MAX_STEPS) {
-            setStep(s => s + 1);
-        }
+        if (step < MAX_STEPS) setStep(s => s + 1);
     };
 
     const handleBack = () => {
-        if (step > 1) {
-            setStep(s => s - 1);
-        }
+        if (step > 1) setStep(s => s - 1);
     };
 
-    const handleCreateCommunity = async () => {
+    const handleCreate = async () => {
         if (!user) {
             authModal.open('login');
             return;
         }
 
         setIsCreating(true);
-
         try {
-            const { data: community, error: communityError } = await supabase
+            const { error } = await supabase
                 .from('communities')
                 .insert({
-                    name: communityData.name,
-                    display_name: communityData.name.charAt(0).toUpperCase() + communityData.name.slice(1),
-                    description: communityData.description,
-                    category: communityData.category,
-                    visibility_type: communityData.visibility_type,
-                    is_mature: communityData.is_mature,
-                    banner_url: communityData.banner_url || null,
-                    avatar_url: communityData.avatar_url || null,
+                    name: data.name,
+                    display_name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
+                    description: data.description,
+                    category: data.category,
+                    visibility_type: data.visibility_type,
+                    is_mature: data.is_mature,
+                    banner_url: data.banner_url || null,
+                    avatar_url: data.avatar_url || null,
                     created_by: user.id
                 })
                 .select()
                 .single();
 
-            if (communityError) throw communityError;
+            if (error) throw error;
 
-            toast({
-                title: "Success!",
-                description: `c/${communityData.name} has been created`
-            });
-
-            onClose();
-            navigate(`/community/${communityData.name}`);
+            toast({ title: 'Success!', description: `c/${data.name} has been created` });
+            handleClose();
+            navigate(`/community/${data.name}`);
         } catch (error: any) {
             console.error('Error creating community:', error);
             toast({
-                title: "Error",
-                description: error.message || "Failed to create community",
-                variant: "destructive"
+                title: 'Error',
+                description: error.message || 'Failed to create community',
+                variant: 'destructive'
             });
         } finally {
             setIsCreating(false);
@@ -132,29 +115,19 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
     };
 
     const handleClose = () => {
-        if (!isCreating) {
-            onClose();
-            setTimeout(() => {
-                setStep(1);
-                setCommunityData({
-                    name: '',
-                    description: '',
-                    category: 'discussion',
-                    visibility_type: 'public',
-                    is_mature: false,
-                    banner_url: '',
-                    avatar_url: '',
-                    rules: '',
-                    moderation_type: 'admin',
-                    tags: []
-                });
-            }, 300);
-        }
+        if (isCreating) return;
+        onClose();
+        setTimeout(() => {
+            setStep(1);
+            setData(INITIAL_DATA);
+        }, 300);
     };
+
+    const showPreview = step === 2 && (data.name || data.description);
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="max-w-4xl max-h-[80vh] p-0 gap-0">
+            <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden">
                 <DialogTitle className="sr-only">Create Community</DialogTitle>
                 <DialogDescription className="sr-only">
                     Create a new community in 3 steps
@@ -162,66 +135,90 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
 
                 <button
                     onClick={handleClose}
-                    className="absolute right-4 top-4 z-50 rounded-sm opacity-70 hover:opacity-100"
+                    className="absolute right-4 top-4 z-50 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
                 >
-                    <X className="h-5 w-5" />
+                    <X className="h-4 w-4" />
                 </button>
 
-                <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] h-full max-h-[80vh]">
-                    {/* Preview - Top on mobile, Right on desktop */}
-                    <div className="bg-muted/20 p-3 border-b lg:border-b-0 lg:border-l lg:order-2 overflow-y-auto max-h-[200px] lg:max-h-none">
-                        <CommunityPreview data={communityData} />
-                    </div>
+                <div className="flex flex-col max-h-[80vh]">
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className={cn(
+                            step === 2 && showPreview ? "grid grid-cols-[1fr_200px] gap-5" : ""
+                        )}>
+                            <div>
+                                {step === 1 && (
+                                    <Step1_Topic
+                                        value={data.category}
+                                        onChange={(category) => setData(prev => ({ ...prev, category }))}
+                                    />
+                                )}
+                                {step === 2 && (
+                                    <Step2_NameDescription
+                                        data={data}
+                                        onChange={setData}
+                                    />
+                                )}
+                                {step === 3 && (
+                                    <Step3_CommunityType
+                                        value={data.visibility_type}
+                                        isMature={data.is_mature}
+                                        onChange={(type) => setData(prev => ({ ...prev, visibility_type: type }))}
+                                        onMatureChange={(mature) => setData(prev => ({ ...prev, is_mature: mature }))}
+                                    />
+                                )}
+                            </div>
 
-                    {/* Form Content - Bottom on mobile, Left on desktop */}
-                    <div className="flex flex-col p-4 overflow-y-auto lg:order-1">
-                        <div className="flex-1">
-                            {step === 1 && (
-                                <Step1_CommunityType
-                                    value={communityData.visibility_type}
-                                    isMature={communityData.is_mature}
-                                    onChange={(type) => setCommunityData(prev => ({ ...prev, visibility_type: type }))}
-                                    onMatureChange={(mature) => setCommunityData(prev => ({ ...prev, is_mature: mature }))}
-                                />
-                            )}
-                            {step === 2 && (
-                                <Step2_NameDescription
-                                    data={communityData}
-                                    onChange={setCommunityData}
-                                />
-                            )}
-                            {step === 3 && (
-                                <Step3_Styling
-                                    data={communityData}
-                                    onChange={setCommunityData}
-                                />
+                            {step === 2 && showPreview && (
+                                <div className="hidden sm:block">
+                                    <CommunityPreview data={data} />
+                                </div>
                             )}
                         </div>
+                    </div>
 
-                        {/* Navigation */}
-                        <div className="mt-auto pt-4 border-t">
-                            <div className="flex justify-center gap-2 mb-4">
+                    {/* Footer */}
+                    <div className="border-t px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            {/* Step dots */}
+                            <div className="flex gap-1.5">
                                 {[1, 2, 3].map((i) => (
                                     <div
                                         key={i}
                                         className={cn(
-                                            "w-2 h-2 rounded-full",
+                                            "w-2 h-2 rounded-full transition-colors",
                                             i === step ? "bg-primary" :
-                                                i < step ? "bg-primary/50" : "bg-muted"
+                                                i < step ? "bg-primary/50" : "bg-muted-foreground/25"
                                         )}
                                     />
                                 ))}
                             </div>
 
-                            <div className="flex justify-between">
-                                <Button variant="ghost" onClick={handleBack} disabled={step === 1 || isCreating}>
-                                    Back
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={step === 1 ? handleClose : handleBack}
+                                    disabled={isCreating}
+                                    size="sm"
+                                >
+                                    {step === 1 ? 'Cancel' : 'Back'}
                                 </Button>
                                 {step < MAX_STEPS ? (
-                                    <Button onClick={handleNext} disabled={isCreating}>Next</Button>
+                                    <Button
+                                        onClick={handleNext}
+                                        disabled={!canProceed() || isCreating}
+                                        size="sm"
+                                    >
+                                        Next
+                                    </Button>
                                 ) : (
-                                    <Button onClick={handleCreateCommunity} disabled={isCreating}>
-                                        {isCreating ? 'Creating...' : 'Create'}
+                                    <Button
+                                        onClick={handleCreate}
+                                        disabled={isCreating}
+                                        size="sm"
+                                    >
+                                        {isCreating ? 'Creating...' : 'Create Community'}
                                     </Button>
                                 )}
                             </div>
