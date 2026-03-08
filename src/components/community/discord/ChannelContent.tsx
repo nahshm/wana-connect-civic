@@ -213,7 +213,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 5. FEED CHANNELS — Use unified feed with sort/infinite scroll
     if (channel?.type === 'feed' && communityId) {
-        return <div className="flex-1 overflow-auto h-full"><CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} /></div>;
+        return <ScrollArea className="flex-1"><CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} /></ScrollArea>;
     }
 
     // 6. FALLBACK: POST FEED (Legacy)
