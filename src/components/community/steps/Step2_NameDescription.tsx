@@ -35,12 +35,14 @@ export const Step2_NameDescription = ({ data, onChange }: Step2Props) => {
                         id="community-name"
                         value={data.name}
                         onChange={(e) => {
-                            const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                            onChange({ ...data, name: value });
+                            const value = e.target.value.replace(/[^a-zA-Z0-9 _]/g, '');
+                            if (value.length <= MAX_NAME_LENGTH) {
+                                onChange({ ...data, name: value });
+                            }
                         }}
                         maxLength={MAX_NAME_LENGTH}
                         className="pl-7 h-11 bg-muted/50 border-border"
-                        placeholder="communityname"
+                        placeholder="Business Art"
                     />
                 </div>
                 <p className="text-xs text-muted-foreground text-right">
