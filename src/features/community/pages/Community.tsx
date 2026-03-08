@@ -262,7 +262,7 @@ const Community = () => {
 
   return (
     <div className="h-full bg-background overflow-hidden">
-      <div className="flex h-full w-full overflow-hidden bg-background relative">
+      <div className="flex h-full w-full overflow-hidden bg-background relative min-h-0">
 
         {/* Mobile Backdrop */}
         {mobileMenuOpen && (
@@ -274,9 +274,9 @@ const Community = () => {
 
         {/* Left Navigation (Level Rail + Channel List) */}
         <div className={`
-          flex h-full z-40 transition-transform duration-300 ease-in-out bg-background
-          md:relative md:translate-x-0 md:flex-shrink-0
-          absolute inset-y-0 left-0 shadow-2xl md:shadow-none
+          flex h-full min-h-0 transition-transform duration-300 ease-in-out bg-background
+          md:relative md:translate-x-0 md:flex-shrink-0 md:z-0
+          absolute inset-y-0 left-0 z-40 shadow-2xl md:shadow-none
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           max-w-[300px] md:max-w-none
         `}>
@@ -299,7 +299,7 @@ const Community = () => {
         </div>
 
         {/* Main Content Area - overflow-hidden so child components manage their own scroll */}
-        <div data-tour="tour-main-content" className="flex-1 flex flex-col overflow-hidden bg-background">
+        <div data-tour="tour-main-content" className="flex-1 flex flex-col overflow-hidden bg-background min-h-0 min-w-0">
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
             <button

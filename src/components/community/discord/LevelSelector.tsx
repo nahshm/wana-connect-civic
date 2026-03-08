@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 interface Level {
@@ -36,7 +37,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ levels }) => {
     };
 
     return (
-        <div data-tour="tour-level-selector" className="w-14 min-w-14 md:w-[60px] bg-sidebar-background flex flex-col items-center py-4 space-y-3 border-r border-sidebar-border flex-shrink-0">
+        <div data-tour="tour-level-selector" className="w-14 min-w-14 md:w-[60px] bg-sidebar-background flex flex-col border-r border-sidebar-border flex-shrink-0 h-full min-h-0 overflow-hidden">
+          <ScrollArea className="flex-1">
+            <div className="flex flex-col items-center py-4 space-y-3">
             {levels.map((level) => {
                 if (level.type === 'SEPARATOR') {
                     return (
@@ -91,6 +94,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ levels }) => {
                     </div>
                 );
             })}
+            </div>
+          </ScrollArea>
         </div>
     );
 };
