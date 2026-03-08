@@ -49,7 +49,7 @@ const PostDetail = () => {
           .select(`
             *,
             profiles!posts_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
-            communities!posts_community_id_fkey (id, name, display_name, description, member_count, category),
+            communities!posts_community_id_fkey (id, name, display_name, description, member_count, category, type),
             officials!posts_official_id_fkey (id, name, position),
             post_media!post_media_post_id_fkey (*)
           `)
@@ -98,6 +98,7 @@ const PostDetail = () => {
             description: postData.communities.description || '',
             memberCount: postData.communities.member_count || 0,
             category: postData.communities.category as 'governance' | 'civic-education' | 'accountability' | 'discussion',
+            type: postData.communities.type as 'location' | 'interest' | undefined,
           } : undefined,
           upvotes: postData.upvotes || 0,
           downvotes: postData.downvotes || 0,
