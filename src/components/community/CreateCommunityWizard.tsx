@@ -99,9 +99,10 @@ export const CreateCommunityWizard = ({ isOpen, onClose }: CreateCommunityWizard
 
             if (error) throw error;
 
+            const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
             toast({ title: 'Success!', description: `c/${data.name} has been created` });
             handleClose();
-            navigate(`/community/${data.name}`);
+            navigate(`/community/${slug}`);
         } catch (error: any) {
             console.error('Error creating community:', error);
             toast({
