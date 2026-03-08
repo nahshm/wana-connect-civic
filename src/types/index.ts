@@ -5,7 +5,7 @@ export interface Community {
   description: string;
   descriptionHtml?: string;
   memberCount: number;
-  category: 'governance' | 'civic-education' | 'accountability' | 'discussion';
+  category: 'governance' | 'civic-education' | 'accountability' | 'discussion' | 'education' | 'healthcare' | 'infrastructure' | 'environment' | 'security' | 'economic-empowerment' | 'youth' | 'women-rights' | 'ngo' | 'community-org' | 'sports';
   type?: 'location' | 'interest';
   locationType?: 'ward' | 'constituency' | 'county' | 'national';
   locationValue?: string;
