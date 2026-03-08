@@ -73,7 +73,7 @@ export const MyCommunitiesPage = () => {
 
     // Split into tier (location) vs interest communities
     const tierCommunities = (memberCommunities || [])
-        .filter((m) => m.communities?.type === 'location' || m.communities?.category === 'location')
+        .filter((m) => m.communities?.type === 'location')
         .sort((a, b) => {
             const aOrder = TIER_ORDER[a.communities?.location_type || ''] ?? 99;
             const bOrder = TIER_ORDER[b.communities?.location_type || ''] ?? 99;
