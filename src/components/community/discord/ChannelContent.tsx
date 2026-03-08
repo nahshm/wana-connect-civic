@@ -195,7 +195,7 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
 
     // 3. VIDEO CHANNELS (Baraza — Coming Soon)
     if (channel?.type === 'video') {
-        return <BarazaPlaceholder channelName={channel.name} />;
+        return <div className="flex-1 overflow-auto h-full"><BarazaPlaceholder channelName={channel.name} /></div>;
     }
 
     // 4. CHAT CHANNELS (Text/Voice/Announcement)
