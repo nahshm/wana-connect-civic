@@ -94,6 +94,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ levels }) => {
                     </div>
                 );
             })}
+            </div>
+          </ScrollArea>
         </div>
     );
 };

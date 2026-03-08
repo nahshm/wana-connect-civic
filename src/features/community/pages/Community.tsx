@@ -299,7 +299,7 @@ const Community = () => {
         </div>
 
         {/* Main Content Area - overflow-hidden so child components manage their own scroll */}
-        <div data-tour="tour-main-content" className="flex-1 flex flex-col overflow-hidden bg-background">
+        <div data-tour="tour-main-content" className="flex-1 flex flex-col overflow-hidden bg-background min-h-0 min-w-0">
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center justify-between p-4 border-b border-border">
             <button
