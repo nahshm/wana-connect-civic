@@ -206,7 +206,7 @@ function BadgesSubTab() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-sm">{badge.display_name}</h4>
+                      <h4 className="font-medium text-sm">{badge.name}</h4>
                       <div className="text-xs text-muted-foreground">{badge.category}</div>
                     </div>
                   </div>
