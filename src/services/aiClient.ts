@@ -25,6 +25,9 @@ export interface RoutingResult {
   recommended_actions: string[];
   formal_letter: string;
   processing_time_ms: number;
+  // Legacy compat fields used by ReportIssue.tsx
+  department_name?: string;
+  estimated_resolution_days?: number;
 }
 
 export interface Source {
