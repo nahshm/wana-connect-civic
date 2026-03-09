@@ -198,7 +198,8 @@ async function handleProposal(
   groqApiKey: string,
   proposal: Proposal,
   autoApproveThreshold: number,
-  humanEscalationThreshold: number
+  humanEscalationThreshold: number,
+  promptOverride?: string | null
 ): Promise<"approved" | "rejected" | "escalated"> {
 
   const guardianConfidence = proposal.confidence ?? 0;
