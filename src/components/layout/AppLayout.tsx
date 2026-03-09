@@ -24,7 +24,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           (isCommunityPage || isCivicAssistant) ? "overflow-hidden" : "overflow-auto"
         )}>
           {isCivicAssistant ? (
-            <div className="relative h-full w-full overflow-hidden">
+            <div className="relative h-full min-h-0 w-full overflow-hidden">
               {children}
             </div>
           ) : (
