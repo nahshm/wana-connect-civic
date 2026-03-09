@@ -2,16 +2,27 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Users, Shield, UserCheck, Search, Eye, Loader2,
-  CheckCircle, XCircle, Clock, Building, MapPin, Calendar, FileText
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Users, Shield, UserCheck, Search, Loader2,
+  CheckCircle, XCircle, Clock, Building, MapPin, Calendar, FileText,
+  ChevronDown, ChevronRight, ShieldAlert, UserPlus, AlertTriangle, Ban
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Constants } from '@/integrations/supabase/types';
+
+const APP_ROLES = Constants.public.Enums.app_role;
 
 export default function PeopleSection() {
   return (
@@ -29,14 +40,22 @@ export default function PeopleSection() {
   );
 }
 
+// ────────────────────── Users ──────────────────────
 function UsersSubTab() {
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [roleToAssign, setRoleToAssign] = useState<string>('');
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 30;
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['admin-users', searchTerm],
+    queryKey: ['admin-users', searchTerm, page],
     queryFn: async () => {
-      let q = supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(50);
+      let q = supabase.from('profiles').select('*').order('created_at', { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (searchTerm) {
         q = q.or(`display_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
       }
@@ -46,23 +65,80 @@ function UsersSubTab() {
     },
   });
 
-  const { data: userRoles } = useQuery({
+  const { data: userRoles, refetch: refetchRoles } = useQuery({
     queryKey: ['admin-user-roles'],
     queryFn: async () => {
-      const { data } = await supabase.from('user_roles').select('user_id, role');
-      const map: Record<string, string[]> = {};
+      const { data } = await supabase.from('user_roles').select('id, user_id, role');
+      const map: Record<string, Array<{ id: string; role: string }>> = {};
       (data || []).forEach(r => {
         if (!map[r.user_id]) map[r.user_id] = [];
-        map[r.user_id].push(r.role);
+        map[r.user_id].push({ id: r.id, role: r.role });
       });
       return map;
     },
   });
 
-  const handleSearch = () => setSearchTerm(searchQuery);
+  const { data: userWarnings } = useQuery({
+    queryKey: ['admin-user-warnings-count'],
+    queryFn: async () => {
+      const { data } = await supabase.from('user_warnings')
+        .select('user_id, severity');
+      const map: Record<string, number> = {};
+      (data || []).forEach(w => { map[w.user_id] = (map[w.user_id] || 0) + 1; });
+      return map;
+    },
+  });
+
+  const assignRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { error } = await supabase.from('user_roles').insert({
+        user_id: userId,
+        role: role as any,
+        assigned_by: currentUser?.id || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Role assigned');
+      refetchRoles();
+      setRoleToAssign('');
+    },
+    onError: (err: any) => toast.error(err.message?.includes('duplicate') ? 'User already has this role' : 'Failed to assign role'),
+  });
+
+  const revokeRoleMutation = useMutation({
+    mutationFn: async (roleRecordId: string) => {
+      const { error } = await supabase.from('user_roles').delete().eq('id', roleRecordId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success('Role revoked'); refetchRoles(); },
+    onError: () => toast.error('Failed to revoke role'),
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      const { error } = await supabase.from('user_warnings').insert({
+        user_id: userId,
+        issued_by: 'admin',
+        reason,
+        severity: 'temp_ban',
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('User suspended (temp_ban warning issued)');
+      queryClient.invalidateQueries({ queryKey: ['admin-user-warnings-count'] });
+    },
+    onError: () => toast.error('Failed to suspend user'),
+  });
+
+  const handleSearch = () => { setSearchTerm(searchQuery); setPage(0); };
+
+  const totalUsers = users?.length || 0;
 
   return (
     <div className="space-y-4">
+      {/* Search */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -79,7 +155,14 @@ function UsersSubTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Users ({users?.length || 0})</CardTitle>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Users ({totalUsers}{totalUsers >= PAGE_SIZE ? '+' : ''})</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Previous</Button>
+              <span className="text-sm text-muted-foreground self-center">Page {page + 1}</span>
+              <Button size="sm" variant="outline" disabled={totalUsers < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>Next</Button>
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -90,25 +173,121 @@ function UsersSubTab() {
             <div className="space-y-2">
               {users.map(user => {
                 const roles = userRoles?.[user.id] || [];
+                const warningCount = userWarnings?.[user.id] || 0;
+                const isExpanded = expandedUserId === user.id;
+
                 return (
-                  <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold">
-                        {user.display_name?.[0]?.toUpperCase() || 'U'}
+                  <div key={user.id} className="border rounded-lg overflow-hidden">
+                    {/* Main row */}
+                    <div
+                      className="flex items-center justify-between p-3 bg-muted/40 hover:bg-muted/70 transition-colors cursor-pointer"
+                      onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold">
+                          {user.display_name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">{user.display_name || user.username || 'Unknown'}</div>
+                          <div className="text-xs text-muted-foreground">@{user.username || user.id.slice(0, 8)}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-sm">{user.display_name || user.username || 'Unknown'}</div>
-                        <div className="text-xs text-muted-foreground">@{user.username || user.id.slice(0, 8)}</div>
+                      <div className="flex items-center gap-2">
+                        {warningCount > 0 && (
+                          <Badge variant="destructive" className="text-xs gap-1">
+                            <AlertTriangle className="w-3 h-3" />{warningCount}
+                          </Badge>
+                        )}
+                        {roles.map(r => (
+                          <Badge key={r.id} variant={r.role === 'super_admin' ? 'destructive' : r.role === 'admin' ? 'default' : 'outline'} className="text-xs">
+                            {r.role}
+                          </Badge>
+                        ))}
+                        {user.is_verified && <Badge className="text-xs bg-green-600 text-white">Verified</Badge>}
+                        {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {roles.map(r => (
-                        <Badge key={r} variant={r === 'super_admin' ? 'destructive' : r === 'admin' ? 'default' : 'outline'} className="text-xs">
-                          {r}
-                        </Badge>
-                      ))}
-                      {user.is_verified && <Badge className="text-xs bg-green-600">Verified</Badge>}
-                    </div>
+
+                    {/* Expanded detail */}
+                    {isExpanded && (
+                      <div className="p-4 border-t bg-background space-y-4">
+                        {/* Info grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground text-xs">User ID</span>
+                            <p className="font-mono text-xs truncate">{user.id}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-xs">Joined</span>
+                            <p className="text-xs">{new Date(user.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-xs">County</span>
+                            <p className="text-xs">{user.county || 'Not set'}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-xs">Warnings</span>
+                            <p className="text-xs">{warningCount} total</p>
+                          </div>
+                        </div>
+
+                        {/* Role management */}
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium flex items-center gap-1.5"><ShieldAlert className="w-4 h-4" />Role Management</h4>
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {roles.length > 0 ? roles.map(r => (
+                              <div key={r.id} className="flex items-center gap-1">
+                                <Badge variant="secondary" className="text-xs">{r.role}</Badge>
+                                <button
+                                  onClick={() => revokeRoleMutation.mutate(r.id)}
+                                  className="text-destructive hover:text-destructive/80 transition-colors"
+                                  title="Revoke role"
+                                  disabled={revokeRoleMutation.isPending}
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )) : <span className="text-xs text-muted-foreground">No roles assigned</span>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Select value={roleToAssign} onValueChange={setRoleToAssign}>
+                              <SelectTrigger className="w-48 h-8 text-xs">
+                                <SelectValue placeholder="Select role to assign" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {APP_ROLES.map(role => (
+                                  <SelectItem key={role} value={role} className="text-xs">{role}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1"
+                              disabled={!roleToAssign || assignRoleMutation.isPending}
+                              onClick={() => assignRoleMutation.mutate({ userId: user.id, role: roleToAssign })}
+                            >
+                              <UserPlus className="w-3.5 h-3.5" />Assign
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-destructive border-destructive hover:bg-destructive/10"
+                            disabled={suspendMutation.isPending}
+                            onClick={() => {
+                              const reason = prompt('Suspension reason:');
+                              if (reason) suspendMutation.mutate({ userId: user.id, reason });
+                            }}
+                          >
+                            <Ban className="w-3.5 h-3.5" />Suspend
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -120,6 +299,7 @@ function UsersSubTab() {
   );
 }
 
+// ────────────────────── Moderators ──────────────────────
 function ModeratorsSubTab() {
   const { data: moderators, isLoading } = useQuery({
     queryKey: ['admin-moderators'],
@@ -175,6 +355,7 @@ function ModeratorsSubTab() {
   );
 }
 
+// ────────────────────── Officials & Verification ──────────────────────
 function OfficialsSubTab() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -244,7 +425,6 @@ function OfficialsSubTab() {
 
   return (
     <div className="space-y-4">
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <Card><CardContent className="p-4">
           <Clock className="text-orange-500 mb-1 w-5 h-5" />
@@ -263,7 +443,6 @@ function OfficialsSubTab() {
         </CardContent></Card>
       </div>
 
-      {/* View toggle */}
       <div className="flex gap-2">
         {(['pending', 'verified', 'all'] as const).map(v => (
           <Button key={v} size="sm" variant={activeView === v ? 'default' : 'outline'} onClick={() => setActiveView(v)} className="capitalize gap-1.5">
@@ -275,7 +454,6 @@ function OfficialsSubTab() {
         ))}
       </div>
 
-      {/* Claims list */}
       <Card>
         <CardContent className="pt-6">
           {isLoading ? (
