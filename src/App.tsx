@@ -68,7 +68,6 @@ const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingFlow = lazy(() => import("./pages/Onboarding/OnboardingFlow"));
-const WelcomeDashboard = lazy(() => import("./pages/Onboarding/WelcomeDashboard"));
 const ProfileSetup = lazy(() => import("@/components/onboarding/ProfileSetup").then(m => ({ default: m.ProfileSetup })));
 const CivicDashboard = lazy(() => import("./pages/Dashboard/CivicDashboard"));
 const Analytics = lazy(() => import("./pages/Dashboard/Analytics"));
@@ -108,7 +107,6 @@ const App = () => (
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/onboarding" element={<OnboardingFlow />} />
-                    <Route path="/welcome" element={<WelcomeDashboard />} />
                     <Route path="/civic-clips" element={<CivicClipsPage />} />
                     <Route path="/*" element={
                       <AppLayout>

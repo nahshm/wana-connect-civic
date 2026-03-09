@@ -186,7 +186,7 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
 
       await refreshProfile();
       toast.success('Welcome to ama! 🎉');
-      navigate('/welcome');
+      navigate('/my-communities');
     } catch (error) {
       console.error('Error completing onboarding:', error);
       toast.error('Failed to complete onboarding');
