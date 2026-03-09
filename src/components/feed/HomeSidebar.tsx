@@ -146,7 +146,7 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
 
   const thumbUrl = (post: RecentPost) => {
     if (post.thumbnail) {
-      const { data } = supabase.storage.from('post-media').getPublicUrl(post.thumbnail);
+      const { data } = supabase.storage.from('media').getPublicUrl(post.thumbnail);
       return data?.publicUrl || null;
     }
     return post.link_image || null;
