@@ -73,7 +73,7 @@ function QuestsSubTab() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Quest Management</h3>
         <div className="flex gap-2">
-          {(['all', 'active', 'completed', 'draft'] as const).map(f => (
+          {(['all', 'active'] as const).map(f => (
             <Button
               key={f}
               size="sm"
