@@ -980,5 +980,7 @@ export const PostCard = ({
           </div>
         </div>
       </div>
-    </article>;
+    </article>
+    <GlassLightbox src={lightboxSrc} alt="Post image" onClose={() => setLightboxSrc(null)} />
+  </>;
 };
