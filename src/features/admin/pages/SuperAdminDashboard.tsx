@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Activity, Users, Flag, Bot, Settings, Shield,
-  Map, Brain, Server, ShieldAlert, Bell, AlertTriangle
+  Map, Brain, Server, ShieldAlert, Bell, AlertTriangle,
+  FolderKanban, Trophy
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,6 +18,8 @@ import GovernanceSection from './components/GovernanceSection';
 import AICommandSection from './components/AICommandSection';
 import PlatformSection from './components/PlatformSection';
 import SystemSection from './components/SystemSection';
+import AccountabilitySection from './components/AccountabilitySection';
+import EngagementSection from './components/EngagementSection';
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: Activity },
@@ -24,6 +27,8 @@ const sections = [
   { id: 'content', label: 'Content', icon: Flag },
   { id: 'governance', label: 'Governance', icon: Map },
   { id: 'ai-command', label: 'AI Command', icon: Bot },
+  { id: 'accountability', label: 'Accountability', icon: FolderKanban },
+  { id: 'engagement', label: 'Engagement', icon: Trophy },
   { id: 'platform', label: 'Platform', icon: Settings },
   { id: 'system', label: 'System', icon: Server },
 ];
