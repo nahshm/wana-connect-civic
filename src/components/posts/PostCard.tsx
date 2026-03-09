@@ -454,7 +454,8 @@ export const PostCard = ({
             src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
             alt="Post media"
             loading="lazy"
-            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md rounded-xl transition-transform duration-500 group-hover:scale-[1.01]" /> :
+            onClick={(e) => { e.stopPropagation(); setLightboxSrc(supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl); }}
+            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md rounded-xl transition-transform duration-500 group-hover:scale-[1.01] cursor-zoom-in" /> :
 
           post.media[0].file_type?.startsWith('video/') ?
           <div className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
@@ -471,12 +472,17 @@ export const PostCard = ({
                         </svg>
                       </div>
                     </div>}
-                </div> :
+              </div> :
           null}
             </div>
           </div> : <div className="grid grid-cols-2 gap-2">
             {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-xl overflow-hidden border border-sidebar-border relative">
-                {media.file_type?.startsWith('image/') ? <img src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} alt={`Post media ${index + 1}`} loading="lazy" className="w-full h-32 object-cover rounded-xl" /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer h-full" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
+                {media.file_type?.startsWith('image/') ? <img
+                  src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
+                  alt={`Post media ${index + 1}`}
+                  loading="lazy"
+                  onClick={(e) => { e.stopPropagation(); setLightboxSrc(supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl); }}
+                  className="w-full h-32 object-cover rounded-xl cursor-zoom-in" /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer h-full" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
                     <video ref={index === 0 ? secondVideoRef : undefined} src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} className="w-full h-32 object-cover rounded-xl" playsInline />
                     {index === 0 && !isSecondPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="bg-white/90 rounded-full p-2">
