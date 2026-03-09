@@ -186,11 +186,7 @@ function PromisesSubTab() {
     queryFn: async () => {
       let query = supabase
         .from('office_promises')
-        .select(`
-          *,
-          officials(display_name, position_title),
-          offices(title, governance_level)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -241,7 +237,7 @@ function PromisesSubTab() {
                   <div className="flex-1">
                     <h4 className="font-medium text-sm mb-1">{promise.title}</h4>
                     <div className="text-xs text-muted-foreground mb-2">
-                      By {promise.officials?.display_name} • {promise.offices?.title}
+                      {promise.description || 'No description'}
                     </div>
                     <Badge
                       variant={
@@ -250,7 +246,7 @@ function PromisesSubTab() {
                       }
                       className="text-xs"
                     >
-                      {promise.status}
+                      {promise.status || 'pending'}
                     </Badge>
                   </div>
                 </div>
