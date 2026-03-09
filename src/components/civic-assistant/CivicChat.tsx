@@ -247,7 +247,7 @@ export function CivicChat() {
   // ── Welcome Screen ──
   if (view === 'welcome') {
     return (
-      <div className="flex-1 flex flex-col items-center pt-12 md:pt-20 px-4 pb-8 overflow-auto">
+      <div className="h-full flex flex-col items-center pt-12 md:pt-20 px-4 pb-8 overflow-auto">
         {/* Top bar */}
         <div className="w-full max-w-2xl flex items-center justify-between mb-8">
           <LanguageToggle />
