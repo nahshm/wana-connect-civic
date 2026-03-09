@@ -87,13 +87,7 @@ export function MessageMedia({ urls, mediaType }: MessageMediaProps) {
         })}
       </div>
 
-      <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
-        <DialogContent className="max-w-4xl p-2">
-          {lightboxUrl && (
-            <img src={lightboxUrl} alt="Full size" className="w-full h-auto rounded" />
-          )}
-        </DialogContent>
-      </Dialog>
+      <GlassLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </>
   );
 }
