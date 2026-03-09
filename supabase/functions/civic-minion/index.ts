@@ -108,6 +108,9 @@ Deno.serve(async (req: Request) => {
     const humanEscalationThreshold =
       (await getAgentState(serviceClient, AGENT_NAME, "human_escalation_threshold") as number) ?? 0.70;
 
+    // ── Load prompt override ─────────────────────────────────────────────────
+    const promptOverride = await getAgentState(serviceClient, AGENT_NAME, "system_prompt") as string | null;
+
     // ── Fetch pending proposals (oldest first → FIFO processing) ─────────────
     const { data: proposals, error: fetchErr } = await serviceClient
       .from("agent_proposals")
