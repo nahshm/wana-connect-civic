@@ -242,8 +242,8 @@ export function CivicChat() {
   // ── Welcome View ──
   if (view === 'welcome') {
     return (
-      <div className="absolute inset-0 bg-background">
-        <div className="sticky top-0 z-30 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <div className="h-full min-h-0 flex flex-col overflow-hidden bg-background">
+        <div className="flex-shrink-0 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 z-30">
           <div className="mx-auto w-full max-w-2xl flex items-center justify-between px-4 py-3">
             <LanguageToggle language={language} setLanguage={setLanguage} />
             <Button variant="outline" size="sm" onClick={startNewSession} className="rounded-full gap-1.5 text-xs h-8">
@@ -253,7 +253,7 @@ export function CivicChat() {
           </div>
         </div>
 
-        <div className="h-[calc(100%-57px)] overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="flex flex-col items-center pt-8 md:pt-10 px-4 pb-8">
 
           {/* Hero */}
@@ -353,7 +353,7 @@ export function CivicChat() {
 
   // ── Chat View ──
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-background">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-background">
       {/* Top bar - always visible */}
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 z-30">
         <Button variant="ghost" size="sm" onClick={() => setView('welcome')} className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground">
