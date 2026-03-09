@@ -20,7 +20,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <AppSidebar />
         <SidebarInset className={cn(
-          "flex-1 w-full min-h-0",
+          "flex-1 w-full h-full !min-h-0",
           (isCommunityPage || isCivicAssistant) ? "overflow-hidden" : "overflow-auto"
         )}>
           {isCivicAssistant ? (
