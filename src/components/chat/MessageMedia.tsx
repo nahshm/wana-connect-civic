@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { FileText, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 
 interface MessageMediaProps {
   urls: string[];
