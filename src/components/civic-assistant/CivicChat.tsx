@@ -247,7 +247,7 @@ export function CivicChat() {
   // ── Welcome Screen ──
   if (view === 'welcome') {
     return (
-      <div className="flex-1 flex flex-col items-center pt-12 md:pt-20 px-4 pb-8 overflow-auto">
+      <div className="h-full flex flex-col items-center pt-12 md:pt-20 px-4 pb-8 overflow-auto">
         {/* Top bar */}
         <div className="w-full max-w-2xl flex items-center justify-between mb-8">
           <LanguageToggle />
@@ -352,7 +352,7 @@ export function CivicChat() {
 
   // ── Chat / Answer View ──
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
       {/* Minimal top bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 flex-shrink-0">
         <Button variant="ghost" size="sm" onClick={() => setView('welcome')} className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground">

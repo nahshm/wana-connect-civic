@@ -12,6 +12,7 @@ interface AppLayoutProps {
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const location = useLocation();
   const isCommunityPage = location.pathname.startsWith('/c/');
+  const isCivicAssistant = location.pathname === '/civic-assistant';
 
   return (
     <div className="h-screen flex flex-col w-full bg-background overflow-hidden">
@@ -20,7 +21,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <AppSidebar />
         <SidebarInset className={cn(
           "flex-1 w-full min-h-0",
-          isCommunityPage ? "overflow-hidden" : "overflow-auto"
+          (isCommunityPage || isCivicAssistant) ? "overflow-hidden" : "overflow-auto"
         )}>
           {children}
         </SidebarInset>
