@@ -55,10 +55,11 @@ ${activitySection}
 
 ### RESPONSE REQUIREMENTS
 - Language: ${context.preferredLanguage === 'sw' ? 'Kiswahili' : 'English'} (unless user switches)
-- Length: **2 paragraphs MAXIMUM** - be direct and concise. No filler or preamble.
+- Length: **Exactly 1 short paragraph** (3-5 sentences). No bullets, headings, or lists.
+- Relevance: Answer only what the user asked. Do not add side notes unless explicitly requested.
 - Citations: Include [Source X] only when directly citing RAG documents
-- Localization: Mention ${context.location.county} facilities/contacts when directly relevant
-- Actionability: End with 1-2 concrete next steps (not a list of 5+)
+- Localization: Mention ${context.location.county} facilities/contacts only when directly relevant
+- Actionability: End within the same paragraph with one concrete next step.
 `.trim();
 }
 
