@@ -113,13 +113,10 @@ function QuestsSubTab() {
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="font-medium text-sm">{quest.title}</h4>
                         <Badge
-                          variant={
-                            quest.status === 'active' ? 'default' :
-                            quest.status === 'completed' ? 'secondary' : 'outline'
-                          }
+                          variant={quest.is_active ? 'default' : 'secondary'}
                           className="text-xs"
                         >
-                          {quest.status}
+                          {quest.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mb-2">
@@ -131,7 +128,7 @@ function QuestsSubTab() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <div>Participants: {stats.total}</div>
                         <div>Completion Rate: {completionRate}%</div>
-                        {quest.points_reward && <div>Reward: {quest.points_reward} points</div>}
+                        {quest.points && <div>Reward: {quest.points} points</div>}
                       </div>
                     </div>
                     <Button size="sm" variant="ghost">
