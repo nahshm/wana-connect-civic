@@ -8144,6 +8144,15 @@ export type Database = {
           similarity: number
         }[]
       }
+      match_documents_fts: {
+        Args: { match_count?: number; search_query: string }
+        Returns: {
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
       profile_allows_community_visibility: {
         Args: { target_user_id: string }
         Returns: boolean

@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.civic-brain]
 verify_jwt = false
+
+[functions.civic-ingest]
+verify_jwt = false
