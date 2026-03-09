@@ -108,6 +108,10 @@ const PostDetail = () => {
           userVote,
           contentSensitivity: (postData.content_sensitivity as 'public' | 'sensitive' | 'crisis') || 'public',
           isNgoVerified: postData.is_ngo_verified || false,
+          link_url: postData.link_url || null,
+          link_title: postData.link_title || null,
+          link_description: postData.link_description || null,
+          link_image: postData.link_image || null,
           media: postData.post_media?.map((m: any) => ({
             id: m.id.toString(),
             post_id: m.post_id,
