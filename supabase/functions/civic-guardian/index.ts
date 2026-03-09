@@ -150,7 +150,8 @@ Deno.serve(async (req: Request) => {
         item,
         autoActionThreshold,
         reviewThreshold,
-        repeatOffenderStrikes
+        repeatOffenderStrikes,
+        promptOverride
       );
       if (actioned === "actioned") itemsActioned++;
       if (actioned === "failed") itemsFailed++;
