@@ -741,6 +741,15 @@ function KnowledgeBaseSubTab() {
                 <span className="text-xs px-2 py-0.5 bg-muted rounded font-medium capitalize">{vec.source_type?.replace(/_/g, ' ')}</span>
                 {vec.title && <span className="text-sm font-medium truncate">{vec.title}</span>}
                 <span className="text-xs text-muted-foreground ml-auto">{new Date(vec.created_at).toLocaleDateString()}</span>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive/80 shrink-0"
+                  onClick={async () => {
+                    if (!confirm('Delete this knowledge base document?')) return;
+                    const { error } = await (supabase as any).from('vectors').delete().eq('id', vec.id);
+                    if (error) toast.error('Failed to delete');
+                    else { toast.success('Document deleted'); refetch(); }
+                  }}>
+                  <XCircle className="w-3.5 h-3.5" />
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{vec.content?.slice(0, 300)}</p>
             </div>
