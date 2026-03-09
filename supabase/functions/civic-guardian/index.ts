@@ -163,7 +163,8 @@ Deno.serve(async (req: Request) => {
         groqApiKey,
         autoActionThreshold,
         reviewThreshold,
-        repeatOffenderStrikes
+        repeatOffenderStrikes,
+        promptOverride
       );
       itemsScanned = results.scanned;
       itemsActioned = results.actioned;
