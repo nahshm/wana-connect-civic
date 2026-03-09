@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreatePostForm } from '@/components/posts/CreatePostForm';
+import { CreatePostForm, PostFormData } from '@/components/posts/CreatePostForm';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,9 +7,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
-import { SELECT_FIELDS } from '@/lib/select-fields';
 import { logPostCreated } from '@/lib/activityLogger';
 import { ReceiptToast } from '@/components/ui/ReceiptToast';
+
+interface Community {
+  id: string
+  name: string
+  display_name: string
+  member_count: number
+}
 
 const CreatePost = () => {
   const { user } = useAuth();
@@ -17,7 +23,7 @@ const CreatePost = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [communities, setCommunities] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
 
   // Fetch communities on component mount
   useEffect(() => {
@@ -33,9 +39,9 @@ const CreatePost = () => {
       if (data) {
         // Map the relation to get the actual community object and filter nulls
         const joined = data
-          .map((item: any) => item.community)
+          .map((item: { community: Community }) => item.community)
           .filter(Boolean)
-          .sort((a, b) => (b.member_count || 0) - (a.member_count || 0));
+          .sort((a: Community, b: Community) => (b.member_count || 0) - (a.member_count || 0));
         
         setCommunities(joined);
       } else {
@@ -48,7 +54,7 @@ const CreatePost = () => {
     }
   }, [user]);
 
-  const handleCreatePost = async (postData: any) => {
+  const handleCreatePost = async (postData: PostFormData) => {
     if (!user) {
       authModal.open('login');
       return;
@@ -164,7 +170,7 @@ const CreatePost = () => {
                 height,
                 aspect_ratio: aspectRatio,
                 file_size: videoFile.size,
-                category: postData.flairId || null,
+                category: postData.tags?.[0] || null,
                 hashtags: postData.tags || [],
                 processing_status: 'ready'
               })

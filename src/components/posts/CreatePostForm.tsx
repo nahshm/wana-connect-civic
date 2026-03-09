@@ -13,6 +13,7 @@ import { MediaUploadZone } from './MediaUploadZone'
 import { LinkPostInput, LinkPreviewData } from './LinkPostInput'
 import { cn } from '@/lib/utils'
 import { aiClient, ModerationResult } from '@/services/aiClient'
+import { useToast } from '@/hooks/use-toast'
 
 interface Community {
   id: string
@@ -71,6 +72,7 @@ const POST_TYPES = [
 const DRAFT_STORAGE_KEY = 'wana_post_draft'
 
 export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues, isEditing, defaultCommunityId }: CreatePostFormProps) => {
+  const { toast } = useToast()
   // Form state
   const [postType, setPostType] = useState<'text' | 'media' | 'link'>(initialValues?.postType || 'text')
   const [title, setTitle] = useState(initialValues?.title || '')
@@ -126,7 +128,10 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
 
   const handleSaveDraft = () => {
     // Draft is auto-saved, just notify user
-    alert('Draft saved! Your post will be restored when you return.')
+    toast({
+      title: "Draft Saved",
+      description: "Your post will be restored when you return."
+    })
   }
 
   const clearDraft = () => {
@@ -174,7 +179,11 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
     // Validate
     const validationError = validateForm()
     if (validationError) {
-      alert(validationError)
+      toast({
+        title: "Missing Information",
+        description: validationError,
+        variant: "destructive"
+      })
       return
     }
 
@@ -240,7 +249,11 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
       setGovernanceResult(null)
     } catch (error) {
       console.error('Form submission error:', error)
-      alert('Failed to process post. Please try again.')
+      toast({
+        title: "Error",
+        description: "Failed to process post. Please try again.",
+        variant: "destructive"
+      })
     } finally {
       setIsSubmitting(false)
     }
