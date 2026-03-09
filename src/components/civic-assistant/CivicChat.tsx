@@ -355,7 +355,7 @@ export function CivicChat() {
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden bg-background">
       {/* Top bar - always visible */}
-      <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 z-30">
+      <header className="sticky top-0 z-30 flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <Button variant="ghost" size="sm" onClick={() => setView('welcome')} className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-3.5 h-3.5" />
           Back
