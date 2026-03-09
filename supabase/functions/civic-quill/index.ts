@@ -312,6 +312,20 @@ serve(async (req) => {
   const started = Date.now();
   const supabase = supabaseAdmin();
 
+  // Load prompt override from agent_state
+  try {
+    const { data: promptRow } = await supabase.from("agent_state")
+      .select("state_value")
+      .eq("agent_name", "civic-quill")
+      .eq("state_key", "system_prompt")
+      .maybeSingle();
+    if (promptRow?.state_value) {
+      SYSTEM_PROMPT = String(promptRow.state_value);
+    }
+  } catch {
+    // Use default prompt on failure
+  }
+
   let body: QuillRequest = {};
   try {
     body = req.method === "POST" ? await req.json() : {};
