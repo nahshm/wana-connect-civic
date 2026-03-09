@@ -132,7 +132,8 @@ Deno.serve(async (req: Request) => {
           groqApiKey,
           proposal as Proposal,
           autoApproveThreshold,
-          humanEscalationThreshold
+          humanEscalationThreshold,
+          promptOverride
         );
         if (result === "approved") approved++;
         else if (result === "rejected") rejected++;
