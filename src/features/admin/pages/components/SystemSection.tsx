@@ -160,7 +160,7 @@ function AuditLogsSubTab() {
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (searchTerm) {
-        query = query.or(`action.ilike.%${searchTerm}%,details.ilike.%${searchTerm}%`);
+        query = query.or(`action.ilike.%${searchTerm}%,entity_type.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query;

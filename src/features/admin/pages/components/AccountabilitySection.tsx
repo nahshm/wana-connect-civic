@@ -363,11 +363,13 @@ function ElectionsSubTab() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h4 className="font-medium text-sm mb-1">{election.name}</h4>
+                    <h4 className="font-medium text-sm mb-1">{election.election_type} Election</h4>
                     <div className="text-xs text-muted-foreground mb-2">
-                      {election.election_type} • {new Date(election.election_date).toLocaleDateString()}
+                      {new Date(election.election_date).toLocaleDateString()}
                     </div>
-                    <Badge variant="outline" className="text-xs">{election.status}</Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {election.results_certified ? 'Certified' : 'Pending'}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>

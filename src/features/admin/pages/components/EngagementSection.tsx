@@ -393,8 +393,8 @@ function NGOPartnersSubTab() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (filter !== 'all') {
-        query = query.eq('status', filter);
+      if (filter === 'active') {
+        query = query.eq('is_active', true);
       }
 
       const { data, error } = await query;
@@ -403,27 +403,12 @@ function NGOPartnersSubTab() {
     },
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ partnerId, status }: { partnerId: string; status: string }) => {
-      const { error } = await supabase
-        .from('ngo_partners')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', partnerId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Partner status updated');
-      refetch();
-    },
-    onError: () => toast.error('Failed to update partner status'),
-  });
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">NGO Partner Applications</h3>
         <div className="flex gap-2">
-          {(['all', 'pending', 'approved', 'active'] as const).map(f => (
+          {(['all', 'active'] as const).map(f => (
             <Button
               key={f}
               size="sm"
@@ -457,52 +442,21 @@ function NGOPartnersSubTab() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium text-sm">{partner.organization_name}</h4>
+                      <h4 className="font-medium text-sm">{partner.name}</h4>
                       <Badge
-                        variant={
-                          partner.status === 'approved' ? 'default' :
-                          partner.status === 'active' ? 'secondary' :
-                          partner.status === 'pending' ? 'outline' : 'destructive'
-                        }
+                        variant={partner.is_active ? 'default' : 'secondary'}
                         className="text-xs"
                       >
-                        {partner.status}
+                        {partner.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground mb-2">
-                      {partner.focus_areas?.join(', ') || 'No focus areas'}
+                      {partner.description || 'No description'}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Contact: {partner.contact_email}
                     </div>
                   </div>
-                  {partner.status === 'pending' && (
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-600 border-green-600"
-                        onClick={() => updateStatusMutation.mutate({
-                          partnerId: partner.id,
-                          status: 'approved'
-                        })}
-                      >
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => updateStatusMutation.mutate({
-                          partnerId: partner.id,
-                          status: 'rejected'
-                        })}
-                      >
-                        <XCircle className="w-3 h-3 mr-1" />
-                        Reject
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
