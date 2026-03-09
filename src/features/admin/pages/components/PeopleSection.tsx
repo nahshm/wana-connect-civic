@@ -332,12 +332,12 @@ function ModeratorsSubTab() {
   const { data: communities } = useQuery({
     queryKey: ['admin-communities-list'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from('communities')
-        .select('id, name, display_name')
+        .select('id, name, display_name') as any)
         .eq('is_active', true)
         .limit(100);
-      return data || [];
+      return (data || []) as Array<{ id: string; name: string; display_name: string }>;
     },
   });
 
