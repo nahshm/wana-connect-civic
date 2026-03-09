@@ -301,7 +301,14 @@ function UsersSubTab() {
 
 // ────────────────────── Moderators ──────────────────────
 function ModeratorsSubTab() {
-  const { data: moderators, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const [showAssignForm, setShowAssignForm] = useState(false);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedCommunity, setSelectedCommunity] = useState('');
+  const [selectedRole, setSelectedRole] = useState('moderator');
+
+  const { data: moderators, isLoading, refetch } = useQuery({
     queryKey: ['admin-moderators'],
     queryFn: async () => {
       const { data } = await supabase
@@ -322,36 +329,173 @@ function ModeratorsSubTab() {
     },
   });
 
+  const { data: communities } = useQuery({
+    queryKey: ['admin-communities-list'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('communities')
+        .select('id, name, display_name')
+        .eq('is_active', true)
+        .limit(100);
+      return data || [];
+    },
+  });
+
+  const { data: users } = useQuery({
+    queryKey: ['admin-assignable-users'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, username')
+        .limit(100);
+      return data || [];
+    },
+    enabled: showAssignForm,
+  });
+
+  const assignModeratorMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedUser || !selectedCommunity) throw new Error('Missing selection');
+      const { error } = await supabase
+        .from('community_moderators')
+        .insert({
+          user_id: selectedUser,
+          community_id: selectedCommunity,
+          role: selectedRole as 'moderator' | 'admin',
+          assigned_by: currentUser?.id,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Moderator assigned successfully');
+      setShowAssignForm(false);
+      setSelectedUser('');
+      setSelectedCommunity('');
+      refetch();
+    },
+    onError: (err: any) => {
+      toast.error(err.message?.includes('duplicate') ? 'User is already a moderator' : 'Failed to assign moderator');
+    },
+  });
+
+  const removeModerationMutation = useMutation({
+    mutationFn: async (moderationId: string) => {
+      const { error } = await supabase
+        .from('community_moderators')
+        .delete()
+        .eq('id', moderationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Moderator removed');
+      refetch();
+    },
+    onError: () => toast.error('Failed to remove moderator'),
+  });
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Community Moderators ({moderators?.length || 0})</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-        ) : !moderators?.length ? (
-          <p className="text-center py-8 text-muted-foreground">No moderators found.</p>
-        ) : (
-          <div className="space-y-2">
-            {moderators.map(mod => (
-              <div key={mod.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold">
-                    {mod.user?.display_name?.[0]?.toUpperCase() || 'M'}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Community Moderators ({moderators?.length || 0})</span>
+            <Button
+              size="sm"
+              onClick={() => setShowAssignForm(!showAssignForm)}
+              className="gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              {showAssignForm ? 'Cancel' : 'Assign Moderator'}
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {showAssignForm && (
+            <div className="mb-6 p-4 border rounded-lg bg-muted/20 space-y-3">
+              <h4 className="font-medium text-sm">Assign New Moderator</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users?.map(user => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.display_name || user.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedCommunity} onValueChange={setSelectedCommunity}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select community" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {communities?.map(community => (
+                      <SelectItem key={community.id} value={community.id}>
+                        {community.display_name || community.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="moderator">Moderator</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => assignModeratorMutation.mutate()}
+                disabled={!selectedUser || !selectedCommunity || assignModeratorMutation.isPending}
+                size="sm"
+                className="gap-2"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Assign
+              </Button>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          ) : !moderators?.length ? (
+            <p className="text-center py-8 text-muted-foreground">No moderators found.</p>
+          ) : (
+            <div className="space-y-2">
+              {moderators.map(mod => (
+                <div key={mod.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold">
+                      {mod.user?.display_name?.[0]?.toUpperCase() || 'M'}
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{mod.user?.display_name || 'Unknown'}</div>
+                      <div className="text-xs text-muted-foreground">c/{mod.community?.name}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium text-sm">{mod.user?.display_name || 'Unknown'}</div>
-                    <div className="text-xs text-muted-foreground">c/{mod.community?.name}</div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">{mod.role}</Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeModerationMutation.mutate(mod.id)}
+                      disabled={removeModerationMutation.isPending}
+                      className="text-destructive hover:text-destructive/80 h-8 w-8 p-0"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-xs">{mod.role}</Badge>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
