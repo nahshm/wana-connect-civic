@@ -202,21 +202,18 @@ function AuditLogsSubTab() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="font-medium text-sm">{log.action}</div>
-                      {log.details && <div className="text-xs text-muted-foreground mt-1">{log.details}</div>}
                       <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                         <span>User: {log.user_id || 'System'}</span>
                         <span>•</span>
                         <span>{new Date(log.created_at).toLocaleString()}</span>
+                        {log.entity_type && (
+                          <>
+                            <span>•</span>
+                            <span>{log.entity_type}</span>
+                          </>
+                        )}
                       </div>
                     </div>
-                    {log.severity && (
-                      <Badge
-                        variant={log.severity === 'high' ? 'destructive' : log.severity === 'medium' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {log.severity}
-                      </Badge>
-                    )}
                   </div>
                 </div>
               ))}
