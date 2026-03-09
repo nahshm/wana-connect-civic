@@ -241,7 +241,7 @@ async function runCatchUpScan(
       const result = await processContentItem(
         serviceClient, groqApiKey,
         { id: post.id, content: post.content, user_id: post.author_id, type: "post" },
-        autoActionThreshold, reviewThreshold, repeatOffenderStrikes
+        autoActionThreshold, reviewThreshold, repeatOffenderStrikes, promptOverride
       );
       if (result === "actioned") actioned++;
       if (result === "failed") failed++;
