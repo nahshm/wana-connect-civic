@@ -216,7 +216,8 @@ async function runCatchUpScan(
   groqApiKey: string,
   autoActionThreshold: number,
   reviewThreshold: number,
-  repeatOffenderStrikes: number
+  repeatOffenderStrikes: number,
+  promptOverride?: string | null
 ): Promise<{ scanned: number; actioned: number; failed: number }> {
   let scanned = 0, actioned = 0, failed = 0;
 
