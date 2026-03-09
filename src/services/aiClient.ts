@@ -9,7 +9,6 @@ export interface ModerationResult {
 }
 
 export interface RoutingResult {
-  // Real institution matched from DB
   institution_id: string | null;
   institution_name: string;
   institution_acronym: string | null;
@@ -18,45 +17,31 @@ export interface RoutingResult {
   institution_email: string | null;
   institution_phone: string | null;
   institution_address: string | null;
-  // Issue classification
   issue_type: string;
   department_slug: string;
   jurisdiction: string;
   severity: number;
   confidence: number;
   recommended_actions: string[];
-  // AI-generated formal Kenyan complaint letter
   formal_letter: string;
   processing_time_ms: number;
-  // Legacy compat fields (may be undefined on new responses)
-  department_name?: string;
-  required_forms?: Array<{
-    form_id: string;
-    form_name: string;
-    template_url: string;
-  }>;
-  estimated_resolution_days?: number;
-  contact_info?: {
-    email?: string;
-    phone?: string;
-    office_location?: string;
-  };
-  next_steps?: string[];
 }
 
 export interface Source {
+  document_id?: string;
   title: string;
-  url: string;
+  url?: string;
   article?: string;
   similarity?: number;
-  content?: string;
+  is_local?: boolean;
 }
 
-export interface RAGResult {
-  answer: string;
-  sources: Source[];
-  confidence: number;
-  processing_time_ms: number;
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: Source[];
+  created_at: string;
 }
 
 async function invokeFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
@@ -64,16 +49,17 @@ async function invokeFunction<T>(name: string, body: Record<string, unknown>): P
   
   if (error) {
     if (error instanceof Error && 'context' in error) {
-        // FunctionsHttpError often has the response body in 'context'
-        const context = (error as any).context;
-        if (context && typeof context === 'object') {
-            const contextError = (await context.json())?.error || JSON.stringify(context);
-            console.error(`${name} detailed error:`, contextError);
-            throw new Error(`${name} failed: ${contextError}`);
+      const context = (error as any).context;
+      if (context && typeof context === 'object') {
+        try {
+          const contextError = (await context.json())?.error || JSON.stringify(context);
+          console.error(`${name} detailed error:`, contextError);
+          throw new Error(`${name} failed: ${contextError}`);
+        } catch {
+          // Fall through to default error handling
         }
+      }
     }
-    
-    // Fallback: try to see if error message is just the status text
     console.error(`${name} invocation failed:`, error);
     throw new Error(`${name} failed: ${error.message}`);
   }
@@ -106,20 +92,125 @@ export const aiClient = {
       photos 
     }),
 
-  /** RAG Q&A - civic knowledge assistant */
-  rag: (query: string, sessionId: string, language: string = 'en') =>
-    invokeFunction<RAGResult>('civic-brain', { query, session_id: sessionId, language }),
+  /** 
+   * RAG Q&A with SSE streaming - civic knowledge assistant
+   * Returns a ReadableStream for token-by-token rendering
+   */
+  ragStream: async (
+    query: string,
+    sessionId: string,
+    language: string = 'en',
+    onDelta: (text: string) => void,
+    onDone: () => void,
+    onError?: (error: Error) => void
+  ): Promise<void> => {
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+    
+    if (!token) {
+      onError?.(new Error('Not authenticated'));
+      return;
+    }
+
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/civic-brain`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query, session_id: sessionId, language }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed: ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete lines
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') {
+            onDone();
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) onDelta(content);
+          } catch {
+            // Incomplete JSON, put back and wait for more
+            buffer = line + '\n' + buffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush
+      if (buffer.trim()) {
+        for (let raw of buffer.split('\n')) {
+          if (!raw || raw.startsWith(':') || raw.trim() === '') continue;
+          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+          if (!raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) onDelta(content);
+          } catch { /* ignore */ }
+        }
+      }
+
+      onDone();
+    } catch (error) {
+      console.error('RAG stream error:', error);
+      onError?.(error instanceof Error ? error : new Error('Stream failed'));
+    }
+  },
 
   /** Fetch chat history for a session */
-  getHistory: async (sessionId: string) => {
+  getHistory: async (sessionId: string): Promise<ChatMessage[]> => {
     const { data, error } = await supabase
       .from('rag_chat_history')
-      .select('*')
+      .select('id, role, content, sources, created_at')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
     
     if (error) throw error;
-    return data;
+    
+    return (data || []).map((item) => ({
+      id: item.id,
+      role: item.role as 'user' | 'assistant',
+      content: item.content,
+      sources: item.sources as Source[] | undefined,
+      created_at: item.created_at,
+    }));
   },
 
   /** Delete a specific history item */
@@ -140,5 +231,26 @@ export const aiClient = {
       .eq('session_id', sessionId);
     
     if (error) throw error;
-  }
+  },
+
+  /** Ingest document into knowledge base (admin only) */
+  ingestDocument: (
+    content: string,
+    title: string,
+    sourceType: string,
+    metadata?: Record<string, unknown>
+  ) =>
+    invokeFunction<{
+      success: boolean;
+      message: string;
+      total_chunks: number;
+      inserted: number;
+      failed: number;
+      errors: string[];
+    }>('civic-ingest', {
+      content,
+      title,
+      source_type: sourceType,
+      metadata,
+    }),
 };
