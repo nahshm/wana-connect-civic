@@ -449,9 +449,10 @@ async function queueForHumanReview(
 async function getGuardianVerdict(
   groqApiKey: string,
   content: string,
-  contentType: "post" | "comment"
+  contentType: "post" | "comment",
+  promptOverride?: string | null
 ): Promise<GuardianVerdict | null> {
-  const systemPrompt = buildGuardianSystemPrompt();
+  const systemPrompt = promptOverride || buildGuardianSystemPrompt();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000); // 15s timeout
