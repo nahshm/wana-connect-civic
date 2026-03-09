@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { IssueCommentThread } from '../components/IssueCommentThread';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 
 interface ActionDetail {
     id: string;
@@ -136,14 +137,11 @@ const MediaGrid = ({ urls }: { urls: string[] }) => {
                     </button>
                 ))}
             </div>
-            {lightbox && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
-                    onClick={() => setLightbox(null)}
-                >
-                    <img src={lightbox} alt="full-size" className="max-w-full max-h-[90vh] rounded-xl object-contain" />
-                </div>
-            )}
+            <GlassLightbox
+                src={lightbox}
+                alt="Evidence photo"
+                onClose={() => setLightbox(null)}
+            />
         </>
     );
 };

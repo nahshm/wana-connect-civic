@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight, Download, ZoomIn, Play, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 
 interface MediaGalleryProps {
     media: string[];
@@ -15,7 +16,8 @@ const isVideo = (url: string) => {
 };
 
 export function MediaGallery({ media, title = 'Project Media', showDownload = true }: MediaGalleryProps) {
-    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+    const [videoLightboxOpen, setVideoLightboxOpen] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
 
     if (!media || media.length === 0) {
@@ -26,9 +28,14 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
         );
     }
 
-    const openLightbox = (index: number) => {
+    const openMedia = (index: number) => {
+        const url = media[index];
         setCurrentIndex(index);
-        setLightboxOpen(true);
+        if (isVideo(url)) {
+            setVideoLightboxOpen(true);
+        } else {
+            setLightboxSrc(url);
+        }
     };
 
     const goToPrevious = () => {
@@ -40,7 +47,6 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
     };
 
     const currentMedia = media[currentIndex];
-    const isCurrentVideo = isVideo(currentMedia);
 
     return (
         <>
@@ -52,7 +58,7 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                         <div
                             key={index}
                             className="relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer group border-2 border-transparent hover:border-primary transition-all"
-                            onClick={() => openLightbox(index)}
+                            onClick={() => openMedia(index)}
                         >
                             {itemIsVideo ? (
                                 <>
@@ -89,16 +95,22 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                 })}
             </div>
 
-            {/* Lightbox */}
-            <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+            {/* GlassLightbox for images only */}
+            <GlassLightbox
+                src={lightboxSrc}
+                alt={title}
+                onClose={() => setLightboxSrc(null)}
+            />
+
+            {/* Video Lightbox */}
+            <Dialog open={videoLightboxOpen} onOpenChange={setVideoLightboxOpen}>
                 <DialogContent className="max-w-5xl h-[90vh] p-0 bg-black">
                     <div className="relative h-full flex flex-col">
-                        {/* Header */}
                         <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4">
                             <div className="flex items-center justify-between">
                                 <DialogTitle className="text-white text-lg">
                                     {currentIndex + 1} / {media.length}
-                                    {isCurrentVideo && <span className="ml-2 text-sm opacity-75">(Video)</span>}
+                                    <span className="ml-2 text-sm opacity-75">(Video)</span>
                                 </DialogTitle>
                                 <div className="flex items-center gap-2">
                                     {showDownload && (
@@ -115,7 +127,7 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                                         variant="ghost"
                                         size="icon"
                                         className="text-white hover:bg-white/20"
-                                        onClick={() => setLightboxOpen(false)}
+                                        onClick={() => setVideoLightboxOpen(false)}
                                     >
                                         <X className="w-5 h-5" />
                                     </Button>
@@ -123,27 +135,17 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                             </div>
                         </div>
 
-                        {/* Media Display */}
                         <div className="flex-1 flex items-center justify-center p-4 pt-20">
-                            {isCurrentVideo ? (
-                                <video
-                                    key={currentMedia}
-                                    src={currentMedia}
-                                    controls
-                                    autoPlay
-                                    className="max-w-full max-h-full object-contain"
-                                    poster={currentMedia.replace(/\.(mp4|webm|ogg|mov)$/i, '.jpg')}
-                                />
-                            ) : (
-                                <img
-                                    src={currentMedia}
-                                    alt={`${title} ${currentIndex + 1}`}
-                                    className="max-w-full max-h-full object-contain"
-                                />
-                            )}
+                            <video
+                                key={currentMedia}
+                                src={currentMedia}
+                                controls
+                                autoPlay
+                                className="max-w-full max-h-full object-contain"
+                                poster={currentMedia.replace(/\.(mp4|webm|ogg|mov)$/i, '.jpg')}
+                            />
                         </div>
 
-                        {/* Navigation */}
                         {media.length > 1 && (
                             <>
                                 <Button
@@ -165,9 +167,8 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                             </>
                         )}
 
-                        {/* Thumbnails */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                            <div className="flex gap-2 overflow-x-auto pb-2">
                                 {media.map((url, index) => {
                                     const thumbIsVideo = isVideo(url);
                                     return (
