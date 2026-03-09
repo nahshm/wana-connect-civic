@@ -494,7 +494,7 @@ function CivicActionsSubTab() {
     queryKey: ['admin-civic-actions', filter],
     queryFn: async () => {
       let query = supabase.from('civic_actions')
-        .select(`*, profiles(display_name), government_institutions(name)`)
+        .select(`*, profiles:profiles!civic_actions_user_id_fkey(display_name), government_institutions(name)`)
         .order('created_at', { ascending: false }).limit(50);
       if (filter !== 'all') query = query.eq('status', filter);
       const { data, error } = await query;
