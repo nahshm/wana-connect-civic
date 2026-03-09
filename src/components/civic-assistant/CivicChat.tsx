@@ -347,6 +347,7 @@ export function CivicChat() {
           </div>
         </div>
       </div>
+    </div>
     );
   }
 
