@@ -340,9 +340,10 @@ async function executeProposalAction(
 
 async function getMinionDecision(
   groqApiKey: string,
-  proposal: Proposal
+  proposal: Proposal,
+  promptOverride?: string | null
 ): Promise<MinionDecision | null> {
-  const systemPrompt = buildMinionSystemPrompt();
+  const systemPrompt = promptOverride || buildMinionSystemPrompt();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);

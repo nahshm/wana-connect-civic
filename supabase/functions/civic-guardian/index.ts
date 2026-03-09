@@ -127,6 +127,9 @@ Deno.serve(async (req: Request) => {
     const repeatOffenderStrikes =
       (await getAgentState(serviceClient, AGENT_NAME, "repeat_offender_strikes") as number) ?? 3;
 
+    // ── Load prompt override from agent_state ──────────────────────────────────
+    const promptOverride = await getAgentState(serviceClient, AGENT_NAME, "system_prompt") as string | null;
+
     if (isWebhook) {
       // ── Webhook path: single new post or comment ───────────────────────────
       const record = body.record as Record<string, unknown>;
