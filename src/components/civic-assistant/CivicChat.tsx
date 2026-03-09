@@ -290,14 +290,14 @@ export function CivicChat() {
 
   // Chat view with messages
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-[calc(100vh-4rem)] bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b px-4 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b px-4 h-14 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="bg-primary/10 p-2 rounded-lg">
             <Sparkles className="w-5 h-5 text-primary" />
           </div>
-          <span className="font-semibold text-foreground hidden sm:inline">WanaIQ Answers</span>
+          <span className="font-semibold text-foreground hidden sm:inline">WanaIQ</span>
         </div>
         
         {userContext && (
@@ -307,17 +307,38 @@ export function CivicChat() {
         )}
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleNewSession} className="rounded-full">
-            New chat
+          {/* Language Toggle */}
+          <div className="flex gap-1 bg-muted p-0.5 rounded-full">
+            <button
+              onClick={() => setLanguage('en')}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                language === 'en' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLanguage('sw')}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                language === 'sw' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              SW
+            </button>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleNewSession} className="rounded-full text-xs h-8">
+            New
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleClearHistory} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={handleClearHistory} className="text-muted-foreground text-xs h-8">
             Clear
           </Button>
         </div>
       </header>
 
       {/* Messages */}
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 pb-32 space-y-6">
+      <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         <AnimatePresence initial={false}>
           {messages.map((message) => (
             <motion.div
@@ -331,13 +352,13 @@ export function CivicChat() {
               )}
             >
               {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Bot className="w-4 h-4 text-primary" />
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Bot className="w-3.5 h-3.5 text-primary" />
                 </div>
               )}
               
               <div className={cn(
-                "max-w-[85%] rounded-2xl px-4 py-3",
+                "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm",
                 message.role === 'user' 
                   ? 'bg-primary text-primary-foreground rounded-br-md' 
                   : 'bg-muted text-foreground rounded-bl-md'
@@ -346,10 +367,10 @@ export function CivicChat() {
                   <div className="prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown
                       components={{
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                         ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
                         ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
-                        li: ({ children }) => <li className="mb-1">{children}</li>,
+                        li: ({ children }) => <li className="mb-0.5">{children}</li>,
                         a: ({ href, children }) => (
                           <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
                             {children}
@@ -367,13 +388,12 @@ export function CivicChat() {
 
                 {/* Sources */}
                 {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <p className="text-xs text-muted-foreground mb-2">Sources:</p>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="mt-2 pt-2 border-t border-border/50">
+                    <div className="flex flex-wrap gap-1.5">
                       {message.sources.slice(0, 3).map((source, i) => (
                         <span 
                           key={i} 
-                          className="text-xs bg-background/50 px-2 py-1 rounded-full"
+                          className="text-[10px] bg-background/50 px-2 py-0.5 rounded-full text-muted-foreground"
                         >
                           {source.title}
                         </span>
@@ -384,8 +404,8 @@ export function CivicChat() {
               </div>
 
               {message.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                  <User className="w-4 h-4 text-primary-foreground" />
+                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                  <User className="w-3.5 h-3.5 text-primary-foreground" />
                 </div>
               )}
             </motion.div>
@@ -394,8 +414,8 @@ export function CivicChat() {
 
         {/* Streaming indicator */}
         {isStreaming && (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm pl-11">
-            <Loader2 className="w-4 h-4 animate-spin" />
+          <div className="flex items-center gap-2 text-muted-foreground text-xs pl-10">
+            <Loader2 className="w-3 h-3 animate-spin" />
             <span>Thinking...</span>
           </div>
         )}
@@ -403,55 +423,31 @@ export function CivicChat() {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Input Footer */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t p-4">
-        <div className="max-w-3xl mx-auto">
-          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
-            <Input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={language === 'sw' ? 'Uliza swali...' : 'Ask a question...'}
-              disabled={isStreaming}
-              className="flex-1 h-12 rounded-full px-6"
-            />
-            <Button 
-              type="submit"
-              size="icon"
-              disabled={!input.trim() || isStreaming}
-              className="h-12 w-12 rounded-full"
-            >
-              {isStreaming ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </Button>
-          </form>
-        </div>
-      </div>
-
-      {/* Language Toggle */}
-      <div className="fixed bottom-20 right-6 flex gap-2 bg-card p-1 rounded-full shadow-lg border">
-        <button
-          onClick={() => setLanguage('en')}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-bold transition-all",
-            language === 'en' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
-          )}
-        >
-          EN
-        </button>
-        <button
-          onClick={() => setLanguage('sw')}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-bold transition-all",
-            language === 'sw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
-          )}
-        >
-          SW
-        </button>
+      {/* Input Footer - contained within component */}
+      <div className="flex-shrink-0 border-t bg-background p-3">
+        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 max-w-2xl mx-auto">
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={language === 'sw' ? 'Uliza swali...' : 'Ask a question...'}
+            disabled={isStreaming}
+            className="flex-1 h-10 rounded-full px-4 text-sm"
+          />
+          <Button 
+            type="submit"
+            size="icon"
+            disabled={!input.trim() || isStreaming}
+            className="h-10 w-10 rounded-full"
+          >
+            {isStreaming ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        </form>
       </div>
     </div>
   );

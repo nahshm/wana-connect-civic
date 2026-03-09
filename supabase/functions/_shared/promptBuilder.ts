@@ -55,10 +55,10 @@ ${activitySection}
 
 ### RESPONSE REQUIREMENTS
 - Language: ${context.preferredLanguage === 'sw' ? 'Kiswahili' : 'English'} (unless user switches)
-- Length: 2-3 paragraphs maximum (concise, actionable)
-- Citations: ALWAYS include sources [Source X] when using RAG documents
-- Localization: Mention specific ${context.location.county} facilities/contacts when relevant
-- Actionability: End with concrete next steps the user can take
+- Length: **2 paragraphs MAXIMUM** - be direct and concise. No filler or preamble.
+- Citations: Include [Source X] only when directly citing RAG documents
+- Localization: Mention ${context.location.county} facilities/contacts when directly relevant
+- Actionability: End with 1-2 concrete next steps (not a list of 5+)
 `.trim();
 }
 
