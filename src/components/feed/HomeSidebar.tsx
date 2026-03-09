@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowUp, MessageSquare, Users, X } from 'lucide-react';
+import { ArrowUp, MessageSquare, Users } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthModal } from '@/contexts/AuthModalContext';
@@ -15,7 +15,7 @@ interface RecentPost {
   upvotes: number;
   comment_count: number;
   community_name: string;
-  community_icon: string | null;
+  community_avatar: string | null;
   thumbnail: string | null;
   link_image: string | null;
 }
@@ -23,7 +23,8 @@ interface RecentPost {
 interface PopularCommunity {
   id: string;
   name: string;
-  icon: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
   member_count: number;
 }
 
@@ -44,18 +45,20 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
       const [postsRes, commRes] = await Promise.all([
         supabase
           .from('posts')
-          .select('id, title, created_at, upvotes, comment_count, link_image, community:communities(name, icon), media:post_media(file_path, file_type)')
+          .select('id, title, created_at, upvotes, comment_count, link_image, community:communities(name, avatar_url), media:post_media(file_path, file_type)')
           .order('created_at', { ascending: false })
           .limit(6),
         supabase
           .from('communities')
-          .select('id, name, icon, member_count')
+          .select('id, name, display_name, avatar_url, member_count')
           .order('member_count', { ascending: false })
-          .limit(5),
+          .limit(10),
       ]);
 
+      let posts: RecentPost[] = [];
+
       if (postsRes.data) {
-        setRecentPosts(postsRes.data.map((p: any) => {
+        posts = postsRes.data.map((p: any) => {
           const imageMedia = (p.media || []).find((m: any) => m.file_type?.startsWith('image'));
           return {
             id: p.id,
@@ -64,20 +67,41 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
             upvotes: p.upvotes || 0,
             comment_count: p.comment_count || 0,
             community_name: p.community?.name || 'General',
-            community_icon: p.community?.icon || null,
+            community_avatar: p.community?.avatar_url || null,
             thumbnail: imageMedia?.file_path || null,
             link_image: p.link_image || null,
           };
-        }));
+        });
+        setRecentPosts(posts);
       }
 
       if (commRes.data) {
-        setCommunities(commRes.data.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          icon: c.icon || null,
-          member_count: c.member_count || 0,
-        })));
+        // Build activity map from recent posts
+        const communityActivity = new Map<string, number>();
+        posts.forEach(post => {
+          if (post.community_name) {
+            communityActivity.set(post.community_name, (communityActivity.get(post.community_name) || 0) + 1);
+          }
+        });
+
+        // Rank by engagement: recent activity first, then member_count
+        const ranked = commRes.data
+          .map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            display_name: c.display_name || null,
+            avatar_url: c.avatar_url || null,
+            member_count: c.member_count || 0,
+            recent_activity: communityActivity.get(c.name) || 0,
+          }))
+          .sort((a: any, b: any) => {
+            if (b.recent_activity !== a.recent_activity) return b.recent_activity - a.recent_activity;
+            return b.member_count - a.member_count;
+          })
+          .slice(0, 5)
+          .map(({ recent_activity, ...c }: any) => c);
+
+        setCommunities(ranked);
       }
     };
     fetchData();
@@ -156,7 +180,7 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                       <Avatar className="h-4 w-4">
-                        {post.community_icon && <AvatarImage src={post.community_icon} />}
+                        {post.community_avatar && <AvatarImage src={post.community_avatar} />}
                         <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                           {post.community_name[0]?.toUpperCase()}
                         </AvatarFallback>
@@ -210,14 +234,14 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
               >
                 <Link to={`/c/${comm.name}`} className="min-w-0 flex-1 flex items-center gap-2.5">
                   <Avatar className="h-8 w-8">
-                    {comm.icon && <AvatarImage src={comm.icon} />}
+                    {comm.avatar_url && <AvatarImage src={comm.avatar_url} />}
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">
                       {comm.name[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
-                      c/{comm.name}
+                      {comm.display_name || `c/${comm.name}`}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {comm.member_count.toLocaleString()} members
