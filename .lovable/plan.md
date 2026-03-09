@@ -1,55 +1,36 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+# Fresh Redesign: CivicChat Layout
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+## Root Cause (Why Previous Fixes Failed)
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+`SidebarInset` renders a `<main>` with base class `min-h-svh`. Even though we add `min-h-0` and `overflow-hidden`, the flex height chain from `AppLayout` down to CivicChat is fragile. `h-full` on CivicChat resolves to nothing useful because the actual computed height of SidebarInset doesn't constrain properly across all sidebar states (expanded/collapsed/mobile).
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+The Back and New buttons render at the top of the chat div, but the container doesn't enforce a viewport-height boundary, so the content pushes them off-screen with no way to scroll back.
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+## Solution: Absolute Positioning
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+`SidebarInset` already has `relative` in its base class. Instead of relying on `h-full` height chain, the chat view will use `absolute inset-0` to fill the exact bounds of SidebarInset. This is bulletproof regardless of parent height computation.
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+## Implementation
+
+### CivicChat.tsx - Full Rewrite
+
+**Welcome view**: `absolute inset-0 overflow-auto` -- scrollable content anchored to SidebarInset bounds. Contains hero, search input, recent sessions, trending questions.
+
+**Chat view**: `absolute inset-0 flex flex-col overflow-hidden` -- fixed three-section layout:
+- **Top bar** (`flex-shrink-0`): ← Back button (left), Language toggle + New button (right). Always visible.
+- **Messages area** (`flex-1 overflow-y-auto`): Scrollable message list with user/assistant bubbles.
+- **Input bar** (`flex-shrink-0`): Follow-up input pinned to bottom.
+
+**Other changes**:
+- Move `LanguageToggle` outside the component function to prevent unmount/remount on every render.
+- Remove the `isCivicAssistant` special-case from `AppLayout.tsx` since absolute positioning makes it unnecessary (though keeping it is harmless).
+
+### AppLayout.tsx - No Changes Needed
+
+The `overflow-hidden` + `isCivicAssistant` check can stay or be removed -- absolute positioning inside the `relative` SidebarInset works either way.
+
+### Files Changed
+- `src/components/civic-assistant/CivicChat.tsx` -- full rewrite with absolute positioning
+
