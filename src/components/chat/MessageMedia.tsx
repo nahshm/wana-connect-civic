@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { FileText, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 
 interface MessageMediaProps {
   urls: string[];
@@ -87,13 +87,7 @@ export function MessageMedia({ urls, mediaType }: MessageMediaProps) {
         })}
       </div>
 
-      <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
-        <DialogContent className="max-w-4xl p-2">
-          {lightboxUrl && (
-            <img src={lightboxUrl} alt="Full size" className="w-full h-auto rounded" />
-          )}
-        </DialogContent>
-      </Dialog>
+      <GlassLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </>
   );
 }

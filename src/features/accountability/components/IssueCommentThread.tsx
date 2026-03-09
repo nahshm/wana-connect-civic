@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
@@ -57,7 +58,7 @@ const CommentCard: React.FC<{ comment: Comment }> = ({ comment }) => {
         <p className="text-sm text-muted-foreground">{comment.comment}</p>
         {comment.media_urls.length > 0 && (
           <div className="flex gap-2 flex-wrap mt-2">
-            {comment.media_urls.map((url, i) => (
+              {comment.media_urls.map((url, i) => (
               <button
                 key={i}
                 type="button"
@@ -71,19 +72,7 @@ const CommentCard: React.FC<{ comment: Comment }> = ({ comment }) => {
         )}
       </div>
 
-      {/* Simple lightbox overlay */}
-      {lightboxSrc && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setLightboxSrc(null)}
-        >
-          <img
-            src={lightboxSrc}
-            alt="full-size"
-            className="max-w-full max-h-[90vh] rounded-xl object-contain"
-          />
-        </div>
-      )}
+      <GlassLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 };
