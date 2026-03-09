@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { IssueCommentThread } from '../components/IssueCommentThread';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 
 interface ActionDetail {
     id: string;

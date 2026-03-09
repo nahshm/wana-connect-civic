@@ -18,6 +18,7 @@ import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef, useEffect } from 'react';
 import SentimentBar from '@/components/verification/SentimentBar';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 interface PostCardProps {
   post: Post;
   onVote: (postId: string, vote: 'up' | 'down') => void;

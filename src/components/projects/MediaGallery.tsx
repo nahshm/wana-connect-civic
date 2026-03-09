@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight, Download, ZoomIn, Play, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
 
 interface MediaGalleryProps {
     media: string[];
