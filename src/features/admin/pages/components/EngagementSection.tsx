@@ -41,8 +41,8 @@ function QuestsSubTab() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (filter !== 'all') {
-        query = query.eq('status', filter);
+      if (filter === 'active') {
+        query = query.eq('is_active', true);
       }
 
       const { data, error } = await query;
