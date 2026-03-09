@@ -23,7 +23,13 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           "flex-1 w-full min-h-0",
           (isCommunityPage || isCivicAssistant) ? "overflow-hidden" : "overflow-auto"
         )}>
-          {children}
+          {isCivicAssistant ? (
+            <div className="relative h-full w-full overflow-hidden">
+              {children}
+            </div>
+          ) : (
+            children
+          )}
         </SidebarInset>
       </div>
     </div>
