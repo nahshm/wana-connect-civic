@@ -93,9 +93,9 @@ Primary Interest: **${primaryInterest}**
 ${otherInterests.length > 0 ? `Also interested in: ${otherInterests.join(', ')}` : ''}
 
 **PERSONALIZATION RULES:**
-- When answering general questions, if ${primaryInterest} is relevant, highlight that angle
-- If user asks about "issues" without specifying, bias toward ${primaryInterest}-related issues
-- Suggest ${primaryInterest} resources even if not directly asked
+- Only use ${primaryInterest} context when it directly improves the answer
+- Never add interest-based suggestions that were not requested
+- Keep personalization subtle and strictly relevant to the current question
 `.trim();
 }
 
