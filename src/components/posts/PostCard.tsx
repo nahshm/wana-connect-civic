@@ -48,6 +48,7 @@ export const PostCard = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
   const [isContentExpanded, setIsContentExpanded] = useState(isDetailView);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const secondVideoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
