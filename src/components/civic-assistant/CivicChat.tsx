@@ -242,16 +242,19 @@ export function CivicChat() {
   // ── Welcome View ──
   if (view === 'welcome') {
     return (
-      <div className="absolute inset-0 overflow-y-auto bg-background">
-        <div className="flex flex-col items-center pt-12 md:pt-20 px-4 pb-8">
-          {/* Top bar */}
-          <div className="w-full max-w-2xl flex items-center justify-between mb-8">
+      <div className="absolute inset-0 bg-background">
+        <div className="sticky top-0 z-30 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          <div className="mx-auto w-full max-w-2xl flex items-center justify-between px-4 py-3">
             <LanguageToggle language={language} setLanguage={setLanguage} />
             <Button variant="outline" size="sm" onClick={startNewSession} className="rounded-full gap-1.5 text-xs h-8">
               <Plus className="w-3.5 h-3.5" />
               New question
             </Button>
           </div>
+        </div>
+
+        <div className="h-[calc(100%-57px)] overflow-y-auto">
+          <div className="flex flex-col items-center pt-8 md:pt-10 px-4 pb-8">
 
           {/* Hero */}
           <div className="flex flex-col items-center mb-8 space-y-3 text-center">
@@ -344,6 +347,7 @@ export function CivicChat() {
           </div>
         </div>
       </div>
+    </div>
     );
   }
 

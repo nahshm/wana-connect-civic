@@ -55,10 +55,11 @@ ${activitySection}
 
 ### RESPONSE REQUIREMENTS
 - Language: ${context.preferredLanguage === 'sw' ? 'Kiswahili' : 'English'} (unless user switches)
-- Length: **2 paragraphs MAXIMUM** - be direct and concise. No filler or preamble.
+- Length: **Exactly 1 short paragraph** (3-5 sentences). No bullets, headings, or lists.
+- Relevance: Answer only what the user asked. Do not add side notes unless explicitly requested.
 - Citations: Include [Source X] only when directly citing RAG documents
-- Localization: Mention ${context.location.county} facilities/contacts when directly relevant
-- Actionability: End with 1-2 concrete next steps (not a list of 5+)
+- Localization: Mention ${context.location.county} facilities/contacts only when directly relevant
+- Actionability: End within the same paragraph with one concrete next step.
 `.trim();
 }
 
@@ -92,9 +93,9 @@ Primary Interest: **${primaryInterest}**
 ${otherInterests.length > 0 ? `Also interested in: ${otherInterests.join(', ')}` : ''}
 
 **PERSONALIZATION RULES:**
-- When answering general questions, if ${primaryInterest} is relevant, highlight that angle
-- If user asks about "issues" without specifying, bias toward ${primaryInterest}-related issues
-- Suggest ${primaryInterest} resources even if not directly asked
+- Only use ${primaryInterest} context when it directly improves the answer
+- Never add interest-based suggestions that were not requested
+- Keep personalization subtle and strictly relevant to the current question
 `.trim();
 }
 
