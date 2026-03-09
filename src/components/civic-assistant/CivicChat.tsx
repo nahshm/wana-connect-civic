@@ -1,19 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { aiClient, Source, ChatMessage } from '@/services/aiClient';
 import { v4 as uuidv4 } from 'uuid';
 import { 
+  ArrowLeft, 
   ArrowRight, 
   Sparkles, 
-  ThumbsUp, 
-  ThumbsDown, 
   Globe, 
-  Clock,
   X,
   Send,
   Loader2,
   User,
-  Bot
+  Bot,
+  Plus,
+  Clock
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,12 @@ const RECOMMENDED_QUESTIONS = [
   { text: "Report illegal dumping procedure", icon: "🗑️" },
 ];
 
+interface RecentSession {
+  id: string;
+  firstQuery: string;
+  timestamp: number;
+}
+
 interface UserContext {
   name: string;
   county: string;
@@ -38,19 +44,41 @@ interface UserContext {
   interests: string[];
 }
 
+const RECENT_SESSIONS_KEY = 'wana_brain_recent_sessions';
+const CURRENT_SESSION_KEY = 'wana_brain_session';
+
+function getRecentSessions(): RecentSession[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_SESSIONS_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveRecentSession(session: RecentSession) {
+  const sessions = getRecentSessions().filter(s => s.id !== session.id);
+  sessions.unshift(session);
+  localStorage.setItem(RECENT_SESSIONS_KEY, JSON.stringify(sessions.slice(0, 10)));
+}
+
+function removeRecentSession(id: string) {
+  const sessions = getRecentSessions().filter(s => s.id !== id);
+  localStorage.setItem(RECENT_SESSIONS_KEY, JSON.stringify(sessions));
+}
+
 export function CivicChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sessionId] = useState(() => localStorage.getItem('wana_brain_session') || uuidv4());
+  const [sessionId, setSessionId] = useState(() => localStorage.getItem(CURRENT_SESSION_KEY) || uuidv4());
   const [language, setLanguage] = useState<'en' | 'sw'>('en');
   const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [recentSessions, setRecentSessions] = useState<RecentSession[]>(getRecentSessions());
+  const [view, setView] = useState<'welcome' | 'chat'>('welcome');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Save session ID
   useEffect(() => {
-    localStorage.setItem('wana_brain_session', sessionId);
+    localStorage.setItem(CURRENT_SESSION_KEY, sessionId);
   }, [sessionId]);
 
   // Fetch user context
@@ -84,25 +112,41 @@ export function CivicChat() {
     fetchUserContext();
   }, []);
 
-  // Fetch history on mount
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const history = await aiClient.getHistory(sessionId);
-        if (history.length > 0) {
-          setMessages(history);
-        }
-      } catch (error) {
-        console.error('Failed to fetch history:', error);
-      }
-    };
-    fetchHistory();
-  }, [sessionId]);
-
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const startNewSession = useCallback(() => {
+    const newId = uuidv4();
+    setSessionId(newId);
+    setMessages([]);
+    setView('welcome');
+    setInput('');
+    localStorage.setItem(CURRENT_SESSION_KEY, newId);
+  }, []);
+
+  const loadSession = useCallback(async (sid: string) => {
+    setSessionId(sid);
+    localStorage.setItem(CURRENT_SESSION_KEY, sid);
+    setView('chat');
+    try {
+      const history = await aiClient.getHistory(sid);
+      setMessages(history.length > 0 ? history : []);
+    } catch {
+      setMessages([]);
+    }
+  }, []);
+
+  const deleteSession = useCallback((sid: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    removeRecentSession(sid);
+    setRecentSessions(getRecentSessions());
+    // If deleting the current session, start fresh
+    if (sid === sessionId) {
+      startNewSession();
+    }
+  }, [sessionId, startNewSession]);
 
   const handleSend = async (text?: string) => {
     const query = text || input.trim();
@@ -110,6 +154,11 @@ export function CivicChat() {
 
     setInput('');
     setIsStreaming(true);
+    setView('chat');
+
+    // Save to recent sessions
+    saveRecentSession({ id: sessionId, firstQuery: query, timestamp: Date.now() });
+    setRecentSessions(getRecentSessions());
 
     // Add user message
     const userMessage: ChatMessage = {
@@ -134,7 +183,6 @@ export function CivicChat() {
         query,
         sessionId,
         language,
-        // onDelta - append each token
         (delta) => {
           setMessages(prev => 
             prev.map(msg => 
@@ -144,12 +192,10 @@ export function CivicChat() {
             )
           );
         },
-        // onDone
         () => {
           setIsStreaming(false);
           inputRef.current?.focus();
         },
-        // onError
         (error) => {
           console.error('Stream error:', error);
           setMessages(prev => 
@@ -175,167 +221,152 @@ export function CivicChat() {
     }
   };
 
-  const handleClearHistory = async () => {
-    if (!confirm('Clear all chat history?')) return;
-    setMessages([]);
-    try {
-      await aiClient.clearHistory(sessionId);
-    } catch (error) {
-      console.error('Failed to clear history:', error);
-    }
-  };
+  const LanguageToggle = () => (
+    <div className="flex gap-1 bg-muted p-0.5 rounded-full">
+      <button
+        onClick={() => setLanguage('en')}
+        className={cn(
+          "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+          language === 'en' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+        )}
+      >
+        EN
+      </button>
+      <button
+        onClick={() => setLanguage('sw')}
+        className={cn(
+          "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+          language === 'sw' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+        )}
+      >
+        SW
+      </button>
+    </div>
+  );
 
-  const handleNewSession = () => {
-    const newSessionId = uuidv4();
-    localStorage.setItem('wana_brain_session', newSessionId);
-    window.location.reload();
-  };
-
-  // If no messages, show welcome screen
-  if (messages.length === 0) {
+  // ── Welcome Screen ──
+  if (view === 'welcome') {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center pt-16 md:pt-24 px-4 pb-32">
-        {/* Header */}
-        <div className="flex flex-col items-center mb-10 space-y-4 text-center">
-          <div className="bg-primary/10 p-4 rounded-3xl mb-4">
-            <Sparkles className="w-10 h-10 text-primary" />
+      <div className="flex-1 flex flex-col items-center pt-12 md:pt-20 px-4 pb-8 overflow-auto">
+        {/* Top bar */}
+        <div className="w-full max-w-2xl flex items-center justify-between mb-8">
+          <LanguageToggle />
+          <Button variant="outline" size="sm" onClick={startNewSession} className="rounded-full gap-1.5 text-xs h-8">
+            <Plus className="w-3.5 h-3.5" />
+            New question
+          </Button>
+        </div>
+
+        {/* Hero */}
+        <div className="flex flex-col items-center mb-8 space-y-3 text-center">
+          <div className="bg-primary/10 p-3 rounded-2xl">
+            <Sparkles className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
             WanaIQ Answers
           </h1>
-          <p className="text-muted-foreground font-medium text-xl max-w-md">
+          <p className="text-muted-foreground text-base max-w-md">
             Real answers from Kenya's constitution, laws, and community data.
           </p>
         </div>
 
         {/* Search Input */}
-        <div className="w-full max-w-2xl relative z-10 mb-12">
-          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-primary/50 rounded-2xl opacity-20 blur-lg group-hover:opacity-30 transition duration-500" />
-            <div className="relative">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={language === 'sw' ? 'Uliza swali lolote...' : 'Ask a question (e.g., How to report a pothole?)'}
-                className="w-full border-0 shadow-xl rounded-2xl h-20 pl-6 pr-20 text-xl placeholder:text-muted-foreground focus-visible:ring-0 bg-card"
-                autoFocus
-              />
-              <Button 
-                type="submit"
-                size="icon" 
-                disabled={!input.trim()}
-                className="absolute right-3 top-3 h-14 w-14 rounded-xl"
-              >
-                <ArrowRight className="w-6 h-6" />
-              </Button>
-            </div>
+        <div className="w-full max-w-2xl mb-8">
+          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative">
+            <Input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={language === 'sw' ? 'Uliza swali lolote...' : 'Ask a civic question...'}
+              className="w-full rounded-xl h-14 pl-5 pr-14 text-base border-border/50 shadow-sm bg-card focus-visible:ring-primary/30"
+              autoFocus
+            />
+            <Button 
+              type="submit"
+              size="icon" 
+              disabled={!input.trim()}
+              className="absolute right-2 top-2 h-10 w-10 rounded-lg"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </Button>
           </form>
         </div>
 
-        {/* Personalization Banner */}
+        {/* Personalization */}
         {userContext && (
-          <div className="mb-8 bg-primary/5 border border-primary/10 p-3 rounded-full flex items-center gap-3 shadow-sm px-6">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <p className="text-foreground text-sm">
-              🎯 Personalized for <strong>{userContext.name}</strong> ({userContext.role}) in {userContext.county}
-              {userContext.interests.length > 0 && <span> • {userContext.interests[0]}</span>}
-            </p>
+          <div className="mb-6 bg-primary/5 border border-primary/10 px-4 py-2 rounded-full flex items-center gap-2 text-xs text-foreground">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            🎯 <strong>{userContext.name}</strong> • {userContext.county}
+          </div>
+        )}
+
+        {/* Recent Sessions */}
+        {recentSessions.length > 0 && (
+          <div className="w-full max-w-2xl mb-8">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <Clock className="w-3 h-3" />
+              Recent
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {recentSessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => loadSession(session.id)}
+                  className="group flex items-center gap-1.5 bg-muted hover:bg-accent text-foreground text-xs px-3 py-1.5 rounded-full transition-colors max-w-[250px]"
+                >
+                  <span className="truncate">{session.firstQuery}</span>
+                  <span
+                    role="button"
+                    onClick={(e) => deleteSession(session.id, e)}
+                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity flex-shrink-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Recommended Questions */}
         <div className="w-full max-w-2xl">
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 pl-2">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
             Trending Questions
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {RECOMMENDED_QUESTIONS.map((item, i) => (
               <Card
                 key={i}
                 onClick={() => handleSend(item.text)}
-                className="flex items-center gap-3 p-4 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all group"
+                className="flex items-center gap-3 p-3 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all group"
               >
-                <span className="text-xl">{item.icon}</span>
-                <span className="text-sm font-medium text-foreground group-hover:text-primary">{item.text}</span>
+                <span className="text-lg">{item.icon}</span>
+                <span className="text-sm text-foreground group-hover:text-primary">{item.text}</span>
               </Card>
             ))}
           </div>
-        </div>
-
-        {/* Language Toggle */}
-        <div className="fixed bottom-6 right-6 flex gap-2 bg-card p-1 rounded-full shadow-lg border">
-          <button
-            onClick={() => setLanguage('en')}
-            className={cn(
-              "px-4 py-2 rounded-full text-sm font-bold transition-all",
-              language === 'en' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
-            )}
-          >
-            EN
-          </button>
-          <button
-            onClick={() => setLanguage('sw')}
-            className={cn(
-              "px-4 py-2 rounded-full text-sm font-bold transition-all",
-              language === 'sw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
-            )}
-          >
-            SW
-          </button>
         </div>
       </div>
     );
   }
 
-  // Chat view with messages
+  // ── Chat / Answer View ──
   return (
-    <div className="h-[calc(100vh-4rem)] bg-background flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b px-4 h-14 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-2 rounded-lg">
-            <Sparkles className="w-5 h-5 text-primary" />
-          </div>
-          <span className="font-semibold text-foreground hidden sm:inline">WanaIQ</span>
-        </div>
-        
-        {userContext && (
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/5 text-foreground rounded-full text-xs border">
-            🎯 {userContext.name} • {userContext.county}
-          </div>
-        )}
-
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Minimal top bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 flex-shrink-0">
+        <Button variant="ghost" size="sm" onClick={() => setView('welcome')} className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back
+        </Button>
         <div className="flex items-center gap-2">
-          {/* Language Toggle */}
-          <div className="flex gap-1 bg-muted p-0.5 rounded-full">
-            <button
-              onClick={() => setLanguage('en')}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-                language === 'en' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLanguage('sw')}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-                language === 'sw' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              SW
-            </button>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleNewSession} className="rounded-full text-xs h-8">
+          <LanguageToggle />
+          <Button variant="outline" size="sm" onClick={startNewSession} className="rounded-full gap-1.5 text-xs h-8">
+            <Plus className="w-3.5 h-3.5" />
             New
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleClearHistory} className="text-muted-foreground text-xs h-8">
-            Clear
-          </Button>
         </div>
-      </header>
+      </div>
 
       {/* Messages */}
       <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -347,7 +378,7 @@ export function CivicChat() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               className={cn(
-                "flex gap-3",
+                "flex gap-3 max-w-2xl mx-auto",
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
@@ -412,9 +443,8 @@ export function CivicChat() {
           ))}
         </AnimatePresence>
 
-        {/* Streaming indicator */}
         {isStreaming && (
-          <div className="flex items-center gap-2 text-muted-foreground text-xs pl-10">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs max-w-2xl mx-auto pl-10">
             <Loader2 className="w-3 h-3 animate-spin" />
             <span>Thinking...</span>
           </div>
@@ -423,15 +453,15 @@ export function CivicChat() {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Input Footer - contained within component */}
-      <div className="flex-shrink-0 border-t bg-background p-3">
+      {/* Follow-up input */}
+      <div className="flex-shrink-0 border-t border-border/50 bg-background p-3">
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 max-w-2xl mx-auto">
           <Input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={language === 'sw' ? 'Uliza swali...' : 'Ask a question...'}
+            placeholder={language === 'sw' ? 'Uliza swali lingine...' : 'Ask a follow-up...'}
             disabled={isStreaming}
             className="flex-1 h-10 rounded-full px-4 text-sm"
           />
