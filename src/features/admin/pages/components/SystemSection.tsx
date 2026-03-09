@@ -299,29 +299,35 @@ function ErrorLogsSubTab() {
             <div className="divide-y">
               {errorLogs.map(log => (
                 <div key={log.id} className="p-4 hover:bg-muted/50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="destructive" className="text-xs">{log.error_type}</Badge>
-                        <span className="text-sm font-medium">{log.message}</span>
-                      </div>
-                      {log.stack_trace && (
-                        <details className="mt-2">
-                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                            Stack Trace
-                          </summary>
-                          <pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto">
-                            {log.stack_trace}
-                          </pre>
-                        </details>
-                      )}
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span>User: {log.user_id || 'System'}</span>
-                        <span>•</span>
-                        <span>{new Date(log.created_at).toLocaleString()}</span>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive" className="text-xs">{log.severity}</Badge>
+                          <span className="text-sm font-medium">{log.error_message}</span>
+                        </div>
+                        {log.error_stack && (
+                          <details className="mt-2">
+                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                              Stack Trace
+                            </summary>
+                            <pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto">
+                              {log.error_stack}
+                            </pre>
+                          </details>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <span>User: {log.user_id || 'System'}</span>
+                          <span>•</span>
+                          <span>{new Date(log.created_at).toLocaleString()}</span>
+                          {log.component_name && (
+                            <>
+                              <span>•</span>
+                              <span>{log.component_name}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               ))}
             </div>
