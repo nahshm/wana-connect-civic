@@ -1,45 +1,55 @@
 
+Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-# Fix CivicChat: Button Visibility + Reddit Answers-Inspired Redesign
+What I found
+- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
+  - Failing query pattern: `select id, source_type, title, content, created_at ...`
+  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
+- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
+- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
 
-## Problems Identified
+Implementation plan
+1) Database migration (schema + secure access)
+- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
+- Add admin-only write policies on `vectors` using server-side role check:
+  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
+- Keep or tighten SELECT policy based on desired visibility:
+  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
 
-1. **Welcome screen has no New/Clear buttons** -- they only exist in the chat view (messages > 0), so users never see them on first load.
-2. **Chat view header competes with AppLayout Header** -- CivicChat renders inside `AppLayout` (which has its own `<Header />` + sidebar), but CivicChat adds its own sticky header. The `h-[calc(100vh-4rem)]` tries to account for this but the inner header can get clipped.
-3. **No session history management** -- users can't see or delete previous chat sessions, only clear the current one.
+2) Frontend fix in `SuperAdminDashboard.tsx`
+- Keep `title` in select and insert (once column exists).
+- Add robust error handling:
+  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
+  - `handleAddDoc`: surface exact DB/RLS error in toast.
+- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
 
-## Design Direction (from reference screenshots)
+3) Optional consistency improvement (edge pipeline)
+- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
+- This is optional but improves UX and debugging.
 
-The Reddit Answers pattern the user shared shows:
-- **Welcome screen**: centered search box, "Recent" queries as deletable chips, "Recommended" question cards
-- **Answer view**: back arrow (←) + "New question" button in top bar, answer content with sources, sticky follow-up input at bottom
-- Clean, content-focused layout -- no competing headers
+4) Verification checklist
+- Open RAG Viewer:
+  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
+  - Filtering by `source_type=kenya_constitution` returns 200.
+- Add document from UI:
+  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
+  - Non-admin users are blocked by RLS (expected).
+- Confirm no repeated vector 400s in console/network.
 
-## Implementation Plan
+Technical details (exact changes)
+- DB:
+  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
+  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
+- App file:
+  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
+    - retain `select('id, source_type, title, content, created_at')`
+    - retain insert payload with `title`
+    - add explicit `error` handling branches for both read/write.
+- Optional edge function:
+  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
 
-### 1. Redesign Welcome Screen
-- Add a top-right "New question" button (like Reddit Answers)
-- Show **Recent sessions** as horizontal chips with × delete buttons (stored in localStorage)
-- Keep recommended questions grid below
-- Move language toggle inline (not fixed position -- it overlaps AppLayout elements)
-
-### 2. Redesign Chat/Answer View
-- Replace the full sticky header with a minimal top bar: **← Back** (returns to welcome) + **"New question"** button (top-right)
-- Remove the competing header bar with WanaIQ branding (AppLayout already provides nav)
-- Keep language toggle as a small inline pill in the top bar
-- Keep the bottom input for follow-ups, styled like Reddit's "Ask a followup"
-
-### 3. Session Management
-- Store recent sessions in localStorage: `{ id, firstQuery, timestamp }[]` (max 10)
-- Recent chips on welcome screen with × to delete individual sessions
-- "New question" creates a fresh session and navigates to welcome
-- "← Back" from answer view returns to welcome (keeps session alive for later)
-
-### 4. Layout Fix
-- Remove `h-[calc(100vh-4rem)]` -- let the component flow naturally inside `SidebarInset` which already manages overflow
-- Use `min-h-0 flex-1 flex flex-col` pattern to fill available space without fighting the parent layout
-- Remove `sticky top-0` header (replaced with simple flex row)
-
-### Files Changed
-- `src/components/civic-assistant/CivicChat.tsx` -- full redesign of both views
-
+Order of execution
+1. Apply DB migration (column + policies)
+2. Update dashboard error handling
+3. (Optional) add scout title propagation
+4. End-to-end retest of RAG viewer + add document flow
