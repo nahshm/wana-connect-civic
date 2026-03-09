@@ -200,6 +200,22 @@ function AgentDirectorySubTab() {
                     <span className="text-xs text-muted-foreground">No runs recorded</span>
                   </div>
                 )}
+                <div className="pt-2 border-t">
+                  <Button size="sm" variant="outline" className="w-full gap-1 text-xs"
+                    onClick={async () => {
+                      const { error } = await supabase.from('agent_runs').insert({
+                        agent_name: agent.name,
+                        trigger_type: 'manual',
+                        status: 'pending',
+                        items_scanned: 0, items_actioned: 0, items_failed: 0,
+                        metadata: { triggered_by: 'admin_dashboard' },
+                      });
+                      if (error) toast.error('Failed to trigger');
+                      else toast.success(`Triggered ${agent.displayName} run`);
+                    }}>
+                    <Zap className="w-3 h-3" />Trigger Run
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
