@@ -211,7 +211,7 @@ export const aiClient = {
       id: item.id,
       role: item.role as 'user' | 'assistant',
       content: item.content,
-      sources: item.sources as Source[] | undefined,
+      sources: item.sources as unknown as Source[] | undefined,
       created_at: item.created_at,
     }));
   },
