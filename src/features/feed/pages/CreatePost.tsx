@@ -22,14 +22,31 @@ const CreatePost = () => {
   // Fetch communities on component mount
   useEffect(() => {
     const fetchCommunities = async () => {
+      if (!user) return;
+      
+      // Only fetch communities the user has joined
       const { data } = await supabase
-        .from('communities')
-        .select(SELECT_FIELDS.COMMUNITY_CARD)
-        .order('member_count', { ascending: false });
-      setCommunities(data || []);
+        .from('community_members')
+        .select('community:communities(*)')
+        .eq('user_id', user.id);
+      
+      if (data) {
+        // Map the relation to get the actual community object and filter nulls
+        const joined = data
+          .map((item: any) => item.community)
+          .filter(Boolean)
+          .sort((a, b) => (b.member_count || 0) - (a.member_count || 0));
+        
+        setCommunities(joined);
+      } else {
+        setCommunities([]);
+      }
     };
-    fetchCommunities();
-  }, []);
+    
+    if (user) {
+        fetchCommunities();
+    }
+  }, [user]);
 
   const handleCreatePost = async (postData: any) => {
     if (!user) {
@@ -274,20 +291,13 @@ const CreatePost = () => {
       {/* Main Content */}
       <div className="flex-1 max-w-4xl">
         {/* Back Navigation */}
-        <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4 text-sidebar-muted-foreground hover:text-sidebar-foreground">
-            <Link to="/" className="flex items-center gap-2">
+        <div className="mb-4 border-b pb-4 flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-sidebar-muted-foreground hover:text-sidebar-foreground shrink-0">
+            <Link to="/">
               <ArrowLeft className="h-4 w-4" />
-              Back to Feed
             </Link>
           </Button>
-
-          <div className="mb-2">
-            <h1 className="text-3xl font-bold text-sidebar-foreground">Create a Post</h1>
-            <p className="text-sidebar-muted-foreground">
-              Share your thoughts, civic concerns, or start a discussion in your community
-            </p>
-          </div>
+          <h1 className="text-xl font-semibold text-sidebar-foreground">Create a post</h1>
         </div>
 
         {/* Create Post Form */}

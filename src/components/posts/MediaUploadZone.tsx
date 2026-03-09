@@ -56,27 +56,27 @@ export const MediaUploadZone = ({
         }
     }
 
-    const validateFile = (file: File): string | null => {
-        // Check file type
-        if (!ALL_ACCEPTED_TYPES.includes(file.type)) {
-            return `${file.name}: Unsupported file type. Please upload images (JPG, PNG, GIF, WebP), videos (MP4, WebM, MOV, AVI), or documents (PDF, DOC, DOCX).`
-        }
-
-        // Check file size
-        const sizeMB = file.size / (1024 * 1024)
-        if (sizeMB > maxSizeMB) {
-            return `${file.name}: File size (${sizeMB.toFixed(2)}MB) exceeds the maximum allowed size of ${maxSizeMB}MB.`
-        }
-
-        return null
-    }
-
     const handleFiles = useCallback((newFiles: FileList | null) => {
         if (!newFiles || disabled) return
 
         const filesArray = Array.from(newFiles)
         const errors: string[] = []
         const validFiles: File[] = []
+
+        const validateFile = (file: File): string | null => {
+            // Check file type
+            if (!ALL_ACCEPTED_TYPES.includes(file.type)) {
+                return `${file.name}: Unsupported file type. Please upload images (JPG, PNG, GIF, WebP), videos (MP4, WebM, MOV, AVI), or documents (PDF, DOC, DOCX).`
+            }
+
+            // Check file size
+            const sizeMB = file.size / (1024 * 1024)
+            if (sizeMB > maxSizeMB) {
+                return `${file.name}: File size (${sizeMB.toFixed(2)}MB) exceeds the maximum allowed size of ${maxSizeMB}MB.`
+            }
+
+            return null
+        }
 
         // Validate each file
         filesArray.forEach(file => {
@@ -153,7 +153,7 @@ export const MediaUploadZone = ({
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 className={cn(
-                    'border-2 border-dashed rounded-lg p-12 text-center transition-colors',
+                    'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
                     dragActive ? 'border-primary bg-primary/5' : 'border-border',
                     disabled && 'opacity-50 cursor-not-allowed',
                     !disabled && 'hover:border-primary cursor-pointer'
@@ -170,16 +170,16 @@ export const MediaUploadZone = ({
                 />
                 <label
                     htmlFor="media-upload"
-                    className={cn('cursor-pointer', disabled && 'cursor-not-allowed')}
+                    className={cn('cursor-pointer flex flex-col items-center justify-center', disabled && 'cursor-not-allowed')}
                 >
-                    <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-lg font-medium mb-2">
-                        Drag and drop files here, or click to browse
+                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium mb-1">
+                        Drag and drop files, or click to browse
                     </p>
-                    <p className="text-sm text-muted-foreground mb-1">
-                        Images, Videos, or Documents (PDF, DOC, DOCX)
+                    <p className="text-xs text-muted-foreground mb-1">
+                        Images, Videos, or Documents
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] text-muted-foreground">
                         Max {maxSizeMB}MB per file • Up to {maxFiles} files
                     </p>
                 </label>

@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
+import CharacterCount from '@tiptap/extension-character-count'
 import {
     Bold,
     Italic,
@@ -49,6 +50,7 @@ export const RichTextEditor = ({
             Placeholder.configure({
                 placeholder,
             }),
+            CharacterCount,
         ],
         content,
         onUpdate: ({ editor }) => {
@@ -57,7 +59,7 @@ export const RichTextEditor = ({
         editable: !disabled,
         editorProps: {
             attributes: {
-                class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4 prose-ul:list-disc prose-ol:list-decimal prose-li:ml-4'
+                class: 'prose prose-sm max-w-none focus:outline-none min-h-[100px] p-4 prose-ul:list-disc prose-ol:list-decimal prose-li:ml-4'
             }
         }
     })

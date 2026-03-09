@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CommunitySelector } from './CommunitySelector'
 import { FlairSelector } from './FlairSelector'
 import { ContentSensitivitySelector, ContentSensitivity } from './ContentSensitivitySelector'
@@ -246,7 +247,7 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 max-w-3xl mx-auto">
       {/* Community Selection */}
       <CommunitySelector
         communities={communities}
@@ -257,7 +258,7 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
 
       {/* Post Type Tabs */}
       <Tabs value={postType} onValueChange={(v) => setPostType(v as typeof postType)}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="flex w-full justify-start h-auto p-0 bg-transparent mb-4 border-b">
           {POST_TYPES.map(type => {
             const Icon = type.icon
             return (
@@ -265,7 +266,7 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
                 key={type.id}
                 value={type.id}
                 disabled={disabled || isSubmitting}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 font-semibold text-muted-foreground hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent shadow-none"
               >
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{type.label}</span>
@@ -274,29 +275,42 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
           })}
         </TabsList>
 
+        {/* Options Row (Above Title, Reddit Style) */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <ContentSensitivitySelector
+            value={contentSensitivity}
+            onValueChange={setContentSensitivity}
+            disabled={disabled || isSubmitting}
+          />
+          <FlairSelector
+            selectedFlairIds={flairIds}
+            onSelectFlairs={setFlairIds}
+            disabled={disabled || isSubmitting}
+          />
+        </div>
+
         {/* Title Input (shown for all types) */}
-        <div className="mt-6 space-y-2">
+        <div className="space-y-1">
           <Input
-            placeholder="Title"
+            placeholder="Title*"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={300}
             disabled={disabled || isSubmitting}
             required
-            className="text-lg font-medium"
+            className="text-base font-semibold border-input bg-background h-11"
           />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>A clear, descriptive title helps others understand your post</span>
+          <div className="flex justify-end text-xs text-muted-foreground">
             <span>{title.length}/300</span>
           </div>
         </div>
 
         {/* Text Post Content */}
-        <TabsContent value="text" className="space-y-4 mt-6">
+        <TabsContent value="text" className="space-y-4 mt-4">
           <RichTextEditor
             content={content}
             onChange={setContent}
-            placeholder="Share your thoughts about civic matters, ask questions, or start a discussion..."
+            placeholder="Body text (optional)"
             disabled={disabled || isSubmitting}
           />
 
@@ -319,7 +333,7 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
         </TabsContent>
 
         {/* Media Post Content */}
-        <TabsContent value="media" className="space-y-4 mt-6">
+        <TabsContent value="media" className="space-y-4 mt-4">
           <MediaUploadZone
             files={files}
             onFilesChange={setFiles}
@@ -331,13 +345,13 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
           <RichTextEditor
             content={content}
             onChange={setContent}
-            placeholder="Add a description or context for your media..."
+            placeholder="Body text (optional) add context for your media..."
             disabled={disabled || isSubmitting}
           />
         </TabsContent>
 
         {/* Link Post Content */}
-        <TabsContent value="link" className="space-y-4 mt-6">
+        <TabsContent value="link" className="space-y-4 mt-4">
           <LinkPostInput
             url={linkUrl}
             onUrlChange={setLinkUrl}
@@ -348,25 +362,11 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
           <RichTextEditor
             content={content}
             onChange={setContent}
-            placeholder="Add your commentary or thoughts about this link..."
+            placeholder="Body text (optional) add your commentary..."
             disabled={disabled || isSubmitting}
           />
         </TabsContent>
       </Tabs>
-
-      {/* Flair Selection */}
-      <FlairSelector
-        selectedFlairIds={flairIds}
-        onSelectFlairs={setFlairIds}
-        disabled={disabled || isSubmitting}
-      />
-
-      {/* Content Sensitivity */}
-      <ContentSensitivitySelector
-        value={contentSensitivity}
-        onValueChange={setContentSensitivity}
-        disabled={disabled || isSubmitting}
-      />
 
       {/* AI Blocked Message */}
       {governanceResult?.verdict === 'BLOCKED' && (
@@ -404,21 +404,41 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-6 border-t">
+      <div className="flex items-center justify-between pt-4 mt-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Lock className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {contentSensitivity === 'crisis'
-              ? 'Crisis reports are immediately escalated'
-              : contentSensitivity === 'sensitive'
-                ? 'Sensitive posts undergo additional verification'
-                : 'Your post will be reviewed by moderators'}
-          </span>
+          <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-foreground">
+                   <AlertCircle className="h-4 w-4 mr-1.5" />
+                   Guidelines
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 text-sm" align="start">
+              <h4 className="font-semibold mb-2">Posting Guidelines</h4>
+              <ul className="space-y-1.5 text-muted-foreground">
+                <li>• Ensure your title is clear and descriptive</li>
+                <li>• Provide evidence for corruption claims</li>
+                <li>• Be respectful and avoid personal attacks</li>
+                <li>• Max limits: Videos (100MB), Images (40MB)</li>
+              </ul>
+            </PopoverContent>
+          </Popover>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs bg-muted px-2 py-1 rounded-full">
+            <Lock className="h-3 w-3" />
+            <span>
+              {contentSensitivity === 'crisis'
+                ? 'Crisis reports are immediately escalated'
+                : contentSensitivity === 'sensitive'
+                  ? 'Sensitive posts undergo additional verification'
+                  : 'Your post will be reviewed by moderators'}
+            </span>
+          </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
+            className="rounded-full px-6"
             onClick={handleSaveDraft}
             disabled={disabled || isSubmitting}
           >
@@ -426,44 +446,13 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
           </Button>
           <Button
             type="submit"
+            className="rounded-full px-8 font-semibold"
             disabled={disabled || isSubmitting || !title.trim()}
           >
             {isSubmitting ? 'Posting...' : 'Post'}
           </Button>
         </div>
       </div>
-
-      {/* Posting Guidelines */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-6">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-primary" />
-            Posting Guidelines
-          </h3>
-          <ul className="text-sm text-muted-foreground space-y-2">
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Ensure your title is clear and descriptive</span>
-            </li>
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Provide evidence for corruption or accountability claims</span>
-            </li>
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Be respectful and avoid personal attacks</span>
-            </li>
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Check community rules before posting</span>
-            </li>
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Videos: Max 100MB • Images/Docs: Max 40MB per file</span>
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
     </form>
   )
 }
