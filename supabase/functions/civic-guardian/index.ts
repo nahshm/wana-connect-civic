@@ -284,7 +284,8 @@ async function processContentItem(
   item: ContentItem,
   autoActionThreshold: number,
   reviewThreshold: number,
-  repeatOffenderStrikes: number
+  repeatOffenderStrikes: number,
+  promptOverride?: string | null
 ): Promise<"approved" | "actioned" | "failed" | "queued"> {
   const rawText = (item.content ?? item.body ?? "").trim();
 
