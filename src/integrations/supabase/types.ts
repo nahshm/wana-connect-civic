@@ -3408,6 +3408,69 @@ export type Database = {
           },
         ]
       }
+      education_content: {
+        Row: {
+          assigned_to: string | null
+          assignment_notes: string | null
+          author_id: string | null
+          category: string
+          content: string
+          created_at: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          is_featured: boolean | null
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          assignment_notes?: string | null
+          author_id?: string | null
+          category?: string
+          content?: string
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          is_featured?: boolean | null
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          assignment_notes?: string | null
+          author_id?: string | null
+          category?: string
+          content?: string
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          is_featured?: boolean | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_content_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "education_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       election_cycles: {
         Row: {
           created_at: string | null
