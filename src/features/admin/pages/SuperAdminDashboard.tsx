@@ -79,6 +79,8 @@ export default function SuperAdminDashboard() {
       case 'content': return <ContentSection />;
       case 'governance': return <GovernanceSection />;
       case 'ai-command': return <AICommandSection />;
+      case 'accountability': return <AccountabilitySection />;
+      case 'engagement': return <EngagementSection />;
       case 'platform': return <PlatformSection />;
       case 'system': return <SystemSection />;
       default: return <OverviewSection />;
