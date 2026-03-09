@@ -260,7 +260,7 @@ function ErrorLogsSubTab() {
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (searchTerm) {
-        query = query.or(`error_type.ilike.%${searchTerm}%,message.ilike.%${searchTerm}%`);
+        query = query.or(`error_message.ilike.%${searchTerm}%,component_name.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query;
