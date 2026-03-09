@@ -722,7 +722,7 @@ export const PostCard = ({
         </div>
       </div>;
   }
-  return <article className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+  return <><article className="border-b border-border/50 hover:bg-muted/30 transition-colors">
       <div className="flex flex-col">
         {/* Main Content */}
         <div className="flex-1 min-w-0 py-[12px] px-[2px]">
