@@ -108,6 +108,9 @@ Deno.serve(async (req: Request) => {
     const humanEscalationThreshold =
       (await getAgentState(serviceClient, AGENT_NAME, "human_escalation_threshold") as number) ?? 0.70;
 
+    // ── Load prompt override ─────────────────────────────────────────────────
+    const promptOverride = await getAgentState(serviceClient, AGENT_NAME, "system_prompt") as string | null;
+
     // ── Fetch pending proposals (oldest first → FIFO processing) ─────────────
     const { data: proposals, error: fetchErr } = await serviceClient
       .from("agent_proposals")
@@ -129,7 +132,8 @@ Deno.serve(async (req: Request) => {
           groqApiKey,
           proposal as Proposal,
           autoApproveThreshold,
-          humanEscalationThreshold
+          humanEscalationThreshold,
+          promptOverride
         );
         if (result === "approved") approved++;
         else if (result === "rejected") rejected++;
@@ -194,7 +198,8 @@ async function handleProposal(
   groqApiKey: string,
   proposal: Proposal,
   autoApproveThreshold: number,
-  humanEscalationThreshold: number
+  humanEscalationThreshold: number,
+  promptOverride?: string | null
 ): Promise<"approved" | "rejected" | "escalated"> {
 
   const guardianConfidence = proposal.confidence ?? 0;
@@ -209,7 +214,7 @@ async function handleProposal(
   if (needsLLMReview || guardianConfidence < autoApproveThreshold) {
     // Get Minion's independent LLM review
     try {
-      minionDecision = await getMinionDecision(groqApiKey, proposal);
+      minionDecision = await getMinionDecision(groqApiKey, proposal, promptOverride);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown";
       console.warn(`[${AGENT_NAME}] LLM review failed for proposal ${proposal.id}: ${msg}`);
@@ -337,9 +342,10 @@ async function executeProposalAction(
 
 async function getMinionDecision(
   groqApiKey: string,
-  proposal: Proposal
+  proposal: Proposal,
+  promptOverride?: string | null
 ): Promise<MinionDecision | null> {
-  const systemPrompt = buildMinionSystemPrompt();
+  const systemPrompt = promptOverride || buildMinionSystemPrompt();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);

@@ -127,6 +127,9 @@ Deno.serve(async (req: Request) => {
     const repeatOffenderStrikes =
       (await getAgentState(serviceClient, AGENT_NAME, "repeat_offender_strikes") as number) ?? 3;
 
+    // ── Load prompt override from agent_state ──────────────────────────────────
+    const promptOverride = await getAgentState(serviceClient, AGENT_NAME, "system_prompt") as string | null;
+
     if (isWebhook) {
       // ── Webhook path: single new post or comment ───────────────────────────
       const record = body.record as Record<string, unknown>;
@@ -147,7 +150,8 @@ Deno.serve(async (req: Request) => {
         item,
         autoActionThreshold,
         reviewThreshold,
-        repeatOffenderStrikes
+        repeatOffenderStrikes,
+        promptOverride
       );
       if (actioned === "actioned") itemsActioned++;
       if (actioned === "failed") itemsFailed++;
@@ -159,7 +163,8 @@ Deno.serve(async (req: Request) => {
         groqApiKey,
         autoActionThreshold,
         reviewThreshold,
-        repeatOffenderStrikes
+        repeatOffenderStrikes,
+        promptOverride
       );
       itemsScanned = results.scanned;
       itemsActioned = results.actioned;
@@ -211,7 +216,8 @@ async function runCatchUpScan(
   groqApiKey: string,
   autoActionThreshold: number,
   reviewThreshold: number,
-  repeatOffenderStrikes: number
+  repeatOffenderStrikes: number,
+  promptOverride?: string | null
 ): Promise<{ scanned: number; actioned: number; failed: number }> {
   let scanned = 0, actioned = 0, failed = 0;
 
@@ -235,7 +241,7 @@ async function runCatchUpScan(
       const result = await processContentItem(
         serviceClient, groqApiKey,
         { id: post.id, content: post.content, user_id: post.author_id, type: "post" },
-        autoActionThreshold, reviewThreshold, repeatOffenderStrikes
+        autoActionThreshold, reviewThreshold, repeatOffenderStrikes, promptOverride
       );
       if (result === "actioned") actioned++;
       if (result === "failed") failed++;
@@ -260,7 +266,7 @@ async function runCatchUpScan(
       const result = await processContentItem(
         serviceClient, groqApiKey,
         { id: comment.id, content: comment.content, user_id: comment.author_id, type: "comment" },
-        autoActionThreshold, reviewThreshold, repeatOffenderStrikes
+        autoActionThreshold, reviewThreshold, repeatOffenderStrikes, promptOverride
       );
       if (result === "actioned") actioned++;
       if (result === "failed") failed++;
@@ -278,7 +284,8 @@ async function processContentItem(
   item: ContentItem,
   autoActionThreshold: number,
   reviewThreshold: number,
-  repeatOffenderStrikes: number
+  repeatOffenderStrikes: number,
+  promptOverride?: string | null
 ): Promise<"approved" | "actioned" | "failed" | "queued"> {
   const rawText = (item.content ?? item.body ?? "").trim();
 
@@ -292,7 +299,7 @@ async function processContentItem(
   let verdict: GuardianVerdict | null = null;
 
   try {
-    verdict = await getGuardianVerdict(groqApiKey, truncatedText, item.type);
+    verdict = await getGuardianVerdict(groqApiKey, truncatedText, item.type, promptOverride);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown";
     console.error(`[${AGENT_NAME}] LLM call failed for ${item.type} ${item.id}:`, msg);
@@ -449,9 +456,10 @@ async function queueForHumanReview(
 async function getGuardianVerdict(
   groqApiKey: string,
   content: string,
-  contentType: "post" | "comment"
+  contentType: "post" | "comment",
+  promptOverride?: string | null
 ): Promise<GuardianVerdict | null> {
-  const systemPrompt = buildGuardianSystemPrompt();
+  const systemPrompt = promptOverride || buildGuardianSystemPrompt();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000); // 15s timeout
