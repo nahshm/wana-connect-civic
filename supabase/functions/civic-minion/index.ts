@@ -214,7 +214,7 @@ async function handleProposal(
   if (needsLLMReview || guardianConfidence < autoApproveThreshold) {
     // Get Minion's independent LLM review
     try {
-      minionDecision = await getMinionDecision(groqApiKey, proposal);
+      minionDecision = await getMinionDecision(groqApiKey, proposal, promptOverride);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown";
       console.warn(`[${AGENT_NAME}] LLM review failed for proposal ${proposal.id}: ${msg}`);

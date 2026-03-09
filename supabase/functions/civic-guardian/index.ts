@@ -299,7 +299,7 @@ async function processContentItem(
   let verdict: GuardianVerdict | null = null;
 
   try {
-    verdict = await getGuardianVerdict(groqApiKey, truncatedText, item.type);
+    verdict = await getGuardianVerdict(groqApiKey, truncatedText, item.type, promptOverride);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown";
     console.error(`[${AGENT_NAME}] LLM call failed for ${item.type} ${item.id}:`, msg);
