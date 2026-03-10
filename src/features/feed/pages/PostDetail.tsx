@@ -360,6 +360,7 @@ const PostDetail = () => {
         .select(`
           *,
           profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
+          comment_media!comment_media_comment_id_fkey (id, file_path, filename, file_type, file_size, created_at),
           comment_award_assignments!comment_id (
             id, awarded_at,
             comment_awards!award_id (id, name, display_name, description, points, category, color, background_color, icon, is_enabled, sort_order, created_at, updated_at),
