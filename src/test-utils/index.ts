@@ -7,4 +7,3 @@ export * from './fixtures/posts';
 export * from './fixtures/communities';
 
 // Mocks
-export * from './mocks/supabase';
