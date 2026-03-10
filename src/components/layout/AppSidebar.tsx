@@ -6,6 +6,8 @@ import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGrou
 import { useOfficeHolderId } from '@/hooks/useOfficeHolderId';
 import { usePrimaryCommunity } from '@/hooks/usePrimaryCommunity';
 import { SetLocationModal } from '@/components/community/SetLocationModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 const mainItems = [{
   title: 'For You',
   url: '/',
@@ -24,16 +26,20 @@ const mainItems = [{
   icon: Building2
 }, {
   title: 'Explore',
-  url: '/communities',
+  url: '/explore',
   icon: Globe
 }];
 export function AppSidebar() {
   const {
-    state
+    state,
+    isMobile,
+    setOpenMobile
   } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
-  const collapsed = state === 'collapsed';
+  const collapsed = state === 'collapsed' && !isMobile;
+  const { user } = useAuth();
+  const { open: openAuthModal } = useAuthModal();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const {
@@ -45,6 +51,12 @@ export function AppSidebar() {
     hasLocation,
     isLoading: communityLoading
   } = usePrimaryCommunity();
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
   const isActive = (path: string) => {
     if (path === '/') {
       return currentPath === '/';
@@ -70,7 +82,7 @@ export function AppSidebar() {
         <SidebarGroupContent>
           <SidebarMenu className="gap-1">
             {mainItems.map((item) => <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
+              <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
                 <NavLink to={item.url} end className={getNavCls}>
                   <item.icon className="h-5 w-5" />
                   {!collapsed && <span className="text-sm">{item.title}</span>}
@@ -88,8 +100,8 @@ export function AppSidebar() {
         <SidebarGroupContent>
           <SidebarMenu className="gap-1">
             {/* My Office - Only show for verified officials */}
-            {officeHolderId && <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
+            {user && officeHolderId && <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
                   <NavLink to={`/g/${officeHolderId}`} className={getNavCls}>
                     <Building className="h-5 w-5" />
                     {!collapsed && <span className="text-sm">My Office</span>}
@@ -98,8 +110,8 @@ export function AppSidebar() {
               </SidebarMenuItem>}
 
             {/* My Communities - Navigate to primary community or show modal */}
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
+            {user && <SidebarMenuItem>
+              <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
                 {primaryCommunityPath && hasLocation ? <NavLink to={primaryCommunityPath} className={getNavCls}>
                     <Users className="h-5 w-5" />
                     {!collapsed && <span className="text-sm">My Communities</span>}
@@ -108,17 +120,17 @@ export function AppSidebar() {
                     {!collapsed && <span className="text-sm">My Communities</span>}
                   </button>}
               </SidebarMenuButton>
-            </SidebarMenuItem>
+            </SidebarMenuItem>}
 
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setWizardOpen(true)} className="h-10 px-3 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+            {user && <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => { setWizardOpen(true); handleNavClick(); }} className="h-10 px-3 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
                 <Plus className="h-5 w-5" />
                 {!collapsed && <span className="text-sm">Create Community</span>}
               </SidebarMenuButton>
-            </SidebarMenuItem>
+            </SidebarMenuItem>}
 
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
+              <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
                 <NavLink to="/communities" className={getNavCls}>
                   <Star className="h-5 w-5" />
                   {!collapsed && <span className="text-sm">Browse All</span>}
@@ -135,22 +147,33 @@ export function AppSidebar() {
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu className="gap-1">
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
-                <Link to="/profile" className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+            {user ? (
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
+                    <Link to="/profile" className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+                      <User className="h-5 w-5" />
+                      {!collapsed && <span className="text-sm">My Profile</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
+                    <Link to="/settings" className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+                      <Settings className="h-5 w-5" />
+                      {!collapsed && <span className="text-sm">Settings</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            ) : (
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => { openAuthModal('login'); handleNavClick(); }} className="h-10 px-3 rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
                   <User className="h-5 w-5" />
-                  {!collapsed && <span className="text-sm">My Profile</span>}
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="h-10 px-3 rounded-md">
-                <Link to="/settings" className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
-                  <Settings className="h-5 w-5" />
-                  {!collapsed && <span className="text-sm">Settings</span>}
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                  {!collapsed && <span className="text-sm">Sign In</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

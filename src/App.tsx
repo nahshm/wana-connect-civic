@@ -42,6 +42,7 @@ const Communities = lazy(() => import("@/features/community/pages/Communities"))
 const Community = lazy(() => import("@/features/community/pages/Community"));
 const Chat = lazy(() => import("@/features/community/pages/Chat"));
 const MyCommunitiesPage = lazy(() => import("@/features/community/pages/MyCommunitiesPage").then(m => ({ default: m.MyCommunitiesPage })));
+const ExplorePlatform = lazy(() => import("@/pages/ExplorePlatform"));
 
 // LAZY LOADED: AI Features
 const CivicChat = lazy(() => import("@/components/civic-assistant/CivicChat").then(m => ({ default: m.CivicChat })));
@@ -136,6 +137,7 @@ const App = () => (
                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
                             <Route path="/promises/:promiseId" element={<PromiseDetail />} />
                             <Route path="/discover" element={<DiscoveryDashboard />} />
+                            <Route path="/explore" element={<ExplorePlatform />} />
 
                             {/* Position-first Office civic hub — accessible even for unclaimed offices */}
                             <Route path="/office/:country/:level/:jurisdiction/:role" element={<OfficeHubPage />} />
