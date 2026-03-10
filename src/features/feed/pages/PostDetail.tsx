@@ -223,6 +223,16 @@ const PostDetail = () => {
             assignedAt: new Date(assignment.awarded_at),
           })) || [];
 
+          const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: any) => ({
+            id: m.id,
+            commentId: commentData.id,
+            filePath: m.file_path,
+            filename: m.filename,
+            fileType: m.file_type,
+            fileSize: m.file_size || 0,
+            uploadedAt: new Date(m.created_at),
+          })) || [];
+
           const comment: Comment = {
             id: commentData.id,
             content: commentData.content,
@@ -245,6 +255,7 @@ const PostDetail = () => {
             moderationStatus: commentData.moderation_status as 'approved' | 'pending' | 'removed',
             isDeleted: commentData.is_deleted || false,
             awards,
+            media: mediaItems,
             replies: []
           };
 
