@@ -17,7 +17,8 @@ import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useVerification } from '@/hooks/useVerification';
 import { copyToClipboard } from '@/lib/clipboard-utils';
-import type { Comment, Post, CommentAward } from '@/types';
+import type { Comment, Post, CommentAward, CommentMedia } from '@/types';
+import type { UploadedMedia } from '@/components/posts/CommentInput';
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -162,6 +163,7 @@ const PostDetail = () => {
           .select(`
             *,
             profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
+            comment_media!comment_media_comment_id_fkey (id, file_path, filename, file_type, file_size, created_at),
             comment_award_assignments!comment_id (
               id,
               awarded_at,
@@ -221,6 +223,16 @@ const PostDetail = () => {
             assignedAt: new Date(assignment.awarded_at),
           })) || [];
 
+          const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: any) => ({
+            id: m.id,
+            commentId: commentData.id,
+            filePath: m.file_path,
+            filename: m.filename,
+            fileType: m.file_type,
+            fileSize: m.file_size || 0,
+            uploadedAt: new Date(m.created_at),
+          })) || [];
+
           const comment: Comment = {
             id: commentData.id,
             content: commentData.content,
@@ -243,6 +255,7 @@ const PostDetail = () => {
             moderationStatus: commentData.moderation_status as 'approved' | 'pending' | 'removed',
             isDeleted: commentData.is_deleted || false,
             awards,
+            media: mediaItems,
             replies: []
           };
 
@@ -277,7 +290,7 @@ const PostDetail = () => {
   }, [id, user?.id]);
 
 
-  const handleAddComment = async (content: string, parentId?: string) => {
+  const handleAddComment = async (content: string, parentId?: string, mediaFiles?: UploadedMedia[]) => {
     if (!user) {
       authModal.open('login');
       return;
@@ -299,7 +312,7 @@ const PostDetail = () => {
         depth = findDepth(comments);
       }
 
-      const { error } = await supabase
+      const { data: newComment, error } = await supabase
         .from('comments')
         .insert({
           post_id: id,
@@ -311,7 +324,25 @@ const PostDetail = () => {
           upvotes: 0,
           downvotes: 0,
           is_collapsed: false
-        });
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      // Insert comment media records if any
+      if (mediaFiles && mediaFiles.length > 0 && newComment) {
+        const mediaRecords = mediaFiles.map(m => ({
+          comment_id: newComment.id,
+          file_path: m.filePath,
+          filename: m.filename,
+          original_filename: m.filename,
+          file_type: m.fileType.startsWith('image/') ? 'image' : m.fileType.startsWith('video/') ? 'video' : 'document',
+          mime_type: m.fileType,
+          file_size: m.fileSize,
+        }));
+        await supabase.from('comment_media').insert(mediaRecords);
+      }
 
       if (error) throw error;
 
@@ -329,6 +360,7 @@ const PostDetail = () => {
         .select(`
           *,
           profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
+          comment_media!comment_media_comment_id_fkey (id, file_path, filename, file_type, file_size, created_at),
           comment_award_assignments!comment_id (
             id, awarded_at,
             comment_awards!award_id (id, name, display_name, description, points, category, color, background_color, icon, is_enabled, sort_order, created_at, updated_at),
@@ -385,6 +417,16 @@ const PostDetail = () => {
           assignedAt: new Date(assignment.awarded_at),
         })) || [];
 
+        const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: any) => ({
+          id: m.id,
+          commentId: commentData.id,
+          filePath: m.file_path,
+          filename: m.filename,
+          fileType: m.file_type,
+          fileSize: m.file_size || 0,
+          uploadedAt: new Date(m.created_at),
+        })) || [];
+
         const comment: Comment = {
           id: commentData.id,
           content: commentData.content,
@@ -407,6 +449,7 @@ const PostDetail = () => {
           moderationStatus: commentData.moderation_status as 'approved' | 'pending' | 'removed',
           isDeleted: commentData.is_deleted || false,
           awards,
+          media: mediaItems,
           replies: []
         };
 
