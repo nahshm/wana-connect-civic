@@ -290,7 +290,7 @@ const PostDetail = () => {
   }, [id, user?.id]);
 
 
-  const handleAddComment = async (content: string, parentId?: string) => {
+  const handleAddComment = async (content: string, parentId?: string, mediaFiles?: UploadedMedia[]) => {
     if (!user) {
       authModal.open('login');
       return;
@@ -312,7 +312,7 @@ const PostDetail = () => {
         depth = findDepth(comments);
       }
 
-      const { error } = await supabase
+      const { data: newComment, error } = await supabase
         .from('comments')
         .insert({
           post_id: id,
@@ -324,7 +324,25 @@ const PostDetail = () => {
           upvotes: 0,
           downvotes: 0,
           is_collapsed: false
-        });
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      // Insert comment media records if any
+      if (mediaFiles && mediaFiles.length > 0 && newComment) {
+        const mediaRecords = mediaFiles.map(m => ({
+          comment_id: newComment.id,
+          file_path: m.filePath,
+          filename: m.filename,
+          original_filename: m.filename,
+          file_type: m.fileType.startsWith('image/') ? 'image' : m.fileType.startsWith('video/') ? 'video' : 'document',
+          mime_type: m.fileType,
+          file_size: m.fileSize,
+        }));
+        await supabase.from('comment_media').insert(mediaRecords);
+      }
 
       if (error) throw error;
 
