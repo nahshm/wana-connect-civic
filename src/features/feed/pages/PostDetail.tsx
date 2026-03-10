@@ -17,7 +17,8 @@ import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
 import { useVerification } from '@/hooks/useVerification';
 import { copyToClipboard } from '@/lib/clipboard-utils';
-import type { Comment, Post, CommentAward } from '@/types';
+import type { Comment, Post, CommentAward, CommentMedia } from '@/types';
+import type { UploadedMedia } from '@/components/posts/CommentInput';
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
