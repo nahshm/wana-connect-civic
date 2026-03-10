@@ -33,8 +33,7 @@ interface CommentItemProps {
 }
 
 function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   if (!media || media.length === 0) return null;
 
@@ -53,7 +52,7 @@ function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
           {images.map((img, i) => (
             <button
               key={img.id}
-              onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
+              onClick={() => setLightboxSrc(imageUrls[i])}
               className="rounded-lg overflow-hidden border border-border hover:opacity-90 transition-opacity"
             >
               <img
@@ -87,13 +86,10 @@ function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
         </div>
       )}
 
-      {lightboxOpen && imageUrls.length > 0 && (
-        <GlassLightbox
-          images={imageUrls}
-          initialIndex={lightboxIndex}
-          onClose={() => setLightboxOpen(false)}
-        />
-      )}
+      <GlassLightbox
+        src={lightboxSrc}
+        onClose={() => setLightboxSrc(null)}
+      />
     </div>
   );
 }
