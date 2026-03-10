@@ -2,32 +2,100 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUp, ArrowDown, MessageSquare, Reply, Share2, LogIn, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageSquare, Reply, Share2, LogIn, Trash2, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { CommentAwardDisplay } from './CommentAwardDisplay';
 import { CommentAwardButton } from './CommentAwardButton';
-import { CommentInput } from './CommentInput';
+import { CommentInput, type UploadedMedia } from './CommentInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { SafeContentRenderer } from './SafeContentRenderer';
 import DeletedComment from './DeletedComment';
-import type { Comment } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { GlassLightbox } from '@/components/ui/GlassLightbox';
+import type { Comment, CommentMedia } from '@/types';
 
 interface CommentSectionProps {
   postId: string;
   comments?: Comment[];
-  onAddComment?: (content: string, parentId?: string) => void;
+  onAddComment?: (content: string, parentId?: string, mediaFiles?: UploadedMedia[]) => void;
   onVoteComment?: (commentId: string, vote: 'up' | 'down') => void;
   onDeleteComment?: (commentId: string) => void;
 }
 
 interface CommentItemProps {
   comment: Comment;
-  onReply?: (content: string, parentId: string) => void;
+  onReply?: (content: string, parentId: string, mediaFiles?: UploadedMedia[]) => void;
   onVote?: (commentId: string, vote: 'up' | 'down') => void;
   onDelete?: (commentId: string) => void;
   depth?: number;
+}
+
+function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  if (!media || media.length === 0) return null;
+
+  const images = media.filter(m => m.fileType.startsWith('image/'));
+  const otherFiles = media.filter(m => !m.fileType.startsWith('image/'));
+
+  const imageUrls = images.map(m => {
+    const { data } = supabase.storage.from('comment-media').getPublicUrl(m.filePath);
+    return data.publicUrl;
+  });
+
+  return (
+    <div className="mt-1.5 mb-1">
+      {images.length > 0 && (
+        <div className={`grid gap-1.5 ${images.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-2 max-w-md'}`}>
+          {images.map((img, i) => (
+            <button
+              key={img.id}
+              onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
+              className="rounded-lg overflow-hidden border border-border hover:opacity-90 transition-opacity"
+            >
+              <img
+                src={imageUrls[i]}
+                alt={img.filename}
+                className="w-full h-auto max-h-48 object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {otherFiles.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {otherFiles.map(file => {
+            const { data } = supabase.storage.from('comment-media').getPublicUrl(file.filePath);
+            return (
+              <a
+                key={file.id}
+                href={data.publicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition-colors border border-border/50"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span className="truncate max-w-[120px]">{file.filename}</span>
+              </a>
+            );
+          })}
+        </div>
+      )}
+
+      {lightboxOpen && imageUrls.length > 0 && (
+        <GlassLightbox
+          images={imageUrls}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
+    </div>
+  );
 }
 
 const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentItemProps) => {
@@ -37,8 +105,8 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleReply = (content: string) => {
-    onReply?.(content, comment.id);
+  const handleReply = (content: string, mediaFiles?: UploadedMedia[]) => {
+    onReply?.(content, comment.id, mediaFiles);
     setIsReplying(false);
     toast({ title: "Reply posted" });
   };
@@ -61,7 +129,6 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
   const isOwner = user?.id === comment.author.id;
 
-  // Thread colors for visual depth
   const threadColors = [
     'border-primary/30',
     'border-blue-400/30',
@@ -72,7 +139,6 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
   ];
   const threadColor = threadColors[depth % threadColors.length];
 
-  // Show deleted placeholder
   if (comment.isDeleted) {
     return (
       <div className={`relative ${depth > 0 ? 'ml-4 pl-3' : ''}`}>
@@ -83,14 +149,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
         {shouldShowReplies && (
           <div>
             {comment.replies!.map((reply) => (
-              <CommentItem
-                key={reply.id}
-                comment={reply}
-                onReply={onReply}
-                onVote={onVote}
-                onDelete={onDelete}
-                depth={depth + 1}
-              />
+              <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} depth={depth + 1} />
             ))}
           </div>
         )}
@@ -100,7 +159,6 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
 
   return (
     <div className={`relative ${depth > 0 ? 'ml-4 pl-3' : ''}`}>
-      {/* Thread line for nested */}
       {depth > 0 && (
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -130,8 +188,6 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
           <span className="text-muted-foreground">
             {formatDistanceToNow(comment.createdAt, { addSuffix: true }).replace('about ', '')}
           </span>
-
-          {/* Collapse for top-level */}
           {depth === 0 && (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -150,6 +206,11 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
               className="text-sm leading-relaxed text-foreground/90 mb-1.5"
             />
 
+            {/* Media attachments */}
+            {comment.media && comment.media.length > 0 && (
+              <CommentMediaDisplay media={comment.media} />
+            )}
+
             {/* Awards */}
             {comment.awards && comment.awards.length > 0 && (
               <div className="mb-1">
@@ -159,7 +220,6 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
 
             {/* Actions bar */}
             <div className="flex items-center gap-0.5 -ml-1">
-              {/* Vote group */}
               <div className="flex items-center rounded-full bg-muted/50 hover:bg-muted transition-colors">
                 <button
                   onClick={() => handleVote('up')}
@@ -185,7 +245,6 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
                 </button>
               </div>
 
-              {/* Reply */}
               <button
                 onClick={() => setIsReplying(!isReplying)}
                 className="flex items-center gap-1 text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors font-medium"
@@ -194,19 +253,12 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
                 Reply
               </button>
 
-              {/* Award */}
-              <CommentAwardButton
-                commentId={comment.id}
-                userRole={user?.role as any}
-                size="sm"
-              />
+              <CommentAwardButton commentId={comment.id} userRole={user?.role as any} size="sm" />
 
-              {/* Share */}
               <button className="flex items-center gap-1 text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors font-medium">
                 <Share2 className="h-3 w-3" />
               </button>
 
-              {/* Delete own comment */}
               {isOwner && (
                 <button
                   onClick={handleDelete}
@@ -228,7 +280,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
               <div className="mt-2 mb-1">
                 <CommentInput
                   placeholder={`Reply to ${comment.author.displayName || comment.author.username}...`}
-                  onSubmit={handleReply}
+                  onSubmit={(content, media) => handleReply(content, media)}
                   autoFocus
                   className="border-border/60"
                 />
@@ -244,18 +296,10 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
         )}
       </div>
 
-      {/* Nested Replies */}
       {shouldShowReplies && !isCollapsed && (
         <div>
           {comment.replies!.map((reply) => (
-            <CommentItem
-              key={reply.id}
-              comment={reply}
-              onReply={onReply}
-              onVote={onVote}
-              onDelete={onDelete}
-              depth={depth + 1}
-            />
+            <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} depth={depth + 1} />
           ))}
         </div>
       )}
@@ -268,12 +312,12 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
   const { user } = useAuth();
   const authModal = useAuthModal();
 
-  const handleAddComment = (content: string) => {
-    onAddComment?.(content);
+  const handleAddComment = (content: string, mediaFiles?: UploadedMedia[]) => {
+    onAddComment?.(content, undefined, mediaFiles);
   };
 
-  const handleReply = (content: string, parentId: string) => {
-    onAddComment?.(content, parentId);
+  const handleReply = (content: string, parentId: string, mediaFiles?: UploadedMedia[]) => {
+    onAddComment?.(content, parentId, mediaFiles);
   };
 
   const sortedComments = [...comments].sort((a, b) => {
@@ -292,7 +336,6 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
 
   return (
     <div className="space-y-3">
-      {/* Minimalist comment input */}
       {!user ? (
         <button
           onClick={() => authModal.open('login')}
@@ -308,7 +351,6 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
         />
       )}
 
-      {/* Sort + count bar */}
       {comments.length > 0 && (
         <div className="flex items-center justify-between pt-1">
           <span className="text-sm font-semibold text-foreground">
@@ -332,7 +374,6 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
         </div>
       )}
 
-      {/* Comments list */}
       <div className="divide-y divide-border/40">
         {sortedComments.length === 0 ? (
           <div className="text-center py-10">
