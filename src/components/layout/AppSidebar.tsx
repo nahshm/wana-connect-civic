@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Video, TrendingUp, Globe, Plus, Settings, Star, Building2, User, Building, Users } from 'lucide-react';
+import { Home, Video, TrendingUp, Globe, Plus, Settings, Star, Building2, User, Building, Users, Scale, ShieldCheck } from 'lucide-react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import { CreateCommunityWizard } from '@/components/community/CreateCommunityWizard';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail, useSidebar } from '@/components/ui/sidebar';
@@ -174,6 +174,32 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarGroup className="px-2 pt-4 border-t border-sidebar-border/40">
+        <SidebarGroupLabel className={collapsed ? 'sr-only' : 'px-3 pb-2 text-xs font-semibold text-sidebar-muted-foreground uppercase tracking-wide'}>
+          About
+        </SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu className="gap-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
+                <NavLink to="/terms" className={getNavCls}>
+                  <Scale className="h-5 w-5" />
+                  {!collapsed && <span className="text-sm">Terms of Service</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
+                <NavLink to="/privacy" className={getNavCls}>
+                  <ShieldCheck className="h-5 w-5" />
+                  {!collapsed && <span className="text-sm">Privacy Policy</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

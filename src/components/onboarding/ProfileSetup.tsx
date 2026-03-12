@@ -252,6 +252,18 @@ export function ProfileSetup() {
             </p>
           </div>
 
+          <div className="flex items-start space-x-3 pt-4 p-4 rounded-lg bg-gray-50 border border-gray-100">
+            <input
+              type="checkbox"
+              id="tos-agreement"
+              className="h-4 w-4 mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              required
+            />
+            <Label htmlFor="tos-agreement" className="text-sm text-gray-600 leading-relaxed font-normal">
+              I agree to the <a href="/terms" target="_blank" className="text-blue-600 hover:underline font-semibold">Terms of Service</a> and acknowledge the <a href="/privacy" target="_blank" className="text-blue-600 hover:underline font-semibold">Privacy Policy</a>. I understand that WanaIQ uses AI to moderate content and route civic reports.
+            </Label>
+          </div>
+
           <div className="flex gap-4 pt-4">
             <Button
               variant="outline"

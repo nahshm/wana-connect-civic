@@ -77,6 +77,8 @@ const GlobalChat = lazy(() => import("./pages/GlobalChat"));
 const Quests = lazy(() => import("./pages/Quests"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const DiscoveryDashboard = lazy(() => import("./pages/DiscoveryDashboard"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 import { OnboardingGuard } from "@/components/routing/OnboardingGuard";
 
 const queryClient = new QueryClient();
@@ -138,6 +140,8 @@ const App = () => (
                             <Route path="/promises/:promiseId" element={<PromiseDetail />} />
                             <Route path="/discover" element={<DiscoveryDashboard />} />
                             <Route path="/explore" element={<ExplorePlatform />} />
+                            <Route path="/privacy" element={<PrivacyPolicy />} />
+                            <Route path="/terms" element={<TermsOfService />} />
 
                             {/* Position-first Office civic hub — accessible even for unclaimed offices */}
                             <Route path="/office/:country/:level/:jurisdiction/:role" element={<OfficeHubPage />} />
