@@ -69,7 +69,7 @@ export const Header = () => {
           className="h-8 w-auto"
           fetchPriority="high" src="/lovable-uploads/080dd6b9-aa23-48dd-831c-7489db9cf05f.png" />
         
-        <span className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
+        <span className="font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-destructive text-2xl">
           ama
         </span>
       </Link>
