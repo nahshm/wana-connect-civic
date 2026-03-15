@@ -50,9 +50,9 @@ export const Header = () => {
   };
 
   // Generate the correct profile URL with prefix
-  const profileUrl = profile?.username
-    ? `${getProfilePrefix(profile)}${profile.username}`
-    : buildProfileLink({ username: profile?.username ?? '' });
+  const profileUrl = profile?.username ?
+  `${getProfilePrefix(profile)}${profile.username}` :
+  buildProfileLink({ username: profile?.username ?? '' });
 
   return <header className="sticky top-0 z-10 w-full border-b bg-sidebar-background/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar-background/60">
     <div className="w-full h-14 sm:h-16 flex items-center justify-between gap-2 sm:px-[16px] px-[12px]">
@@ -63,12 +63,12 @@ export const Header = () => {
 
       {/* Logo + Wordmark - explicit dimensions prevent CLS */}
       <Link to="/" className="flex-shrink-0 flex items-center gap-2">
-        <img 
-          src="/wanaiq-logo.png"
+        <img
+
           alt="ama Logo"
           className="h-8 w-auto"
-          fetchPriority="high"
-        />
+          fetchPriority="high" src="/lovable-uploads/080dd6b9-aa23-48dd-831c-7489db9cf05f.png" />
+        
         <span className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
           ama
         </span>
@@ -140,12 +140,12 @@ export const Header = () => {
           </DropdownMenu>
         </> : <>
           <ThemeToggle />
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => authModal.open('login')}
-            className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium"
-          >
+            className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium">
+            
             Sign In
           </Button>
         </>}
