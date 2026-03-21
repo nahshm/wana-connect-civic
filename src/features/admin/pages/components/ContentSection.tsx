@@ -1147,6 +1147,30 @@ function CrisisSubTab() {
                       <h4 className="font-semibold text-sm">{item.title}</h4>
                       {item.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>}
                       {item.location && <span className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" />{item.location}</span>}
+                      {item.target_scope === 'geographic' && (
+                        <Badge variant="outline" className="text-xs mt-1 gap-1"><Target className="w-3 h-3" />Targeted</Badge>
+                      )}
+                      {item.target_scope === 'platform_wide' && item.type === 'broadcast' && (
+                        <Badge variant="outline" className="text-xs mt-1 gap-1"><Globe className="w-3 h-3" />Platform-Wide</Badge>
+                      )}
+                      {item.reference_links && item.reference_links.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {item.reference_links.map((link: string, i: number) => (
+                            <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Link2 className="w-3 h-3" />{new URL(link).hostname}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {item.media_urls && item.media_urls.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {item.media_urls.map((url: string, i: number) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Paperclip className="w-3 h-3" />Attachment {i + 1}
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {item.source === 'crisis_reports' && (
                       <div className="flex gap-1 shrink-0 flex-wrap">
