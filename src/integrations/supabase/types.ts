@@ -3256,6 +3256,7 @@ export type Database = {
       crisis_reports: {
         Row: {
           anonymous_report_id: string | null
+          broadcast_by: string | null
           created_at: string | null
           crisis_type: string
           description: string | null
@@ -3266,18 +3267,23 @@ export type Database = {
           latitude: number | null
           location_text: string | null
           longitude: number | null
+          media_urls: string[] | null
           post_id: string | null
+          reference_links: string[] | null
           report_id: string
           resolved_at: string | null
           resolved_by: string | null
           response_actions: Json | null
           severity: string
           status: string
+          target_community_ids: string[] | null
+          target_scope: string
           title: string
           updated_at: string | null
         }
         Insert: {
           anonymous_report_id?: string | null
+          broadcast_by?: string | null
           created_at?: string | null
           crisis_type: string
           description?: string | null
@@ -3288,18 +3294,23 @@ export type Database = {
           latitude?: number | null
           location_text?: string | null
           longitude?: number | null
+          media_urls?: string[] | null
           post_id?: string | null
+          reference_links?: string[] | null
           report_id: string
           resolved_at?: string | null
           resolved_by?: string | null
           response_actions?: Json | null
           severity?: string
           status?: string
+          target_community_ids?: string[] | null
+          target_scope?: string
           title: string
           updated_at?: string | null
         }
         Update: {
           anonymous_report_id?: string | null
+          broadcast_by?: string | null
           created_at?: string | null
           crisis_type?: string
           description?: string | null
@@ -3310,13 +3321,17 @@ export type Database = {
           latitude?: number | null
           location_text?: string | null
           longitude?: number | null
+          media_urls?: string[] | null
           post_id?: string | null
+          reference_links?: string[] | null
           report_id?: string
           resolved_at?: string | null
           resolved_by?: string | null
           response_actions?: Json | null
           severity?: string
           status?: string
+          target_community_ids?: string[] | null
+          target_scope?: string
           title?: string
           updated_at?: string | null
         }
@@ -3326,6 +3341,13 @@ export type Database = {
             columns: ["anonymous_report_id"]
             isOneToOne: false
             referencedRelation: "anonymous_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crisis_reports_broadcast_by_fkey"
+            columns: ["broadcast_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
