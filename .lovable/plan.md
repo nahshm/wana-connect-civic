@@ -1,37 +1,60 @@
 
 
-# Audit Report Assessment
+# Report an Issue & Report an Incident: UI/UX + End-to-End Fix
 
-## Status: 13 of 14 Bugs Already Fixed
+## Problems Identified
 
-All edge function bugs (#1-9) and frontend bugs (#12-14) are already patched in the current codebase. The audit accurately describes fixes that have been applied.
+### 1. Content Cutoff / Fixed Container (UI Bug)
+Both pages use `min-h-[calc(100vh-4rem)] flex flex-col justify-center` which tries to vertically center the card within the viewport. But they're rendered inside `AppLayout` which uses `h-screen overflow-hidden` → `SidebarInset overflow-auto`. The `min-h-[calc(100vh-4rem)]` calculation is wrong because it assumes the page owns the full viewport, but the actual scrollable area is smaller (minus header + sidebar). Combined with `justify-center`, when content exceeds the visible area, the top gets pushed above the scroll boundary and becomes unreachable.
 
-## Remaining Item: Bug #11 — scout_findings unique index
+**Fix**: Remove `min-h-[calc(100vh-4rem)]`, `flex`, and `justify-center`. Use simple `py-8` padding. Content will flow naturally and scroll within the `SidebarInset`.
 
-`scout_findings.source_url` has no UNIQUE index. The civic-scout code does application-level deduplication (bulk pre-check + insert error catching), but concurrent cron runs could still insert duplicates in a race condition window.
+### 2. Dead Code
+`src/pages/Dashboard/ReportIssue.tsx` (265 lines) is never used — routes point to `src/features/accountability/pages/ReportIssue.tsx`. Delete it.
 
-**Fix**: Add a unique index on `source_url` via migration:
-```sql
-CREATE UNIQUE INDEX IF NOT EXISTS idx_scout_findings_source_url
-ON public.scout_findings (source_url);
-```
+### 3. ReportIncident uses `supabase as any` unnecessarily
+The `incidents` table IS in the generated types. The `as any` cast bypasses type safety for no reason.
 
-## Bug #10 Correction — No "incidents" table exists
+### 4. ReportIssue uses `supabase as any` too
+Same issue — `civic_actions` is fully typed.
 
-The audit references an `incidents` table with `case_number` using `random()`. This table does not exist in the project. The actual `case_number` field is on `civic_actions` and uses `MD5(NEW.id::text)` where `id` is a UUID — this is collision-resistant by design (unique UUID input → unique MD5 output). No sequence replacement is needed.
+### 5. Storage bucket existence not verified
+- ReportIssue uploads to `issue-media`
+- ReportIncident uploads to `incident-media`
+These buckets may not exist, causing silent upload failures.
 
-## Production Hardening Recommendations (from audit)
+### 6. No input validation/sanitization
+Neither form validates input length or sanitizes content before DB insertion. Title and description can be empty strings of whitespace (only `.trim()` check in incident, none in issue).
 
-The audit's remaining recommendations are valid deployment decisions, not code bugs:
-1. Set `ADMIN_HEALTH_SECRET` env var in Supabase secrets
-2. Add `AbortSignal.timeout(30000)` wrapper around `callLLM()` in `llmClient.ts`
-3. Consider server-side rate limiting for anonymous submissions
+---
 
-## Implementation
+## Plan
 
-### Files Changed
-- **1 migration** — Add unique index on `scout_findings.source_url`
-- **1 edit** to `supabase/functions/_shared/llmClient.ts` — Add timeout guard around LLM calls (defensive hardening)
+### A. Fix Layout (Both Pages)
+Replace the outer `div` class on both pages:
+- **Before**: `container mx-auto p-4 sm:p-8 max-w-3xl min-h-[calc(100vh-4rem)] flex flex-col justify-center`
+- **After**: `container mx-auto px-4 sm:px-8 py-6 sm:py-10 max-w-3xl`
 
-Total: 2 small changes. Everything else is already done.
+This lets content scroll naturally within the sidebar layout.
+
+### B. Remove `as any` Casts
+- ReportIncident: remove `const db = supabase as any`, use `supabase` directly (types exist)
+- ReportIssue: remove `const db = supabase as any`, use `supabase` directly
+
+### C. Delete Dead Code
+Delete `src/pages/Dashboard/ReportIssue.tsx` — completely unused.
+
+### D. Storage Bucket Migration
+Create migration to ensure `issue-media` and `incident-media` storage buckets exist with appropriate RLS policies.
+
+### E. Input Validation
+Add `maxLength` attributes on text inputs and proper `.trim()` checks before submission on ReportIssue (currently missing).
+
+## Files
+| Action | File |
+|--------|------|
+| EDIT | `src/features/accountability/pages/ReportIssue.tsx` — fix layout, remove `as any`, add validation |
+| EDIT | `src/features/accountability/pages/ReportIncident.tsx` — fix layout, remove `as any` |
+| DELETE | `src/pages/Dashboard/ReportIssue.tsx` — dead code |
+| CREATE | Migration — ensure storage buckets exist |
 
