@@ -1,55 +1,37 @@
 
-Goal: eliminate all `vectors` 400 errors and make the RAG Knowledge Base flow reliable and secure.
 
-What I found
-- Root cause #1 (confirmed): `public.vectors` does not have a `title` column, but the app requests and inserts `title`.
-  - Failing query pattern: `select id, source_type, title, content, created_at ...`
-  - Failing insert pattern: `.insert({ title, content, source_type, embedding: null })`
-- Root cause #2 (will surface right after #1 is fixed): `vectors` has only a SELECT RLS policy; there is no INSERT policy for client writes.
-- `source_type=eq.kenya_constitution` is not the primary issue; it fails because the select includes missing `title`.
+# Audit Report Assessment
 
-Implementation plan
-1) Database migration (schema + secure access)
-- Add `title text null` to `public.vectors` so existing dashboard query/insert shape is valid.
-- Add admin-only write policies on `vectors` using server-side role check:
-  - INSERT/UPDATE/DELETE allowed only when `public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'super_admin')`.
-- Keep or tighten SELECT policy based on desired visibility:
-  - Recommended: allow read for admin/super_admin only (since this is an internal knowledge base), unless regular authenticated users must browse raw vectors.
+## Status: 13 of 14 Bugs Already Fixed
 
-2) Frontend fix in `SuperAdminDashboard.tsx`
-- Keep `title` in select and insert (once column exists).
-- Add robust error handling:
-  - `fetchVectors`: if error, show toast with message and stop silently setting empty data.
-  - `handleAddDoc`: surface exact DB/RLS error in toast.
-- Keep source filter list as-is (`kenya_constitution`, etc.) since it matches intended taxonomy.
+All edge function bugs (#1-9) and frontend bugs (#12-14) are already patched in the current codebase. The audit accurately describes fixes that have been applied.
 
-3) Optional consistency improvement (edge pipeline)
-- In `supabase/functions/civic-scout/index.ts`, include `title` when writing to `vectors` so feed-ingested docs display readable titles in the admin viewer.
-- This is optional but improves UX and debugging.
+## Remaining Item: Bug #11 — scout_findings unique index
 
-4) Verification checklist
-- Open RAG Viewer:
-  - GET `/rest/v1/vectors?...title...` returns 200 (no 400).
-  - Filtering by `source_type=kenya_constitution` returns 200.
-- Add document from UI:
-  - POST `/rest/v1/vectors` returns 201 for admin/super_admin.
-  - Non-admin users are blocked by RLS (expected).
-- Confirm no repeated vector 400s in console/network.
+`scout_findings.source_url` has no UNIQUE index. The civic-scout code does application-level deduplication (bulk pre-check + insert error catching), but concurrent cron runs could still insert duplicates in a race condition window.
 
-Technical details (exact changes)
-- DB:
-  - `ALTER TABLE public.vectors ADD COLUMN IF NOT EXISTS title text;`
-  - Create RLS policies for INSERT/UPDATE/DELETE using `public.has_role(...)`.
-- App file:
-  - `src/features/admin/pages/SuperAdminDashboard.tsx`:
-    - retain `select('id, source_type, title, content, created_at')`
-    - retain insert payload with `title`
-    - add explicit `error` handling branches for both read/write.
-- Optional edge function:
-  - `supabase/functions/civic-scout/index.ts` vector insert payload add `title: item.title`.
+**Fix**: Add a unique index on `source_url` via migration:
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_scout_findings_source_url
+ON public.scout_findings (source_url);
+```
 
-Order of execution
-1. Apply DB migration (column + policies)
-2. Update dashboard error handling
-3. (Optional) add scout title propagation
-4. End-to-end retest of RAG viewer + add document flow
+## Bug #10 Correction — No "incidents" table exists
+
+The audit references an `incidents` table with `case_number` using `random()`. This table does not exist in the project. The actual `case_number` field is on `civic_actions` and uses `MD5(NEW.id::text)` where `id` is a UUID — this is collision-resistant by design (unique UUID input → unique MD5 output). No sequence replacement is needed.
+
+## Production Hardening Recommendations (from audit)
+
+The audit's remaining recommendations are valid deployment decisions, not code bugs:
+1. Set `ADMIN_HEALTH_SECRET` env var in Supabase secrets
+2. Add `AbortSignal.timeout(30000)` wrapper around `callLLM()` in `llmClient.ts`
+3. Consider server-side rate limiting for anonymous submissions
+
+## Implementation
+
+### Files Changed
+- **1 migration** — Add unique index on `scout_findings.source_url`
+- **1 edit** to `supabase/functions/_shared/llmClient.ts` — Add timeout guard around LLM calls (defensive hardening)
+
+Total: 2 small changes. Everything else is already done.
+
