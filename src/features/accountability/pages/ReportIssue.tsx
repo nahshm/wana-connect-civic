@@ -182,12 +182,10 @@ const ReportIssue = () => {
   const handleSubmit = async () => {
     if (!user || !routing) return;
     setSubmitLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
     try {
       const mediaUrls = await uploadPhotos();
 
-      const { data: action, error } = await db
+      const { data: action, error } = await supabase
         .from('civic_actions')
         .insert({
           user_id: user.id,
@@ -210,11 +208,13 @@ const ReportIssue = () => {
       if (error) throw error;
 
       if (routing.institution_id) {
-        await db.rpc('route_issue_to_institution', {
-          p_action_id: action.id,
-          p_institution_id: routing.institution_id,
-          p_formal_letter: formalLetter || null,
-        }).catch(console.error);
+        try {
+          await (supabase as any).rpc('route_issue_to_institution', {
+            p_action_id: action.id,
+            p_institution_id: routing.institution_id,
+            p_formal_letter: formalLetter || null,
+          });
+        } catch (_) { /* optional routing step */ }
       }
 
       setResult({
@@ -236,7 +236,7 @@ const ReportIssue = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-8 max-w-3xl min-h-[calc(100vh-4rem)] flex flex-col justify-center">
+    <div className="container mx-auto px-4 sm:px-8 py-6 sm:py-10 max-w-3xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <Button variant="ghost" className="gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2" onClick={() => navigate(-1)}>

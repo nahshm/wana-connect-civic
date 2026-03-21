@@ -217,8 +217,6 @@ const ReportIncident = () => {
 
   const handleSubmit = async () => {
     setSubmitLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
     try {
       const mediaUrls = await uploadMedia();
 
@@ -239,7 +237,7 @@ const ReportIncident = () => {
         ward = p?.ward ?? null;
       }
 
-      const { data, error } = await db.from('incidents').insert({
+      const { data, error } = await supabase.from('incidents').insert({
         reporter_id: isAnonymous ? null : (user?.id ?? null),
         is_anonymous: isAnonymous,
         incident_type: incidentType,
@@ -282,7 +280,7 @@ const ReportIncident = () => {
   const selectedType = INCIDENT_TYPES.find(t => t.id === incidentType);
 
   return (
-    <div className="container mx-auto p-4 sm:p-8 max-w-3xl min-h-[calc(100vh-4rem)] flex flex-col justify-center">
+    <div className="container mx-auto px-4 sm:px-8 py-6 sm:py-10 max-w-3xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <Button variant="ghost" className="gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2" onClick={() => step === 'review' ? setStep('input') : navigate(-1)}>
