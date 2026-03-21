@@ -254,9 +254,26 @@ const CreatePost = () => {
 
       // Handle sensitive content notifications
       if (postData.contentSensitivity === 'crisis') {
+        // Auto-create crisis_reports entry for legal traceability
+        try {
+          const reportId = `CR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+          await supabase
+            .from('crisis_reports')
+            .insert({
+              report_id: reportId,
+              title: postData.title || 'Crisis Post',
+              description: postData.content?.substring(0, 500) || null,
+              crisis_type: 'user_flagged',
+              severity: 'high',
+              status: 'active',
+              post_id: postId,
+            } as any); // post_id added via migration, not yet in generated types
+        } catch (crisisErr) {
+          console.error('Failed to create crisis report:', crisisErr);
+        }
         toast({
-          title: "Crisis Report Submitted",
-          description: "Your report has been flagged for immediate attention and will be escalated to appropriate authorities.",
+          title: "Crisis Report Logged",
+          description: "Your report has been logged in our crisis monitoring system and will be reviewed by our team. If this is a life-threatening emergency, please contact local emergency services directly.",
           variant: "default",
         });
       } else if (postData.contentSensitivity === 'sensitive') {

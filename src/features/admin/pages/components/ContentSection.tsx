@@ -39,10 +39,11 @@ function IncidentsSubTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: incidents, isLoading, refetch } = useQuery({
-    queryKey: ['admin-incidents', statusFilter],
+    queryKey: ['admin-incidents', statusFilter, showArchived],
     queryFn: async () => {
       let q = supabase
         .from('incidents')
@@ -50,6 +51,10 @@ function IncidentsSubTab() {
         .order('created_at', { ascending: false })
         .limit(50);
       if (statusFilter !== 'all') q = q.eq('status', statusFilter);
+      // Filter archived: use raw filter since archived_at isn't in generated types yet
+      if (!showArchived) {
+        q = q.is('archived_at' as any, null);
+      }
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
@@ -68,9 +73,14 @@ function IncidentsSubTab() {
   });
 
   const updateStatus = async (id: string, newStatus: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase
       .from('incidents')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update({ 
+        status: newStatus, 
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id,
+      } as any)
       .eq('id', id);
     if (error) toast.error('Failed to update status');
     else {
@@ -79,14 +89,58 @@ function IncidentsSubTab() {
     }
   };
 
+  const archiveIncident = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from('incidents')
+      .update({ 
+        archived_at: new Date().toISOString(),
+        archived_by: user?.id,
+      } as any)
+      .eq('id', id);
+    if (error) toast.error('Failed to archive');
+    else {
+      toast.success('Incident archived');
+      refetch();
+    }
+  };
+
+  const escalateToCrisis = async (inc: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const reportId = `CR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const { error } = await supabase
+      .from('crisis_reports')
+      .insert({
+        report_id: reportId,
+        title: inc.title || 'Escalated Incident',
+        description: inc.description?.substring(0, 500) || null,
+        crisis_type: 'escalated_incident',
+        severity: inc.severity === 'critical' ? 'critical' : 'high',
+        status: 'active',
+        incident_id: inc.id,
+        location_text: inc.location_text,
+        latitude: inc.latitude,
+        longitude: inc.longitude,
+      } as any);
+    if (error) toast.error('Failed to escalate');
+    else {
+      toast.success('Escalated to Crisis Command Center');
+      refetch();
+    }
+  };
+
   const addAdminNote = async (id: string) => {
     if (!adminNotes.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
     const { data: incident } = await supabase.from('incidents').select('resolution_notes').eq('id', id).single();
     const existing = incident?.resolution_notes || '';
     const timestamp = new Date().toISOString().split('T')[0];
     const updated = existing ? `${existing}\n[${timestamp}] ${adminNotes.trim()}` : `[${timestamp}] ${adminNotes.trim()}`;
 
-    const { error } = await supabase.from('incidents').update({ resolution_notes: updated }).eq('id', id);
+    const { error } = await supabase.from('incidents').update({ 
+      resolution_notes: updated,
+      updated_by: user?.id,
+    } as any).eq('id', id);
     if (error) toast.error('Failed to add note');
     else {
       toast.success('Note added');
@@ -167,6 +221,9 @@ function IncidentsSubTab() {
             {s}
           </Button>
         ))}
+        <Button size="sm" variant={showArchived ? 'default' : 'outline'} onClick={() => setShowArchived(!showArchived)}>
+          {showArchived ? 'Hide' : 'Show'} Archived
+        </Button>
         <Button size="sm" variant="ghost" onClick={() => refetch()}><RefreshCw className="w-4 h-4" /></Button>
       </div>
 
@@ -184,8 +241,11 @@ function IncidentsSubTab() {
         <div className="space-y-3">
           {filteredIncidents.map(inc => {
             const isExpanded = expandedId === inc.id;
+            const isArchived = !!(inc as any).archived_at;
+            const canArchive = ['resolved', 'dismissed'].includes(inc.status || '') && !isArchived;
+            const canEscalate = ['critical', 'high'].includes(inc.severity || '') && !isArchived;
             return (
-              <Card key={inc.id} className={`border-l-4 ${inc.severity === 'critical' ? 'border-l-destructive' : inc.severity === 'high' ? 'border-l-orange-500' : 'border-l-border'}`}>
+              <Card key={inc.id} className={`border-l-4 ${isArchived ? 'border-l-muted opacity-60' : inc.severity === 'critical' ? 'border-l-destructive' : inc.severity === 'high' ? 'border-l-orange-500' : 'border-l-border'}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -194,6 +254,7 @@ function IncidentsSubTab() {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(inc.status || 'open')}`}>{inc.status}</span>
                         <Badge variant="outline" className="text-xs capitalize">{inc.incident_type?.replace(/_/g, ' ')}</Badge>
                         {inc.is_anonymous && <Badge variant="outline" className="text-xs">🕶 Anonymous</Badge>}
+                        {isArchived && <Badge variant="outline" className="text-xs">📦 Archived</Badge>}
                         {inc.case_number && <span className="text-xs font-mono text-muted-foreground">{inc.case_number}</span>}
                       </div>
                       <h4 className="font-semibold text-sm">{inc.title || 'Untitled Incident'}</h4>
@@ -257,48 +318,62 @@ function IncidentsSubTab() {
                           )}
 
                           {/* Admin notes */}
-                          <div className="p-3 border rounded-lg">
-                            <p className="text-xs font-semibold mb-2">Admin Notes</p>
-                            {inc.resolution_notes && (
-                              <pre className="text-xs text-muted-foreground whitespace-pre-wrap mb-2 font-sans">{inc.resolution_notes}</pre>
-                            )}
-                            <div className="flex gap-2">
-                              <Textarea
-                                rows={2}
-                                value={adminNotes}
-                                onChange={e => setAdminNotes(e.target.value)}
-                                placeholder="Add internal note..."
-                                className="text-sm"
-                              />
-                              <Button size="sm" onClick={() => addAdminNote(inc.id)} disabled={!adminNotes.trim()}>
-                                Add
-                              </Button>
+                          {!isArchived && (
+                            <div className="p-3 border rounded-lg">
+                              <p className="text-xs font-semibold mb-2">Admin Notes</p>
+                              {inc.resolution_notes && (
+                                <pre className="text-xs text-muted-foreground whitespace-pre-wrap mb-2 font-sans">{inc.resolution_notes}</pre>
+                              )}
+                              <div className="flex gap-2">
+                                <Textarea
+                                  rows={2}
+                                  value={adminNotes}
+                                  onChange={e => setAdminNotes(e.target.value)}
+                                  placeholder="Add internal note..."
+                                  className="text-sm"
+                                />
+                                <Button size="sm" onClick={() => addAdminNote(inc.id)} disabled={!adminNotes.trim()}>
+                                  Add
+                                </Button>
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* Status actions */}
-                          <div className="flex gap-2 flex-wrap">
-                            {inc.status !== 'investigating' && (
-                              <Button size="sm" variant="outline" className="text-blue-600 border-blue-300" onClick={() => updateStatus(inc.id, 'investigating')}>
-                                Mark Investigating
-                              </Button>
-                            )}
-                            {inc.status !== 'resolved' && (
-                              <Button size="sm" variant="outline" className="text-green-600 border-green-300" onClick={() => updateStatus(inc.id, 'resolved')}>
-                                <CheckCircle className="w-3 h-3 mr-1" />Resolve
-                              </Button>
-                            )}
-                            {inc.status !== 'dismissed' && (
-                              <Button size="sm" variant="outline" className="text-muted-foreground" onClick={() => updateStatus(inc.id, 'dismissed')}>
-                                <XCircle className="w-3 h-3 mr-1" />Dismiss
-                              </Button>
-                            )}
-                            {inc.status !== 'open' && (
-                              <Button size="sm" variant="outline" onClick={() => updateStatus(inc.id, 'open')}>
-                                Reopen
-                              </Button>
-                            )}
-                          </div>
+                          {!isArchived && (
+                            <div className="flex gap-2 flex-wrap">
+                              {inc.status !== 'investigating' && (
+                                <Button size="sm" variant="outline" className="text-blue-600 border-blue-300" onClick={() => updateStatus(inc.id, 'investigating')}>
+                                  Mark Investigating
+                                </Button>
+                              )}
+                              {inc.status !== 'resolved' && (
+                                <Button size="sm" variant="outline" className="text-green-600 border-green-300" onClick={() => updateStatus(inc.id, 'resolved')}>
+                                  <CheckCircle className="w-3 h-3 mr-1" />Resolve
+                                </Button>
+                              )}
+                              {inc.status !== 'dismissed' && (
+                                <Button size="sm" variant="outline" className="text-muted-foreground" onClick={() => updateStatus(inc.id, 'dismissed')}>
+                                  <XCircle className="w-3 h-3 mr-1" />Dismiss
+                                </Button>
+                              )}
+                              {inc.status !== 'open' && (
+                                <Button size="sm" variant="outline" onClick={() => updateStatus(inc.id, 'open')}>
+                                  Reopen
+                                </Button>
+                              )}
+                              {canEscalate && (
+                                <Button size="sm" variant="destructive" onClick={() => escalateToCrisis(inc)}>
+                                  <AlertTriangle className="w-3 h-3 mr-1" />Escalate to Crisis
+                                </Button>
+                              )}
+                              {canArchive && (
+                                <Button size="sm" variant="outline" className="text-muted-foreground" onClick={() => archiveIncident(inc.id)}>
+                                  📦 Archive
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
