@@ -212,7 +212,7 @@ const ReportIssue = () => {
           p_action_id: action.id,
           p_institution_id: routing.institution_id,
           p_formal_letter: formalLetter || null,
-        }).catch(console.error);
+        } as any).catch(() => {});
       }
 
       setResult({
