@@ -208,11 +208,13 @@ const ReportIssue = () => {
       if (error) throw error;
 
       if (routing.institution_id) {
-        await supabase.rpc('route_issue_to_institution', {
-          p_action_id: action.id,
-          p_institution_id: routing.institution_id,
-          p_formal_letter: formalLetter || null,
-        } as any).catch(() => {});
+        try {
+          await (supabase as any).rpc('route_issue_to_institution', {
+            p_action_id: action.id,
+            p_institution_id: routing.institution_id,
+            p_formal_letter: formalLetter || null,
+          });
+        } catch (_) { /* optional routing step */ }
       }
 
       setResult({
