@@ -182,12 +182,10 @@ const ReportIssue = () => {
   const handleSubmit = async () => {
     if (!user || !routing) return;
     setSubmitLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
     try {
       const mediaUrls = await uploadPhotos();
 
-      const { data: action, error } = await db
+      const { data: action, error } = await supabase
         .from('civic_actions')
         .insert({
           user_id: user.id,
