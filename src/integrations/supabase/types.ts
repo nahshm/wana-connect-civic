@@ -3262,9 +3262,11 @@ export type Database = {
           escalated_to_ngo: string[] | null
           evidence_urls: string[] | null
           id: string
+          incident_id: string | null
           latitude: number | null
           location_text: string | null
           longitude: number | null
+          post_id: string | null
           report_id: string
           resolved_at: string | null
           resolved_by: string | null
@@ -3282,9 +3284,11 @@ export type Database = {
           escalated_to_ngo?: string[] | null
           evidence_urls?: string[] | null
           id?: string
+          incident_id?: string | null
           latitude?: number | null
           location_text?: string | null
           longitude?: number | null
+          post_id?: string | null
           report_id: string
           resolved_at?: string | null
           resolved_by?: string | null
@@ -3302,9 +3306,11 @@ export type Database = {
           escalated_to_ngo?: string[] | null
           evidence_urls?: string[] | null
           id?: string
+          incident_id?: string | null
           latitude?: number | null
           location_text?: string | null
           longitude?: number | null
+          post_id?: string | null
           report_id?: string
           resolved_at?: string | null
           resolved_by?: string | null
@@ -3320,6 +3326,27 @@ export type Database = {
             columns: ["anonymous_report_id"]
             isOneToOne: false
             referencedRelation: "anonymous_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crisis_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crisis_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crisis_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -4465,6 +4492,8 @@ export type Database = {
           agency_name: string | null
           agency_notified: boolean
           agency_ref: string | null
+          archived_at: string | null
+          archived_by: string | null
           case_number: string | null
           constituency: string | null
           county: string | null
@@ -4487,6 +4516,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          updated_by: string | null
           verified_at: string | null
           verified_by: string | null
           ward: string | null
@@ -4495,6 +4525,8 @@ export type Database = {
           agency_name?: string | null
           agency_notified?: boolean
           agency_ref?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           case_number?: string | null
           constituency?: string | null
           county?: string | null
@@ -4517,6 +4549,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          updated_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
           ward?: string | null
@@ -4525,6 +4558,8 @@ export type Database = {
           agency_name?: string | null
           agency_notified?: boolean
           agency_ref?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           case_number?: string | null
           constituency?: string | null
           county?: string | null
@@ -4547,6 +4582,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          updated_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
           ward?: string | null
