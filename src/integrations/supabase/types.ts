@@ -3324,6 +3324,42 @@ export type Database = {
           },
         ]
       }
+      data_sources: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          last_scraped: string | null
+          last_scraped_status: string | null
+          name: string
+          scrape_interval_hours: number
+          type: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_scraped?: string | null
+          last_scraped_status?: string | null
+          name: string
+          scrape_interval_hours?: number
+          type: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_scraped?: string | null
+          last_scraped_status?: string | null
+          name?: string
+          scrape_interval_hours?: number
+          type?: string
+          url?: string
+        }
+        Relationships: []
+      }
       development_promises: {
         Row: {
           actual_completion_date: string | null
@@ -4423,6 +4459,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      incidents: {
+        Row: {
+          agency_name: string | null
+          agency_notified: boolean
+          agency_ref: string | null
+          case_number: string | null
+          constituency: string | null
+          county: string | null
+          created_at: string
+          description: string
+          evidence_notes: string | null
+          id: string
+          incident_type: string
+          is_anonymous: boolean
+          is_public: boolean
+          is_verified: boolean
+          latitude: number | null
+          location_text: string | null
+          longitude: number | null
+          media_urls: string[] | null
+          reporter_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          ward: string | null
+        }
+        Insert: {
+          agency_name?: string | null
+          agency_notified?: boolean
+          agency_ref?: string | null
+          case_number?: string | null
+          constituency?: string | null
+          county?: string | null
+          created_at?: string
+          description: string
+          evidence_notes?: string | null
+          id?: string
+          incident_type: string
+          is_anonymous?: boolean
+          is_public?: boolean
+          is_verified?: boolean
+          latitude?: number | null
+          location_text?: string | null
+          longitude?: number | null
+          media_urls?: string[] | null
+          reporter_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          ward?: string | null
+        }
+        Update: {
+          agency_name?: string | null
+          agency_notified?: boolean
+          agency_ref?: string | null
+          case_number?: string | null
+          constituency?: string | null
+          county?: string | null
+          created_at?: string
+          description?: string
+          evidence_notes?: string | null
+          id?: string
+          incident_type?: string
+          is_anonymous?: boolean
+          is_public?: boolean
+          is_verified?: boolean
+          latitude?: number | null
+          location_text?: string | null
+          longitude?: number | null
+          media_urls?: string[] | null
+          reporter_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          ward?: string | null
+        }
+        Relationships: []
       }
       institution_handlers: {
         Row: {
@@ -8051,6 +8180,7 @@ export type Database = {
         }
         Returns: string
       }
+      generate_incident_case_number: { Args: never; Returns: string }
       get_agent_threshold: {
         Args: { p_agent: string; p_key: string }
         Returns: number
