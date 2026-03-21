@@ -1,60 +1,75 @@
 
 
-# Report an Issue & Report an Incident: UI/UX + End-to-End Fix
+# Crisis Pipeline: Incidents + Crisis Command Center + Archive (End-to-End)
 
-## Problems Identified
+## Current State
 
-### 1. Content Cutoff / Fixed Container (UI Bug)
-Both pages use `min-h-[calc(100vh-4rem)] flex flex-col justify-center` which tries to vertically center the card within the viewport. But they're rendered inside `AppLayout` which uses `h-screen overflow-hidden` → `SidebarInset overflow-auto`. The `min-h-[calc(100vh-4rem)]` calculation is wrong because it assumes the page owns the full viewport, but the actual scrollable area is smaller (minus header + sidebar). Combined with `justify-center`, when content exceeds the visible area, the top gets pushed above the scroll boundary and becomes unreachable.
+| Component | Status |
+|-----------|--------|
+| **Report an Incident** (user-facing) | Fully functional — inserts into `incidents` table |
+| **Incidents tab** (admin) | Fully functional — search, filter, status management, admin notes, evidence viewing |
+| **Crisis Command Center** (admin) | Dead shell — hardcoded "0" counts, no data queries, broadcast button does nothing |
+| **`crisis_reports` table** | Exists in DB with full schema but is NEVER queried or written to anywhere in the codebase |
+| **Crisis post escalation** | Toast says "escalated to authorities" but no record is created — misleading |
+| **Archive flow** | No archive status exists on either incidents or crisis_reports |
 
-**Fix**: Remove `min-h-[calc(100vh-4rem)]`, `flex`, and `justify-center`. Use simple `py-8` padding. Content will flow naturally and scroll within the `SidebarInset`.
+## Legal Risks to Address
 
-### 2. Dead Code
-`src/pages/Dashboard/ReportIssue.tsx` (265 lines) is never used — routes point to `src/features/accountability/pages/ReportIssue.tsx`. Delete it.
-
-### 3. ReportIncident uses `supabase as any` unnecessarily
-The `incidents` table IS in the generated types. The `as any` cast bypasses type safety for no reason.
-
-### 4. ReportIssue uses `supabase as any` too
-Same issue — `civic_actions` is fully typed.
-
-### 5. Storage bucket existence not verified
-- ReportIssue uploads to `issue-media`
-- ReportIncident uploads to `incident-media`
-These buckets may not exist, causing silent upload failures.
-
-### 6. No input validation/sanitization
-Neither form validates input length or sanitizes content before DB insertion. Title and description can be empty strings of whitespace (only `.trim()` check in incident, none in issue).
-
----
+1. **False claim of authority notification**: CreatePost says "escalated to appropriate authorities" when `sensitivity=crisis` but does nothing. This is legally problematic — users may rely on it and not contact authorities themselves. Must either create a real record or change the language.
+2. **No audit trail on crisis actions**: Admin status changes on incidents have no `updated_by` field tracked. For legal defensibility, every crisis action needs an actor recorded.
+3. **No data retention compliance on archive**: Archived items must remain queryable for legal holds but hidden from active views.
 
 ## Plan
 
-### A. Fix Layout (Both Pages)
-Replace the outer `div` class on both pages:
-- **Before**: `container mx-auto p-4 sm:p-8 max-w-3xl min-h-[calc(100vh-4rem)] flex flex-col justify-center`
-- **After**: `container mx-auto px-4 sm:px-8 py-6 sm:py-10 max-w-3xl`
+### 1. Database Migration
 
-This lets content scroll naturally within the sidebar layout.
+**Add columns to `crisis_reports`**:
+- `post_id UUID REFERENCES posts(id)` — links crisis posts
+- `incident_id UUID REFERENCES incidents(id)` — links escalated incidents
 
-### B. Remove `as any` Casts
-- ReportIncident: remove `const db = supabase as any`, use `supabase` directly (types exist)
-- ReportIssue: remove `const db = supabase as any`, use `supabase` directly
+**Add `archived_at` and `archived_by` to `incidents`**:
+- Enables archive with audit trail (who archived and when)
 
-### C. Delete Dead Code
-Delete `src/pages/Dashboard/ReportIssue.tsx` — completely unused.
+**Add `updated_by` to `incidents`**:
+- Every status change records which admin acted
 
-### D. Storage Bucket Migration
-Create migration to ensure `issue-media` and `incident-media` storage buckets exist with appropriate RLS policies.
+### 2. Fix CreatePost Crisis Escalation
 
-### E. Input Validation
-Add `maxLength` attributes on text inputs and proper `.trim()` checks before submission on ReportIssue (currently missing).
+When `content_sensitivity === 'crisis'`, after post creation:
+- Insert a `crisis_reports` row with `post_id`, `crisis_type: 'user_flagged'`, title from the post
+- Generate `report_id` using `CR-` prefix + timestamp + random suffix
+- Change toast to accurate language: "Your report has been logged in our crisis monitoring system" (no false claims about authority notification)
+
+### 3. Rebuild Crisis Command Center (CrisisSubTab)
+
+Replace the static shell with real queries:
+- **Count cards**: Query `crisis_reports` by severity + query `incidents` where `severity IN ('critical','high')` and `archived_at IS NULL`
+- **Combined feed**: Merge crisis_reports + critical/high incidents, sorted by created_at
+- **Each item**: Shows type badge (Crisis Report / Escalated Incident / Crisis Post), severity, status, title, location, evidence count
+- **Actions per item**: Update status (active/investigating/resolved/dismissed), add response actions (timestamped JSON array), archive
+- **Broadcast Alert**: Opens a dialog with title, description, severity fields. Inserts into `crisis_reports` with `crisis_type: 'admin_broadcast'`. Toast confirms broadcast was recorded.
+- **Escalate Incident**: Button on critical/high incidents to create a linked `crisis_reports` entry
+
+### 4. Archive Flow (Both Incidents and Crisis)
+
+**Incidents**:
+- Add "Archive" button (only on resolved/dismissed items)
+- Sets `archived_at = now()`, `archived_by = current admin user id`
+- Default view filters out `archived_at IS NOT NULL`
+- Add "Archived" filter option to see archived items (read-only, no status changes allowed)
+
+**Crisis Reports**:
+- Same pattern: status = 'archived', with `resolved_at` and `resolved_by` already exist
+
+### 5. Anonymous Report Escalation
+
+Add "Escalate to Crisis" button on AnonymousReportsSubTab for critical reports. Creates a `crisis_reports` row linked via `anonymous_report_id`.
 
 ## Files
+
 | Action | File |
 |--------|------|
-| EDIT | `src/features/accountability/pages/ReportIssue.tsx` — fix layout, remove `as any`, add validation |
-| EDIT | `src/features/accountability/pages/ReportIncident.tsx` — fix layout, remove `as any` |
-| DELETE | `src/pages/Dashboard/ReportIssue.tsx` — dead code |
-| CREATE | Migration — ensure storage buckets exist |
+| MIGRATION | Add `post_id`, `incident_id` to `crisis_reports`; add `archived_at`, `archived_by`, `updated_by` to `incidents` |
+| EDIT | `ContentSection.tsx` — Rebuild CrisisSubTab, add archive to IncidentsSubTab, add escalate button to AnonymousReportsSubTab |
+| EDIT | `CreatePost.tsx` — Auto-insert `crisis_reports` row on crisis posts with legally accurate language |
 
