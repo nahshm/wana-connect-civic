@@ -81,12 +81,12 @@ function IncidentsSubTab() {
 
   const addAdminNote = async (id: string) => {
     if (!adminNotes.trim()) return;
-    const { data: incident } = await supabase.from('incidents').select('admin_notes').eq('id', id).single();
-    const existing = (incident as any)?.admin_notes || '';
+    const { data: incident } = await supabase.from('incidents').select('resolution_notes').eq('id', id).single();
+    const existing = incident?.resolution_notes || '';
     const timestamp = new Date().toISOString().split('T')[0];
     const updated = existing ? `${existing}\n[${timestamp}] ${adminNotes.trim()}` : `[${timestamp}] ${adminNotes.trim()}`;
 
-    const { error } = await supabase.from('incidents').update({ admin_notes: updated } as any).eq('id', id);
+    const { error } = await supabase.from('incidents').update({ resolution_notes: updated }).eq('id', id);
     if (error) toast.error('Failed to add note');
     else {
       toast.success('Note added');
