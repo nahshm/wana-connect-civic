@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS idx_scout_findings_source_url ON public.scout_findings (source_url);
