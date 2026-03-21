@@ -259,8 +259,8 @@ function IncidentsSubTab() {
                           {/* Admin notes */}
                           <div className="p-3 border rounded-lg">
                             <p className="text-xs font-semibold mb-2">Admin Notes</p>
-                            {(inc as any).admin_notes && (
-                              <pre className="text-xs text-muted-foreground whitespace-pre-wrap mb-2 font-sans">{(inc as any).admin_notes}</pre>
+                            {inc.resolution_notes && (
+                              <pre className="text-xs text-muted-foreground whitespace-pre-wrap mb-2 font-sans">{inc.resolution_notes}</pre>
                             )}
                             <div className="flex gap-2">
                               <Textarea
