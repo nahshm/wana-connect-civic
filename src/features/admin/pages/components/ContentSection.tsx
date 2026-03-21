@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,11 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
   ShieldAlert, AlertTriangle, Lock, CheckCircle, XCircle,
   Loader2, RefreshCw, Radio, Flag, ChevronDown, ChevronRight,
   Eye, MessageSquare, FileText, Flame, MapPin, Image as ImageIcon,
-  Search, Filter
+  Search, Filter, Upload, Link2, Globe, Target, X, Paperclip
 } from 'lucide-react';
 import { toast } from 'sonner';
 
