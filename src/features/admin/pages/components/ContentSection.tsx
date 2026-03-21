@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,11 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
   ShieldAlert, AlertTriangle, Lock, CheckCircle, XCircle,
   Loader2, RefreshCw, Radio, Flag, ChevronDown, ChevronRight,
   Eye, MessageSquare, FileText, Flame, MapPin, Image as ImageIcon,
-  Search, Filter
+  Search, Filter, Upload, Link2, Globe, Target, X, Paperclip
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -643,7 +647,29 @@ function CrisisSubTab() {
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastDesc, setBroadcastDesc] = useState('');
   const [broadcastSeverity, setBroadcastSeverity] = useState('critical');
+  const [broadcastScope, setBroadcastScope] = useState<'platform_wide' | 'geographic'>('platform_wide');
+  const [selectedCommunityIds, setSelectedCommunityIds] = useState<string[]>([]);
+  const [referenceLinks, setReferenceLinks] = useState<string[]>([]);
+  const [newLink, setNewLink] = useState('');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaFiles, setMediaFiles] = useState<{ name: string; url: string }[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  // Query geographic communities for targeting
+  const { data: geoCommunities } = useQuery({
+    queryKey: ['admin-geo-communities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('communities')
+        .select('id, display_name, location_type, location_value')
+        .eq('type', 'location')
+        .order('display_name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Query crisis_reports
   const { data: crisisReports, isLoading: loadingCrisis, refetch: refetchCrisis } = useQuery({
@@ -690,6 +716,9 @@ function CrisisSubTab() {
       created_at: cr.created_at || '',
       source: 'crisis_reports' as const,
       sourceId: cr.id,
+      target_scope: (cr as any).target_scope,
+      media_urls: (cr as any).media_urls as string[] | null,
+      reference_links: (cr as any).reference_links as string[] | null,
     })) || []),
     ...(criticalIncidents?.filter(inc => !crisisReports?.some(cr => (cr as any).incident_id === inc.id)).map(inc => ({
       id: `inc-${inc.id}`,
@@ -702,6 +731,9 @@ function CrisisSubTab() {
       created_at: inc.created_at || '',
       source: 'incidents' as const,
       sourceId: inc.id,
+      target_scope: null,
+      media_urls: null,
+      reference_links: null,
     })) || []),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -735,27 +767,113 @@ function CrisisSubTab() {
     else { toast.success('Archived'); refetchCrisis(); }
   };
 
-  const sendBroadcast = async () => {
-    if (!broadcastTitle.trim()) { toast.error('Title required'); return; }
-    const { data: { user } } = await supabase.auth.getUser();
-    const reportId = `ALERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 4).toUpperCase()}`;
-    const { error } = await supabase.from('crisis_reports').insert({
-      report_id: reportId,
-      title: broadcastTitle.trim(),
-      description: broadcastDesc.trim() || null,
-      crisis_type: 'admin_broadcast',
-      severity: broadcastSeverity,
-      status: 'active',
-    } as any);
-    if (error) toast.error('Failed to broadcast');
-    else {
-      toast.success('Emergency alert broadcast recorded');
-      setBroadcastOpen(false);
-      setBroadcastTitle('');
-      setBroadcastDesc('');
-      refetchCrisis();
+  const handleFileUpload = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploadingMedia(true);
+    const uploaded: { name: string; url: string }[] = [];
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`${file.name} exceeds 10MB limit`);
+          continue;
+        }
+        const ext = file.name.split('.').pop() || 'bin';
+        const path = `broadcasts/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from('crisis-media').upload(path, file);
+        if (error) {
+          toast.error(`Failed to upload ${file.name}`);
+          continue;
+        }
+        const { data: urlData } = supabase.storage.from('crisis-media').getPublicUrl(path);
+        uploaded.push({ name: file.name, url: urlData.publicUrl });
+      }
+      if (uploaded.length > 0) {
+        setMediaFiles(prev => [...prev, ...uploaded]);
+        toast.success(`${uploaded.length} file(s) uploaded`);
+      }
+    } catch {
+      toast.error('Upload failed');
+    } finally {
+      setUploadingMedia(false);
+    }
+  }, []);
+
+  const addReferenceLink = () => {
+    const trimmed = newLink.trim();
+    if (!trimmed) return;
+    try {
+      new URL(trimmed);
+      setReferenceLinks(prev => [...prev, trimmed]);
+      setNewLink('');
+    } catch {
+      toast.error('Please enter a valid URL (e.g. https://...)');
     }
   };
+
+  const removeLink = (index: number) => setReferenceLinks(prev => prev.filter((_, i) => i !== index));
+  const removeMedia = (index: number) => setMediaFiles(prev => prev.filter((_, i) => i !== index));
+
+  const toggleCommunity = (id: string) => {
+    setSelectedCommunityIds(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  };
+
+  const resetBroadcastForm = () => {
+    setBroadcastTitle('');
+    setBroadcastDesc('');
+    setBroadcastSeverity('critical');
+    setBroadcastScope('platform_wide');
+    setSelectedCommunityIds([]);
+    setReferenceLinks([]);
+    setMediaFiles([]);
+    setNewLink('');
+    setBroadcastOpen(false);
+  };
+
+  const sendBroadcast = async () => {
+    if (!broadcastTitle.trim()) { toast.error('Title required'); return; }
+    if (broadcastScope === 'geographic' && selectedCommunityIds.length === 0) {
+      toast.error('Select at least one geographic community for targeted alert');
+      return;
+    }
+    setIsSending(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const reportId = `ALERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 4).toUpperCase()}`;
+      const { error } = await supabase.from('crisis_reports').insert({
+        report_id: reportId,
+        title: broadcastTitle.trim(),
+        description: broadcastDesc.trim() || null,
+        crisis_type: 'admin_broadcast',
+        severity: broadcastSeverity,
+        status: 'active',
+        target_scope: broadcastScope,
+        target_community_ids: broadcastScope === 'geographic' ? selectedCommunityIds : [],
+        reference_links: referenceLinks.length > 0 ? referenceLinks : [],
+        media_urls: mediaFiles.map(f => f.url),
+        broadcast_by: user?.id,
+      } as any);
+      if (error) throw error;
+      toast.success(broadcastScope === 'platform_wide'
+        ? 'Platform-wide emergency alert broadcast recorded'
+        : `Targeted alert sent to ${selectedCommunityIds.length} communit${selectedCommunityIds.length === 1 ? 'y' : 'ies'}`
+      );
+      resetBroadcastForm();
+      refetchCrisis();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to broadcast alert');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const communityGroups = (geoCommunities || []).reduce((acc, c) => {
+    const group = c.location_type || 'other';
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(c);
+    return acc;
+  }, {} as Record<string, typeof geoCommunities>);
 
   const typeBadge = (type: string) => {
     switch (type) {
@@ -795,27 +913,183 @@ function CrisisSubTab() {
         </CardContent>
       </Card>
 
-      {/* Broadcast Dialog */}
-      {broadcastOpen && (
-        <Card className="border-destructive">
-          <CardContent className="p-4 space-y-3">
-            <h4 className="font-semibold text-sm flex items-center gap-2"><Radio className="w-4 h-4 text-destructive" />Broadcast Emergency Alert</h4>
-            <p className="text-xs text-muted-foreground">This creates a permanent record in the crisis monitoring system. It does NOT send push notifications or contact external authorities.</p>
-            <Input placeholder="Alert title *" value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} maxLength={200} />
-            <Textarea placeholder="Description (optional)" value={broadcastDesc} onChange={e => setBroadcastDesc(e.target.value)} rows={3} maxLength={2000} />
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Severity:</span>
-              {['critical', 'high', 'medium'].map(s => (
-                <Button key={s} size="sm" variant={broadcastSeverity === s ? 'default' : 'outline'} onClick={() => setBroadcastSeverity(s)} className="capitalize text-xs">{s}</Button>
-              ))}
+      {/* ── Broadcast Emergency Alert Dialog ── */}
+      <Dialog open={broadcastOpen} onOpenChange={(open) => { if (!open) resetBroadcastForm(); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Radio className="w-5 h-5" />Broadcast Emergency Alert
+            </DialogTitle>
+            <DialogDescription>
+              This creates a permanent record in the crisis monitoring system. It does NOT send push notifications or contact external authorities. All broadcasts are logged with your admin identity for audit purposes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {/* Title */}
+            <div className="space-y-1.5">
+              <Label htmlFor="broadcast-title">Alert Title *</Label>
+              <Input id="broadcast-title" placeholder="e.g. Flash Flooding — Nairobi County" value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} maxLength={200} />
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button size="sm" variant="outline" onClick={() => setBroadcastOpen(false)}>Cancel</Button>
-              <Button size="sm" variant="destructive" onClick={sendBroadcast} disabled={!broadcastTitle.trim()}>Send Broadcast</Button>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="broadcast-desc">Description</Label>
+              <Textarea id="broadcast-desc" placeholder="Provide context, instructions, or details..." value={broadcastDesc} onChange={e => setBroadcastDesc(e.target.value)} rows={4} maxLength={5000} />
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            {/* Severity */}
+            <div className="space-y-1.5">
+              <Label>Severity Level</Label>
+              <div className="flex gap-2">
+                {[
+                  { value: 'critical', label: 'Critical', color: 'bg-destructive text-destructive-foreground' },
+                  { value: 'high', label: 'High', color: 'bg-orange-600 text-white' },
+                  { value: 'medium', label: 'Medium', color: 'bg-yellow-600 text-white' },
+                ].map(s => (
+                  <Button
+                    key={s.value}
+                    size="sm"
+                    variant={broadcastSeverity === s.value ? 'default' : 'outline'}
+                    onClick={() => setBroadcastSeverity(s.value)}
+                    className={broadcastSeverity === s.value ? s.color : 'capitalize'}
+                  >
+                    {s.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Target Scope */}
+            <div className="space-y-2">
+              <Label>Target Audience</Label>
+              <div className="flex gap-3">
+                <Button
+                  size="sm"
+                  variant={broadcastScope === 'platform_wide' ? 'default' : 'outline'}
+                  onClick={() => { setBroadcastScope('platform_wide'); setSelectedCommunityIds([]); }}
+                  className="gap-1.5"
+                >
+                  <Globe className="w-4 h-4" />Platform-Wide
+                </Button>
+                <Button
+                  size="sm"
+                  variant={broadcastScope === 'geographic' ? 'default' : 'outline'}
+                  onClick={() => setBroadcastScope('geographic')}
+                  className="gap-1.5"
+                >
+                  <Target className="w-4 h-4" />Targeted (Geographic)
+                </Button>
+              </div>
+
+              {broadcastScope === 'geographic' && (
+                <Card className="mt-2">
+                  <CardContent className="p-3 space-y-3">
+                    <p className="text-xs text-muted-foreground">Select geographic communities to target this alert to:</p>
+                    {Object.entries(communityGroups).length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">No geographic communities found.</p>
+                    ) : (
+                      Object.entries(communityGroups).map(([type, communities]) => (
+                        <div key={type} className="space-y-1.5">
+                          <p className="text-xs font-semibold capitalize text-muted-foreground">{type}s</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto">
+                            {(communities || []).map(c => (
+                              <label key={c.id} className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-muted/50 rounded px-1.5 py-1">
+                                <Checkbox
+                                  checked={selectedCommunityIds.includes(c.id)}
+                                  onCheckedChange={() => toggleCommunity(c.id)}
+                                />
+                                <span className="truncate">{c.display_name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    {selectedCommunityIds.length > 0 && (
+                      <p className="text-xs text-primary font-medium">{selectedCommunityIds.length} communit{selectedCommunityIds.length === 1 ? 'y' : 'ies'} selected</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Reference Links */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><Link2 className="w-4 h-4" />Reference Links</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://example.com/article"
+                  value={newLink}
+                  onChange={e => setNewLink(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addReferenceLink(); } }}
+                  className="flex-1"
+                />
+                <Button size="sm" variant="outline" onClick={addReferenceLink} disabled={!newLink.trim()}>Add</Button>
+              </div>
+              {referenceLinks.length > 0 && (
+                <div className="space-y-1">
+                  {referenceLinks.map((link, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1">
+                      <Link2 className="w-3 h-3 shrink-0 text-muted-foreground" />
+                      <a href={link} target="_blank" rel="noopener noreferrer" className="text-primary truncate hover:underline flex-1">{link}</a>
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => removeLink(i)}><X className="w-3 h-3" /></Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Media / Documents Upload */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><Paperclip className="w-4 h-4" />Attachments (media, documents)</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                className="hidden"
+                onChange={e => handleFileUpload(e.target.files)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingMedia}
+                className="gap-1.5"
+              >
+                {uploadingMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploadingMedia ? 'Uploading...' : 'Upload Files'}
+              </Button>
+              <p className="text-xs text-muted-foreground">Max 10MB per file. Accepted: images, videos, PDF, Office docs, CSV, text.</p>
+              {mediaFiles.length > 0 && (
+                <div className="space-y-1">
+                  {mediaFiles.map((file, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1">
+                      <Paperclip className="w-3 h-3 shrink-0 text-muted-foreground" />
+                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-primary truncate hover:underline flex-1">{file.name}</a>
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => removeMedia(i)}><X className="w-3 h-3" /></Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={resetBroadcastForm} disabled={isSending}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={sendBroadcast}
+              disabled={!broadcastTitle.trim() || isSending}
+              className="gap-1.5"
+            >
+              {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
+              {isSending ? 'Broadcasting...' : broadcastScope === 'platform_wide' ? 'Broadcast Platform-Wide' : `Broadcast to ${selectedCommunityIds.length} Area${selectedCommunityIds.length !== 1 ? 's' : ''}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Severity Counts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -873,6 +1147,30 @@ function CrisisSubTab() {
                       <h4 className="font-semibold text-sm">{item.title}</h4>
                       {item.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>}
                       {item.location && <span className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" />{item.location}</span>}
+                      {item.target_scope === 'geographic' && (
+                        <Badge variant="outline" className="text-xs mt-1 gap-1"><Target className="w-3 h-3" />Targeted</Badge>
+                      )}
+                      {item.target_scope === 'platform_wide' && item.type === 'broadcast' && (
+                        <Badge variant="outline" className="text-xs mt-1 gap-1"><Globe className="w-3 h-3" />Platform-Wide</Badge>
+                      )}
+                      {item.reference_links && item.reference_links.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {item.reference_links.map((link: string, i: number) => (
+                            <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Link2 className="w-3 h-3" />{new URL(link).hostname}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {item.media_urls && item.media_urls.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {item.media_urls.map((url: string, i: number) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Paperclip className="w-3 h-3" />Attachment {i + 1}
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {item.source === 'crisis_reports' && (
                       <div className="flex gap-1 shrink-0 flex-wrap">
