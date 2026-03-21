@@ -217,8 +217,6 @@ const ReportIncident = () => {
 
   const handleSubmit = async () => {
     setSubmitLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
     try {
       const mediaUrls = await uploadMedia();
 
@@ -239,7 +237,7 @@ const ReportIncident = () => {
         ward = p?.ward ?? null;
       }
 
-      const { data, error } = await db.from('incidents').insert({
+      const { data, error } = await supabase.from('incidents').insert({
         reporter_id: isAnonymous ? null : (user?.id ?? null),
         is_anonymous: isAnonymous,
         incident_type: incidentType,
