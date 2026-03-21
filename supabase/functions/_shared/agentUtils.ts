@@ -409,3 +409,66 @@ export function jsonResponse(
     headers: { ...agentCorsHeaders, "Content-Type": "application/json" },
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v2 additions — backward-compatible, all 14 existing exports unchanged above
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { AgentEvent, AgentRun } from "./types.ts";
+
+/**
+ * sb() — Service-role Supabase client factory.
+ * Eliminates the boilerplate of reading env vars in every agent.
+ *
+ * Usage:  const client = sb();
+ */
+export function sb(): AnySupabaseClient {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set");
+  }
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+/**
+ * emitTypedEvent() — Typed wrapper over existing emitEvent().
+ * Uses the shared AgentEvent interface from types.ts.
+ */
+export async function emitTypedEvent(
+  client: AnySupabaseClient,
+  event: AgentEvent,
+): Promise<string | null> {
+  return emitEvent(
+    client,
+    event.event_type,
+    event.source_agent,
+    event.payload,
+    event.target_agent,
+  );
+}
+
+/**
+ * logRun() — Typed wrapper over existing logAgentRun().
+ * Uses the shared AgentRun interface from types.ts.
+ */
+export async function logRun(
+  client: AnySupabaseClient,
+  agentName: string,
+  run: Omit<AgentRun, "agent_name">,
+): Promise<void> {
+  await logAgentRun(client, agentName, {
+    trigger_type: run.trigger_type,
+    items_scanned: run.items_scanned,
+    items_actioned: run.items_actioned,
+    items_failed: run.items_failed,
+    duration_ms: run.duration_ms,
+    status: run.status,
+    error_summary: run.error_summary,
+    metadata: run.metadata,
+  });
+}
+

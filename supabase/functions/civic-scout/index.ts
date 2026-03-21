@@ -1,538 +1,305 @@
 /**
- * civic-scout — WanaIQ Phase 3 Intelligence Agent
+ * civic-scout — Intelligence Collection Agent
  *
- * Runs hourly via pg_cron. Collects real-world civic data from:
- *   1. Kenya Gazette RSS
- *   2. Parliament of Kenya RSS
- *   3. NewsData.io API (filtered to Kenya government)
+ * Two modes:
+ *   cron: Reads active sources from data_sources table, scrapes each, embeds findings.
+ *   fact_check: HTTP POST { promise_id } — fetches news related to a specific promise.
  *
- * For each run:
- *   - Fetches all 3 sources (gracefully skips failures)
- *   - LLM relevance classification (Groq/llama-3.3-70b)
- *   - Deduplicates against scout_findings.source_url
- *   - Saves findings ≥ 0.6 relevance → scout_findings
- *   - Embeds findings ≥ 0.8 → vectors (using Jina AI when key available)
- *   - Emits agent_events → triggers civic-sage
- *   - Logs run → agent_runs
+ * Sources are admin-configurable via the Data Sources panel in AI Command.
+ * Updates last_scraped and last_scraped_status per source after each run.
  */
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// ─── Inline shared utilities ─────────────────────────────────────────────────
-// (Deno Edge Functions cannot import from relative local paths at deploy time)
-
-const agentCorsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-internal-trigger",
-};
-
-function jsonResponse(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...agentCorsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-async function logAgentRun(
-  client: ReturnType<typeof createClient>,
-  agentName: string,
-  stats: {
-    trigger_type: string;
-    items_scanned?: number;
-    items_actioned?: number;
-    items_failed?: number;
-    duration_ms?: number;
-    status: string;
-    error_summary?: string;
-    metadata?: Record<string, unknown>;
-  }
-): Promise<void> {
-  await client.from("agent_runs").insert({
-    agent_name: agentName,
-    trigger_type: stats.trigger_type,
-    items_scanned: stats.items_scanned ?? 0,
-    items_actioned: stats.items_actioned ?? 0,
-    items_failed: stats.items_failed ?? 0,
-    duration_ms: stats.duration_ms,
-    status: stats.status,
-    error_summary: stats.error_summary ?? null,
-    metadata: stats.metadata ?? {},
-  });
-}
-
-async function emitEvent(
-  client: ReturnType<typeof createClient>,
-  type: string,
-  source: string,
-  payload: Record<string, unknown>,
-  target?: string
-): Promise<string | null> {
-  const { data, error } = await client
-    .from("agent_events")
-    .insert({ event_type: type, source_agent: source, target_agent: target ?? null, payload, status: "pending" })
-    .select("id")
-    .single();
-  if (error) console.error(`[scout] emitEvent failed:`, error.message);
-  return data?.id ?? null;
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
+import {
+  agentCorsHeaders,
+  jsonResponse,
+  sb,
+  emitTypedEvent,
+  logRun,
+} from "../_shared/agentUtils.ts";
+import { callLLM, parseLLMJson, truncate } from "../_shared/llmClient.ts";
+import type { DataSource } from "../_shared/types.ts";
 
 const AGENT_NAME = "civic-scout";
-const MIN_RELEVANCE_SAVE = 0.6;   // save to scout_findings
-const MIN_RELEVANCE_EMBED = 0.80; // embed into vectors
+const JINA_BASE = "https://r.jina.ai/";
 
-// Kenya-specific RSS feeds (public, no auth required)
-const RSS_SOURCES = [
-  {
-    name: "Kenya Gazette",
-    url: "https://kenyalaw.org/kl/index.php?id=5901&type=rss",
-    source_type: "gazette",
-    fallbackUrl: null as string | null,
-  },
-  {
-    name: "Parliament of Kenya",
-    url: "https://parliament.go.ke/feed",
-    source_type: "parliament",
-    fallbackUrl: null as string | null,
-  },
-];
+// ── Relevance classification prompt ──────────────────────────────────────────
 
-// ─── RSS Parser ───────────────────────────────────────────────────────────────
+const RELEVANCE_SYSTEM = `You are a Kenyan civic relevance classifier.
+Given a news article title and excerpt, decide if it is relevant to any of these civic topics:
+- government budgets, tenders, or procurement
+- public appointments or official statements
+- legislation, bills, or constitutional matters
+- county or national government projects
+- corruption investigations or accountability
+- public service delivery failures
+- parliamentary proceedings
+
+Respond with JSON only:
+{ "relevant": true|false, "category": "budget|tender|scandal|promise|policy|official_statement|infrastructure|other", "relevance_score": 0.0-1.0, "summary": "One sentence summary if relevant, else null" }`;
+
+// ── Feed parsing ──────────────────────────────────────────────────────────────
 
 interface FeedItem {
   title: string;
   link: string;
-  description: string;
-  pubDate: string | null;
-  source_type: string;
-  source_name: string;
+  summary?: string;
+  published?: string;
 }
 
-async function fetchRssFeed(source: typeof RSS_SOURCES[0]): Promise<FeedItem[]> {
-  const urls = [source.url, source.fallbackUrl].filter(Boolean) as string[];
+async function fetchFeedItems(url: string): Promise<FeedItem[]> {
+  // Use Jina AI reader to get clean text from feed URL
+  const jinaKey = Deno.env.get("JINA_API_KEY");
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Return-Format": "text",
+  };
+  if (jinaKey) headers.Authorization = `Bearer ${jinaKey}`;
 
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, {
-        headers: { "User-Agent": "WanaIQ-Scout/1.0" },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await fetch(`${JINA_BASE}${url}`, { headers, signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Feed fetch failed: ${res.status}`);
 
-      const text = await res.text();
-      const items: FeedItem[] = [];
+  const text = await res.text();
+  // Parse basic <item> or <entry> blocks from the text
+  const items: FeedItem[] = [];
+  const itemPattern = /<(?:item|entry)[\s\S]*?<\/(?:item|entry)>/gi;
+  const matches = text.match(itemPattern) ?? [];
 
-      // Simple XML parsing for <item> blocks
-      const itemMatches = text.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/gi);
-      for (const match of itemMatches) {
-        const block = match[1];
-        const title = extractXmlTag(block, "title") ?? "";
-        const link = extractXmlTag(block, "link") ?? extractXmlTag(block, "guid") ?? "";
-        const description = stripHtml(extractXmlTag(block, "description") ?? "");
-        const pubDate = extractXmlTag(block, "pubDate") ?? null;
-
-        if (title && link) {
-          items.push({ title, link, description, pubDate, source_type: source.source_type, source_name: source.name });
-        }
-        if (items.length >= 20) break; // cap per source
-      }
-
-      console.log(`[scout] ${source.name}: fetched ${items.length} items`);
-      return items;
-    } catch (e) {
-      console.warn(`[scout] ${source.name} fetch failed (${url}):`, (e as Error).message);
-    }
+  for (const block of matches.slice(0, 20)) {
+    const title = block.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i)?.[1]?.trim();
+    const link = block.match(/<link[^>]*>([^<]+)<\/link>/i)?.[1]?.trim()
+      ?? block.match(/href="([^"]+)"/)?.[1];
+    const summary = block.match(/<(?:description|summary)[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/(?:description|summary)>/i)?.[1]?.replace(/<[^>]+>/g, "").trim();
+    if (title && link) items.push({ title, link, summary });
   }
 
-  return [];
+  return items;
 }
 
-function extractXmlTag(xml: string, tag: string): string | null {
-  const match = xml.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i"));
-  return match ? match[1].trim() : null;
-}
+// ── Classify and store finding ────────────────────────────────────────────────
 
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 800);
-}
+async function processItem(
+  item: FeedItem,
+  source: DataSource,
+  client: ReturnType<typeof sb>,
+): Promise<boolean> {
+  const text = `Title: ${item.title}\n\n${item.summary ?? ''}`;
 
-// ─── NewsData.io Fetch ────────────────────────────────────────────────────────
+  const response = await callLLM(
+    [
+      { role: 'system', content: RELEVANCE_SYSTEM },
+      { role: 'user', content: truncate(text, 500) },
+    ],
+    { maxTokens: 128, temperature: 0, jsonMode: true },
+  );
 
-async function fetchNewsData(apiKey: string): Promise<FeedItem[]> {
-  try {
-    const params = new URLSearchParams({
-      apikey: apiKey,
-      q: "kenya government official budget project",
-      country: "ke",
-      language: "en",
-      category: "politics,government",
-    });
+  const result = parseLLMJson<{
+    relevant: boolean;
+    category: string;
+    relevance_score: number;
+    summary: string | null;
+  }>(response.content);
 
-    const res = await fetch(`https://newsdata.io/api/1/news?${params}`, {
-      signal: AbortSignal.timeout(10000),
-    });
+  if (!result?.relevant || (result.relevance_score ?? 0) < 0.6) return false;
 
-    if (!res.ok) throw new Error(`NewsData HTTP ${res.status}`);
-
-    const json = await res.json() as { status: string; results?: Array<{ title: string; link: string; description: string; pubDate: string }> };
-    if (json.status !== "success" || !json.results) return [];
-
-    return json.results.slice(0, 20).map((r) => ({
-      title: r.title ?? "",
-      link: r.link ?? "",
-      description: stripHtml(r.description ?? "").slice(0, 600),
-      pubDate: r.pubDate ?? null,
-      source_type: "newsdata",
-      source_name: "NewsData.io",
-    }));
-  } catch (e) {
-    console.warn("[scout] NewsData.io fetch failed:", (e as Error).message);
-    return [];
-  }
-}
-
-// ─── LLM Relevance Classifier ────────────────────────────────────────────────
-
-interface RelevanceResult {
-  score: number;        // 0.0 – 1.0
-  category: string;    // budget | tender | legislation | project | appointment | other
-  related_to: string;  // 'project' | 'promise' | 'official' | 'general'
-  county: string | null;
-}
-
-async function classifyRelevance(
-  groqKey: string,
-  item: FeedItem
-): Promise<RelevanceResult> {
-  const prompt = `You are a civic intelligence classifier for Kenya.
-Rate how relevant this item is to accountability tracking of Kenyan government officials, projects, budgets, or promises.
-
-Title: ${item.title}
-Description: ${item.description.slice(0, 400)}
-Source: ${item.source_name}
-
-Respond with ONLY valid JSON (no markdown):
-{
-  "score": 0.0-1.0,
-  "category": "budget|tender|legislation|project|appointment|other",
-  "related_to": "project|promise|official|general",
-  "county": "county name or null if national"
-}`;
-
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${groqKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.1,
-        max_tokens: 150,
-        response_format: { type: "json_object" },
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
-    const json = await res.json() as { choices: Array<{ message: { content: string } }> };
-    const content = json.choices?.[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(content) as Partial<RelevanceResult>;
-
-    return {
-      score: Math.min(1, Math.max(0, Number(parsed.score ?? 0))),
-      category: parsed.category ?? "other",
-      related_to: parsed.related_to ?? "general",
-      county: parsed.county ?? null,
-    };
-  } catch (e) {
-    console.warn("[scout] LLM classify failed:", (e as Error).message, "— defaulting to 0.5");
-    return { score: 0.5, category: "other", related_to: "general", county: null };
-  }
-}
-
-// ─── Embedding (Jina AI) ──────────────────────────────────────────────────────
-
-async function embedText(jinaKey: string, text: string): Promise<number[] | null> {
-  try {
-    const res = await fetch("https://api.jina.ai/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${jinaKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "jina-embeddings-v2-base-en",
-        input: [text.slice(0, 8000)],
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!res.ok) throw new Error(`Jina HTTP ${res.status}`);
-    const json = await res.json() as { data: Array<{ embedding: number[] }> };
-    return json.data?.[0]?.embedding ?? null;
-  } catch (e) {
-    console.warn("[scout] Jina embedding failed:", (e as Error).message);
-    return null;
-  }
-}
-
-// ─── Main handler ─────────────────────────────────────────────────────────────
-
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: agentCorsHeaders });
-
-  const startedAt = Date.now();
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const groqKey     = Deno.env.get("GROQ_API_KEY") ?? "";
-  const jinaKey     = Deno.env.get("JINA_API_KEY") ?? "";
-  const newsDataKey = Deno.env.get("NEWSDATA_API_KEY") ?? "";
-
-  const client = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
+  const { error } = await client.from('scout_findings').insert({
+    source_url: item.link,
+    source_type: source.type === 'parliament' ? 'hansard'
+      : source.type === 'gov_portal' ? 'gazette'
+      : 'news',
+    title: item.title,
+    summary: result.summary ?? item.summary?.slice(0, 500),
+    raw_content: text.slice(0, 2000),
+    relevance_score: result.relevance_score,
+    category: result.category,
+    embedded: false,
+    processed: false,
   });
 
-  let body: Record<string, unknown> = {};
-  try { body = await req.json(); } catch { /* cron calls may have no body */ }
+  if (error) {
+    // Unique constraint on source_url — skip duplicates silently
+    if (!error.message.includes('duplicate') && !error.message.includes('unique')) {
+      console.error('Insert finding error:', error.message);
+    }
+    return false;
+  }
 
-  const triggerType = (body.trigger === "cron" ? "cron" : "api") as "cron" | "api";
+  return true;
+}
 
-  console.log(`[scout] Starting run — trigger: ${triggerType}`);
+// ── Scrape one source ─────────────────────────────────────────────────────────
 
-  let itemsScanned = 0;
-  let itemsSaved   = 0;
-  let itemsEmbedded = 0;
-  let itemsFailed  = 0;
-  const errors: string[] = [];
+async function scrapeSource(
+  source: DataSource,
+  client: ReturnType<typeof sb>,
+): Promise<{ stored: number; error?: string }> {
+  let stored = 0;
+  let scrapeError: string | undefined;
 
   try {
-    // ── 1. Fetch all sources ──────────────────────────────────────────────────
+    const items = await fetchFeedItems(source.url);
 
-    const allItems: FeedItem[] = [];
-
-    // RSS sources (parallel)
-    const rssResults = await Promise.allSettled(RSS_SOURCES.map(fetchRssFeed));
-    for (const result of rssResults) {
-      if (result.status === "fulfilled") allItems.push(...result.value);
-      else errors.push(`RSS fetch failed: ${result.reason}`);
-    }
-
-    // NewsData.io (optional, skip if no key)
-    if (newsDataKey) {
-      const newsItems = await fetchNewsData(newsDataKey);
-      allItems.push(...newsItems);
-    } else {
-      console.log("[scout] NEWSDATA_API_KEY not set — skipping NewsData.io");
-    }
-
-    itemsScanned = allItems.length;
-    console.log(`[scout] Total items fetched: ${itemsScanned}`);
-
-    if (itemsScanned === 0) {
-      await logAgentRun(client, AGENT_NAME, {
-        trigger_type: triggerType,
-        items_scanned: 0,
-        status: "success",
-        error_summary: errors.length ? errors.join("; ") : undefined,
-        metadata: { note: "All sources returned 0 items" },
-      });
-      return jsonResponse({ ok: true, message: "No items fetched", items_scanned: 0 });
-    }
-
-    // ── 2. Deduplicate against existing scout_findings ────────────────────────
-
-    const sourceUrls = allItems.map((i) => i.link).filter(Boolean);
+    // Bulk-check for existing URLs before any LLM calls — avoids wasting API budget
+    const urls = items.map((i) => i.link);
     const { data: existing } = await client
-      .from("scout_findings")
-      .select("source_url")
-      .in("source_url", sourceUrls);
+      .from('scout_findings')
+      .select('source_url')
+      .in('source_url', urls);
+    const existingSet = new Set((existing ?? []).map((r: { source_url: string }) => r.source_url));
+    const newItems = items.filter((i) => !existingSet.has(i.link));
 
-    const seenUrls = new Set((existing ?? []).map((r: { source_url: string }) => r.source_url));
-    const newItems = allItems.filter((i) => i.link && !seenUrls.has(i.link));
-
-    console.log(`[scout] ${newItems.length} new items after dedup (${allItems.length - newItems.length} skipped)`);
-
-    if (newItems.length === 0) {
-      await logAgentRun(client, AGENT_NAME, {
-        trigger_type: triggerType,
-        items_scanned: itemsScanned,
-        items_actioned: 0,
-        status: "success",
-        metadata: { note: "All items already seen" },
-      });
-      return jsonResponse({ ok: true, message: "No new items", items_scanned: itemsScanned });
-    }
-
-    // ── 3. LLM classify + save ────────────────────────────────────────────────
-
-    // Rate-limit: classify in batches of 5 with 500ms delay
-    const BATCH_SIZE = 5;
-    const BATCH_DELAY_MS = 500;
-
-    for (let i = 0; i < newItems.length; i += BATCH_SIZE) {
-      const batch = newItems.slice(i, i + BATCH_SIZE);
-
-      const classifications = await Promise.allSettled(
-        batch.map((item) => groqKey ? classifyRelevance(groqKey, item) : Promise.resolve({ score: 0.7, category: "other", related_to: "general", county: null } as RelevanceResult))
-      );
-
-      for (let j = 0; j < batch.length; j++) {
-        const item = batch[j];
-        const classResult = classifications[j];
-
-        let relevance: RelevanceResult = { score: 0.6, category: "other", related_to: "general", county: null };
-        if (classResult.status === "fulfilled") relevance = classResult.value;
-        else {
-          errors.push(`Classify failed for: ${item.title.slice(0, 50)}`);
-          itemsFailed++;
-        }
-
-        if (relevance.score < MIN_RELEVANCE_SAVE) continue;
-
-        // Save to scout_findings
-        const { data: finding, error: saveErr } = await client
-          .from("scout_findings")
-          .insert({
-            source_url: item.link,
-            source_type: item.source_type,
-            title: item.title,
-            summary: item.description.slice(0, 500),
-            raw_content: [item.title, item.description].join("\n\n").slice(0, 5000),
-            relevance_score: relevance.score,
-            category: relevance.category,
-            related_to: relevance.related_to,
-            county: relevance.county,
-            embedded: false,
-            processed: false,
-          })
-          .select("id")
-          .single();
-
-        if (saveErr) {
-          console.error("[scout] Save finding failed:", saveErr.message);
-          itemsFailed++;
-          continue;
-        }
-
-        itemsSaved++;
-        const findingId = finding?.id;
-
-        // ── 4. Embed high-relevance items ───────────────────────────────────
-
-        if (relevance.score >= MIN_RELEVANCE_EMBED && jinaKey && findingId) {
-          const embeddingText = `${item.title}\n\n${item.description}`;
-          const vector = await embedText(jinaKey, embeddingText);
-
-          if (vector) {
-            const { error: embedErr } = await client.from("vectors").insert({
-              title: item.title.slice(0, 500),
-              content: embeddingText.slice(0, 4000),
-              embedding: JSON.stringify(vector),
-              metadata: {
-                source_name: item.source_name,
-                category: relevance.category,
-                related_to: relevance.related_to,
-                county: relevance.county,
-                finding_id: findingId,
-                pub_date: item.pubDate,
-              },
-              source_type: `scout_${item.source_type}`,
-              source_id: findingId,
-            });
-
-            if (!embedErr) {
-              // Mark embedded
-              await client.from("scout_findings").update({ embedded: true }).eq("id", findingId);
-              itemsEmbedded++;
-
-              // ── 5. Emit event → civic-sage ────────────────────────────────
-              await emitEvent(client, "new_finding", AGENT_NAME, {
-                finding_id: findingId,
-                title: item.title,
-                category: relevance.category,
-                related_to: relevance.related_to,
-                county: relevance.county,
-                score: relevance.score,
-              }, "civic-sage");
-            } else {
-              console.warn("[scout] Embed insert failed:", embedErr.message);
-            }
-          }
-        } else if (relevance.score >= MIN_RELEVANCE_EMBED && findingId) {
-          // No Jina key yet — still emit event for Sage (it will use raw content)
-          console.log(`[scout] Jina key not set — emitting event without vector for finding ${findingId}`);
-          await emitEvent(client, "new_finding", AGENT_NAME, {
-            finding_id: findingId,
-            title: item.title,
-            category: relevance.category,
-            related_to: relevance.related_to,
-            county: relevance.county,
-            score: relevance.score,
-            embedded: false,
-          }, "civic-sage");
-        }
-      }
-
-      // Delay between batches to respect Groq rate limits
-      if (i + BATCH_SIZE < newItems.length) {
-        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+    for (const item of newItems) {
+      try {
+        const ok = await processItem(item, source, client);
+        if (ok) stored++;
+      } catch (err) {
+        console.error(`Failed to process item ${item.link}:`, err);
       }
     }
 
-    // ── 6. Log run ────────────────────────────────────────────────────────────
-
-    const durationMs = Date.now() - startedAt;
-    const runStatus = itemsFailed > 0 && itemsSaved === 0 ? "failed"
-      : itemsFailed > 0 ? "partial"
-      : "success";
-
-    await logAgentRun(client, AGENT_NAME, {
-      trigger_type: triggerType,
-      items_scanned: itemsScanned,
-      items_actioned: itemsSaved,
-      items_failed: itemsFailed,
-      duration_ms: durationMs,
-      status: runStatus,
-      error_summary: errors.length ? errors.slice(0, 3).join("; ") : undefined,
-      metadata: {
-        items_new: newItems.length,
-        items_saved: itemsSaved,
-        items_embedded: itemsEmbedded,
-        has_jina_key: !!jinaKey,
-        has_newsdata_key: !!newsDataKey,
-      },
-    });
-
-    console.log(`[scout] Run complete — scanned: ${itemsScanned}, saved: ${itemsSaved}, embedded: ${itemsEmbedded}, failed: ${itemsFailed}`);
-
-    return jsonResponse({
-      ok: true,
-      items_scanned: itemsScanned,
-      items_saved: itemsSaved,
-      items_embedded: itemsEmbedded,
-      items_failed: itemsFailed,
-      duration_ms: durationMs,
-    });
-
+    await client.from('data_sources').update({
+      last_scraped: new Date().toISOString(),
+      last_scraped_status: 'success',
+    }).eq('id', source.id);
   } catch (err) {
-    const msg = (err as Error).message;
-    console.error("[scout] Fatal error:", msg);
+    scrapeError = err instanceof Error ? err.message : String(err);
+    await client.from('data_sources').update({
+      last_scraped: new Date().toISOString(),
+      last_scraped_status: 'failed',
+    }).eq('id', source.id).catch(() => {});
+  }
 
-    await logAgentRun(client, AGENT_NAME, {
-      trigger_type: triggerType,
-      items_scanned: itemsScanned,
-      status: "failed",
-      error_summary: msg,
-      duration_ms: Date.now() - startedAt,
+  return { stored, error: scrapeError };
+}
+
+// ── Fact check mode ───────────────────────────────────────────────────────────
+
+interface OfficialPromise {
+  id: string;
+  title: string;
+  description?: string;
+  official_name?: string;
+}
+
+async function factCheck(
+  promiseId: string,
+  client: ReturnType<typeof sb>,
+): Promise<{ findings: number }> {
+  // Fetch the promise text
+  const { data: promise, error } = await client
+    .from('official_promises')
+    .select('id, title, description, official_name')
+    .eq('id', promiseId)
+    .single();
+
+  if (error || !promise) throw new Error(`Promise ${promiseId} not found`);
+  const p = promise as OfficialPromise;
+
+  const query = `${p.title} Kenya government`;
+  const newsKey = Deno.env.get('NEWSDATA_API_KEY');
+
+  if (!newsKey) throw new Error('NEWSDATA_API_KEY not set');
+
+  const newsdataUrl = `https://newsdata.io/api/1/news?apikey=${newsKey}&q=${encodeURIComponent(query)}&country=ke&language=en`;
+  const res = await fetch(newsdataUrl, { signal: AbortSignal.timeout(10000) });
+  if (!res.ok) throw new Error(`NewsData fetch failed: ${res.status}`);
+
+  const json = await res.json();
+  const articles = (json.results ?? []).slice(0, 10);
+  let findings = 0;
+
+  const fakeSource: DataSource = {
+    id: 'newsdata', name: 'NewsData.io', url: 'https://newsdata.io',
+    type: 'news', active: true, scrape_interval_hours: 0, created_at: new Date().toISOString(),
+  };
+
+  for (const article of articles) {
+    try {
+      const item: FeedItem = {
+        title: article.title,
+        link: article.link,
+        summary: article.description,
+      };
+      const ok = await processItem(item, fakeSource, client);
+      if (ok) findings++;
+    } catch (err) {
+      console.error('Fact check item error:', err);
+    }
+  }
+
+  await emitTypedEvent(client, {
+    event_type: 'fact_check',
+    source_agent: AGENT_NAME,
+    payload: { promise_id: promiseId, findings },
+  });
+
+  return { findings };
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────────
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: agentCorsHeaders });
+  }
+
+  const startTime = Date.now();
+  // Single client per request invocation
+  const client = sb();
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { trigger, promise_id } = body;
+
+    // Fact check mode
+    if (promise_id) {
+      const result = await factCheck(promise_id, client);
+      return jsonResponse({ ok: true, ...result });
+    }
+
+    // Cron scrape mode — read all active sources from data_sources table
+    const { data: sources, error: srcErr } = await client
+      .from('data_sources')
+      .select('*')
+      .eq('active', true);
+
+    if (srcErr) throw new Error(`Failed to load data_sources: ${srcErr.message}`);
+    if (!sources?.length) return jsonResponse({ ok: true, message: 'No active sources configured.' });
+
+    let totalStored = 0;
+    let totalFailed = 0;
+
+    for (const source of sources as DataSource[]) {
+      // Honour scrape_interval_hours — skip recently scraped sources
+      if (source.last_scraped) {
+        const last = new Date(source.last_scraped).getTime();
+        const nextDue = last + source.scrape_interval_hours * 60 * 60 * 1000;
+        if (Date.now() < nextDue) continue;
+      }
+
+      const { stored, error } = await scrapeSource(source, client);
+      totalStored += stored;
+      if (error) totalFailed++;
+    }
+
+    await emitTypedEvent(client, {
+      event_type: 'ingest_complete',
+      source_agent: AGENT_NAME,
+      payload: { sources_scraped: sources.length, findings_stored: totalStored },
     });
 
+    await logRun(client, AGENT_NAME, {
+      trigger_type: trigger === 'cron' ? 'cron' : 'api',
+      items_scanned: sources.length,
+      items_actioned: totalStored,
+      items_failed: totalFailed,
+      duration_ms: Date.now() - startTime,
+      status: totalFailed >= sources.length ? 'failed' : totalFailed > 0 ? 'partial' : 'success',
+    });
+
+    return jsonResponse({ ok: true, stored: totalStored, sources: sources.length });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[${AGENT_NAME}] Fatal:`, msg);
     return jsonResponse({ ok: false, error: msg }, 500);
   }
 });

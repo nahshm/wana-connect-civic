@@ -1,7 +1,9 @@
 project_id = "zcnjpczplkbdmmovlrtv"
 
-[functions.content-moderation]
-verify_jwt = false
+# ── Functions requiring no JWT (public/service endpoints) ─────────────────────
+
+# DEPRECATED — logic absorbed into civic-steward. Returns 410.
+# [functions.content-moderation] entry removed intentionally.
 
 [functions.send-notifications]
 verify_jwt = false
@@ -22,4 +24,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.civic-ingest]
+verify_jwt = false
+
+# Added: civic-scout (cron + fact_check API)
+[functions.civic-scout]
+verify_jwt = false
+
+# Added: civic-quill (HTTP POST trigger from admin)
+[functions.civic-quill]
+verify_jwt = false
+
+# Added: admin-health (polled by Overview panel, no user JWT)
+[functions.admin-health]
 verify_jwt = false

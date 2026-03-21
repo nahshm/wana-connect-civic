@@ -35,6 +35,7 @@ const ProjectDetail = lazy(() => import("@/features/accountability/pages/Project
 const SubmitProject = lazy(() => import("@/features/accountability/pages/SubmitProject"));
 const PromiseDetail = lazy(() => import("@/features/accountability/pages/PromiseDetail"));
 const ReportIssue = lazy(() => import("@/features/accountability/pages/ReportIssue"));
+const ReportIncident = lazy(() => import("@/features/accountability/pages/ReportIncident"));
 const ActionDetail = lazy(() => import("@/features/accountability/pages/ActionDetail"));
 
 // LAZY LOADED: Community pages
@@ -119,6 +120,7 @@ const App = () => (
                             <Route path="/dashboard" element={<CivicDashboard />} />
                             <Route path="/dashboard/report" element={<ReportIssue />} />
                             <Route path="/report-an-issue" element={<ReportIssue />} />
+                            <Route path="/report-incident" element={<ReportIncident />} />
                             <Route path="/dashboard/actions/:id" element={<ActionDetail />} />
                             <Route path="/dashboard/analytics" element={<Analytics />} />
                             <Route path="/create" element={<CreatePost />} />

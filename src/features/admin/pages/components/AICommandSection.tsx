@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,13 +11,22 @@ import {
   Bot, Brain, BookOpen, Sliders, Database, RefreshCw,
   CheckCircle, XCircle, Loader2, Clock, AlertTriangle,
   MapPin, ChevronRight, Pencil, Plus, Check, X,
-  Upload, Zap, Shield, Eye, FileText, MessageSquare, Search as SearchIcon,
-  BookOpenCheck, Route, HardDrive, Activity
+  Upload, Zap, Eye, FileText, MessageSquare, Search as SearchIcon,
+  HardDrive, Activity, Radio, Server, BarChart2, ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
 
-// ────────────────────── Agent Registry ──────────────────────
+// Sub-components
+import { StatusDot } from './StatusDot';
+import { LiveEventsFeed } from './LiveEventsFeed';
+import { DataSourcesPanel } from './DataSourcesPanel';
+import { Analytics } from './Analytics';
+
+// Types
+import type { HealthNode } from '@/types/agent';
+
+// ── Agent Registry ────────────────────────────────────────────────────────────
 interface AgentInfo {
   name: string;
   displayName: string;
@@ -30,18 +39,18 @@ interface AgentInfo {
 
 const AGENT_REGISTRY: AgentInfo[] = [
   {
-    name: 'civic-guardian',
-    displayName: 'Guardian',
-    purpose: 'Content moderator — scans posts/comments for hate speech, ethnic incitement, misinformation, and PII exposure.',
-    trigger: 'DB webhook on post/comment INSERT + 5min cron',
-    tools: ['hideContent', 'issueWarning', 'queueForReview', 'emitEvent', 'createProposal'],
-    icon: Shield,
+    name: 'civic-steward',
+    displayName: 'Steward',
+    purpose: 'Content moderator — screens pre-publish submissions AND batch-scans recent posts/comments for hate speech, ethnic incitement, misinformation, and PII. Absorbs guardian + content-moderation logic.',
+    trigger: 'User request (pre-publish) + cron/webhook (batch scan)',
+    tools: ['screenContent', 'batchScan', 'hideContent', 'issueWarning', 'createProposal', 'emitEvent'],
+    icon: ShieldCheck,
     color: 'text-red-500',
   },
   {
     name: 'civic-minion',
     displayName: 'Minion',
-    purpose: 'Decision maker — reviews Guardian proposals, auto-approves high confidence actions, escalates low confidence to human moderators.',
+    purpose: 'Decision executor — reviews Steward proposals, auto-approves high-confidence actions, escalates low-confidence to human moderators.',
     trigger: '5min cron + manual API',
     tools: ['execute_ban', 'execute_content_removal', 'execute_warning', 'escalate_to_admin'],
     icon: Zap,
@@ -50,61 +59,43 @@ const AGENT_REGISTRY: AgentInfo[] = [
   {
     name: 'civic-quill',
     displayName: 'Quill',
-    purpose: 'Bilingual writer — turns agent findings into clear, factual public messages for Kenyan citizens in English + Kiswahili.',
-    trigger: 'Event-driven (proposal_approved, new_finding, accountability_alert) + weekly cron for educational posts',
-    tools: ['generateWarningMessage', 'generateCivicSummary', 'generateEducationalPost', 'saveDraft'],
+    purpose: 'Issue summariser — generates concise 3-sentence citizen-language summaries from civic issue clusters and routes them through agent_proposals for admin review.',
+    trigger: 'HTTP POST (cluster_id + issues[])',
+    tools: ['callLLM', 'createProposal', 'emitTypedEvent', 'logRun'],
     icon: MessageSquare,
     color: 'text-blue-500',
   },
   {
     name: 'civic-scout',
     displayName: 'Scout',
-    purpose: 'Intelligence collector — scrapes Kenya Gazette, Parliament RSS, news APIs for civic-relevant data (tenders, appointments, legislation).',
-    trigger: 'Hourly cron',
-    tools: ['scrapeGazette', 'scrapeParliamentRSS', 'embedFinding', 'emitEvent'],
+    purpose: 'Intelligence collector — scrapes admin-configured data sources (Kenya Gazette, Parliament, news APIs) for civic-relevant data. Sources managed via Data Sources panel.',
+    trigger: 'Hourly cron + fact_check API',
+    tools: ['scrapeDataSources', 'classifyRelevance', 'storeFindings', 'emitEvent', 'updateScrapeStatus'],
     icon: SearchIcon,
     color: 'text-emerald-500',
   },
   {
-    name: 'civic-sage',
-    displayName: 'Sage',
-    purpose: 'Policy analyst — RAG analysis of scout findings against Kenya\'s legal framework (Constitution 2010, PPADA, PFMA, County Governments Act).',
-    trigger: '6hr cron + scout events',
-    tools: ['ragQuery', 'analyzePolicy', 'generateInsight'],
-    icon: BookOpenCheck,
-    color: 'text-amber-500',
-  },
-  {
     name: 'civic-brain',
     displayName: 'Brain',
-    purpose: 'Civic assistant — powers the user-facing chat with personalized RAG responses based on user\'s county, interests, and persona.',
+    purpose: 'Civic assistant — powers the user-facing chat with personalised RAG responses based on user county, interests, and persona. Includes legal reasoning previously in Sage.',
     trigger: 'User request (real-time)',
-    tools: ['ragQuery', 'personalizeResponse', 'chatHistory'],
+    tools: ['ragQuery', 'personaliseResponse', 'chatHistory'],
     icon: Brain,
     color: 'text-pink-500',
   },
   {
-    name: 'civic-steward',
-    displayName: 'Steward',
-    purpose: 'Pre-publish moderator — screens user content before posting to ensure community guideline compliance.',
-    trigger: 'User request (real-time)',
-    tools: ['screenContent', 'suggestEdits'],
-    icon: Eye,
-    color: 'text-cyan-500',
-  },
-  {
     name: 'civic-router',
     displayName: 'Router',
-    purpose: 'Government institution lookup — routes civic queries to the correct government office using Kenya\'s administrative structure.',
+    purpose: 'Government institution lookup — routes civic queries to the correct government office using Kenya\'s administrative structure and Constitution 2010 Fourth Schedule.',
     trigger: 'User request (real-time)',
-    tools: ['lookupInstitution', 'resolveJurisdiction'],
-    icon: Route,
+    tools: ['lookupInstitution', 'resolveJurisdiction', 'generateFormalLetter'],
+    icon: Bot,
     color: 'text-orange-500',
   },
   {
     name: 'civic-ingest',
     displayName: 'Ingest',
-    purpose: 'Document ingestion — chunks and embeds PDFs/text into the vector knowledge base for RAG.',
+    purpose: 'Document ingestion — chunks and embeds PDFs/text into the vector knowledge base for RAG across all agents.',
     trigger: 'Admin trigger',
     tools: ['chunkDocument', 'generateEmbeddings', 'insertVectors'],
     icon: HardDrive,
@@ -112,19 +103,48 @@ const AGENT_REGISTRY: AgentInfo[] = [
   },
 ];
 
+// ── Root Component ────────────────────────────────────────────────────────────
 export default function AICommandSection() {
   return (
-    <Tabs defaultValue="directory" className="space-y-6">
-      <TabsList className="flex-wrap">
-        <TabsTrigger value="directory" className="gap-2"><Bot className="w-4 h-4" />Agent Directory</TabsTrigger>
-        <TabsTrigger value="queue" className="gap-2"><Activity className="w-4 h-4" />Queue</TabsTrigger>
-        <TabsTrigger value="drafts" className="gap-2"><BookOpen className="w-4 h-4" />Drafts</TabsTrigger>
-        <TabsTrigger value="prompts" className="gap-2"><Brain className="w-4 h-4" />Prompt Studio</TabsTrigger>
-        <TabsTrigger value="knowledge" className="gap-2"><Database className="w-4 h-4" />Knowledge Base</TabsTrigger>
-        <TabsTrigger value="config" className="gap-2"><Sliders className="w-4 h-4" />Config</TabsTrigger>
+    <Tabs defaultValue="overview" className="space-y-6">
+      <TabsList className="flex-wrap h-auto gap-1">
+        <TabsTrigger value="overview" className="gap-2">
+          <Server className="w-4 h-4" />Overview
+        </TabsTrigger>
+        <TabsTrigger value="directory" className="gap-2">
+          <Bot className="w-4 h-4" />Agents
+        </TabsTrigger>
+        <TabsTrigger value="live-events" className="gap-2">
+          <Radio className="w-4 h-4" />Live Events
+        </TabsTrigger>
+        <TabsTrigger value="data-sources" className="gap-2">
+          <Database className="w-4 h-4" />Data Sources
+        </TabsTrigger>
+        <TabsTrigger value="analytics" className="gap-2">
+          <BarChart2 className="w-4 h-4" />Analytics
+        </TabsTrigger>
+        <TabsTrigger value="queue" className="gap-2">
+          <Activity className="w-4 h-4" />Queue
+        </TabsTrigger>
+        <TabsTrigger value="drafts" className="gap-2">
+          <BookOpen className="w-4 h-4" />Drafts
+        </TabsTrigger>
+        <TabsTrigger value="prompts" className="gap-2">
+          <Brain className="w-4 h-4" />Prompts
+        </TabsTrigger>
+        <TabsTrigger value="knowledge" className="gap-2">
+          <Database className="w-4 h-4" />Knowledge
+        </TabsTrigger>
+        <TabsTrigger value="config" className="gap-2">
+          <Sliders className="w-4 h-4" />Config
+        </TabsTrigger>
       </TabsList>
 
+      <TabsContent value="overview"><OverviewSubTab /></TabsContent>
       <TabsContent value="directory"><AgentDirectorySubTab /></TabsContent>
+      <TabsContent value="live-events"><LiveEventsFeed /></TabsContent>
+      <TabsContent value="data-sources"><DataSourcesPanel /></TabsContent>
+      <TabsContent value="analytics"><Analytics /></TabsContent>
       <TabsContent value="queue"><AgentQueueSubTab /></TabsContent>
       <TabsContent value="drafts"><DraftsSubTab /></TabsContent>
       <TabsContent value="prompts"><PromptStudioSubTab /></TabsContent>
@@ -134,7 +154,117 @@ export default function AICommandSection() {
   );
 }
 
-// ────────────────────── Agent Directory ──────────────────────
+// ── Overview (health-based) ───────────────────────────────────────────────────
+function OverviewSubTab() {
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [secondsAgo, setSecondsAgo] = useState<number>(0);
+
+  const { data, isLoading, error, refetch } = useQuery<{ ok: boolean; nodes: HealthNode[] }>({
+    queryKey: ['admin-health'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('admin-health');
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 30_000,
+    staleTime: 25_000,
+  });
+
+  // Track "last checked X seconds ago"
+  useEffect(() => {
+    if (data) setLastChecked(new Date());
+  }, [data]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (lastChecked) setSecondsAgo(Math.round((Date.now() - lastChecked.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [lastChecked]);
+
+  const agentNodes = data?.nodes.filter(n => n.type === 'agent') ?? [];
+  const dbNodes = data?.nodes.filter(n => n.type === 'database') ?? [];
+  const llmNodes = data?.nodes.filter(n => n.type === 'llm_provider') ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">System Overview</h3>
+          <p className="text-sm text-muted-foreground">
+            {lastChecked
+              ? `Last checked ${secondsAgo}s ago · refreshes every 30s`
+              : 'Checking system health…'}
+          </p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isLoading}>
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
+
+      {error && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="py-4 text-sm text-destructive flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            admin-health returned an error. Check function logs.
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && !data ? (
+        <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+      ) : (
+        <>
+          <HealthSection title="Agents" icon={Bot} nodes={agentNodes} />
+          <HealthSection title="Database" icon={Database} nodes={dbNodes} />
+          <HealthSection title="LLM Providers" icon={Brain} nodes={llmNodes} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function HealthSection({
+  title,
+  icon: Icon,
+  nodes,
+}: {
+  title: string;
+  icon: React.ElementType;
+  nodes: HealthNode[];
+}) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+        <Icon className="w-4 h-4" />{title}
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {nodes.map(node => (
+          <div
+            key={node.id}
+            className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <StatusDot status={node.status} />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{node.label}</p>
+                {node.detail && <p className="text-xs text-muted-foreground truncate">{node.detail}</p>}
+              </div>
+            </div>
+            {node.value != null && (
+              <span className="text-xs font-mono text-muted-foreground shrink-0 ml-2">{node.value}</span>
+            )}
+          </div>
+        ))}
+        {nodes.length === 0 && (
+          <div className="col-span-3 py-4 text-center text-sm text-muted-foreground">No data</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Agent Directory ───────────────────────────────────────────────────────────
 function AgentDirectorySubTab() {
   const { data: latestRuns } = useQuery({
     queryKey: ['admin-agent-latest-runs'],
@@ -144,9 +274,7 @@ function AgentDirectorySubTab() {
         .order('created_at', { ascending: false })
         .limit(100);
       const map: Record<string, typeof data extends (infer T)[] | null ? T : never> = {};
-      (data || []).forEach(r => {
-        if (!map[r.agent_name]) map[r.agent_name] = r;
-      });
+      (data || []).forEach(r => { if (!map[r.agent_name]) map[r.agent_name] = r; });
       return map;
     },
   });
@@ -155,14 +283,12 @@ function AgentDirectorySubTab() {
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold">Agent Directory</h3>
-        <p className="text-sm text-muted-foreground">All platform agents, their purpose, triggers, and last known status.</p>
+        <p className="text-sm text-muted-foreground">All active agents, purpose, triggers, and last run status.</p>
       </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {AGENT_REGISTRY.map(agent => {
           const lastRun = latestRuns?.[agent.name];
           const Icon = agent.icon;
-
           return (
             <Card key={agent.name} className="relative overflow-hidden">
               <CardHeader className="pb-2">
@@ -175,47 +301,39 @@ function AgentDirectorySubTab() {
               <CardContent className="space-y-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">{agent.purpose}</p>
                 <div>
-                  <span className="text-xs font-medium">Trigger:</span>
-                  <p className="text-xs text-muted-foreground">{agent.trigger}</p>
+                  <span className="text-xs font-medium">Trigger: </span>
+                  <span className="text-xs text-muted-foreground">{agent.trigger}</span>
                 </div>
-                <div>
-                  <span className="text-xs font-medium">Tools:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {agent.tools.map(t => (
-                      <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">{t}</Badge>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-1">
+                  {agent.tools.map(t => (
+                    <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">{t}</Badge>
+                  ))}
                 </div>
-                {lastRun && (
-                  <div className="flex items-center gap-2 pt-2 border-t">
-                    <div className={`w-2 h-2 rounded-full ${lastRun.status === 'success' ? 'bg-green-500' : lastRun.status === 'failed' ? 'bg-destructive' : 'bg-yellow-500'}`} />
-                    <span className="text-xs text-muted-foreground">
-                      Last run: {new Date(lastRun.created_at).toLocaleString()} ({lastRun.status})
-                    </span>
-                  </div>
-                )}
-                {!lastRun && (
-                  <div className="flex items-center gap-2 pt-2 border-t">
-                    <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-                    <span className="text-xs text-muted-foreground">No runs recorded</span>
-                  </div>
-                )}
-                <div className="pt-2 border-t">
-                  <Button size="sm" variant="outline" className="w-full gap-1 text-xs"
-                    onClick={async () => {
-                      const { error } = await supabase.from('agent_runs').insert({
-                        agent_name: agent.name,
-                        trigger_type: 'manual',
-                        status: 'pending',
-                        items_scanned: 0, items_actioned: 0, items_failed: 0,
-                        metadata: { triggered_by: 'admin_dashboard' },
-                      });
-                      if (error) toast.error('Failed to trigger');
-                      else toast.success(`Triggered ${agent.displayName} run`);
-                    }}>
-                    <Zap className="w-3 h-3" />Trigger Run
-                  </Button>
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <div className={`w-2 h-2 rounded-full ${
+                    !lastRun ? 'bg-muted-foreground/30'
+                    : lastRun.status === 'success' ? 'bg-emerald-500'
+                    : lastRun.status === 'failed' ? 'bg-destructive'
+                    : 'bg-amber-500'
+                  }`} />
+                  <span className="text-xs text-muted-foreground">
+                    {lastRun ? `Last run: ${new Date(lastRun.created_at).toLocaleString()} (${lastRun.status})` : 'No runs recorded'}
+                  </span>
                 </div>
+                <Button size="sm" variant="outline" className="w-full gap-1 text-xs"
+                  onClick={async () => {
+                    const { error } = await supabase.from('agent_runs').insert({
+                      agent_name: agent.name,
+                      trigger_type: 'manual',
+                      status: 'success',
+                      items_scanned: 0, items_actioned: 0, items_failed: 0,
+                      metadata: { triggered_by: 'admin_dashboard' },
+                    });
+                    if (error) toast.error('Failed to trigger');
+                    else toast.success(`Triggered ${agent.displayName} run`);
+                  }}>
+                  <Zap className="w-3 h-3" />Trigger Run
+                </Button>
               </CardContent>
             </Card>
           );
@@ -225,9 +343,8 @@ function AgentDirectorySubTab() {
   );
 }
 
-// ────────────────────── Agent Queue ──────────────────────
+// ── Agent Queue ───────────────────────────────────────────────────────────────
 function AgentQueueSubTab() {
-  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'pending'>('all');
   const [processing, setProcessing] = useState<string | null>(null);
 
@@ -242,14 +359,10 @@ function AgentQueueSubTab() {
           .select('id, agent_name, trigger_type, status, created_at, duration_ms, error_summary, items_scanned')
           .order('created_at', { ascending: false }).limit(30),
         supabase.from('accountability_alerts')
-          .select('id, alert_type, subject_type, subject_name, severity, summary, county, constituency, is_public, acknowledged, created_at, details')
+          .select('id, alert_type, subject_type, subject_name, severity, summary, county, is_public, acknowledged, created_at')
           .order('created_at', { ascending: false }).limit(30),
       ]);
-      return {
-        proposals: proposalsRes.data || [],
-        runs: logsRes.data || [],
-        alerts: alertsRes.data || [],
-      };
+      return { proposals: proposalsRes.data || [], runs: logsRes.data || [], alerts: alertsRes.data || [] };
     },
   });
 
@@ -363,13 +476,13 @@ function AgentQueueSubTab() {
               {runs.map(log => (
                 <div key={log.id} className="flex items-center justify-between p-2.5 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-2.5">
-                    <div className={`w-2 h-2 rounded-full ${log.status === 'completed' || log.status === 'success' ? 'bg-green-500' : log.status === 'failed' ? 'bg-destructive' : 'bg-yellow-500'}`} />
+                    <div className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-emerald-500' : log.status === 'failed' ? 'bg-destructive' : 'bg-amber-500'}`} />
                     <div>
                       <div className="font-medium text-sm">{log.agent_name}</div>
                       <div className="text-xs text-muted-foreground">{log.trigger_type} · {log.items_scanned ?? 0} items</div>
                     </div>
                   </div>
-                  <Badge variant={log.status === 'completed' || log.status === 'success' ? 'default' : 'destructive'} className="text-xs capitalize">{log.status}</Badge>
+                  <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-xs capitalize">{log.status}</Badge>
                 </div>
               ))}
             </div>
@@ -377,7 +490,7 @@ function AgentQueueSubTab() {
         </CardContent>
       </Card>
 
-      {/* Accountability Alerts */}
+      {/* Alerts */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -419,20 +532,16 @@ function AgentQueueSubTab() {
   );
 }
 
-// ────────────────────── Drafts ──────────────────────
+// ── Drafts ────────────────────────────────────────────────────────────────────
 function DraftsSubTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
 
   const { data: drafts, isLoading, refetch } = useQuery({
     queryKey: ['admin-agent-drafts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agent_drafts')
-        .select('*')
+      const { data, error } = await supabase.from('agent_drafts').select('*')
         .in('status', ['pending', 'low_confidence', 'approved', 'rejected'])
-        .order('created_at', { ascending: false })
-        .limit(30);
+        .order('created_at', { ascending: false }).limit(30);
       if (error) throw error;
       return data || [];
     },
@@ -440,8 +549,7 @@ function DraftsSubTab() {
 
   const handleAction = async (draftId: string, newStatus: 'approved' | 'rejected') => {
     const { error } = await supabase.from('agent_drafts')
-      .update({ status: newStatus, reviewed_at: new Date().toISOString() })
-      .eq('id', draftId);
+      .update({ status: newStatus, reviewed_at: new Date().toISOString() }).eq('id', draftId);
     if (error) toast.error(`Failed to ${newStatus} draft`);
     else { toast.success(`Draft ${newStatus}`); refetch(); }
   };
@@ -449,10 +557,9 @@ function DraftsSubTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Content Drafts (Quill + Sage)</h3>
+        <h3 className="text-lg font-semibold">Content Drafts</h3>
         <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
       </div>
-
       {isLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div> :
        !drafts?.length ? <Card><CardContent className="py-10 text-center text-muted-foreground">No drafts yet.</CardContent></Card> : (
         <div className="space-y-3">
@@ -468,11 +575,9 @@ function DraftsSubTab() {
                       <span className="text-xs text-muted-foreground">{draft.agent_name} · {new Date(draft.created_at).toLocaleDateString()}</span>
                     </div>
                     <p className="font-medium text-sm">{draft.title}</p>
-                    {expandedId === draft.id ? (
-                      <pre className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap font-sans bg-muted/40 p-3 rounded-lg">{draft.content}</pre>
-                    ) : (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{draft.content.slice(0, 200)}</p>
-                    )}
+                    {expandedId === draft.id
+                      ? <pre className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap font-sans bg-muted/40 p-3 rounded-lg">{draft.content}</pre>
+                      : <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{draft.content.slice(0, 200)}</p>}
                     <button onClick={() => setExpandedId(expandedId === draft.id ? null : draft.id)}
                       className="text-xs text-primary mt-1 flex items-center gap-1 hover:underline">
                       <ChevronRight className={`w-3 h-3 transition-transform ${expandedId === draft.id ? 'rotate-90' : ''}`} />
@@ -481,12 +586,10 @@ function DraftsSubTab() {
                   </div>
                   {draft.status === 'pending' && (
                     <div className="flex flex-col gap-2 shrink-0">
-                      <Button size="sm" variant="outline" className="gap-1 text-green-600 border-green-600"
-                        onClick={() => handleAction(draft.id, 'approved')}>
+                      <Button size="sm" variant="outline" className="gap-1 text-green-600 border-green-600" onClick={() => handleAction(draft.id, 'approved')}>
                         <CheckCircle className="w-3.5 h-3.5" />Approve
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1 text-destructive border-destructive"
-                        onClick={() => handleAction(draft.id, 'rejected')}>
+                      <Button size="sm" variant="outline" className="gap-1 text-destructive border-destructive" onClick={() => handleAction(draft.id, 'rejected')}>
                         <XCircle className="w-3.5 h-3.5" />Reject
                       </Button>
                     </div>
@@ -501,20 +604,17 @@ function DraftsSubTab() {
   );
 }
 
-// ────────────────────── Prompt Studio ──────────────────────
+// ── Prompt Studio ─────────────────────────────────────────────────────────────
 function PromptStudioSubTab() {
   const [editingAgent, setEditingAgent] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
-  const queryClient = useQueryClient();
 
   const { data: promptRows, isLoading, refetch } = useQuery({
     queryKey: ['admin-agent-prompts'],
     queryFn: async () => {
       const { data, error } = await supabase.from('agent_state')
-        .select('*')
-        .eq('state_key', 'system_prompt')
-        .order('agent_name', { ascending: true });
+        .select('*').eq('state_key', 'system_prompt').order('agent_name', { ascending: true });
       if (error) throw error;
       return data || [];
     },
@@ -525,36 +625,28 @@ function PromptStudioSubTab() {
     const existing = promptRows?.find(r => r.agent_name === agentName);
     if (existing) {
       const { error } = await supabase.from('agent_state')
-        .update({ state_value: editValue, updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
+        .update({ state_value: editValue, updated_at: new Date().toISOString() }).eq('id', existing.id);
       if (error) toast.error('Failed to save');
-      else { toast.success('Prompt saved — agents will use this override on next run'); setEditingAgent(null); refetch(); }
+      else { toast.success('Prompt saved'); setEditingAgent(null); refetch(); }
     }
     setSaving(false);
   };
 
   const promptMap: Record<string, { id: string; value: string; description: string | null }> = {};
-  (promptRows || []).forEach(r => {
-    promptMap[r.agent_name] = { id: r.id, value: String(r.state_value), description: r.description };
-  });
+  (promptRows || []).forEach(r => { promptMap[r.agent_name] = { id: r.id, value: String(r.state_value), description: r.description }; });
 
   return (
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold">Prompt Studio</h3>
-        <p className="text-sm text-muted-foreground">
-          Edit system prompts for each agent. Changes take effect on the agent's next run.
-          Agents check <code className="text-xs bg-muted px-1 py-0.5 rounded">agent_state</code> for overrides before using their default prompt.
-        </p>
+        <p className="text-sm text-muted-foreground">Edit system prompts for each agent. Changes take effect on the agent's next run.</p>
       </div>
-
       {isLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div> : (
         <div className="space-y-4">
           {AGENT_REGISTRY.map(agent => {
             const prompt = promptMap[agent.name];
             const Icon = agent.icon;
             const isEditing = editingAgent === agent.name;
-
             return (
               <Card key={agent.name}>
                 <CardHeader className="pb-2">
@@ -565,27 +657,18 @@ function PromptStudioSubTab() {
                       <code className="text-xs text-muted-foreground">{agent.name}</code>
                     </div>
                     {!isEditing && prompt && (
-                      <Button size="sm" variant="ghost" onClick={() => {
-                        setEditingAgent(agent.name);
-                        setEditValue(prompt.value);
-                      }}>
+                      <Button size="sm" variant="ghost" onClick={() => { setEditingAgent(agent.name); setEditValue(prompt.value); }}>
                         <Pencil className="w-4 h-4 mr-1" />Edit Prompt
                       </Button>
                     )}
                   </div>
-                  {prompt?.description && (
-                    <CardDescription className="text-xs">{prompt.description}</CardDescription>
-                  )}
+                  {prompt?.description && <CardDescription className="text-xs">{prompt.description}</CardDescription>}
                 </CardHeader>
                 <CardContent>
                   {isEditing ? (
                     <div className="space-y-3">
-                      <textarea
-                        value={editValue}
-                        onChange={e => setEditValue(e.target.value)}
-                        rows={12}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-y font-mono"
-                      />
+                      <textarea value={editValue} onChange={e => setEditValue(e.target.value)} rows={12}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-y font-mono" />
                       <div className="flex gap-2">
                         <Button size="sm" disabled={saving} onClick={() => handleSave(agent.name)}>
                           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}Save
@@ -594,9 +677,7 @@ function PromptStudioSubTab() {
                       </div>
                     </div>
                   ) : prompt ? (
-                    <pre className="text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg whitespace-pre-wrap font-mono max-h-48 overflow-auto">
-                      {prompt.value}
-                    </pre>
+                    <pre className="text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg whitespace-pre-wrap font-mono max-h-48 overflow-auto">{prompt.value}</pre>
                   ) : (
                     <p className="text-xs text-muted-foreground italic">No prompt configured — agent uses hardcoded default.</p>
                   )}
@@ -610,7 +691,7 @@ function PromptStudioSubTab() {
   );
 }
 
-// ────────────────────── Knowledge Base ──────────────────────
+// ── Knowledge Base ────────────────────────────────────────────────────────────
 function KnowledgeBaseSubTab() {
   const [ragFilter, setRagFilter] = useState('all');
   const [addingDoc, setAddingDoc] = useState(false);
@@ -637,12 +718,7 @@ function KnowledgeBaseSubTab() {
       title: newDoc.title || null, content: newDoc.content, source_type: newDoc.source_type, embedding: null
     });
     if (error) toast.error(`Failed: ${error.message}`);
-    else {
-      toast.success('Document added');
-      setNewDoc({ title: '', content: '', source_type: 'manual' });
-      setAddingDoc(false);
-      refetch();
-    }
+    else { toast.success('Document added'); setNewDoc({ title: '', content: '', source_type: 'manual' }); setAddingDoc(false); refetch(); }
     setRagSaving(false);
   };
 
@@ -651,11 +727,7 @@ function KnowledgeBaseSubTab() {
       const reader = new FileReader();
       reader.onload = () => {
         const text = reader.result as string;
-        setNewDoc(prev => ({
-          ...prev,
-          title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
-          content: prev.content ? prev.content + '\n\n' + text : text,
-        }));
+        setNewDoc(prev => ({ ...prev, title: prev.title || file.name.replace(/\.[^/.]+$/, ''), content: prev.content ? prev.content + '\n\n' + text : text }));
         setAddingDoc(true);
         toast.success(`Loaded: ${file.name}`);
       };
@@ -685,18 +757,16 @@ function KnowledgeBaseSubTab() {
       <div className="flex gap-2 flex-wrap">
         {ragSourceTypes.map(st => (
           <button key={st} onClick={() => setRagFilter(st)}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors capitalize ${
-              ragFilter === st ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-muted'
-            }`}>{st.replace(/_/g, ' ')}</button>
+            className={`text-xs px-3 py-1 rounded-full border transition-colors capitalize ${ragFilter === st ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-muted'}`}>
+            {st.replace(/_/g, ' ')}
+          </button>
         ))}
       </div>
 
-      <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-        isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
-      }`}>
+      <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'}`}>
         <input {...getInputProps()} />
         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{isDragActive ? 'Drop files here...' : 'Drag & drop .txt, .md, or .csv files, or click to browse'}</p>
+        <p className="text-sm text-muted-foreground">{isDragActive ? 'Drop files here...' : 'Drag & drop .txt, .md, or .csv files'}</p>
       </div>
 
       {addingDoc && (
@@ -743,7 +813,7 @@ function KnowledgeBaseSubTab() {
                 <span className="text-xs text-muted-foreground ml-auto">{new Date(vec.created_at).toLocaleDateString()}</span>
                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive/80 shrink-0"
                   onClick={async () => {
-                    if (!confirm('Delete this knowledge base document?')) return;
+                    if (!confirm('Delete this document?')) return;
                     const { error } = await (supabase as any).from('vectors').delete().eq('id', vec.id);
                     if (error) toast.error('Failed to delete');
                     else { toast.success('Document deleted'); refetch(); }
@@ -760,7 +830,7 @@ function KnowledgeBaseSubTab() {
   );
 }
 
-// ────────────────────── Agent Config ──────────────────────
+// ── Agent Config ──────────────────────────────────────────────────────────────
 function AgentConfigSubTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -769,9 +839,7 @@ function AgentConfigSubTab() {
   const { data: thresholds, isLoading, refetch } = useQuery({
     queryKey: ['admin-agent-thresholds'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('agent_state')
-        .select('*')
-        .order('agent_name', { ascending: true });
+      const { data, error } = await supabase.from('agent_state').select('*').order('agent_name', { ascending: true });
       if (error) throw error;
       return data || [];
     },
@@ -780,16 +848,13 @@ function AgentConfigSubTab() {
   const handleSave = async (id: string) => {
     setSaving(true);
     const { error } = await supabase.from('agent_state')
-      .update({ state_value: editValue, updated_at: new Date().toISOString() })
-      .eq('id', id);
+      .update({ state_value: editValue, updated_at: new Date().toISOString() }).eq('id', id);
     if (error) toast.error('Failed to save');
     else { toast.success('Saved'); setEditingId(null); refetch(); }
     setSaving(false);
   };
 
-  // Filter out prompt keys (they're in Prompt Studio)
   const configRows = (thresholds || []).filter(r => r.state_key !== 'system_prompt');
-
   const grouped = configRows.reduce((acc, row) => {
     if (!acc[row.agent_name]) acc[row.agent_name] = [];
     acc[row.agent_name].push(row);
@@ -800,55 +865,43 @@ function AgentConfigSubTab() {
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold">Agent Configuration</h3>
-        <p className="text-sm text-muted-foreground">Tune thresholds, timing, and behaviour for all agents</p>
+        <p className="text-sm text-muted-foreground">Agent thresholds and runtime settings.</p>
       </div>
-
-      {isLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div> : (
-        Object.entries(grouped).map(([agentName, rows]) => {
-          const agentInfo = AGENT_REGISTRY.find(a => a.name === agentName);
-          const Icon = agentInfo?.icon || Bot;
-
-          return (
+      {isLoading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div> :
+       !configRows.length ? <Card><CardContent className="py-10 text-center text-muted-foreground">No config entries found.</CardContent></Card> : (
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([agentName, rows]) => (
             <Card key={agentName}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Icon className={`w-4 h-4 ${agentInfo?.color || 'text-primary'}`} />{agentInfo?.displayName || agentName}
-                  <code className="text-xs text-muted-foreground font-normal">{agentName}</code>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {rows.map(row => (
-                    <div key={row.id} className="flex items-center gap-3 p-2.5 border rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <code className="text-sm font-medium">{row.state_key}</code>
-                        {row.description && <p className="text-xs text-muted-foreground mt-0.5">{row.description}</p>}
-                      </div>
-                      {editingId === row.id ? (
-                        <div className="flex items-center gap-2">
-                          <Input value={editValue} onChange={e => setEditValue(e.target.value)} className="w-32 h-8 text-sm"
-                            onKeyDown={e => { if (e.key === 'Enter') handleSave(row.id); if (e.key === 'Escape') setEditingId(null); }}
-                            autoFocus />
-                          <Button size="sm" className="h-8" disabled={saving} onClick={() => handleSave(row.id)}>
-                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-8" onClick={() => setEditingId(null)}><X className="w-4 h-4" /></Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <code className="text-sm bg-muted px-2 py-1 rounded">{String(row.state_value)}</code>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setEditingId(row.id); setEditValue(String(row.state_value)); }}>
-                            <Pencil className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
+              <CardHeader className="pb-2"><CardTitle className="text-sm">{agentName}</CardTitle></CardHeader>
+              <CardContent className="divide-y">
+                {rows.map(row => (
+                  <div key={row.id} className="py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{row.state_key.replace(/_/g, ' ')}</p>
+                      {row.description && <p className="text-xs text-muted-foreground">{row.description}</p>}
                     </div>
-                  ))}
-                </div>
+                    {editingId === row.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input value={editValue} onChange={e => setEditValue(e.target.value)} className="h-8 w-28 text-sm font-mono" />
+                        <Button size="sm" disabled={saving} onClick={() => handleSave(row.id)}>
+                          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingId(null)}><X className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm bg-muted px-2 py-0.5 rounded">{String(row.state_value)}</code>
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingId(row.id); setEditValue(String(row.state_value)); }}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </CardContent>
             </Card>
-          );
-        })
+          ))}
+        </div>
       )}
     </div>
   );
