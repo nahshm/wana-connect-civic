@@ -256,7 +256,7 @@ export const DashboardOverview = () => {
           </Link>
         </Button>
         <Button variant="outline" className="h-auto py-3 flex-col gap-1" asChild>
-          <Link to="/dashboard/report-incident">
+          <Link to="/report-incident">
             <AlertCircle className="w-4 h-4 text-destructive" />
             <span className="text-xs">Report Incident</span>
           </Link>
