@@ -31,6 +31,7 @@ interface CommentItemProps {
   onReply?: (content: string, parentId: string, mediaFiles?: UploadedMedia[]) => void;
   onVote?: (commentId: string, vote: 'up' | 'down') => void;
   onDelete?: (commentId: string) => void;
+  onEdit?: (commentId: string, newContent: string) => void;
   depth?: number;
 }
 
