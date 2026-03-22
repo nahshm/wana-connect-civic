@@ -1,75 +1,122 @@
 
 
-# Crisis Pipeline: Incidents + Crisis Command Center + Archive (End-to-End)
+# User Content Ownership & Dashboard Deduplication
 
-## Current State
+## Problems Found
 
-| Component | Status |
-|-----------|--------|
-| **Report an Incident** (user-facing) | Fully functional — inserts into `incidents` table |
-| **Incidents tab** (admin) | Fully functional — search, filter, status management, admin notes, evidence viewing |
-| **Crisis Command Center** (admin) | Dead shell — hardcoded "0" counts, no data queries, broadcast button does nothing |
-| **`crisis_reports` table** | Exists in DB with full schema but is NEVER queried or written to anywhere in the codebase |
-| **Crisis post escalation** | Toast says "escalated to authorities" but no record is created — misleading |
-| **Archive flow** | No archive status exists on either incidents or crisis_reports |
+### A. Dashboard Tab Duplication
 
-## Legal Risks to Address
+Three tabs show nearly identical data from `civic_actions`:
 
-1. **False claim of authority notification**: CreatePost says "escalated to appropriate authorities" when `sensitivity=crisis` but does nothing. This is legally problematic — users may rely on it and not contact authorities themselves. Must either create a real record or change the language.
-2. **No audit trail on crisis actions**: Admin status changes on incidents have no `updated_by` field tracked. For legal defensibility, every crisis action needs an actor recorded.
-3. **No data retention compliance on archive**: Archived items must remain queryable for legal holds but hidden from active views.
+| Tab | What it shows | Source |
+|-----|---------------|--------|
+| **Overview** | Stats (total/open/resolved issues) + "Recent Activity" list of last 5 civic_actions | `civic_actions` where `user_id = me` |
+| **Actions** | Full filterable list of civic_actions with status, progress, filters | `civic_actions` where `user_id = me` |
+| **Issues** | Same civic_actions list, simpler card style, no filters | `civic_actions` where `user_id = me` |
+
+**Result**: "Actions" and "Issues" are the same thing displayed twice. "Overview" also duplicates the recent actions list.
+
+### B. Missing User Content Control
+
+| Content Type | View Own | Edit | Delete | Pin/Feature |
+|-------------|----------|------|--------|-------------|
+| **Posts** | In feed only (no dashboard tab) | ✅ via dropdown | ✅ via dropdown | No |
+| **Comments** | No dashboard view | No edit | ✅ delete only | No |
+| **Issues (civic_actions)** | ✅ Actions tab | No edit | No delete | No |
+| **Incidents** | No view at all | No edit | No delete | No |
+| **Projects** | ✅ Projects tab | No edit | No delete | No |
+
+Users cannot:
+- See all their posts in one place in the dashboard
+- Edit their own comments
+- Edit or delete their own reported issues
+- View, edit, or delete their own reported incidents
+- Pin their own posts to their profile
+
+### C. Comment Edit Missing
+Comments only have delete — no edit button. Users should be able to edit within a time window (e.g., 15 minutes).
+
+---
 
 ## Plan
 
-### 1. Database Migration
+### 1. Consolidate Dashboard Tabs (7 → 5)
 
-**Add columns to `crisis_reports`**:
-- `post_id UUID REFERENCES posts(id)` — links crisis posts
-- `incident_id UUID REFERENCES incidents(id)` — links escalated incidents
+**Remove "Issues" tab** — it's a duplicate of "Actions". Merge into Actions.
 
-**Add `archived_at` and `archived_by` to `incidents`**:
-- Enables archive with audit trail (who archived and when)
+**Redesign "Overview"** to be a true summary hub:
+- Keep stat cards (issues reported, open, resolved, support given, impact score, representatives)
+- Replace "Recent Activity" list (duplicate of Actions) with a multi-source activity feed showing: recent posts, recent comments, recent issues, recent incidents — all in one timeline
+- Add quick links to "My Posts", "My Incidents" sections
 
-**Add `updated_by` to `incidents`**:
-- Every status change records which admin acted
+**Rename remaining tabs**:
+```
+Overview | Actions | Projects | Community | My Content | Quests | Mod
+```
 
-### 2. Fix CreatePost Crisis Escalation
+**New "My Content" tab** replaces the removed "Issues" tab:
+- Sub-sections: My Posts, My Comments, My Incidents
+- Each with edit/delete controls
+- Posts: list with edit/delete/pin actions
+- Comments: list with edit/delete, link to parent post
+- Incidents: list with edit/delete, status badge
 
-When `content_sensitivity === 'crisis'`, after post creation:
-- Insert a `crisis_reports` row with `post_id`, `crisis_type: 'user_flagged'`, title from the post
-- Generate `report_id` using `CR-` prefix + timestamp + random suffix
-- Change toast to accurate language: "Your report has been logged in our crisis monitoring system" (no false claims about authority notification)
+### 2. Add Edit/Delete to Issues (Actions tab)
 
-### 3. Rebuild Crisis Command Center (CrisisSubTab)
+In `ActionDetailSheet` and `MyActions`:
+- Add "Edit" button → opens inline edit for title, description, category, urgency
+- Add "Delete" button with confirmation → soft-delete or hard-delete depending on status (only if status is still "submitted", not after acknowledgement)
+- Only the issue author can edit/delete
 
-Replace the static shell with real queries:
-- **Count cards**: Query `crisis_reports` by severity + query `incidents` where `severity IN ('critical','high')` and `archived_at IS NULL`
-- **Combined feed**: Merge crisis_reports + critical/high incidents, sorted by created_at
-- **Each item**: Shows type badge (Crisis Report / Escalated Incident / Crisis Post), severity, status, title, location, evidence count
-- **Actions per item**: Update status (active/investigating/resolved/dismissed), add response actions (timestamped JSON array), archive
-- **Broadcast Alert**: Opens a dialog with title, description, severity fields. Inserts into `crisis_reports` with `crisis_type: 'admin_broadcast'`. Toast confirms broadcast was recorded.
-- **Escalate Incident**: Button on critical/high incidents to create a linked `crisis_reports` entry
+### 3. Add Comment Edit
 
-### 4. Archive Flow (Both Incidents and Crisis)
+In `CommentItem`:
+- Add "Edit" button next to delete (only for comment owner, within 15-minute window)
+- Click toggles inline edit mode — replaces content with textarea pre-filled with current text
+- Save calls `supabase.from('comments').update({ content, updated_at })` 
+- Show "(edited)" indicator next to timestamp when `updated_at > created_at`
+- Wire through `onEditComment` callback from `CommentSection` → `PostDetail`
 
-**Incidents**:
-- Add "Archive" button (only on resolved/dismissed items)
-- Sets `archived_at = now()`, `archived_by = current admin user id`
-- Default view filters out `archived_at IS NOT NULL`
-- Add "Archived" filter option to see archived items (read-only, no status changes allowed)
+### 4. Add "My Incidents" to Dashboard
 
-**Crisis Reports**:
-- Same pattern: status = 'archived', with `resolved_at` and `resolved_by` already exist
+New component `MyIncidentsSection` in the "My Content" tab:
+- Query `incidents` where `reporter_id = user.id` (for authenticated) or by `contact_email` match
+- Show case_number, title, severity, status, created_at
+- Edit button: can update title, description, severity (only if status is still "open")
+- Delete button: with confirmation, hard-delete only for "open" status items
 
-### 5. Anonymous Report Escalation
+### 5. Add "My Posts" to Dashboard
 
-Add "Escalate to Crisis" button on AnonymousReportsSubTab for critical reports. Creates a `crisis_reports` row linked via `anonymous_report_id`.
+New component `MyPostsSection` in the "My Content" tab:
+- Query `posts` where `author_id = user.id`, ordered by created_at desc
+- Each row shows title, community, vote count, comment count, created_at
+- Actions: Edit (navigate to `/edit-post/:id`), Delete (with confirmation), Pin to Profile toggle
 
-## Files
+### 6. Post "Pin to Profile" Feature
 
-| Action | File |
-|--------|------|
-| MIGRATION | Add `post_id`, `incident_id` to `crisis_reports`; add `archived_at`, `archived_by`, `updated_by` to `incidents` |
-| EDIT | `ContentSection.tsx` — Rebuild CrisisSubTab, add archive to IncidentsSubTab, add escalate button to AnonymousReportsSubTab |
-| EDIT | `CreatePost.tsx` — Auto-insert `crisis_reports` row on crisis posts with legally accurate language |
+- Add `is_pinned` boolean column to `posts` table (default false)
+- User can pin up to 3 posts to their profile
+- Pinned posts appear at top of their profile page
+- Toggle via "My Posts" section in dashboard
+
+### 7. Comment "Edited" Indicator
+
+- `comments` table already has `updated_at` — use `updated_at > created_at + 1 second` as "edited" check
+- Display "(edited)" text next to the timestamp in CommentItem
+
+---
+
+## Files to Change
+
+| Action | File | What |
+|--------|------|------|
+| EDIT | `CivicDashboard.tsx` | Remove "Issues" tab, add "My Content" tab |
+| EDIT | `DashboardOverview.tsx` | Replace duplicate actions list with multi-source activity timeline |
+| CREATE | `MyContentTab.tsx` | New component: My Posts, My Comments, My Incidents sub-sections with CRUD |
+| EDIT | `CommentSection.tsx` / `CommentItem` | Add edit button, inline edit mode, "(edited)" indicator |
+| EDIT | `PostDetail.tsx` | Wire `onEditComment` handler |
+| EDIT | `ActionDetailSheet.tsx` | Add edit/delete buttons for issue author |
+| EDIT | `MyActions.tsx` | Add delete button per action |
+| DELETE | `PersonalActionTabs.tsx` → `MyIssuesTab` | Remove (merged into Actions) |
+| MIGRATION | `posts` table | Add `is_pinned` boolean column |
 
