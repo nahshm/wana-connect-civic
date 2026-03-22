@@ -18,7 +18,7 @@ import { DashboardQuestWidget } from '@/components/dashboard/DashboardQuestWidge
 import { DashboardLeaderboardWidget } from '@/components/dashboard/DashboardLeaderboardWidget';
 import { MyActions } from '@/components/dashboard/MyActions';
 import { CommunityIssuesFeed } from '@/components/dashboard/CommunityIssuesFeed';
-import { MyProjectsTab } from '@/components/dashboard/PersonalActionTabs';
+import { MyProjectsTab, ModToolsTab } from '@/components/dashboard/PersonalActionTabs';
 import { MyContentTab } from '@/components/dashboard/MyContentTab';
 
 const CivicDashboard = () => {
@@ -83,7 +83,7 @@ const CivicDashboard = () => {
 
           {/* Tabbed Content — consolidated from 7 to 6 tabs (removed duplicate Issues) */}
           <Tabs data-tour="tour-dashboard-tabs" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full flex overflow-x-auto sm:grid sm:grid-cols-6 h-10 bg-muted/50 rounded-xl p-1 no-scrollbar">
+            <TabsList className="w-full flex overflow-x-auto sm:grid sm:grid-cols-7 h-10 bg-muted/50 rounded-xl p-1 no-scrollbar">
               <TabsTrigger value="overview" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <LayoutGrid className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Overview</span>
@@ -107,6 +107,10 @@ const CivicDashboard = () => {
               <TabsTrigger value="quests" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Sword className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Quests</span>
+              </TabsTrigger>
+              <TabsTrigger value="mod" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Shield className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Mod</span>
               </TabsTrigger>
             </TabsList>
 
@@ -138,6 +142,11 @@ const CivicDashboard = () => {
             {/* Quests Tab */}
             <TabsContent value="quests" className="mt-4">
               <DashboardQuestWidget fullView />
+            </TabsContent>
+
+            {/* Mod Tools Tab */}
+            <TabsContent value="mod" className="mt-4">
+              <ModToolsTab />
             </TabsContent>
           </Tabs>
         </main>
