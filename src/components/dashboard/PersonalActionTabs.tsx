@@ -315,7 +315,7 @@ export const ModToolsTab: React.FC = () => {
             if (communityIds.length === 0) return [];
             const { data, error } = await supabase
                 .from('content_flags')
-                .select('id, reason, status, verdict, created_at, post_id, comment_id, flagged_by_ai, reviewed_by, reviewed_at, posts!content_flags_post_id_fkey(title, community_id, author_id), project_comments(content)')
+                .select('id, reason, status, verdict, created_at, post_id, comment_id, flagged_by_ai, reviewed_by, reviewed_at, posts!content_flags_post_id_fkey(title, community_id, author_id), project_comments(comment_text)')
                 .eq('status', 'pending')
                 .order('created_at', { ascending: false })
                 .limit(50);
