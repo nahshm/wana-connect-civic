@@ -217,7 +217,7 @@ const PostDetail = () => {
             color: assignment.comment_awards.color,
             backgroundColor: assignment.comment_awards.background_color,
             points: assignment.comment_awards.points,
-            category: assignment.comment_awards.category,
+            category: assignment.comment_awards.category as CommentAward['category'],
             isEnabled: assignment.comment_awards.is_enabled,
             sortOrder: assignment.comment_awards.sort_order,
             createdAt: new Date(assignment.comment_awards.created_at),
@@ -402,7 +402,7 @@ const PostDetail = () => {
       commentsData?.forEach(commentData => {
         const userVote = commentVotes[commentData.id] || null;
 
-        const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: any) => ({
+        const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: AwardAssignment) => ({
           id: assignment.comment_awards.id,
           name: assignment.comment_awards.name,
           displayName: assignment.comment_awards.display_name,
@@ -411,7 +411,7 @@ const PostDetail = () => {
           color: assignment.comment_awards.color,
           backgroundColor: assignment.comment_awards.background_color,
           points: assignment.comment_awards.points,
-          category: assignment.comment_awards.category,
+          category: assignment.comment_awards.category as CommentAward['category'],
           isEnabled: assignment.comment_awards.is_enabled,
           sortOrder: assignment.comment_awards.sort_order,
           createdAt: new Date(assignment.comment_awards.created_at),
@@ -424,7 +424,7 @@ const PostDetail = () => {
           assignedAt: new Date(assignment.awarded_at),
         })) || [];
 
-        const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: any) => ({
+        const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: CommentMediaRow) => ({
           id: m.id,
           commentId: commentData.id,
           filePath: m.file_path,

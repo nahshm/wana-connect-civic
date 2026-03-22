@@ -139,7 +139,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
   const isOwner = user?.id === comment.author.id;
   const canEdit = isOwner && (Date.now() - new Date(comment.createdAt).getTime() < EDIT_WINDOW_MS);
-  const isEdited = comment.createdAt && (new Date(comment.createdAt).getTime() + 1000) < Date.now(); // placeholder — real check below
+  
 
   const threadColors = [
     'border-primary/30',
@@ -201,7 +201,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
             {formatDistanceToNow(comment.createdAt, { addSuffix: true }).replace('about ', '')}
           </span>
           {/* Edited indicator — check if comment object has an updatedAt that's > createdAt */}
-          {(comment as any).updatedAt && new Date((comment as any).updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000 && (
+          {comment.updatedAt && new Date(comment.updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000 && (
             <span className="text-muted-foreground italic text-[10px]">(edited)</span>
           )}
           {depth === 0 && (
