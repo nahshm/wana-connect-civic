@@ -270,19 +270,27 @@ interface ModRole {
     communities: { name: string } | null;
 }
 
-interface ContentFlag {
+interface FlaggedContent {
     id: string;
-    reason: string;
+    reason: string | null;
     status: string;
-    created_at: string;
-    content_type: string;
-    community_id: string | null;
+    verdict: string;
+    created_at: string | null;
+    post_id: string | null;
+    comment_id: string | null;
+    flagged_by_ai: boolean | null;
+    reviewed_by: string | null;
+    reviewed_at: string | null;
+    posts: { title: string; community_id: string | null; author_id: string } | null;
+    project_comments: { content: string } | null;
 }
 
 export const ModToolsTab: React.FC = () => {
     const { user } = useAuth();
+    const { toast } = useToast();
+    const qc = useQueryClient();
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-    // Fetch communities where user is mod/admin
     const { data: modRoles, isLoading: rolesLoading } = useQuery<ModRole[]>({
         queryKey: ['mod-roles', user?.id],
         queryFn: async () => {
@@ -301,112 +309,232 @@ export const ModToolsTab: React.FC = () => {
 
     const communityIds = modRoles?.map(r => r.community_id) ?? [];
 
-    // Fetch pending flags in communities where user is mod
-    const { data: pendingFlags, isLoading: flagsLoading } = useQuery<ContentFlag[]>({
-        queryKey: ['mod-pending-flags', communityIds],
+    const { data: flags, isLoading: flagsLoading } = useQuery<FlaggedContent[]>({
+        queryKey: ['mod-flags', communityIds],
         queryFn: async () => {
-            // Disabled: content_flags table does not exist yet in schema
-            return [];
+            if (communityIds.length === 0) return [];
+            const { data, error } = await supabase
+                .from('content_flags')
+                .select('id, reason, status, verdict, created_at, post_id, comment_id, flagged_by_ai, reviewed_by, reviewed_at, posts!content_flags_post_id_fkey(title, community_id, author_id), project_comments(content)')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+                .limit(50);
+            if (error) throw error;
+            return ((data ?? []) as FlaggedContent[]).filter((f) => {
+                if (!f.posts?.community_id) return false;
+                return communityIds.includes(f.posts.community_id);
+            });
         },
         enabled: communityIds.length > 0,
         staleTime: 60 * 1000,
     });
+
+    const { data: actionsThisWeek } = useQuery<number>({
+        queryKey: ['mod-actions-week', user?.id],
+        queryFn: async () => {
+            if (!user) return 0;
+            const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+            const { count } = await supabase
+                .from('moderation_log')
+                .select('*', { count: 'exact', head: true })
+                .eq('actor_id', user.id)
+                .gte('created_at', since);
+            return count ?? 0;
+        },
+        enabled: !!user && communityIds.length > 0,
+        staleTime: 60 * 1000,
+    });
+
+    const handleModAction = async (flagId: string, action: 'approved' | 'removed' | 'dismissed') => {
+        if (!user) return;
+        setActionLoading(flagId);
+        try {
+            const { error: flagError } = await supabase
+                .from('content_flags')
+                .update({ status: action, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+                .eq('id', flagId);
+            if (flagError) throw flagError;
+
+            await supabase.from('moderation_log').insert({
+                flag_id: flagId,
+                actor_id: user.id,
+                action,
+                reason: `Moderator action: ${action}`,
+            });
+
+            qc.invalidateQueries({ queryKey: ['mod-flags'] });
+            qc.invalidateQueries({ queryKey: ['mod-actions-week'] });
+            toast({ title: `Content ${action}`, description: `Flag has been marked as ${action}.` });
+        } catch {
+            toast({ title: 'Error', description: 'Failed to process action.', variant: 'destructive' });
+        } finally {
+            setActionLoading(null);
+        }
+    };
 
     const isLoading = rolesLoading || flagsLoading;
 
     if (isLoading) {
         return (
             <div className="space-y-3">
-                <Skeleton className="h-20 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
                 <Skeleton className="h-40 w-full rounded-xl" />
             </div>
         );
     }
 
-    // Not a mod anywhere
     if (!modRoles?.length) {
         return (
             <Card className="border-dashed">
-                <CardContent className="py-12 text-center space-y-2">
-                    <div className="text-4xl">🛡️</div>
-                    <p className="font-medium">No moderator roles</p>
-                    <p className="text-sm text-muted-foreground">
-                        You're not an admin or moderator of any community yet.
-                    </p>
+                <CardContent className="py-12 text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto">
+                        <Shield className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                        <p className="font-medium text-sm">No moderator roles</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                            You're not moderating any communities yet. Active members can be invited as moderators by community admins.
+                        </p>
+                    </div>
+                    <Button asChild size="sm" variant="outline">
+                        <Link to="/communities">Explore Communities</Link>
+                    </Button>
                 </CardContent>
             </Card>
         );
     }
 
+    const pendingCount = flags?.length ?? 0;
+
     return (
         <div className="space-y-4">
-            {/* Communities where user is mod */}
+            {/* Overview stats bar */}
+            <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-border/60 p-3 bg-card text-center">
+                    <p className="text-lg font-bold">{modRoles.length}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Communities</p>
+                </div>
+                <div className={`rounded-xl border p-3 text-center ${pendingCount > 0 ? 'border-destructive/30 bg-destructive/5' : 'border-border/60 bg-card'}`}>
+                    <p className={`text-lg font-bold ${pendingCount > 0 ? 'text-destructive' : ''}`}>{pendingCount}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Pending</p>
+                </div>
+                <div className="rounded-xl border border-border/60 p-3 bg-card text-center">
+                    <p className="text-lg font-bold">{actionsThisWeek ?? 0}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Actions (7d)</p>
+                </div>
+            </div>
+
+            {/* Moderation Queue */}
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
-                        🛡️ Your Communities
-                        <Badge variant="secondary" className="text-[10px]">{modRoles.length}</Badge>
+                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                        Moderation Queue
+                        {pendingCount > 0 && (
+                            <Badge className="text-[10px] bg-destructive text-destructive-foreground border-0">
+                                {pendingCount}
+                            </Badge>
+                        )}
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 pt-0">
+                <CardContent className="pt-0">
+                    {pendingCount === 0 ? (
+                        <div className="text-center py-8 space-y-2">
+                            <CheckCircle className="w-10 h-10 text-green-500 mx-auto" />
+                            <p className="text-sm font-medium">All clear</p>
+                            <p className="text-xs text-muted-foreground">No pending reports need attention</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {flags?.map((flag) => {
+                                const isPost = !!flag.post_id;
+                                const preview = isPost
+                                    ? flag.posts?.title ?? 'Untitled post'
+                                    : (flag.project_comments?.content ?? 'Comment').slice(0, 100);
+                                const timeSince = flag.created_at
+                                    ? `${Math.round((Date.now() - new Date(flag.created_at).getTime()) / (1000 * 60 * 60))}h ago`
+                                    : '';
+                                const isProcessing = actionLoading === flag.id;
+
+                                return (
+                                    <div key={flag.id} className="border rounded-lg p-3 space-y-2">
+                                        <div className="flex items-start gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                                    <Badge variant="outline" className={`text-[10px] ${isPost ? 'border-blue-500/30 text-blue-600' : 'border-purple-500/30 text-purple-600'}`}>
+                                                        {isPost ? 'Post' : 'Comment'}
+                                                    </Badge>
+                                                    {flag.flagged_by_ai && (
+                                                        <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600">AI</Badge>
+                                                    )}
+                                                    <span className="text-[10px] text-muted-foreground">{timeSince}</span>
+                                                </div>
+                                                <p className="text-sm font-medium truncate">{preview}</p>
+                                                {flag.reason && (
+                                                    <p className="text-xs text-muted-foreground mt-0.5">Reason: {flag.reason}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 pt-1 border-t border-border/40">
+                                            <Button
+                                                size="sm" variant="outline"
+                                                className="h-7 text-xs flex-1"
+                                                disabled={isProcessing}
+                                                onClick={() => handleModAction(flag.id, 'approved')}
+                                            >
+                                                {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3 mr-1" />}
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                size="sm" variant="outline"
+                                                className="h-7 text-xs flex-1 text-destructive hover:text-destructive"
+                                                disabled={isProcessing}
+                                                onClick={() => handleModAction(flag.id, 'removed')}
+                                            >
+                                                <Trash2 className="w-3 h-3 mr-1" />
+                                                Remove
+                                            </Button>
+                                            <Button
+                                                size="sm" variant="ghost"
+                                                className="h-7 text-xs"
+                                                disabled={isProcessing}
+                                                onClick={() => handleModAction(flag.id, 'dismissed')}
+                                            >
+                                                Dismiss
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Communities managed */}
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-primary" />
+                        Your Communities
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 pt-0">
                     {modRoles.map((role) => (
                         <div key={role.community_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                            <div>
-                                <p className="text-sm font-medium">{role.communities?.name ?? 'Unknown Community'}</p>
-                                <Badge variant="outline" className={`text-[10px] ${role.role === 'admin' ? 'border-orange-500/30 text-orange-600' : 'border-blue-500/30 text-blue-600'}`}>
+                            <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{role.communities?.name ?? 'Unknown'}</p>
+                                <Badge variant="outline" className={`text-[10px] mt-0.5 ${role.role === 'admin' ? 'border-orange-500/30 text-orange-600' : 'border-blue-500/30 text-blue-600'}`}>
                                     {role.role}
                                 </Badge>
                             </div>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" asChild>
                                 <Link to={`/c/${role.communities?.name ?? role.community_id}`}>
                                     Manage <ChevronRight className="w-3.5 h-3.5 ml-1" />
                                 </Link>
                             </Button>
                         </div>
                     ))}
-                </CardContent>
-            </Card>
-
-            {/* Pending flags */}
-            <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                        🚩 Pending Reports
-                        {(pendingFlags?.length ?? 0) > 0 && (
-                            <Badge className="text-[10px] bg-red-500 text-white border-0">
-                                {pendingFlags?.length}
-                            </Badge>
-                        )}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                    {!pendingFlags?.length ? (
-                        <div className="text-center py-6">
-                            <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">No pending reports. Queue is clear! ✅</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {pendingFlags.map((flag) => (
-                                <div key={flag.id} className="flex items-start gap-3 p-2 border rounded-lg">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <Badge variant="outline" className="text-[10px] border-red-500/30 text-red-600">
-                                                {flag.content_type}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground truncate">{flag.reason}</p>
-                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                                            {new Date(flag.created_at).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                            <Button variant="outline" size="sm" className="w-full text-xs mt-2" asChild>
-                                <Link to="/admin/dashboard">View Full Moderation Queue</Link>
-                            </Button>
-                        </div>
-                    )}
                 </CardContent>
             </Card>
         </div>
