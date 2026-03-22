@@ -402,7 +402,7 @@ const PostDetail = () => {
       commentsData?.forEach(commentData => {
         const userVote = commentVotes[commentData.id] || null;
 
-        const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: any) => ({
+        const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: AwardAssignment) => ({
           id: assignment.comment_awards.id,
           name: assignment.comment_awards.name,
           displayName: assignment.comment_awards.display_name,
