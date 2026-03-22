@@ -200,6 +200,10 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
           <span className="text-muted-foreground">
             {formatDistanceToNow(comment.createdAt, { addSuffix: true }).replace('about ', '')}
           </span>
+          {/* Edited indicator — check if comment object has an updatedAt that's > createdAt */}
+          {(comment as any).updatedAt && new Date((comment as any).updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000 && (
+            <span className="text-muted-foreground italic text-[10px]">(edited)</span>
+          )}
           {depth === 0 && (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
