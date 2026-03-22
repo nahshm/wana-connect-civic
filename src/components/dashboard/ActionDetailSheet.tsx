@@ -99,9 +99,10 @@ interface ActionDetailSheetProps {
     actionId: string | null;
     isOpen: boolean;
     onClose: () => void;
+    onActionDeleted?: () => void;
 }
 
-export const ActionDetailSheet = ({ actionId, isOpen, onClose }: ActionDetailSheetProps) => {
+export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }: ActionDetailSheetProps) => {
     const { user } = useAuth();
     const authModal = useAuthModal();
     const navigate = useNavigate();
@@ -112,6 +113,11 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose }: ActionDetailShe
     const [loading, setLoading] = useState(false);
     const [hasSupported, setHasSupported] = useState(false);
     const [supporting, setSupporting] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ title: '', description: '', category: '', urgency: '' });
+    const [editSaving, setEditSaving] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         if (!isOpen || !actionId) return;
