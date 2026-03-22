@@ -27,8 +27,16 @@ import {
     ThumbsUp,
     Share2,
     Users,
-    Loader2
+    Loader2,
+    Pencil,
+    Trash2
 } from 'lucide-react';
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface ActionDetail {
