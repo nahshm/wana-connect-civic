@@ -310,6 +310,7 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }
     };
 
     return (
+        <>
         <Sheet open={isOpen} onOpenChange={handleOpenChange}>
             <SheetContent className="w-full sm:max-w-xl md:max-w-2xl overflow-y-auto px-4 sm:px-6">
                 <SheetHeader className="mb-6 mt-4">
