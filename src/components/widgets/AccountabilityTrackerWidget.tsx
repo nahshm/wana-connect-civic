@@ -119,7 +119,7 @@ export const AccountabilityTrackerWidget = () => {
               No tracked promises yet
             </p>
             <Button asChild size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
-              <Link to="/accountability">Browse Promises</Link>
+              <Link to="/projects">Browse Promises</Link>
             </Button>
           </div>
         ) : (
