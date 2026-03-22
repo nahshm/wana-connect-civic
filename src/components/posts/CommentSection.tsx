@@ -139,7 +139,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
   const isOwner = user?.id === comment.author.id;
   const canEdit = isOwner && (Date.now() - new Date(comment.createdAt).getTime() < EDIT_WINDOW_MS);
-  const isEdited = comment.createdAt && (new Date(comment.createdAt).getTime() + 1000) < Date.now(); // placeholder — real check below
+  
 
   const threadColors = [
     'border-primary/30',
