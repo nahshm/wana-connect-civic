@@ -131,7 +131,7 @@ export const DashboardOverview = () => {
 
     const loadStats = async () => {
       try {
-        const { data: actions } = await (supabase as any)
+        const { data: actions } = await supabase
           .from('civic_actions')
           .select('id, title, status, created_at')
           .eq('user_id', user.id)
