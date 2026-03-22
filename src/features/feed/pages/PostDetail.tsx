@@ -441,6 +441,7 @@ const PostDetail = () => {
           postId: commentData.post_id,
           parentId: commentData.parent_id,
           createdAt: new Date(commentData.created_at),
+          updatedAt: commentData.updated_at ? new Date(commentData.updated_at) : undefined,
           upvotes: commentData.upvotes || 0,
           downvotes: commentData.downvotes || 0,
           userVote,
