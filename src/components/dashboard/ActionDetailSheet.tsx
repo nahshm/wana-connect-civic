@@ -610,5 +610,6 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        </>
     );
 };
