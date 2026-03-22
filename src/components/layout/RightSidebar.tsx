@@ -208,14 +208,14 @@ export const RightSidebar = () => {
       <Card className="bg-sidebar-background border-sidebar-border">
         <CardContent className="pt-4">
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <Link to="/help" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
+            <Link to="/settings" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
               Help
             </Link>
-            <Link to="/about" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
+            <Link to="/explore" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
               About
             </Link>
-            <Link to="/careers" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
-              Careers
+            <Link to="/discover" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
+              Discover
             </Link>
             <Link to="/terms" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
               Terms
@@ -223,8 +223,8 @@ export const RightSidebar = () => {
             <Link to="/privacy" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
               Privacy
             </Link>
-            <Link to="/rules" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
-              Rules
+            <Link to="/communities" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
+              Communities
             </Link>
           </div>
           <div className="mt-4 pt-3 border-t border-sidebar-border">

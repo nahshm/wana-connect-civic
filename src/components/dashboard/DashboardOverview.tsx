@@ -83,7 +83,7 @@ export const DashboardOverview = () => {
     queryFn: async () => {
       if (!profile?.county) return 0;
       const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { count } = await (supabase as any)
+      const { count } = await supabase
         .from('civic_actions')
         .select('*', { count: 'exact', head: true })
         .eq('is_public', true)
@@ -100,7 +100,7 @@ export const DashboardOverview = () => {
     queryKey: ['dashboard-impact-score', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('civic_impact_scores')
         .select('impact_rating, trust_tier')
         .eq('user_id', user.id)
@@ -116,7 +116,7 @@ export const DashboardOverview = () => {
     queryKey: ['dashboard-reps-count', profile?.county_id],
     queryFn: async () => {
       if (!profile?.county_id) return 0;
-      const { count } = await (supabase as any)
+      const { count } = await supabase
         .from('officials')
         .select('*', { count: 'exact', head: true })
         .eq('county_id', profile.county_id);
@@ -131,13 +131,13 @@ export const DashboardOverview = () => {
 
     const loadStats = async () => {
       try {
-        const { data: actions } = await (supabase as any)
+        const { data: actions } = await supabase
           .from('civic_actions')
           .select('id, title, status, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        const { count: supportCount } = await (supabase as any)
+        const { count: supportCount } = await supabase
           .from('civic_action_supporters')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id);
@@ -256,7 +256,7 @@ export const DashboardOverview = () => {
           </Link>
         </Button>
         <Button variant="outline" className="h-auto py-3 flex-col gap-1" asChild>
-          <Link to="/dashboard/report-incident">
+          <Link to="/report-incident">
             <AlertCircle className="w-4 h-4 text-destructive" />
             <span className="text-xs">Report Incident</span>
           </Link>
