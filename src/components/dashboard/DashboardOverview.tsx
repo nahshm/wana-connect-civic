@@ -83,7 +83,7 @@ export const DashboardOverview = () => {
     queryFn: async () => {
       if (!profile?.county) return 0;
       const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { count } = await (supabase as any)
+      const { count } = await supabase
         .from('civic_actions')
         .select('*', { count: 'exact', head: true })
         .eq('is_public', true)
