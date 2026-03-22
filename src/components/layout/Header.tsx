@@ -17,18 +17,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
  * @param profile - User profile object
  * @returns The prefix string ('/u/', '/g/', or '/w/')
  */
-const getProfilePrefix = (profile: any): string => {
-  // Government officials get /g/ prefix
-  if (profile?.official_position || profile?.official_position_id) {
-    return '/g/';
-  }
+interface ProfileData {
+  official_position?: string | null;
+  official_position_id?: string | null;
+  is_verified?: boolean | null;
+}
 
-  // Verified non-government users get /w/ prefix
-  if (profile?.is_verified) {
-    return '/w/';
-  }
-
-  // Regular users get /u/ prefix
+const getProfilePrefix = (profile: ProfileData | null): string => {
+  if (profile?.official_position || profile?.official_position_id) return '/g/';
+  if (profile?.is_verified) return '/w/';
   return '/u/';
 };
 
@@ -77,7 +74,6 @@ export const Header = () => {
       {/* Centered Search */}
       <div className="hidden md:flex flex-1 max-w-2xl">
         <SearchBar placeholder="Search discussions, communities, users..." className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring" onSearch={(query) => {
-          console.log('Search:', query);
           navigate(`/search?q=${encodeURIComponent(query)}`);
         }} />
       </div>
@@ -103,8 +99,10 @@ export const Header = () => {
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9">
-            <Bell className="w-4 h-4" />
+          <Button variant="ghost" size="icon" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9">
+            <Link to="/dashboard">
+              <Bell className="w-4 h-4" />
+            </Link>
           </Button>
 
           <ThemeToggle />
@@ -163,7 +161,6 @@ export const Header = () => {
         </DialogHeader>
         <div className="py-4">
           <SearchBar placeholder="Search discussions, communities, users..." className="w-full" onSearch={(query) => {
-            console.log('Search:', query);
             navigate(`/search?q=${encodeURIComponent(query)}`);
             setMobileSearchOpen(false);
           }} />

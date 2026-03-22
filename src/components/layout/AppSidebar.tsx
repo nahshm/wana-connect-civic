@@ -38,7 +38,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === 'collapsed' && !isMobile;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { open: openAuthModal } = useAuthModal();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -151,7 +151,7 @@ export function AppSidebar() {
               <>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild className="h-10 px-3 rounded-md" onClick={handleNavClick}>
-                    <Link to="/profile" className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
+                    <Link to={profile?.username ? `/resume/${profile.username}` : '/dashboard'} className="flex items-center gap-3 text-sidebar-foreground/80 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors">
                       <User className="h-5 w-5" />
                       {!collapsed && <span className="text-sm">My Profile</span>}
                     </Link>

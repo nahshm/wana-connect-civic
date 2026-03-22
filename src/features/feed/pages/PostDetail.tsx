@@ -20,6 +20,11 @@ import { copyToClipboard } from '@/lib/clipboard-utils';
 import type { Comment, Post, CommentAward, CommentMedia } from '@/types';
 import type { UploadedMedia } from '@/components/posts/CommentInput';
 
+// Typed shapes for Supabase join rows to avoid `as any` casts
+interface PostMediaRow { id: string; post_id: string; file_path: string; filename: string; file_type: string; file_size: number }
+interface AwardAssignment { id: string; awarded_at: string; comment_awards: { id: string; name: string; display_name: string; description: string; points: number; category: string; color: string; background_color: string; icon: string; is_enabled: boolean; sort_order: number; created_at: string; updated_at: string }; profiles: { id: string; display_name: string } | null }
+interface CommentMediaRow { id: string; file_path: string; filename: string; file_type: string; file_size: number; created_at: string }
+
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { communities, toggleCommunityFollow } = useCommunityData();
@@ -113,7 +118,7 @@ const PostDetail = () => {
           link_title: postData.link_title || null,
           link_description: postData.link_description || null,
           link_image: postData.link_image || null,
-          media: postData.post_media?.map((m: any) => ({
+          media: postData.post_media?.map((m: PostMediaRow) => ({
             id: m.id.toString(),
             post_id: m.post_id,
             file_path: m.file_path,
@@ -143,11 +148,13 @@ const PostDetail = () => {
   }, [id, user?.id]);
 
   useEffect(() => {
+    const previousTitle = document.title;
     if (post?.title) {
       document.title = post.title;
     } else {
       document.title = 'Post Detail';
     }
+    return () => { document.title = previousTitle; };
   }, [post?.title]);
 
   // Fetch comments from Supabase
@@ -201,7 +208,7 @@ const PostDetail = () => {
         commentsData?.forEach(commentData => {
           const userVote = commentVotes[commentData.id] || null;
 
-          const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: any) => ({
+          const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: AwardAssignment) => ({
             id: assignment.comment_awards.id,
             name: assignment.comment_awards.name,
             displayName: assignment.comment_awards.display_name,
@@ -223,7 +230,7 @@ const PostDetail = () => {
             assignedAt: new Date(assignment.awarded_at),
           })) || [];
 
-          const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: any) => ({
+          const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: CommentMediaRow) => ({
             id: m.id,
             commentId: commentData.id,
             filePath: m.file_path,
@@ -583,7 +590,7 @@ const PostDetail = () => {
 
       const updateContent = (comments: Comment[]): Comment[] =>
         comments.map(c => {
-          if (c.id === commentId) return { ...c, content: newContent, updatedAt: new Date() } as any;
+          if (c.id === commentId) return { ...c, content: newContent, updatedAt: new Date() };
           if (c.replies) return { ...c, replies: updateContent(c.replies) };
           return c;
         });

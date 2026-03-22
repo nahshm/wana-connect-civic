@@ -83,15 +83,16 @@ export const DashboardOverview = () => {
     queryFn: async () => {
       if (!profile?.county) return 0;
       const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      // Filter by location_text containing county name (best-effort text match)
       const { count } = await supabase
         .from('civic_actions')
         .select('*', { count: 'exact', head: true })
         .eq('is_public', true)
+        .ilike('location_text', `%${profile.county}%`)
         .gte('created_at', since);
-      // Best-effort: filter by county text if available
       return count ?? 0;
     },
-    enabled: !!profile,
+    enabled: !!profile?.county,
     staleTime: 3 * 60 * 1000,
   });
 
@@ -128,6 +129,7 @@ export const DashboardOverview = () => {
 
   useEffect(() => {
     if (!user) return;
+    let ignore = false;
 
     const loadStats = async () => {
       try {
@@ -142,9 +144,13 @@ export const DashboardOverview = () => {
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id);
 
-        const allActions = actions || [];
-        const open = allActions.filter((a: any) => ['submitted', 'in_progress', 'under_review', 'acknowledged'].includes(a.status));
-        const resolved = allActions.filter((a: any) => a.status === 'resolved');
+        if (ignore) return;
+
+        type ActionRow = { id: string; title: string; status: string; created_at: string };
+        const OPEN_STATUSES = ['submitted', 'in_progress', 'under_review', 'acknowledged'];
+        const allActions = (actions ?? []) as ActionRow[];
+        const open = allActions.filter((a) => OPEN_STATUSES.includes(a.status));
+        const resolved = allActions.filter((a) => a.status === 'resolved');
 
         setStats({
           totalIssues: allActions.length,
@@ -154,13 +160,14 @@ export const DashboardOverview = () => {
           recentActions: allActions.slice(0, 5),
         });
       } catch (e) {
-        console.error('DashboardOverview loadStats error:', e);
+        if (!ignore) console.error('DashboardOverview loadStats error:', e);
       } finally {
-        setLoadingStats(false);
+        if (!ignore) setLoadingStats(false);
       }
     };
 
     loadStats();
+    return () => { ignore = true; };
   }, [user]);
 
   const STATUS_ICON: Record<string, React.ReactNode> = {

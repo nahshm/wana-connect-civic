@@ -103,8 +103,9 @@ export default function Index() {
       if (error) throw error;
       setMemberCommunityIds(prev => new Set([...prev, communityId]));
       toast({ title: 'Joined!', description: `You are now a member of ${communityName}.` });
-    } catch (err: any) {
-      if (err?.code === '23505') {
+    } catch (err: unknown) {
+      const pgError = err as { code?: string };
+      if (pgError?.code === '23505') {
         setMemberCommunityIds(prev => new Set([...prev, communityId]));
       } else {
         toast({ title: 'Error', description: 'Could not join community.', variant: 'destructive' });

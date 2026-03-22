@@ -109,8 +109,8 @@ const MyPostsSection = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap mb-1">
                   {post.is_pinned && <Badge variant="secondary" className="text-[10px] gap-1"><Pin className="w-2.5 h-2.5" />Pinned</Badge>}
-                  {(post as any).communities?.name && (
-                    <Badge variant="outline" className="text-[10px]">c/{(post as any).communities.name}</Badge>
+                  {(post as { communities?: { name: string } | null }).communities?.name && (
+                    <Badge variant="outline" className="text-[10px]">c/{(post as { communities?: { name: string } | null }).communities!.name}</Badge>
                   )}
                 </div>
                 <Link to={`/post/${post.id}`} className="font-medium text-sm hover:text-primary transition-colors line-clamp-2">
@@ -192,7 +192,9 @@ const MyCommentsSection = () => {
     return Date.now() - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
   };
 
-  const startEdit = (comment: any) => {
+  type CommentRow = { id: string; content: string; created_at: string; updated_at?: string | null; upvotes?: number; downvotes?: number; is_deleted?: boolean; post_id: string; posts?: { id: string; title?: string; communities?: { name: string } | null } | null };
+
+  const startEdit = (comment: CommentRow) => {
     setEditingId(comment.id);
     setEditContent(comment.content);
   };
@@ -225,7 +227,7 @@ const MyCommentsSection = () => {
     toast({ title: 'Comment deleted' });
   };
 
-  const isEdited = (c: any) => c.updated_at && new Date(c.updated_at).getTime() - new Date(c.created_at).getTime() > 1000;
+  const isEdited = (c: CommentRow) => c.updated_at && new Date(c.updated_at).getTime() - new Date(c.created_at).getTime() > 1000;
 
   if (isLoading) return <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>;
 
@@ -245,7 +247,7 @@ const MyCommentsSection = () => {
     <div className="space-y-2">
       <p className="text-sm text-muted-foreground mb-2">{comments.length} comment{comments.length !== 1 ? 's' : ''}</p>
       {comments.map(comment => {
-        const post = (comment as any).posts;
+        const post = (comment as CommentRow).posts;
         const editing = editingId === comment.id;
 
         return (
@@ -342,9 +344,11 @@ const MyIncidentsSection = () => {
     staleTime: 2 * 60 * 1000,
   });
 
-  const canModify = (incident: any) => incident.status === 'open' && !incident.is_anonymous;
+  type IncidentRow = { id: string; case_number: string; title: string; description?: string | null; severity: string; status: string; created_at: string; is_anonymous?: boolean };
 
-  const startEdit = (incident: any) => {
+  const canModify = (incident: IncidentRow) => incident.status === 'open' && !incident.is_anonymous;
+
+  const startEdit = (incident: IncidentRow) => {
     setEditingId(incident.id);
     setEditData({ title: incident.title, description: incident.description || '', severity: incident.severity });
   };
