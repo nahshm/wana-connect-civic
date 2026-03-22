@@ -457,7 +457,49 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }
                                         <Share2 className="w-4 h-4 mr-2 text-muted-foreground" />
                                         Share Alert
                                     </Button>
+
+                                    {/* Author edit/delete buttons */}
+                                    {canModify && (
+                                        <>
+                                            <Button variant="outline" onClick={startEditing} className="h-11">
+                                                <Pencil className="w-4 h-4 mr-2" />Edit
+                                            </Button>
+                                            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} className="h-11">
+                                                <Trash2 className="w-4 h-4 mr-2" />Delete
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
+
+                                {/* Inline edit form */}
+                                {isEditing && (
+                                    <div className="space-y-3 p-4 rounded-xl border border-primary/30 bg-primary/5">
+                                        <Input value={editData.title} onChange={e => setEditData(d => ({ ...d, title: e.target.value }))} placeholder="Title" maxLength={200} />
+                                        <Textarea value={editData.description} onChange={e => setEditData(d => ({ ...d, description: e.target.value }))} placeholder="Description" maxLength={5000} className="min-h-[80px]" />
+                                        <div className="flex gap-2">
+                                            <Select value={editData.category} onValueChange={v => setEditData(d => ({ ...d, category: v }))}>
+                                                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select value={editData.urgency} onValueChange={v => setEditData(d => ({ ...d, urgency: v }))}>
+                                                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Urgency" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="low">Low</SelectItem>
+                                                    <SelectItem value="medium">Medium</SelectItem>
+                                                    <SelectItem value="high">High</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button size="sm" onClick={saveEdit} disabled={editSaving || !editData.title.trim()}>
+                                                {editSaving && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}Save Changes
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+                                        </div>
+                                    </div>
+                                )
 
                                 {/* Community Support Box */}
                                 {action.support_count > 0 && (
