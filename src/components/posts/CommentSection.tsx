@@ -23,6 +23,7 @@ interface CommentSectionProps {
   onAddComment?: (content: string, parentId?: string, mediaFiles?: UploadedMedia[]) => void;
   onVoteComment?: (commentId: string, vote: 'up' | 'down') => void;
   onDeleteComment?: (commentId: string) => void;
+  onEditComment?: (commentId: string, newContent: string) => void;
 }
 
 interface CommentItemProps {
