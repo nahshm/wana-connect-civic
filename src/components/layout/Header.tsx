@@ -21,7 +21,6 @@ interface ProfileData {
   official_position?: string | null;
   official_position_id?: string | null;
   is_verified?: boolean | null;
-  [key: string]: unknown;
 }
 
 const getProfilePrefix = (profile: ProfileData | null): string => {
