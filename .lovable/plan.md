@@ -1,122 +1,51 @@
 
 
-# User Content Ownership & Dashboard Deduplication
+# Audit Verification: 14 Bug Fixes
 
-## Problems Found
+## Verification Results
 
-### A. Dashboard Tab Duplication
+### ✅ CONFIRMED FIXED (10 of 14)
 
-Three tabs show nearly identical data from `civic_actions`:
+| # | Bug | Evidence |
+|---|-----|----------|
+| 1 | **AppSidebar "My Profile"** linked to dead `/profile` route | Line 154: `to={profile?.username ? '/resume/${profile.username}' : '/dashboard'}` — correctly uses `/resume/` with fallback |
+| 2 | **DashboardOverview community coverage** counted all civic_actions globally | Lines 87-91: `.ilike('location_text', '%${profile.county}%')` filter applied — scoped to user's county |
+| 3 | **Header Bell** was dead button | Lines 102-106: Now `<Link to="/dashboard">` — wired correctly |
+| 4 | **Header console.log** in search handlers | Lines 76-78, 163-165: Both search handlers navigate via `navigate('/search?q=...')` — no console.log present |
+| 5 | **QuickActionBar "Alerts"** self-linked to `/dashboard` | Line 19: Now `{ label: 'Incident', icon: Bell, to: '/report-incident' }` — fixed |
+| 7 | **DashboardOverview useEffect** had no cleanup | Lines 130-171: `let ignore = false` pattern with `return () => { ignore = true }` — properly implemented |
+| 8 | **Header getProfilePrefix** used `any` | Lines 20-30: `ProfileData` interface defined and used — typed correctly |
+| 9 | **DashboardOverview** `filter((a: any) => ...)` | Lines 149-153: `ActionRow` type + `OPEN_STATUSES` constant — typed |
+| 13 | **PostDetail** join mapper types | Lines 24-26: `PostMediaRow`, `AwardAssignment`, `CommentMediaRow` interfaces defined — no `as any` on initial transform |
+| 15 | **Home.tsx** `catch(err: any)` | Lines 106-113: `catch (err: unknown)` with `const pgError = err as { code?: string }` — typed |
 
-| Tab | What it shows | Source |
-|-----|---------------|--------|
-| **Overview** | Stats (total/open/resolved issues) + "Recent Activity" list of last 5 civic_actions | `civic_actions` where `user_id = me` |
-| **Actions** | Full filterable list of civic_actions with status, progress, filters | `civic_actions` where `user_id = me` |
-| **Issues** | Same civic_actions list, simpler card style, no filters | `civic_actions` where `user_id = me` |
+### ⚠️ PARTIALLY FIXED (3 of 14)
 
-**Result**: "Actions" and "Issues" are the same thing displayed twice. "Overview" also duplicates the recent actions list.
+| # | Bug | Issue |
+|---|-----|-------|
+| 6 | **PostDetail document.title** not restored on unmount | Lines 150-158: ✅ Fixed — saves `previousTitle` and restores in cleanup. **However**, `previousTitle` captures the title at mount time, which could be stale if another effect changes it. This is a minor edge case, not a real bug. |
+| 10-12 | **MyContentTab** `as any` removals | Lines 112-113 still use `(post as { communities?: ... })` casts — these are *type narrowing* casts, not blind `any`. The Supabase `.select()` return type doesn't strongly type join results, so these casts are the correct pattern. **Not bugs.** |
+| 14 | **PostDetail handleEditComment** spread `as any` | Lines 580-603: No `as any` present — the spread `{ ...c, content: newContent, updatedAt: new Date() }` satisfies `Comment` type. ✅ Fixed. |
 
-### B. Missing User Content Control
+### ❌ NOT FIXED / NEW ISSUES FOUND (1 remaining + 2 new)
 
-| Content Type | View Own | Edit | Delete | Pin/Feature |
-|-------------|----------|------|--------|-------------|
-| **Posts** | In feed only (no dashboard tab) | ✅ via dropdown | ✅ via dropdown | No |
-| **Comments** | No dashboard view | No edit | ✅ delete only | No |
-| **Issues (civic_actions)** | ✅ Actions tab | No edit | No delete | No |
-| **Incidents** | No view at all | No edit | No delete | No |
-| **Projects** | ✅ Projects tab | No edit | No delete | No |
+| # | Issue | Severity | Detail |
+|---|-------|----------|--------|
+| NEW-1 | **CommentSection line 204** uses `(comment as any).updatedAt` | 🟠 Low | The `Comment` type already has `updatedAt?: Date` — this `as any` cast is unnecessary and was supposed to be removed per the audit. Should be `comment.updatedAt && ...` |
+| NEW-2 | **CommentSection line 142** `isEdited` is broken | 🟡 Medium | `const isEdited = comment.createdAt && (new Date(comment.createdAt).getTime() + 1000) < Date.now()` — this is a placeholder that marks ALL comments older than 1 second as "edited". It's never actually used (line 204 handles the real check), but it's confusing dead code. |
+| NEW-3 | **PostDetail second transform (line 405, 427)** still uses `as any` | 🟠 Low | After adding a comment, the re-fetch transform uses `(assignment: any)` and `(m: any)` — the first transform was fixed but the duplicate wasn't |
 
-Users cannot:
-- See all their posts in one place in the dashboard
-- Edit their own comments
-- Edit or delete their own reported issues
-- View, edit, or delete their own reported incidents
-- Pin their own posts to their profile
+## Summary
 
-### C. Comment Edit Missing
-Comments only have delete — no edit button. Users should be able to edit within a time window (e.g., 15 minutes).
+The audit report is **mostly accurate**. 10 of 14 bugs are confirmed fixed correctly. The 4 remaining items are low-severity type-safety cleanup issues that don't affect runtime behavior.
 
----
+### Implementation Plan (3 small fixes)
 
-## Plan
+| File | Fix |
+|------|-----|
+| `src/components/posts/CommentSection.tsx` line 142 | Remove unused `isEdited` const (dead code) |
+| `src/components/posts/CommentSection.tsx` line 204 | Change `(comment as any).updatedAt` → `comment.updatedAt` |
+| `src/features/feed/pages/PostDetail.tsx` lines 405, 427 | Replace `(assignment: any)` → `(assignment: AwardAssignment)` and `(m: any)` → `(m: CommentMediaRow)` |
 
-### 1. Consolidate Dashboard Tabs (7 → 5)
-
-**Remove "Issues" tab** — it's a duplicate of "Actions". Merge into Actions.
-
-**Redesign "Overview"** to be a true summary hub:
-- Keep stat cards (issues reported, open, resolved, support given, impact score, representatives)
-- Replace "Recent Activity" list (duplicate of Actions) with a multi-source activity feed showing: recent posts, recent comments, recent issues, recent incidents — all in one timeline
-- Add quick links to "My Posts", "My Incidents" sections
-
-**Rename remaining tabs**:
-```
-Overview | Actions | Projects | Community | My Content | Quests | Mod
-```
-
-**New "My Content" tab** replaces the removed "Issues" tab:
-- Sub-sections: My Posts, My Comments, My Incidents
-- Each with edit/delete controls
-- Posts: list with edit/delete/pin actions
-- Comments: list with edit/delete, link to parent post
-- Incidents: list with edit/delete, status badge
-
-### 2. Add Edit/Delete to Issues (Actions tab)
-
-In `ActionDetailSheet` and `MyActions`:
-- Add "Edit" button → opens inline edit for title, description, category, urgency
-- Add "Delete" button with confirmation → soft-delete or hard-delete depending on status (only if status is still "submitted", not after acknowledgement)
-- Only the issue author can edit/delete
-
-### 3. Add Comment Edit
-
-In `CommentItem`:
-- Add "Edit" button next to delete (only for comment owner, within 15-minute window)
-- Click toggles inline edit mode — replaces content with textarea pre-filled with current text
-- Save calls `supabase.from('comments').update({ content, updated_at })` 
-- Show "(edited)" indicator next to timestamp when `updated_at > created_at`
-- Wire through `onEditComment` callback from `CommentSection` → `PostDetail`
-
-### 4. Add "My Incidents" to Dashboard
-
-New component `MyIncidentsSection` in the "My Content" tab:
-- Query `incidents` where `reporter_id = user.id` (for authenticated) or by `contact_email` match
-- Show case_number, title, severity, status, created_at
-- Edit button: can update title, description, severity (only if status is still "open")
-- Delete button: with confirmation, hard-delete only for "open" status items
-
-### 5. Add "My Posts" to Dashboard
-
-New component `MyPostsSection` in the "My Content" tab:
-- Query `posts` where `author_id = user.id`, ordered by created_at desc
-- Each row shows title, community, vote count, comment count, created_at
-- Actions: Edit (navigate to `/edit-post/:id`), Delete (with confirmation), Pin to Profile toggle
-
-### 6. Post "Pin to Profile" Feature
-
-- Add `is_pinned` boolean column to `posts` table (default false)
-- User can pin up to 3 posts to their profile
-- Pinned posts appear at top of their profile page
-- Toggle via "My Posts" section in dashboard
-
-### 7. Comment "Edited" Indicator
-
-- `comments` table already has `updated_at` — use `updated_at > created_at + 1 second` as "edited" check
-- Display "(edited)" text next to the timestamp in CommentItem
-
----
-
-## Files to Change
-
-| Action | File | What |
-|--------|------|------|
-| EDIT | `CivicDashboard.tsx` | Remove "Issues" tab, add "My Content" tab |
-| EDIT | `DashboardOverview.tsx` | Replace duplicate actions list with multi-source activity timeline |
-| CREATE | `MyContentTab.tsx` | New component: My Posts, My Comments, My Incidents sub-sections with CRUD |
-| EDIT | `CommentSection.tsx` / `CommentItem` | Add edit button, inline edit mode, "(edited)" indicator |
-| EDIT | `PostDetail.tsx` | Wire `onEditComment` handler |
-| EDIT | `ActionDetailSheet.tsx` | Add edit/delete buttons for issue author |
-| EDIT | `MyActions.tsx` | Add delete button per action |
-| DELETE | `PersonalActionTabs.tsx` → `MyIssuesTab` | Remove (merged into Actions) |
-| MIGRATION | `posts` table | Add `is_pinned` boolean column |
+3 lines changed across 2 files. No functional impact — purely type safety cleanup.
 
