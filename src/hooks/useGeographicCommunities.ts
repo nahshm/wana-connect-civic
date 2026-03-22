@@ -40,14 +40,19 @@ async function fetchGeographicCommunities(
     // Build a list of location values to search
     const locationFilters: Array<{ type: string; value: string }> = [];
 
-    if (profile.county) {
-        locationFilters.push({ type: 'county', value: profile.county });
+    // Trim and skip empty strings — empty location values would match phantom communities
+    const county = profile.county?.trim() || null;
+    const constituency = profile.constituency?.trim() || null;
+    const ward = profile.ward?.trim() || null;
+
+    if (county) {
+        locationFilters.push({ type: 'county', value: county });
     }
-    if (profile.constituency) {
-        locationFilters.push({ type: 'constituency', value: profile.constituency });
+    if (constituency) {
+        locationFilters.push({ type: 'constituency', value: constituency });
     }
-    if (profile.ward) {
-        locationFilters.push({ type: 'ward', value: profile.ward });
+    if (ward) {
+        locationFilters.push({ type: 'ward', value: ward });
     }
 
     if (locationFilters.length === 0) return {};

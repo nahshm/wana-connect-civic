@@ -88,18 +88,19 @@ const Step4Communities = ({ onBack, onboardingData }: Step4CommunitiesProps) => 
         supabase.from('administrative_divisions').select('name').eq('id', onboardingData.wardId).maybeSingle(),
       ]);
 
-      const countyName = countyRes.data?.name ?? null;
-      const constituencyName = constituencyRes.data?.name ?? null;
-      const wardName = wardRes.data?.name ?? null;
+      const countyName = countyRes.data?.name?.trim() || null;
+      const constituencyName = constituencyRes.data?.name?.trim() || null;
+      const wardName = wardRes.data?.name?.trim() || null;
 
       // 2. Update profile FIRST — this fires the trigger that creates location communities + joins user
+      // The trigger uses NULLIF(trim(county), '') so empty strings are ignored
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          county_id: onboardingData.countyId,
-          constituency_id: onboardingData.constituencyId,
-          ward_id: onboardingData.wardId,
-          county: countyName,
+          county_id: onboardingData.countyId || null,
+          constituency_id: onboardingData.constituencyId || null,
+          ward_id: onboardingData.wardId || null,
+          county: countyName,        // NULL if empty — trigger will skip
           constituency: constituencyName,
           ward: wardName,
           persona: onboardingData.persona as any,
