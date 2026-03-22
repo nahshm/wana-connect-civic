@@ -223,8 +223,8 @@ export const RightSidebar = () => {
             <Link to="/privacy" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
               Privacy
             </Link>
-            <Link to="/rules" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
-              Rules
+            <Link to="/communities" className="text-sidebar-muted-foreground hover:text-sidebar-foreground flex items-center">
+              Communities
             </Link>
           </div>
           <div className="mt-4 pt-3 border-t border-sidebar-border">
