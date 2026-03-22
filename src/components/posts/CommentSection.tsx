@@ -291,6 +291,16 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
                 <Share2 className="h-3 w-3" />
               </button>
 
+              {canEdit && !isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors font-medium"
+                  title="Edit (15 min window)"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+
               {isOwner && (
                 <button
                   onClick={handleDelete}
