@@ -432,6 +432,7 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
               onReply={handleReply}
               onVote={onVoteComment}
               onDelete={onDeleteComment}
+              onEdit={onEditComment}
             />
           ))
         )}
