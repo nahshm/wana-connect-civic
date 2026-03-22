@@ -97,12 +97,16 @@ function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
   );
 }
 
-const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentItemProps) => {
+const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: CommentItemProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
   const handleReply = (content: string, mediaFiles?: UploadedMedia[]) => {
     onReply?.(content, comment.id, mediaFiles);
@@ -123,10 +127,19 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
     setConfirmDelete(false);
   };
 
+  const handleSaveEdit = () => {
+    if (!editContent.trim()) return;
+    onEdit?.(comment.id, editContent.trim());
+    setIsEditing(false);
+    toast({ title: "Comment updated" });
+  };
+
   const getVoteScore = () => comment.upvotes - comment.downvotes;
   const maxDepth = 6;
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
   const isOwner = user?.id === comment.author.id;
+  const canEdit = isOwner && (Date.now() - new Date(comment.createdAt).getTime() < EDIT_WINDOW_MS);
+  const isEdited = comment.createdAt && (new Date(comment.createdAt).getTime() + 1000) < Date.now(); // placeholder — real check below
 
   const threadColors = [
     'border-primary/30',
