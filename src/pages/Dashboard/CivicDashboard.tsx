@@ -18,7 +18,7 @@ import { DashboardQuestWidget } from '@/components/dashboard/DashboardQuestWidge
 import { DashboardLeaderboardWidget } from '@/components/dashboard/DashboardLeaderboardWidget';
 import { MyActions } from '@/components/dashboard/MyActions';
 import { CommunityIssuesFeed } from '@/components/dashboard/CommunityIssuesFeed';
-import { MyProjectsTab, ModToolsTab } from '@/components/dashboard/PersonalActionTabs';
+import { MyProjectsTab } from '@/components/dashboard/PersonalActionTabs';
 import { MyContentTab } from '@/components/dashboard/MyContentTab';
 
 const CivicDashboard = () => {
