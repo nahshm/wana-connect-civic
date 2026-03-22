@@ -15,7 +15,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle, AlertTriangle, ChevronRight, Plus, FolderOpen, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, ChevronRight, Plus, FolderOpen, Pencil, Trash2, Loader2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // MyIssuesTab removed — functionality merged into MyActions tab
