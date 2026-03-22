@@ -450,7 +450,7 @@ export const ModToolsTab: React.FC = () => {
                                 const isPost = !!flag.post_id;
                                 const preview = isPost
                                     ? flag.posts?.title ?? 'Untitled post'
-                                    : (flag.project_comments?.content ?? 'Comment').slice(0, 100);
+                                    : (flag.project_comments?.comment_text ?? 'Comment').slice(0, 100);
                                 const timeSince = flag.created_at
                                     ? `${Math.round((Date.now() - new Date(flag.created_at).getTime()) / (1000 * 60 * 60))}h ago`
                                     : '';
