@@ -216,11 +216,27 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
 
         {!isCollapsed && (
           <>
-            {/* Content */}
-            <SafeContentRenderer
-              content={comment.content || ''}
-              className="text-sm leading-relaxed text-foreground/90 mb-1.5"
-            />
+            {/* Content — inline edit or display */}
+            {isEditing ? (
+              <div className="mb-2 space-y-2">
+                <Textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  className="text-sm min-h-[60px]"
+                  maxLength={5000}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSaveEdit} disabled={!editContent.trim()}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setIsEditing(false); setEditContent(comment.content); }}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <SafeContentRenderer
+                content={comment.content || ''}
+                className="text-sm leading-relaxed text-foreground/90 mb-1.5"
+              />
+            )}
 
             {/* Media attachments */}
             {comment.media && comment.media.length > 0 && (
