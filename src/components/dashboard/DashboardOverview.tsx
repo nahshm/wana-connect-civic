@@ -100,7 +100,7 @@ export const DashboardOverview = () => {
     queryKey: ['dashboard-impact-score', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('civic_impact_scores')
         .select('impact_rating, trust_tier')
         .eq('user_id', user.id)
