@@ -5922,6 +5922,7 @@ export type Database = {
           id: string
           is_hidden: boolean
           is_ngo_verified: boolean | null
+          is_pinned: boolean | null
           link_description: string | null
           link_image: string | null
           link_title: string | null
@@ -5953,6 +5954,7 @@ export type Database = {
           id?: string
           is_hidden?: boolean
           is_ngo_verified?: boolean | null
+          is_pinned?: boolean | null
           link_description?: string | null
           link_image?: string | null
           link_title?: string | null
@@ -5984,6 +5986,7 @@ export type Database = {
           id?: string
           is_hidden?: boolean
           is_ngo_verified?: boolean | null
+          is_pinned?: boolean | null
           link_description?: string | null
           link_image?: string | null
           link_title?: string | null
