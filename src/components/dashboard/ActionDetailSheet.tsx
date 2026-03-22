@@ -499,7 +499,7 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }
                                             <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
                                         </div>
                                     </div>
-                                )
+                                )}
 
                                 {/* Community Support Box */}
                                 {action.support_count > 0 && (
