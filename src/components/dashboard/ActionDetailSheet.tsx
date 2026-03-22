@@ -248,6 +248,63 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }
 
     const handleOpenChange = (open: boolean) => {
         if (!open) {
+            setIsEditing(false);
+            onClose();
+        }
+    };
+
+    const isOwner = user?.id === action?.user_id;
+    const canModify = isOwner && action?.status === 'submitted';
+
+    const startEditing = () => {
+        if (!action) return;
+        setEditData({
+            title: action.title,
+            description: action.description || '',
+            category: action.category,
+            urgency: action.urgency,
+        });
+        setIsEditing(true);
+    };
+
+    const saveEdit = async () => {
+        if (!action || !user) return;
+        setEditSaving(true);
+        const { error } = await supabase
+            .from('civic_actions')
+            .update({
+                title: editData.title.trim(),
+                description: editData.description.trim(),
+                category: editData.category,
+                urgency: editData.urgency,
+            })
+            .eq('id', action.id)
+            .eq('user_id', user.id);
+        setEditSaving(false);
+        if (error) {
+            toast({ title: 'Error', description: 'Failed to update issue', variant: 'destructive' });
+        } else {
+            setAction(prev => prev ? { ...prev, ...editData } : null);
+            setIsEditing(false);
+            toast({ title: 'Issue updated' });
+        }
+    };
+
+    const deleteAction = async () => {
+        if (!action || !user) return;
+        setDeleteLoading(true);
+        const { error } = await supabase
+            .from('civic_actions')
+            .delete()
+            .eq('id', action.id)
+            .eq('user_id', user.id);
+        setDeleteLoading(false);
+        setShowDeleteDialog(false);
+        if (error) {
+            toast({ title: 'Error', description: 'Failed to delete issue', variant: 'destructive' });
+        } else {
+            toast({ title: 'Issue deleted' });
+            onActionDeleted?.();
             onClose();
         }
     };
