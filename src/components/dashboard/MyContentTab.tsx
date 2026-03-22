@@ -397,7 +397,7 @@ const MyIncidentsSection = () => {
           <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto" />
           <p className="font-medium">No incidents reported</p>
           <p className="text-sm text-muted-foreground">Report an incident to track it here.</p>
-          <Button asChild size="sm"><Link to="/dashboard/report-incident"><Plus className="w-4 h-4 mr-2" />Report Incident</Link></Button>
+          <Button asChild size="sm"><Link to="/report-incident"><Plus className="w-4 h-4 mr-2" />Report Incident</Link></Button>
         </CardContent>
       </Card>
     );
