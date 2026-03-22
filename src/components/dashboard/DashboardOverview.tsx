@@ -249,38 +249,27 @@ export const DashboardOverview = () => {
         </div>
       </div>
 
-      {/* Recent activity */}
-      {stats.recentActions.length > 0 && (
-        <Card className="border-border/60">
-          <CardContent className="p-4">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Recent Activity</h4>
-            <div className="space-y-2.5">
-              {stats.recentActions.map(action => (
-                <Link
-                  key={action.id}
-                  to={`/dashboard/actions/${action.id}`}
-                  className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                >
-                  <div className="mt-0.5">
-                    {STATUS_ICON[action.status] || <FileText className="w-3 h-3 text-muted-foreground" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                      {action.title}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatDistanceToNow(new Date(action.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] shrink-0 capitalize">
-                    {action.status?.replace(/_/g, ' ')}
-                  </Badge>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Quick links to content sections */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <Button variant="outline" className="h-auto py-3 flex-col gap-1" asChild>
+          <Link to="/dashboard/report">
+            <FileText className="w-4 h-4 text-primary" />
+            <span className="text-xs">Report Issue</span>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto py-3 flex-col gap-1" asChild>
+          <Link to="/dashboard/report-incident">
+            <AlertCircle className="w-4 h-4 text-destructive" />
+            <span className="text-xs">Report Incident</span>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto py-3 flex-col gap-1" asChild>
+          <Link to="/create">
+            <TrendingUp className="w-4 h-4 text-green-500" />
+            <span className="text-xs">Create Post</span>
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 };
