@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -11,7 +10,6 @@ import {
   BarChart3, Shield, Building2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
 
 interface OverviewStats {
   totalIssues: number;
