@@ -349,7 +349,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
   );
 };
 
-export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment, onDeleteComment }: CommentSectionProps) => {
+export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment, onDeleteComment, onEditComment }: CommentSectionProps) => {
   const [sortBy, setSortBy] = useState<'best' | 'top' | 'new'>('best');
   const { user } = useAuth();
   const authModal = useAuthModal();
