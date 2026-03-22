@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, AlertTriangle, ChevronRight, Plus, FolderOpen } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, ChevronRight, Plus, FolderOpen } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MY ISSUES TAB — personal civic actions reported by auth user
