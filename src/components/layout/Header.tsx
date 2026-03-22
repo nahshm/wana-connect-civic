@@ -17,13 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
  * @param profile - User profile object
  * @returns The prefix string ('/u/', '/g/', or '/w/')
  */
-interface ProfileData {
-  official_position?: string | null;
-  official_position_id?: string | null;
-  is_verified?: boolean | null;
-}
-
-const getProfilePrefix = (profile: ProfileData | null): string => {
+const getProfilePrefix = (profile: { official_position?: string | null; official_position_id?: string | null; is_verified?: boolean | null } | null): string => {
   if (profile?.official_position || profile?.official_position_id) return '/g/';
   if (profile?.is_verified) return '/w/';
   return '/u/';
