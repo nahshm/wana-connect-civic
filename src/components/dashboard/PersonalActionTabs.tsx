@@ -282,7 +282,7 @@ interface FlaggedContent {
     reviewed_by: string | null;
     reviewed_at: string | null;
     posts: { title: string; community_id: string | null; author_id: string } | null;
-    project_comments: { content: string } | null;
+    project_comments: { comment_text: string } | null;
 }
 
 export const ModToolsTab: React.FC = () => {
