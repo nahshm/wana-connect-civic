@@ -341,7 +341,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
       {shouldShowReplies && !isCollapsed && (
         <div>
           {comment.replies!.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} depth={depth + 1} />
+            <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} onEdit={onEdit} depth={depth + 1} />
           ))}
         </div>
       )}
