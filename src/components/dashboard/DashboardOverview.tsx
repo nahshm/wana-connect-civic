@@ -116,7 +116,7 @@ export const DashboardOverview = () => {
     queryKey: ['dashboard-reps-count', profile?.county_id],
     queryFn: async () => {
       if (!profile?.county_id) return 0;
-      const { count } = await (supabase as any)
+      const { count } = await supabase
         .from('officials')
         .select('*', { count: 'exact', head: true })
         .eq('county_id', profile.county_id);
