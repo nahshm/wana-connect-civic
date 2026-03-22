@@ -53,10 +53,10 @@ const CivicDashboard = () => {
             </CardHeader>
             <CardContent className="p-3 pt-1 space-y-1">
               {[
-                { icon: Megaphone, label: 'Public Participation', to: '/participation', color: 'text-orange-400' },
-                { icon: Phone, label: 'Govt. Contacts', to: '/contacts', color: 'text-blue-400' },
+                { icon: Megaphone, label: 'Public Participation', to: '/communities', color: 'text-orange-400' },
+                { icon: Phone, label: 'Govt. Contacts', to: '/officials', color: 'text-blue-400' },
                 { icon: GraduationCap, label: 'Civic Education', to: '/c/CivicEducation', color: 'text-purple-400' },
-                { icon: HelpCircle, label: 'Help Center', to: '/help', color: 'text-green-400' },
+                { icon: HelpCircle, label: 'Help & Support', to: '/settings', color: 'text-green-400' },
                 { icon: Shield, label: 'Privacy Policy', to: '/privacy', color: 'text-zinc-400' },
               ].map(({ icon: Icon, label, to, color }) => (
                 <Button

@@ -137,7 +137,7 @@ export const DashboardOverview = () => {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        const { count: supportCount } = await (supabase as any)
+        const { count: supportCount } = await supabase
           .from('civic_action_supporters')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id);

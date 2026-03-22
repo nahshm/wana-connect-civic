@@ -407,7 +407,7 @@ const MyIncidentsSection = () => {
     <div className="space-y-2">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-muted-foreground">{incidents.length} incident{incidents.length !== 1 ? 's' : ''}</p>
-        <Button asChild size="sm" variant="outline"><Link to="/dashboard/report-incident"><Plus className="w-3.5 h-3.5 mr-1.5" />Report</Link></Button>
+        <Button asChild size="sm" variant="outline"><Link to="/report-incident"><Plus className="w-3.5 h-3.5 mr-1.5" />Report</Link></Button>
       </div>
 
       {incidents.map(incident => (

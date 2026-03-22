@@ -269,11 +269,11 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
       {/* Footer */}
       <div className="px-1">
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
-          <Link to="/help" className="hover:text-foreground transition-colors">Help</Link>
+          <Link to="/explore" className="hover:text-foreground transition-colors">About</Link>
+          <Link to="/settings" className="hover:text-foreground transition-colors">Help</Link>
           <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
           <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
-          <Link to="/rules" className="hover:text-foreground transition-colors">Rules</Link>
+          <Link to="/communities" className="hover:text-foreground transition-colors">Rules</Link>
         </div>
         <p className="text-xs text-muted-foreground/60 mt-2">ama Inc © 2026</p>
       </div>
