@@ -424,7 +424,7 @@ const PostDetail = () => {
           assignedAt: new Date(assignment.awarded_at),
         })) || [];
 
-        const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: any) => ({
+        const mediaItems: CommentMedia[] = commentData.comment_media?.map((m: CommentMediaRow) => ({
           id: m.id,
           commentId: commentData.id,
           filePath: m.file_path,
