@@ -592,5 +592,22 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }
                 )}
             </SheetContent>
         </Sheet>
+
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete Issue</DialogTitle>
+                    <DialogDescription>
+                        This will permanently delete your reported issue and all related data. This cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={deleteAction} disabled={deleteLoading}>
+                        {deleteLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Delete Issue
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
