@@ -179,7 +179,7 @@ export const AccountabilityTrackerWidget = () => {
               size="sm"
               className="w-full justify-center text-xs sm:text-sm bg-orange-50/50 hover:bg-orange-100/50 dark:bg-orange-950/10 dark:hover:bg-orange-950/20 border-orange-400/20 text-orange-700 dark:text-orange-300"
             >
-              <Link to="/accountability">
+              <Link to="/projects">
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Action Center
               </Link>
