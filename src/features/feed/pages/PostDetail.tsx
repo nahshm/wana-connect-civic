@@ -209,6 +209,9 @@ const PostDetail = () => {
           const userVote = commentVotes[commentData.id] || null;
 
           const awards: CommentAward[] = commentData.comment_award_assignments?.map((assignment: AwardAssignment) => ({
+            ...(() => {
+              const a = assignment;
+              return {
             id: assignment.comment_awards.id,
             name: assignment.comment_awards.name,
             displayName: assignment.comment_awards.display_name,
