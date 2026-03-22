@@ -441,6 +441,7 @@ const PostDetail = () => {
           postId: commentData.post_id,
           parentId: commentData.parent_id,
           createdAt: new Date(commentData.created_at),
+          updatedAt: commentData.updated_at ? new Date(commentData.updated_at) : undefined,
           upvotes: commentData.upvotes || 0,
           downvotes: commentData.downvotes || 0,
           userVote,
@@ -569,11 +570,35 @@ const PostDetail = () => {
     }
   };
 
+  const handleEditComment = async (commentId: string, newContent: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ content: newContent, updated_at: new Date().toISOString() })
+        .eq('id', commentId)
+        .eq('author_id', user.id);
+
+      if (error) throw error;
+
+      const updateContent = (comments: Comment[]): Comment[] =>
+        comments.map(c => {
+          if (c.id === commentId) return { ...c, content: newContent, updatedAt: new Date() } as any;
+          if (c.replies) return { ...c, replies: updateContent(c.replies) };
+          return c;
+        });
+
+      setComments(prev => updateContent(prev));
+    } catch (error) {
+      console.error('Error editing comment:', error);
+      toast({ title: "Error", description: "Failed to edit comment", variant: "destructive" });
+    }
+  };
+
   // PostCard handles DB calls for voting — this only updates parent state for sidebar stats
   const handleVote = (_postId: string, _voteType: 'up' | 'down') => {
     // PostCard manages optimistic UI + Supabase calls internally.
   };
-
 
   // Loading skeleton
   if (postLoading) {
@@ -654,6 +679,7 @@ const PostDetail = () => {
                 onAddComment={handleAddComment}
                 onVoteComment={handleVoteComment}
                 onDeleteComment={handleDeleteComment}
+                onEditComment={handleEditComment}
               />
             )}
 

@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
@@ -25,8 +27,16 @@ import {
     ThumbsUp,
     Share2,
     Users,
-    Loader2
+    Loader2,
+    Pencil,
+    Trash2
 } from 'lucide-react';
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface ActionDetail {
@@ -89,9 +99,10 @@ interface ActionDetailSheetProps {
     actionId: string | null;
     isOpen: boolean;
     onClose: () => void;
+    onActionDeleted?: () => void;
 }
 
-export const ActionDetailSheet = ({ actionId, isOpen, onClose }: ActionDetailSheetProps) => {
+export const ActionDetailSheet = ({ actionId, isOpen, onClose, onActionDeleted }: ActionDetailSheetProps) => {
     const { user } = useAuth();
     const authModal = useAuthModal();
     const navigate = useNavigate();
@@ -102,6 +113,11 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose }: ActionDetailShe
     const [loading, setLoading] = useState(false);
     const [hasSupported, setHasSupported] = useState(false);
     const [supporting, setSupporting] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ title: '', description: '', category: '', urgency: '' });
+    const [editSaving, setEditSaving] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         if (!isOpen || !actionId) return;
@@ -232,11 +248,69 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose }: ActionDetailShe
 
     const handleOpenChange = (open: boolean) => {
         if (!open) {
+            setIsEditing(false);
+            onClose();
+        }
+    };
+
+    const isOwner = user?.id === action?.user_id;
+    const canModify = isOwner && action?.status === 'submitted';
+
+    const startEditing = () => {
+        if (!action) return;
+        setEditData({
+            title: action.title,
+            description: action.description || '',
+            category: action.category,
+            urgency: action.urgency,
+        });
+        setIsEditing(true);
+    };
+
+    const saveEdit = async () => {
+        if (!action || !user) return;
+        setEditSaving(true);
+        const { error } = await supabase
+            .from('civic_actions')
+            .update({
+                title: editData.title.trim(),
+                description: editData.description.trim(),
+                category: editData.category,
+                urgency: editData.urgency,
+            })
+            .eq('id', action.id)
+            .eq('user_id', user.id);
+        setEditSaving(false);
+        if (error) {
+            toast({ title: 'Error', description: 'Failed to update issue', variant: 'destructive' });
+        } else {
+            setAction(prev => prev ? { ...prev, ...editData } : null);
+            setIsEditing(false);
+            toast({ title: 'Issue updated' });
+        }
+    };
+
+    const deleteAction = async () => {
+        if (!action || !user) return;
+        setDeleteLoading(true);
+        const { error } = await supabase
+            .from('civic_actions')
+            .delete()
+            .eq('id', action.id)
+            .eq('user_id', user.id);
+        setDeleteLoading(false);
+        setShowDeleteDialog(false);
+        if (error) {
+            toast({ title: 'Error', description: 'Failed to delete issue', variant: 'destructive' });
+        } else {
+            toast({ title: 'Issue deleted' });
+            onActionDeleted?.();
             onClose();
         }
     };
 
     return (
+        <>
         <Sheet open={isOpen} onOpenChange={handleOpenChange}>
             <SheetContent className="w-full sm:max-w-xl md:max-w-2xl overflow-y-auto px-4 sm:px-6">
                 <SheetHeader className="mb-6 mt-4">
@@ -384,7 +458,49 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose }: ActionDetailShe
                                         <Share2 className="w-4 h-4 mr-2 text-muted-foreground" />
                                         Share Alert
                                     </Button>
+
+                                    {/* Author edit/delete buttons */}
+                                    {canModify && (
+                                        <>
+                                            <Button variant="outline" onClick={startEditing} className="h-11">
+                                                <Pencil className="w-4 h-4 mr-2" />Edit
+                                            </Button>
+                                            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} className="h-11">
+                                                <Trash2 className="w-4 h-4 mr-2" />Delete
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
+
+                                {/* Inline edit form */}
+                                {isEditing && (
+                                    <div className="space-y-3 p-4 rounded-xl border border-primary/30 bg-primary/5">
+                                        <Input value={editData.title} onChange={e => setEditData(d => ({ ...d, title: e.target.value }))} placeholder="Title" maxLength={200} />
+                                        <Textarea value={editData.description} onChange={e => setEditData(d => ({ ...d, description: e.target.value }))} placeholder="Description" maxLength={5000} className="min-h-[80px]" />
+                                        <div className="flex gap-2">
+                                            <Select value={editData.category} onValueChange={v => setEditData(d => ({ ...d, category: v }))}>
+                                                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select value={editData.urgency} onValueChange={v => setEditData(d => ({ ...d, urgency: v }))}>
+                                                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Urgency" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="low">Low</SelectItem>
+                                                    <SelectItem value="medium">Medium</SelectItem>
+                                                    <SelectItem value="high">High</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button size="sm" onClick={saveEdit} disabled={editSaving || !editData.title.trim()}>
+                                                {editSaving && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}Save Changes
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Community Support Box */}
                                 {action.support_count > 0 && (
@@ -477,5 +593,23 @@ export const ActionDetailSheet = ({ actionId, isOpen, onClose }: ActionDetailShe
                 )}
             </SheetContent>
         </Sheet>
+
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete Issue</DialogTitle>
+                    <DialogDescription>
+                        This will permanently delete your reported issue and all related data. This cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={deleteAction} disabled={deleteLoading}>
+                        {deleteLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Delete Issue
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 };

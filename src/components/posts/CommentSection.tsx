@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUp, ArrowDown, MessageSquare, Reply, Share2, LogIn, Trash2, ExternalLink } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowUp, ArrowDown, MessageSquare, Reply, Share2, LogIn, Trash2, ExternalLink, Pencil } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { CommentAwardDisplay } from './CommentAwardDisplay';
@@ -22,6 +23,7 @@ interface CommentSectionProps {
   onAddComment?: (content: string, parentId?: string, mediaFiles?: UploadedMedia[]) => void;
   onVoteComment?: (commentId: string, vote: 'up' | 'down') => void;
   onDeleteComment?: (commentId: string) => void;
+  onEditComment?: (commentId: string, newContent: string) => void;
 }
 
 interface CommentItemProps {
@@ -29,6 +31,7 @@ interface CommentItemProps {
   onReply?: (content: string, parentId: string, mediaFiles?: UploadedMedia[]) => void;
   onVote?: (commentId: string, vote: 'up' | 'down') => void;
   onDelete?: (commentId: string) => void;
+  onEdit?: (commentId: string, newContent: string) => void;
   depth?: number;
 }
 
@@ -94,12 +97,16 @@ function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
   );
 }
 
-const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentItemProps) => {
+const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: CommentItemProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
   const handleReply = (content: string, mediaFiles?: UploadedMedia[]) => {
     onReply?.(content, comment.id, mediaFiles);
@@ -120,10 +127,19 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
     setConfirmDelete(false);
   };
 
+  const handleSaveEdit = () => {
+    if (!editContent.trim()) return;
+    onEdit?.(comment.id, editContent.trim());
+    setIsEditing(false);
+    toast({ title: "Comment updated" });
+  };
+
   const getVoteScore = () => comment.upvotes - comment.downvotes;
   const maxDepth = 6;
   const shouldShowReplies = depth < maxDepth && comment.replies && comment.replies.length > 0;
   const isOwner = user?.id === comment.author.id;
+  const canEdit = isOwner && (Date.now() - new Date(comment.createdAt).getTime() < EDIT_WINDOW_MS);
+  const isEdited = comment.createdAt && (new Date(comment.createdAt).getTime() + 1000) < Date.now(); // placeholder — real check below
 
   const threadColors = [
     'border-primary/30',
@@ -145,7 +161,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
         {shouldShowReplies && (
           <div>
             {comment.replies!.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} depth={depth + 1} />
+              <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} onEdit={onEdit} depth={depth + 1} />
             ))}
           </div>
         )}
@@ -184,6 +200,10 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
           <span className="text-muted-foreground">
             {formatDistanceToNow(comment.createdAt, { addSuffix: true }).replace('about ', '')}
           </span>
+          {/* Edited indicator — check if comment object has an updatedAt that's > createdAt */}
+          {(comment as any).updatedAt && new Date((comment as any).updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000 && (
+            <span className="text-muted-foreground italic text-[10px]">(edited)</span>
+          )}
           {depth === 0 && (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -196,11 +216,27 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
 
         {!isCollapsed && (
           <>
-            {/* Content */}
-            <SafeContentRenderer
-              content={comment.content || ''}
-              className="text-sm leading-relaxed text-foreground/90 mb-1.5"
-            />
+            {/* Content — inline edit or display */}
+            {isEditing ? (
+              <div className="mb-2 space-y-2">
+                <Textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  className="text-sm min-h-[60px]"
+                  maxLength={5000}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSaveEdit} disabled={!editContent.trim()}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setIsEditing(false); setEditContent(comment.content); }}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <SafeContentRenderer
+                content={comment.content || ''}
+                className="text-sm leading-relaxed text-foreground/90 mb-1.5"
+              />
+            )}
 
             {/* Media attachments */}
             {comment.media && comment.media.length > 0 && (
@@ -255,6 +291,16 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
                 <Share2 className="h-3 w-3" />
               </button>
 
+              {canEdit && !isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors font-medium"
+                  title="Edit (15 min window)"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+
               {isOwner && (
                 <button
                   onClick={handleDelete}
@@ -295,7 +341,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
       {shouldShowReplies && !isCollapsed && (
         <div>
           {comment.replies!.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} depth={depth + 1} />
+            <CommentItem key={reply.id} comment={reply} onReply={onReply} onVote={onVote} onDelete={onDelete} onEdit={onEdit} depth={depth + 1} />
           ))}
         </div>
       )}
@@ -303,7 +349,7 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, depth = 0 }: CommentI
   );
 };
 
-export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment, onDeleteComment }: CommentSectionProps) => {
+export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComment, onDeleteComment, onEditComment }: CommentSectionProps) => {
   const [sortBy, setSortBy] = useState<'best' | 'top' | 'new'>('best');
   const { user } = useAuth();
   const authModal = useAuthModal();
@@ -386,6 +432,7 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
               onReply={handleReply}
               onVote={onVoteComment}
               onDelete={onDeleteComment}
+              onEdit={onEditComment}
             />
           ))
         )}

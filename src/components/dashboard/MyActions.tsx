@@ -357,7 +357,11 @@ export const MyActions = () => {
             <ActionDetailSheet 
                 actionId={selectedActionId} 
                 isOpen={!!selectedActionId} 
-                onClose={() => setSelectedActionId(null)} 
+                onClose={() => setSelectedActionId(null)}
+                onActionDeleted={() => {
+                    setSelectedActionId(null);
+                    fetchActions();
+                }}
             />
         </Card>
     );

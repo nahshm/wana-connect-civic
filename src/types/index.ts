@@ -111,6 +111,7 @@ export interface Comment {
   };
   parentId?: string;
   createdAt: Date;
+  updatedAt?: Date;
   upvotes: number;
   downvotes: number;
   userVote?: 'up' | 'down' | null;

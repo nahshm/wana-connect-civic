@@ -3,11 +3,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageTour } from '@/components/tour/PageTour';
 import { DASHBOARD_TOUR_KEY, DASHBOARD_TOUR_STEPS } from '@/components/tour/DashboardTourSteps';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutGrid, FileText, Users, Target, BarChart3, GraduationCap, Shield,
-  Phone, HelpCircle, Megaphone, Sword, AlertCircle, FolderOpen } from 'lucide-react';
+import { LayoutGrid, FileText, Users, Sword, Shield,
+  Phone, HelpCircle, Megaphone, FolderOpen, Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { GraduationCap } from 'lucide-react';
 
 // Dashboard components
 import { CitizenIdentityPanel } from '@/components/dashboard/CitizenIdentityPanel';
@@ -17,7 +18,8 @@ import { DashboardQuestWidget } from '@/components/dashboard/DashboardQuestWidge
 import { DashboardLeaderboardWidget } from '@/components/dashboard/DashboardLeaderboardWidget';
 import { MyActions } from '@/components/dashboard/MyActions';
 import { CommunityIssuesFeed } from '@/components/dashboard/CommunityIssuesFeed';
-import { MyIssuesTab, MyProjectsTab, ModToolsTab } from '@/components/dashboard/PersonalActionTabs';
+import { MyProjectsTab, ModToolsTab } from '@/components/dashboard/PersonalActionTabs';
+import { MyContentTab } from '@/components/dashboard/MyContentTab';
 
 const CivicDashboard = () => {
   const { user } = useAuth();
@@ -79,9 +81,9 @@ const CivicDashboard = () => {
           {/* Quick Action Bar */}
           <div data-tour="tour-quick-actions"><QuickActionBar /></div>
 
-          {/* Tabbed Content */}
+          {/* Tabbed Content — consolidated from 7 to 6 tabs (removed duplicate Issues) */}
           <Tabs data-tour="tour-dashboard-tabs" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full flex overflow-x-auto sm:grid sm:grid-cols-7 h-10 bg-muted/50 rounded-xl p-1 no-scrollbar">
+            <TabsList className="w-full flex overflow-x-auto sm:grid sm:grid-cols-6 h-10 bg-muted/50 rounded-xl p-1 no-scrollbar">
               <TabsTrigger value="overview" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <LayoutGrid className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Overview</span>
@@ -89,10 +91,6 @@ const CivicDashboard = () => {
               <TabsTrigger value="my-actions" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <FileText className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Actions</span>
-              </TabsTrigger>
-              <TabsTrigger value="my-issues" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Issues</span>
               </TabsTrigger>
               <TabsTrigger value="my-projects" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <FolderOpen className="w-3.5 h-3.5" />
@@ -102,13 +100,13 @@ const CivicDashboard = () => {
                 <Users className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Community</span>
               </TabsTrigger>
+              <TabsTrigger value="my-content" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Inbox className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">My Content</span>
+              </TabsTrigger>
               <TabsTrigger value="quests" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Sword className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Quests</span>
-              </TabsTrigger>
-              <TabsTrigger value="mod-tools" className="rounded-lg text-xs gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Shield className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Mod</span>
               </TabsTrigger>
             </TabsList>
 
@@ -122,12 +120,7 @@ const CivicDashboard = () => {
               <MyActions />
             </TabsContent>
 
-            {/* My Issues Tab — civic actions reported by this user */}
-            <TabsContent value="my-issues" className="mt-4">
-              <MyIssuesTab />
-            </TabsContent>
-
-            {/* My Projects Tab — government projects created by this user */}
+            {/* My Projects Tab */}
             <TabsContent value="my-projects" className="mt-4">
               <MyProjectsTab />
             </TabsContent>
@@ -137,14 +130,14 @@ const CivicDashboard = () => {
               <CommunityIssuesFeed />
             </TabsContent>
 
+            {/* My Content Tab — Posts, Comments, Incidents */}
+            <TabsContent value="my-content" className="mt-4">
+              <MyContentTab />
+            </TabsContent>
+
             {/* Quests Tab */}
             <TabsContent value="quests" className="mt-4">
               <DashboardQuestWidget fullView />
-            </TabsContent>
-
-            {/* Mod Tools Tab — for community admins/moderators */}
-            <TabsContent value="mod-tools" className="mt-4">
-              <ModToolsTab />
             </TabsContent>
           </Tabs>
         </main>
