@@ -783,7 +783,40 @@ function KnowledgeBaseSubTab() {
         <p className="text-sm text-muted-foreground">{isDragActive ? 'Drop files here...' : 'Drag & drop .txt, .md, or .csv files'}</p>
       </div>
 
-      {addingDoc && (
+      {showUrlIngest && (
+        <Card className="border-dashed border-2 border-primary/40">
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Link className="w-4 h-4" />Ingest from URL</CardTitle>
+            <CardDescription>Paste any URL — PDFs, web pages, and documents are supported via AI text extraction.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label className="text-sm">URL *</Label>
+              <Input value={urlIngest.url} onChange={e => setUrlIngest({ ...urlIngest, url: e.target.value })} placeholder="https://example.com/document.pdf" className="mt-1" type="url" />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm">Title (optional)</Label>
+                <Input value={urlIngest.title} onChange={e => setUrlIngest({ ...urlIngest, title: e.target.value })} placeholder="E.g. Kenya Constitution 2010" className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-sm">Source Type</Label>
+                <select value={urlIngest.source_type} onChange={e => setUrlIngest({ ...urlIngest, source_type: e.target.value })}
+                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                  {ragSourceTypes.filter(s => s !== 'all').map(st => (
+                    <option key={st} value={st}>{st.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowUrlIngest(false)}>Cancel</Button>
+              <Button disabled={urlIngesting} onClick={handleUrlIngest}>
+                {urlIngesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Globe className="w-4 h-4 mr-2" />}Ingest URL
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
         <Card className="border-dashed border-2 border-primary/40">
           <CardHeader><CardTitle className="text-base">Add Knowledge Document</CardTitle></CardHeader>
           <CardContent className="space-y-3">
