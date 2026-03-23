@@ -270,6 +270,47 @@ export function DataSourcesPanel() {
           })}
         </div>
       )}
+
+      {/* Scout Findings */}
+      <Collapsible open={findingsOpen} onOpenChange={setFindingsOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            <span className="flex items-center gap-2">
+              <FileSearch className="w-4 h-4" />Scout Findings
+              {findings?.length ? <Badge variant="secondary" className="text-xs">{findings.length}</Badge> : null}
+            </span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${findingsOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-2 space-y-2">
+          {findingsLoading ? (
+            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : !findings?.length ? (
+            <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">
+              No scout findings yet. Add data sources above and trigger civic-scout from the Agents tab.
+            </CardContent></Card>
+          ) : (
+            findings.map((f: any) => (
+              <div key={f.id} className="p-3 border rounded-lg">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="text-[10px] capitalize">{f.category}</Badge>
+                  <span className="text-sm font-medium truncate flex-1">{f.title}</span>
+                  {f.relevance_score != null && (
+                    <span className="text-xs text-muted-foreground">Score: {f.relevance_score}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">{new Date(f.created_at).toLocaleDateString()}</span>
+                </div>
+                {f.source_url && (
+                  <a href={f.source_url} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                    <ExternalLink className="w-3 h-3" />{f.source_url}
+                  </a>
+                )}
+              </div>
+            ))
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
