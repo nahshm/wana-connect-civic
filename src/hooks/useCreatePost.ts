@@ -147,7 +147,7 @@ export function useCreatePost() {
       if (postData.contentSensitivity === 'crisis') {
         try {
           const reportId = `CR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-          await supabase.from('crisis_reports').insert({
+          await supabase.from('crisis_reports').insert([{
             report_id: reportId,
             title: postData.title || 'Crisis Post',
             description: postData.content?.substring(0, 500) || null,
@@ -155,7 +155,7 @@ export function useCreatePost() {
             severity: 'high',
             status: 'active',
             post_id: postId,
-          } as unknown as object);
+          }]);
         } catch (crisisErr) {
           console.error('Failed to create crisis report:', crisisErr);
         }

@@ -321,10 +321,18 @@ function AgentDirectorySubTab() {
                   </span>
                 </div>
                 <Button size="sm" variant="outline" className="w-full gap-1 text-xs"
+                  disabled={['civic-brain', 'civic-router', 'civic-ingest'].includes(agent.name)}
+                  title={['civic-brain', 'civic-router', 'civic-ingest'].includes(agent.name) ? 'Real-time only — requires user input' : `Trigger ${agent.displayName}`}
                   onClick={async () => {
+                    const payloads: Record<string, object> = {
+                      'civic-steward': { trigger: 'webhook', since_hours: 1 },
+                      'civic-minion': { trigger: 'cron' },
+                      'civic-scout': { trigger: 'cron' },
+                      'civic-quill': { trigger: 'cron' },
+                    };
                     toast.info(`Triggering ${agent.displayName}...`);
                     const { error } = await supabase.functions.invoke(agent.name, {
-                      body: { mode: 'manual', triggered_by: 'admin_dashboard' },
+                      body: payloads[agent.name] || { trigger: 'manual' },
                     });
                     if (error) toast.error(`Failed: ${error.message}`);
                     else toast.success(`${agent.displayName} triggered successfully`);
