@@ -1,121 +1,108 @@
 
 
-# Wire Scout Data Pipeline — Separated Architecture
+# Intelligence Hub + Civic Publisher — Revised Plan
 
 ## Summary
 
-The user's critique is correct. civic-scout is already doing scrape → parse → classify × N. Adding embedding + clustering + quill triggers into the same function creates a fragile monolith with no recovery path. The fix is to separate concerns into 3 clean layers.
+New admin "Intelligence" section + `civic-publisher` edge function that converts scout findings into localized community posts. All 6 gaps from the review are addressed.
 
-## Architecture
+## Gap Resolutions
+
+| Gap | Resolution |
+|-----|------------|
+| **1. Seed mode auto-approves scandals** | Add `requires_review BOOLEAN DEFAULT false` to `publisher_templates`. Seed mode checks this flag per category — scandal/promise templates default to `requires_review=true`, so those always go to `pending_review` even in seed mode |
+| **2. Scope resolution underspecified** | Add `resolveScope()` to `_shared/agentUtils.ts` with 3 explicit rules: ward-level → exact match, county-level → all communities with `location_value=county`, national → all communities. Queries `communities` table using `location_type` + `location_value` columns |
+| **3. Seed post backdating** | Seed mode sets `created_at = NOW() - (index * interval '18 hours')` per post. 5 posts = ~3.5 days of apparent history |
+| **4. Model string verification** | Use `google/gemini-3-flash-preview` via Lovable AI Gateway (confirmed available). Store `fallback_model` in `agent_state` for civic-publisher |
+| **5. Dedup queries wrong table** | Use **Option A**: dedup against `scout_findings WHERE published=true` using existing embeddings from vectors table where `source='scout'`. Same source data, correct similarity check |
+| **6. Bulk publish rate limit** | Bulk "Publish" writes finding IDs to `agent_state` as `civic-publisher/publish_queue`. Publisher processes max 10 per invocation. UI shows "Queued" badge |
+
+## Database Migrations (4)
+
+**Migration 1 — Posts table**: Add `auto_generated BOOLEAN DEFAULT false`, `finding_id UUID REFERENCES scout_findings(id)`, `published_by_agent TEXT`
+
+**Migration 2 — publisher_templates table**:
+```sql
+CREATE TABLE publisher_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL UNIQUE,
+  system_prompt TEXT NOT NULL,
+  output_format JSONB DEFAULT '{}',
+  example_good TEXT,
+  example_bad TEXT,
+  requires_review BOOLEAN DEFAULT false,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+RLS: admin-only CRUD via `is_admin()`. Seed 6 default templates (budget, project, scandal, promise, policy, tender) with scandal and promise having `requires_review=true`.
+
+**Migration 3 — communities**: Add `publisher_context TEXT`
+
+**Migration 4 — scout_findings**: Add `published BOOLEAN DEFAULT false`
+
+## New Edge Function: `civic-publisher/index.ts`
+
+Two modes via request body:
+- **Ongoing** `{ trigger: 'cron' }`: Finds `processed=true AND published=false AND relevance_score >= 0.7`, max 2 posts per community
+- **Seed** `{ seed: true, community_id }`: Last 30 days, relevance >= 0.5, max 5 posts, backdated
+
+Per finding:
+1. `resolveScope(finding)` → list of matching community IDs
+2. Dedup: `embedText(title+summary)`, check similarity against `scout_findings WHERE published=true` embeddings. Skip if > 0.91
+3. Load `publisher_templates` for category. Inject community `publisher_context`. Call Lovable AI Gateway
+4. Insert into `posts` with `auto_generated=true`, `finding_id`, `published_by_agent='civic-publisher'`, `author_id` = service account
+5. If template `requires_review=true` → `moderation_status='pending_review'`, else in seed mode → `'approved'`, in ongoing mode → `'pending_review'`
+6. Mark `scout_findings.published=true`
+
+Uses `LOVABLE_API_KEY` for LLM calls.
+
+## New Admin Section: `IntelligenceSection.tsx`
+
+Added as section between AI Command and Accountability in SuperAdminDashboard.
+
+**4 sub-tabs:**
+
+**A. Findings Review**: Table of `scout_findings` with category/county filters, embedded/processed/published status badges. Row action: "Publish to Communities" (single finding → invoke civic-publisher). Bulk action: queues finding IDs to `agent_state`, shows "Queued" badge, publisher processes max 10 per run.
+
+**B. Auto-Generated Posts**: Query `posts WHERE auto_generated=true`. Shows community, moderation_status, source finding. Actions: Approve, Edit, Reject.
+
+**C. Publisher Templates**: CRUD for `publisher_templates` — edit system_prompt, examples, requires_review toggle. Preview: paste finding text, call civic-publisher in dry-run mode, show output.
+
+**D. Publisher Settings**: Global auto-publish toggle (agent_state), daily cap slider, relevance threshold, seed trigger (select community → "Seed"), community context editor.
+
+## CivicIntelligenceCard.tsx Update
+
+Existing card already has category badge, relevance score, source link. Add:
+- `auto_generated` prop → shows "AI Generated" badge with Bot icon
+- `source_attribution` prop → shows "via Nation Africa" etc.
+- Used in community feed when rendering auto-generated posts
+
+## Shared Utility: `resolveScope()` in `_shared/agentUtils.ts`
 
 ```text
-civic-scout (scrape + classify only)
-       │
-       ├── inserts scout_findings (embedded=false, processed=false)
-       └── emits "ingest_complete" event when done
-       
-civic-processor (new, idempotent cron)
-       │
-       ├── Step 1: embed unembedded findings → vectors table
-       │           marks embedded=true
-       │
-       └── Step 2: cluster unprocessed findings by category
-                   assigns cluster_id UUID to each group
-                   calls civic-quill per cluster
-                   marks processed=true
+resolveScope(finding) → { community_ids: string[] }
 
-_shared/embeddings.ts (new, shared module)
-       └── embedText() + embedAndInsert() — used by civic-ingest AND civic-processor
+Rules:
+1. finding.related_to = 'ward' → communities WHERE location_type='ward' AND location_value=finding.related_name
+2. finding.related_to = 'county' OR finding.county set → communities WHERE location_type='county' AND location_value=finding.county
+   PLUS communities WHERE location_type='ward' AND location_value IN (wards of that county)
+3. finding.related_to = 'national' or no geographic info → all communities
 ```
 
-## Changes
-
-### Migration: Add columns to scout_findings
-
-```sql
-ALTER TABLE scout_findings ADD COLUMN IF NOT EXISTS cluster_id UUID;
-ALTER TABLE scout_findings ADD COLUMN IF NOT EXISTS processor_run_id UUID;
-```
-
-### File 1: CREATE `supabase/functions/_shared/embeddings.ts`
-
-Extract the embedding logic already in civic-ingest (lines 206-218) into a shared module:
-
-- `embedText(text: string): Promise<number[]>` — calls OpenAI text-embedding-ada-002, returns vector
-- `embedAndInsert(client, chunks: {content, title, metadata}[]): Promise<{inserted: number, failed: number}>` — embeds + inserts into vectors table with rate limiting
-
-civic-ingest will import from this instead of inline code. civic-processor will use the same functions.
-
-### File 2: EDIT `supabase/functions/civic-scout/index.ts`
-
-Minimal change — scout stays focused on scraping:
-- Remove any future post-processing code paths
-- After scraping completes, emit `ingest_complete` event (already does this at line 284) — no change needed
-- Update JSDoc to clarify "scrape + classify only, downstream processing handled by civic-processor"
-
-### File 3: CREATE `supabase/functions/civic-processor/index.ts`
-
-New idempotent edge function with two pipelines:
-
-**Embedding pipeline:**
-1. Query `scout_findings WHERE embedded = false LIMIT 20`
-2. For each: call `embedText(title + ' ' + summary)` from shared embeddings.ts
-3. Insert into `vectors` table with source metadata (`source: 'scout'`, finding ID, category)
-4. Update `embedded = true` on the finding
-
-**Clustering pipeline:**
-1. Query `scout_findings WHERE processed = false AND embedded = true`
-2. Group by `category` (budget findings together, scandal findings together, etc.)
-3. For each group ≥ 2 findings:
-   - Generate a `cluster_id` UUID
-   - Update all findings in the group with that `cluster_id` and `processor_run_id`
-   - Call civic-quill with `{ cluster_id, issues: [summaries], ward }` 
-   - Mark all as `processed = true`
-4. Single findings (group size 1): mark `processed = true` but skip quill (not enough to cluster)
-
-**Recovery**: Because it reads `embedded = false` / `processed = false`, re-running is always safe. Failed embeddings stay unembedded; failed clusters stay unprocessed.
-
-### File 4: EDIT `supabase/functions/civic-ingest/index.ts`
-
-Replace inline embedding code (lines 206-218) with import from `_shared/embeddings.ts`. Functional behavior unchanged — just DRY.
-
-### File 5: EDIT `supabase/config.toml`
-
-Add civic-processor registration:
-```toml
-[functions.civic-processor]
-verify_jwt = false
-```
-
-### File 6: EDIT `src/features/admin/pages/components/DataSourcesPanel.tsx`
-
-Enhance scout findings section:
-- Show `embedded` and `processed` status badges per finding (green check / grey pending)
-- Add "Run Processor" button that invokes `civic-processor` via `supabase.functions.invoke`
-- Add delete button per finding
-- Add `cluster_id` display when present (shows which findings were grouped together)
-
-### File 7: CREATE `src/components/civic/CivicIntelligenceCard.tsx`
-
-Reusable card for displaying scout findings to users:
-- Props: title, summary, category, relevance_score, source_url, created_at
-- Badge for category, link to source, relevance indicator
-- Used on community feeds and official profile pages
-
----
-
-## Files Summary
+## Files
 
 | Action | File | What |
 |--------|------|------|
-| MIGRATION | `scout_findings` | Add `cluster_id` and `processor_run_id` UUID columns |
-| CREATE | `supabase/functions/_shared/embeddings.ts` | Shared `embedText()` + `embedAndInsert()` |
-| CREATE | `supabase/functions/civic-processor/index.ts` | Idempotent cron: embed → cluster → trigger quill |
-| EDIT | `supabase/functions/civic-ingest/index.ts` | Import embeddings from shared module |
-| EDIT | `supabase/functions/civic-scout/index.ts` | JSDoc cleanup only — already correct |
-| EDIT | `supabase/config.toml` | Register civic-processor |
-| EDIT | `DataSourcesPanel.tsx` | Embedded/processed badges, delete, run processor button |
-| CREATE | `CivicIntelligenceCard.tsx` | Public-facing finding card |
+| MIGRATION | 4 migrations | posts columns, publisher_templates + seed data, communities.publisher_context, scout_findings.published |
+| CREATE | `supabase/functions/civic-publisher/index.ts` | Two-mode publisher with scope resolution, dedup, LLM rewrite |
+| CREATE | `src/features/admin/pages/components/IntelligenceSection.tsx` | Full 4-tab admin Intelligence section |
+| EDIT | `src/features/admin/pages/SuperAdminDashboard.tsx` | Add Intelligence section to nav |
+| EDIT | `supabase/functions/_shared/agentUtils.ts` | Add `resolveScope()` helper |
+| EDIT | `src/features/admin/pages/components/AICommandSection.tsx` | Register civic-publisher in agent registry + trigger payloads |
+| EDIT | `supabase/config.toml` | Register civic-publisher |
+| EDIT | `src/components/civic/CivicIntelligenceCard.tsx` | Add auto_generated badge + source attribution |
 
-Total: 1 migration, 3 new files, 4 edits.
+Total: 4 migrations, 2 new files, 5 edits.
 
