@@ -125,6 +125,7 @@ const App = () => (
                             <Route path="/dashboard/actions/:id" element={<ActionDetail />} />
                             <Route path="/dashboard/analytics" element={<Analytics />} />
                             <Route path="/create" element={<CreatePost />} />
+                            <Route path="/create-post" element={<CreatePost />} />
                             <Route path="/submit" element={<CreatePost />} />
                             <Route path="/post/:id" element={<PostDetail />} />
                             <Route path="/edit-post/:id" element={<EditPost />} />

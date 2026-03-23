@@ -28,6 +28,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   civic_reference: Flag,
   user_warning: AlertTriangle,
   accountability_alert: AlertTriangle,
+  chat_message: MessageSquare,
 };
 
 export const NotificationDropdown = () => {
@@ -76,12 +77,34 @@ export const NotificationDropdown = () => {
           setUnreadCount(prev => prev + 1);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'comment_notifications',
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updatedNotif = payload.new as Notification;
+
+          setNotifications(prev => prev.map(notif =>
+            notif.id === updatedNotif.id ? updatedNotif : notif
+          ));
+          setUnreadCount(prev => {
+            const existing = notifications.find(notif => notif.id === updatedNotif.id);
+            if (!existing) return prev;
+            if (!!existing.is_read === !!updatedNotif.is_read) return prev;
+            return updatedNotif.is_read ? Math.max(0, prev - 1) : prev + 1;
+          });
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, notifications]);
 
   const markAllRead = async () => {
     if (!user || unreadCount === 0) return;
@@ -112,7 +135,11 @@ export const NotificationDropdown = () => {
     // Navigate if action URL exists
     if (notif.action_url) {
       setOpen(false);
-      navigate(notif.action_url);
+      if (notif.notification_type === 'chat_message') {
+        navigate('/chat');
+      } else {
+        navigate(notif.action_url);
+      }
     }
   };
 
@@ -173,6 +200,9 @@ export const NotificationDropdown = () => {
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
+                      {notif.title ? (
+                        <p className="text-xs font-medium text-foreground/80 mb-1 truncate">{notif.title}</p>
+                      ) : null}
                       <p className={cn(
                         'text-sm leading-tight',
                         !notif.is_read && 'font-medium'

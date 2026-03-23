@@ -19,6 +19,7 @@ export default function Chat() {
     setSelectedChatId(chatId);
     setSelectedChatType(type);
     setIsNewChat(false);
+    setRefreshKey(k => k + 1);
   };
 
   const handleNewChat = () => {
@@ -59,7 +60,9 @@ export default function Chat() {
           if (directRooms?.[0]) {
             setSelectedChatId(directRooms[0].id);
             setSelectedChatType('direct');
+            setActiveTab('direct');
             setIsNewChat(false);
+            setRefreshKey(k => k + 1);
             return;
           }
         }
@@ -85,13 +88,14 @@ export default function Chat() {
 
       setSelectedChatId(room.id);
       setSelectedChatType('direct');
+      setActiveTab('direct');
       setIsNewChat(false);
       setRefreshKey(k => k + 1);
     } catch (error) {
       console.error('Error starting chat:', error);
       toast({
         title: 'Error',
-        description: 'Failed to start chat.',
+        description: error instanceof Error ? error.message : 'Failed to start chat.',
         variant: 'destructive',
       });
     }
@@ -139,6 +143,10 @@ export default function Chat() {
 
   const handleChatDeleted = () => {
     setSelectedChatId(undefined);
+    setRefreshKey(k => k + 1);
+  };
+
+  const handleChatReadStateChange = () => {
     setRefreshKey(k => k + 1);
   };
 
@@ -191,6 +199,7 @@ export default function Chat() {
             chatId={selectedChatId}
             type={selectedChatType}
             onChatDeleted={handleChatDeleted}
+            onReadStateChange={handleChatReadStateChange}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">

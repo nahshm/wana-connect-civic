@@ -29,9 +29,10 @@ interface ChatWindowProps {
   chatId: string;
   type: 'direct' | 'group' | 'mod_mail';
   onChatDeleted?: () => void;
+  onReadStateChange?: () => void;
 }
 
-export const ChatWindow = ({ chatId, type, onChatDeleted }: ChatWindowProps) => {
+export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: ChatWindowProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
@@ -42,13 +43,34 @@ export const ChatWindow = ({ chatId, type, onChatDeleted }: ChatWindowProps) => 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Mark chat as read
-  const markAsRead = async () => {
+  const markAsRead = async (chatName?: string | null) => {
     if (!user || !chatId || type === 'mod_mail') return;
-    await supabase
+    const { error } = await supabase
       .from('chat_participants')
       .update({ last_read_at: new Date().toISOString() })
       .eq('room_id', chatId)
       .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error marking chat as read:', error);
+      return;
+    }
+
+    if (type === 'direct' && chatName) {
+      const { error: notificationError } = await supabase
+        .from('comment_notifications')
+        .update({ is_read: true })
+        .eq('recipient_id', user.id)
+        .eq('notification_type', 'chat_message')
+        .eq('is_read', false)
+        .like('message', `${chatName}:%`);
+
+      if (notificationError) {
+        console.error('Error marking chat notifications as read:', notificationError);
+      }
+    }
+
+    onReadStateChange?.();
   };
 
   useEffect(() => {
@@ -128,20 +150,23 @@ export const ChatWindow = ({ chatId, type, onChatDeleted }: ChatWindowProps) => 
                 .eq('id', participants[0].user_id)
                 .single();
 
+              const resolvedName = otherProfile?.display_name || otherProfile?.username || 'Chat';
+
               setChatDetails({
                 ...room,
-                name: otherProfile?.display_name || otherProfile?.username || 'Chat',
+                name: resolvedName,
                 avatar_url: otherProfile?.avatar_url,
               });
+
+              await markAsRead(resolvedName);
             } else {
               setChatDetails(room);
+              await markAsRead(room.name);
             }
           } else {
             setChatDetails(room);
+            await markAsRead(room?.name);
           }
-
-          // Mark as read when opening
-          markAsRead();
         }
       } finally {
         setLoading(false);
@@ -173,7 +198,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted }: ChatWindowProps) => 
           }
           setMessages((prev) => [...prev, newMsg]);
           // Mark as read when receiving messages while chat is open
-          markAsRead();
+          void markAsRead(chatDetails?.name);
         }
       )
       .subscribe();
@@ -181,7 +206,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted }: ChatWindowProps) => 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [chatId, type, user]);
+  }, [chatId, type, user, onReadStateChange]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -208,7 +233,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted }: ChatWindowProps) => 
           content: newMessage
         });
         // Update last_read_at after sending
-        markAsRead();
+        await markAsRead(chatDetails?.name);
       }
       setNewMessage('');
     } catch (error) {
@@ -224,18 +249,38 @@ export const ChatWindow = ({ chatId, type, onChatDeleted }: ChatWindowProps) => 
         return;
       }
 
-      // Delete all messages in room first
-      await supabase.from('chat_messages').delete().eq('room_id', chatId);
-      // Remove all participants
-      await supabase.from('chat_participants').delete().eq('room_id', chatId).eq('user_id', user.id);
-      // Delete the room if user created it
-      await supabase.from('chat_rooms').delete().eq('id', chatId);
+      const { error: messageDeleteError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('room_id', chatId)
+        .eq('sender_id', user.id);
 
-      toast({ title: 'Chat deleted' });
+      if (messageDeleteError) throw messageDeleteError;
+
+      const { error: participantDeleteError } = await supabase
+        .from('chat_participants')
+        .delete()
+        .eq('room_id', chatId)
+        .eq('user_id', user.id);
+
+      if (participantDeleteError) throw participantDeleteError;
+
+      await supabase
+        .from('comment_notifications')
+        .update({ is_read: true })
+        .eq('recipient_id', user.id)
+        .eq('notification_type', 'chat_message')
+        .eq('is_read', false);
+
+      toast({ title: type === 'group' ? 'You left the chat' : 'Conversation removed' });
       onChatDeleted?.();
     } catch (error) {
       console.error('Error deleting chat:', error);
-      toast({ title: 'Failed to delete chat', variant: 'destructive' });
+      toast({
+        title: 'Failed to delete chat',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive'
+      });
     }
     setDeleteDialogOpen(false);
   };
