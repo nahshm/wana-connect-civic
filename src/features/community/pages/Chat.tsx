@@ -113,7 +113,7 @@ export default function Chat() {
       if (roomError) throw roomError;
 
       const participants = [user.id, ...memberIds].map(uid => ({
-        room_id: room.id,
+        room_id: roomId,
         user_id: uid,
       }));
 
