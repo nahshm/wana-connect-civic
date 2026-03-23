@@ -1,9 +1,12 @@
 /**
- * civic-scout — Intelligence Collection Agent
+ * civic-scout — Intelligence Collection Agent (scrape + classify only)
  *
  * Two modes:
- *   cron: Reads active sources from data_sources table, scrapes each, embeds findings.
+ *   cron: Reads active sources from data_sources table, scrapes each, classifies findings.
  *   fact_check: HTTP POST { promise_id } — fetches news related to a specific promise.
+ *
+ * Downstream processing (embedding, clustering, quill triggers) is handled by
+ * civic-processor, a separate idempotent cron function.
  *
  * Sources are admin-configurable via the Data Sources panel in AI Command.
  * Updates last_scraped and last_scraped_status per source after each run.

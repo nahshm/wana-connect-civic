@@ -6920,11 +6920,13 @@ export type Database = {
       scout_findings: {
         Row: {
           category: string | null
+          cluster_id: string | null
           county: string | null
           created_at: string
           embedded: boolean
           id: string
           processed: boolean
+          processor_run_id: string | null
           raw_content: string | null
           related_id: string | null
           related_name: string | null
@@ -6937,11 +6939,13 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          cluster_id?: string | null
           county?: string | null
           created_at?: string
           embedded?: boolean
           id?: string
           processed?: boolean
+          processor_run_id?: string | null
           raw_content?: string | null
           related_id?: string | null
           related_name?: string | null
@@ -6954,11 +6958,13 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          cluster_id?: string | null
           county?: string | null
           created_at?: string
           embedded?: boolean
           id?: string
           processed?: boolean
+          processor_run_id?: string | null
           raw_content?: string | null
           related_id?: string | null
           related_name?: string | null

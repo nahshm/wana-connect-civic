@@ -37,3 +37,7 @@ verify_jwt = false
 # Added: admin-health (polled by Overview panel, no user JWT)
 [functions.admin-health]
 verify_jwt = false
+
+# civic-processor: idempotent post-processing (embed + cluster scout findings)
+[functions.civic-processor]
+verify_jwt = false

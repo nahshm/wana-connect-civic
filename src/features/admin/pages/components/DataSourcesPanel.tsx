@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import {
   Plus, RefreshCw, Globe, Newspaper, Landmark, Sliders,
   ToggleLeft, ToggleRight, Trash2, Loader2, ExternalLink,
-  ChevronDown, FileSearch,
+  ChevronDown, FileSearch, Play, Check, Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,7 +51,8 @@ export function DataSourcesPanel() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [findingsOpen, setFindingsOpen] = useState(false);
-
+  const [processorRunning, setProcessorRunning] = useState(false);
+  const [deletingFindingId, setDeletingFindingId] = useState<string | null>(null);
   const { data: sources, isLoading, refetch } = useQuery<DataSource[]>({
     queryKey: ['admin-data-sources'],
     queryFn: async () => {
@@ -64,19 +65,41 @@ export function DataSourcesPanel() {
     },
   });
 
-  const { data: findings, isLoading: findingsLoading } = useQuery({
+  const { data: findings, isLoading: findingsLoading, refetch: refetchFindings } = useQuery({
     queryKey: ['admin-scout-findings'],
     enabled: findingsOpen,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('scout_findings')
-        .select('id, title, source_url, category, relevance_score, created_at')
+        .select('id, title, summary, source_url, category, relevance_score, embedded, processed, cluster_id, created_at')
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  const handleRunProcessor = async () => {
+    setProcessorRunning(true);
+    try {
+      const { error } = await supabase.functions.invoke('civic-processor', { body: { trigger: 'manual' } });
+      if (error) throw error;
+      toast.success('Processor completed — findings embedded and clustered');
+      refetchFindings();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Processor failed');
+    } finally {
+      setProcessorRunning(false);
+    }
+  };
+
+  const handleDeleteFinding = async (findingId: string) => {
+    setDeletingFindingId(findingId);
+    const { error } = await (supabase as any).from('scout_findings').delete().eq('id', findingId);
+    setDeletingFindingId(null);
+    if (error) toast.error(error.message);
+    else { toast.success('Finding deleted'); refetchFindings(); }
+  };
 
   const handleAdd = async () => {
     if (!form.name.trim() || !form.url.trim()) {
@@ -283,6 +306,14 @@ export function DataSourcesPanel() {
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-2 space-y-2">
+          {/* Run Processor button */}
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={handleRunProcessor} disabled={processorRunning}>
+              {processorRunning ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Play className="w-4 h-4 mr-1" />}
+              Run Processor
+            </Button>
+          </div>
+
           {findingsLoading ? (
             <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
           ) : !findings?.length ? (
@@ -294,12 +325,47 @@ export function DataSourcesPanel() {
               <div key={f.id} className="p-3 border rounded-lg">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className="text-[10px] capitalize">{f.category}</Badge>
+                  {f.embedded ? (
+                    <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <Check className="w-3 h-3" />Embedded
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <Clock className="w-3 h-3" />Pending embed
+                    </span>
+                  )}
+                  {f.processed ? (
+                    <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <Check className="w-3 h-3" />Processed
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <Clock className="w-3 h-3" />Pending
+                    </span>
+                  )}
+                  {f.cluster_id && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      cluster:{f.cluster_id.slice(0, 8)}
+                    </span>
+                  )}
                   <span className="text-sm font-medium truncate flex-1">{f.title}</span>
                   {f.relevance_score != null && (
                     <span className="text-xs text-muted-foreground">Score: {f.relevance_score}</span>
                   )}
                   <span className="text-xs text-muted-foreground">{new Date(f.created_at).toLocaleDateString()}</span>
+                  <button
+                    onClick={() => handleDeleteFinding(f.id)}
+                    disabled={deletingFindingId === f.id}
+                    className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    {deletingFindingId === f.id
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Trash2 className="w-3 h-3" />}
+                  </button>
                 </div>
+                {f.summary && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{f.summary}</p>
+                )}
                 {f.source_url && (
                   <a href={f.source_url} target="_blank" rel="noopener noreferrer"
                     className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
