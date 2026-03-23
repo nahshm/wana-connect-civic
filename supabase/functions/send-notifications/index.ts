@@ -176,19 +176,22 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Store notification in database
+    // Store notification in comment_notifications table
     const { data, error } = await supabaseService
-      .from('notifications')
+      .from('comment_notifications')
       .insert({
-        type: notification.type,
+        notification_type: notification.type,
         recipient_id: notification.recipient_id,
-        sender_id: notification.sender_id || userId,
-        post_id: notification.post_id,
-        promise_id: notification.promise_id,
-        community_id: notification.community_id,
+        title: notification.type.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
         message: notification.message,
-        read: false,
-        created_at: new Date().toISOString()
+        is_read: false,
+        action_url: notification.post_id ? `/post/${notification.post_id}` : null,
+        metadata: {
+          sender_id: notification.sender_id || userId,
+          post_id: notification.post_id,
+          promise_id: notification.promise_id,
+          community_id: notification.community_id,
+        }
       })
       .select()
       .single();

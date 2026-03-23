@@ -2,12 +2,13 @@ import { Button } from '@/components/ui/button';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { SearchBar } from '@/components/layout/SearchBar';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Bell, User, Plus, LogOut, Users, MessageCircle, Search, Menu } from 'lucide-react';
+import { User, Plus, LogOut, Users, MessageCircle, Search, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { buildProfileLink } from '@/lib/profile-links';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { CreateCommunityWizard } from '@/components/community/CreateCommunityWizard';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -93,11 +94,7 @@ export const Header = () => {
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9">
-            <Link to="/dashboard">
-              <Bell className="w-4 h-4" />
-            </Link>
-          </Button>
+          <NotificationDropdown />
 
           <ThemeToggle />
 

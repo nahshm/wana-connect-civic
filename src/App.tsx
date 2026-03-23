@@ -74,7 +74,8 @@ const ProfileSetup = lazy(() => import("@/components/onboarding/ProfileSetup").t
 const CivicDashboard = lazy(() => import("./pages/Dashboard/CivicDashboard"));
 const Analytics = lazy(() => import("./pages/Dashboard/Analytics"));
 const SearchResults = lazy(() => import("./pages/SearchResults").then(m => ({ default: m.SearchResults })));
-const GlobalChat = lazy(() => import("./pages/GlobalChat"));
+// GlobalChat deleted — /chat now uses the functional Chat component
+const Install = lazy(() => import("./pages/Install"));
 const Quests = lazy(() => import("./pages/Quests"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const DiscoveryDashboard = lazy(() => import("./pages/DiscoveryDashboard"));
@@ -164,9 +165,10 @@ const App = () => (
                             <Route path="/quests" element={<Quests />} />
                             <Route path="/leaderboards" element={<Leaderboards />} />
                             <Route path="/search" element={<SearchResults />} />
-                            <Route path="/chat" element={<GlobalChat />} />
+                            <Route path="/chat" element={<Chat />} />
                             <Route path="/civic-assistant" element={<CivicChat />} />
                             <Route path="/profile/setup" element={<ProfileSetup />} />
+                            <Route path="/install" element={<Install />} />
                             <Route path="/settings" element={<SettingsPage />} />
 
                             {/* Functional prefix routes - handled by PrefixRouter */}
