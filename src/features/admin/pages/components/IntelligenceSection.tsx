@@ -50,10 +50,10 @@ function FindingsReviewTab() {
       const existing = (currentState?.state_value as string[]) || [];
       const merged = [...new Set([...existing, ...findingIds])];
 
-      await supabase.from('agent_state').upsert({
+      await (supabase.from('agent_state') as any).upsert({
         agent_name: 'civic-publisher',
         state_key: 'publish_queue',
-        state_value: merged as unknown as Record<string, unknown>,
+        state_value: merged,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'agent_name,state_key' });
 
