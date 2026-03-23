@@ -185,7 +185,8 @@ export const ChatSidebar = ({
     } finally {
       setLoading(false);
     }
-  }, [user, activeTab]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, activeTab]);
 
   useEffect(() => {
     fetchChats();

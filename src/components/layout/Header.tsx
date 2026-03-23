@@ -59,11 +59,7 @@ export const Header = () => {
 
           alt="ama Logo"
           className="h-8 w-auto"
-          fetchPriority="high" src="/lovable-uploads/543b08bd-f3bc-4ee3-878d-13419d22452f.png" />
-        
-        <span className="font-semibold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-destructive text-2xl">
-          ​
-        </span>
+          src="/lovable-uploads/543b08bd-f3bc-4ee3-878d-13419d22452f.png" />
       </Link>
 
       {/* Centered Search */}
