@@ -65,19 +65,41 @@ export function DataSourcesPanel() {
     },
   });
 
-  const { data: findings, isLoading: findingsLoading } = useQuery({
+  const { data: findings, isLoading: findingsLoading, refetch: refetchFindings } = useQuery({
     queryKey: ['admin-scout-findings'],
     enabled: findingsOpen,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('scout_findings')
-        .select('id, title, source_url, category, relevance_score, created_at')
+        .select('id, title, summary, source_url, category, relevance_score, embedded, processed, cluster_id, created_at')
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  const handleRunProcessor = async () => {
+    setProcessorRunning(true);
+    try {
+      const { error } = await supabase.functions.invoke('civic-processor', { body: { trigger: 'manual' } });
+      if (error) throw error;
+      toast.success('Processor completed — findings embedded and clustered');
+      refetchFindings();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Processor failed');
+    } finally {
+      setProcessorRunning(false);
+    }
+  };
+
+  const handleDeleteFinding = async (findingId: string) => {
+    setDeletingFindingId(findingId);
+    const { error } = await (supabase as any).from('scout_findings').delete().eq('id', findingId);
+    setDeletingFindingId(null);
+    if (error) toast.error(error.message);
+    else { toast.success('Finding deleted'); refetchFindings(); }
+  };
 
   const handleAdd = async () => {
     if (!form.name.trim() || !form.url.trim()) {
