@@ -101,6 +101,15 @@ const AGENT_REGISTRY: AgentInfo[] = [
     icon: HardDrive,
     color: 'text-slate-500',
   },
+  {
+    name: 'civic-publisher',
+    displayName: 'Publisher',
+    purpose: 'Auto-generates localized community posts from scout findings. Resolves geographic scope, deduplicates, rewrites via LLM, and inserts posts for admin review.',
+    trigger: 'Cron + manual seed',
+    tools: ['resolveScope', 'embedText', 'rewriteFinding', 'insertPost', 'logRun'],
+    icon: Globe,
+    color: 'text-teal-500',
+  },
 ];
 
 // ── Root Component ────────────────────────────────────────────────────────────
