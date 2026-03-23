@@ -88,14 +88,34 @@ export const NotificationDropdown = () => {
         (payload) => {
           const updatedNotif = payload.new as Notification;
 
-          setNotifications(prev => prev.map(notif =>
-            notif.id === updatedNotif.id ? updatedNotif : notif
-          ));
-          setUnreadCount(prev => {
-            const existing = notifications.find(notif => notif.id === updatedNotif.id);
-            if (!existing) return prev;
-            if (!!existing.is_read === !!updatedNotif.is_read) return prev;
-            return updatedNotif.is_read ? Math.max(0, prev - 1) : prev + 1;
+          setNotifications(prev => {
+            const existing = prev.find(notif => notif.id === updatedNotif.id);
+            const next = prev.map(notif => notif.id === updatedNotif.id ? updatedNotif : notif);
+
+            if (existing && !!existing.is_read !== !!updatedNotif.is_read) {
+              setUnreadCount(count => updatedNotif.is_read ? Math.max(0, count - 1) : count + 1);
+            }
+
+            return next;
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'comment_notifications',
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const deletedId = payload.old.id as string;
+          setNotifications(prev => {
+            const existing = prev.find(notif => notif.id === deletedId);
+            if (existing && !existing.is_read) {
+              setUnreadCount(count => Math.max(0, count - 1));
+            }
+            return prev.filter(notif => notif.id !== deletedId);
           });
         }
       )
@@ -104,7 +124,7 @@ export const NotificationDropdown = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, notifications]);
+  }, [user]);
 
   const markAllRead = async () => {
     if (!user || unreadCount === 0) return;

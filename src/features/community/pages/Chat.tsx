@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { UserSearch } from '@/components/chat/UserSearch';
@@ -69,9 +70,10 @@ export default function Chat() {
       }
 
       // No existing room — create a new direct room
+      const roomId = uuidv4();
       const { data: room, error: roomError } = await supabase
         .from('chat_rooms')
-        .insert({ type: 'direct', created_by: user.id })
+        .insert({ id: roomId, type: 'direct', created_by: user.id })
         .select()
         .single();
 
@@ -105,9 +107,10 @@ export default function Chat() {
     if (!user) return;
 
     try {
+      const roomId = uuidv4();
       const { data: room, error: roomError } = await supabase
         .from('chat_rooms')
-        .insert({ type: 'group', name, created_by: user.id })
+        .insert({ id: roomId, type: 'group', name, created_by: user.id })
         .select()
         .single();
 
