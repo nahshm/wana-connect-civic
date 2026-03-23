@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, RefreshCw, Globe, Newspaper, Landmark, Sliders,
   ToggleLeft, ToggleRight, Trash2, Loader2, ExternalLink,
+  ChevronDown, FileSearch,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
