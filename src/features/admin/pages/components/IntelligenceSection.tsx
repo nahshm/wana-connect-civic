@@ -433,10 +433,10 @@ function PublisherSettingsTab() {
   });
 
   const updateSetting = async (key: string, value: unknown) => {
-    await supabase.from('agent_state').upsert({
+    await (supabase.from('agent_state') as any).upsert({
       agent_name: 'civic-publisher',
       state_key: key,
-      state_value: value as Record<string, unknown>,
+      state_value: value,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'agent_name,state_key' });
     queryClient.invalidateQueries({ queryKey: ['publisher-settings'] });
