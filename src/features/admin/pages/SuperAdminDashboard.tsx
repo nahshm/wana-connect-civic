@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Activity, Users, Flag, Bot, Settings, Shield,
   Map, Brain, Server, ShieldAlert, Bell, AlertTriangle,
-  FolderKanban, Trophy
+  FolderKanban, Trophy, Lightbulb
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,6 +20,7 @@ import PlatformSection from './components/PlatformSection';
 import SystemSection from './components/SystemSection';
 import AccountabilitySection from './components/AccountabilitySection';
 import EngagementSection from './components/EngagementSection';
+import IntelligenceSection from './components/IntelligenceSection';
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: Activity },
@@ -27,6 +28,7 @@ const sections = [
   { id: 'content', label: 'Content', icon: Flag },
   { id: 'governance', label: 'Governance', icon: Map },
   { id: 'ai-command', label: 'AI Command', icon: Bot },
+  { id: 'intelligence', label: 'Intelligence', icon: Lightbulb },
   { id: 'accountability', label: 'Accountability', icon: FolderKanban },
   { id: 'engagement', label: 'Engagement', icon: Trophy },
   { id: 'platform', label: 'Platform', icon: Settings },
@@ -79,6 +81,7 @@ export default function SuperAdminDashboard() {
       case 'content': return <ContentSection />;
       case 'governance': return <GovernanceSection />;
       case 'ai-command': return <AICommandSection />;
+      case 'intelligence': return <IntelligenceSection />;
       case 'accountability': return <AccountabilitySection />;
       case 'engagement': return <EngagementSection />;
       case 'platform': return <PlatformSection />;
