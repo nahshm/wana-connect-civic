@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatWindow } from '@/components/chat/ChatWindow';
@@ -145,9 +145,9 @@ export default function Chat() {
     setRefreshKey(k => k + 1);
   };
 
-  const handleChatReadStateChange = () => {
+  const handleChatReadStateChange = useCallback(() => {
     setRefreshKey(k => k + 1);
-  };
+  }, []);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background relative">
