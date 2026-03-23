@@ -51,7 +51,8 @@ export function DataSourcesPanel() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [findingsOpen, setFindingsOpen] = useState(false);
-
+  const [processorRunning, setProcessorRunning] = useState(false);
+  const [deletingFindingId, setDeletingFindingId] = useState<string | null>(null);
   const { data: sources, isLoading, refetch } = useQuery<DataSource[]>({
     queryKey: ['admin-data-sources'],
     queryFn: async () => {
