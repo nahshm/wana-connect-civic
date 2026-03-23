@@ -1,5 +1,6 @@
 
 
+
 # Wire Scout Data Pipeline — Separated Architecture
 
 ## Summary
@@ -24,98 +25,35 @@ civic-processor (new, idempotent cron)
                    calls civic-quill per cluster
                    marks processed=true
 
-_shared/embeddings.ts (new, shared module)
+civic-publisher (new, cron + seed mode)
+       │
+       ├── resolves geographic scope per finding
+       ├── deduplicates via embedding similarity (0.91 threshold)
+       ├── rewrites to citizen language via LLM (publisher_templates)
+       └── inserts into posts table (auto_generated=true)
+
+_shared/embeddings.ts (shared module)
        └── embedText() + embedAndInsert() — used by civic-ingest AND civic-processor
 ```
 
-## Changes
+## Status: IMPLEMENTED ✅
 
-### Migration: Add columns to scout_findings
+All migrations applied, all files created/edited, civic-publisher deployed.
 
-```sql
-ALTER TABLE scout_findings ADD COLUMN IF NOT EXISTS cluster_id UUID;
-ALTER TABLE scout_findings ADD COLUMN IF NOT EXISTS processor_run_id UUID;
-```
+### Files
 
-### File 1: CREATE `supabase/functions/_shared/embeddings.ts`
-
-Extract the embedding logic already in civic-ingest (lines 206-218) into a shared module:
-
-- `embedText(text: string): Promise<number[]>` — calls OpenAI text-embedding-ada-002, returns vector
-- `embedAndInsert(client, chunks: {content, title, metadata}[]): Promise<{inserted: number, failed: number}>` — embeds + inserts into vectors table with rate limiting
-
-civic-ingest will import from this instead of inline code. civic-processor will use the same functions.
-
-### File 2: EDIT `supabase/functions/civic-scout/index.ts`
-
-Minimal change — scout stays focused on scraping:
-- Remove any future post-processing code paths
-- After scraping completes, emit `ingest_complete` event (already does this at line 284) — no change needed
-- Update JSDoc to clarify "scrape + classify only, downstream processing handled by civic-processor"
-
-### File 3: CREATE `supabase/functions/civic-processor/index.ts`
-
-New idempotent edge function with two pipelines:
-
-**Embedding pipeline:**
-1. Query `scout_findings WHERE embedded = false LIMIT 20`
-2. For each: call `embedText(title + ' ' + summary)` from shared embeddings.ts
-3. Insert into `vectors` table with source metadata (`source: 'scout'`, finding ID, category)
-4. Update `embedded = true` on the finding
-
-**Clustering pipeline:**
-1. Query `scout_findings WHERE processed = false AND embedded = true`
-2. Group by `category` (budget findings together, scandal findings together, etc.)
-3. For each group ≥ 2 findings:
-   - Generate a `cluster_id` UUID
-   - Update all findings in the group with that `cluster_id` and `processor_run_id`
-   - Call civic-quill with `{ cluster_id, issues: [summaries], ward }` 
-   - Mark all as `processed = true`
-4. Single findings (group size 1): mark `processed = true` but skip quill (not enough to cluster)
-
-**Recovery**: Because it reads `embedded = false` / `processed = false`, re-running is always safe. Failed embeddings stay unembedded; failed clusters stay unprocessed.
-
-### File 4: EDIT `supabase/functions/civic-ingest/index.ts`
-
-Replace inline embedding code (lines 206-218) with import from `_shared/embeddings.ts`. Functional behavior unchanged — just DRY.
-
-### File 5: EDIT `supabase/config.toml`
-
-Add civic-processor registration:
-```toml
-[functions.civic-processor]
-verify_jwt = false
-```
-
-### File 6: EDIT `src/features/admin/pages/components/DataSourcesPanel.tsx`
-
-Enhance scout findings section:
-- Show `embedded` and `processed` status badges per finding (green check / grey pending)
-- Add "Run Processor" button that invokes `civic-processor` via `supabase.functions.invoke`
-- Add delete button per finding
-- Add `cluster_id` display when present (shows which findings were grouped together)
-
-### File 7: CREATE `src/components/civic/CivicIntelligenceCard.tsx`
-
-Reusable card for displaying scout findings to users:
-- Props: title, summary, category, relevance_score, source_url, created_at
-- Badge for category, link to source, relevance indicator
-- Used on community feeds and official profile pages
-
----
-
-## Files Summary
-
-| Action | File | What |
-|--------|------|------|
-| MIGRATION | `scout_findings` | Add `cluster_id` and `processor_run_id` UUID columns |
-| CREATE | `supabase/functions/_shared/embeddings.ts` | Shared `embedText()` + `embedAndInsert()` |
-| CREATE | `supabase/functions/civic-processor/index.ts` | Idempotent cron: embed → cluster → trigger quill |
-| EDIT | `supabase/functions/civic-ingest/index.ts` | Import embeddings from shared module |
-| EDIT | `supabase/functions/civic-scout/index.ts` | JSDoc cleanup only — already correct |
-| EDIT | `supabase/config.toml` | Register civic-processor |
-| EDIT | `DataSourcesPanel.tsx` | Embedded/processed badges, delete, run processor button |
-| CREATE | `CivicIntelligenceCard.tsx` | Public-facing finding card |
-
-Total: 1 migration, 3 new files, 4 edits.
-
+| Action | File | Status |
+|--------|------|--------|
+| MIGRATION | `scout_findings.cluster_id`, `processor_run_id` | ✅ Done |
+| MIGRATION | `posts.auto_generated`, `finding_id`, `published_by_agent` | ✅ Done |
+| MIGRATION | `publisher_templates` table + seed data | ✅ Done |
+| MIGRATION | `communities.publisher_context` | ✅ Done |
+| MIGRATION | `scout_findings.published` | ✅ Done |
+| CREATE | `supabase/functions/_shared/embeddings.ts` | ✅ Done |
+| CREATE | `supabase/functions/civic-processor/index.ts` | ✅ Done |
+| CREATE | `supabase/functions/civic-publisher/index.ts` | ✅ Done + Deployed |
+| CREATE | `src/features/admin/pages/components/IntelligenceSection.tsx` | ✅ Done |
+| EDIT | `src/features/admin/pages/SuperAdminDashboard.tsx` | ✅ Intelligence section added |
+| EDIT | `src/features/admin/pages/components/AICommandSection.tsx` | ✅ Publisher agent registered |
+| EDIT | `supabase/config.toml` | ✅ civic-publisher registered |
+| EDIT | `src/components/civic/CivicIntelligenceCard.tsx` | ✅ AI badge + source attribution |
