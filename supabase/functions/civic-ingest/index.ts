@@ -204,19 +204,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       try {
-        const embeddingResponse = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${openAIKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "text-embedding-ada-002", input: chunk }),
-        });
-
-        if (!embeddingResponse.ok) {
-          const errText = await embeddingResponse.text();
-          throw new Error(`Embedding API error: ${errText}`);
-        }
-
-        const { data: embeddings } = await embeddingResponse.json();
-        const embedding = embeddings[0].embedding;
+        const embedding = await embedText(chunk);
 
         const { error: insertError } = await serviceClient.from("vectors").insert({
           content: chunk, embedding, source_type,
