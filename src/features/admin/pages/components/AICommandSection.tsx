@@ -12,7 +12,7 @@ import {
   CheckCircle, XCircle, Loader2, Clock, AlertTriangle,
   MapPin, ChevronRight, Pencil, Plus, Check, X,
   Upload, Zap, Eye, FileText, MessageSquare, Search as SearchIcon,
-  HardDrive, Activity, Radio, Server, BarChart2, ShieldCheck,
+  HardDrive, Activity, Radio, Server, BarChart2, ShieldCheck, Globe, Link,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
