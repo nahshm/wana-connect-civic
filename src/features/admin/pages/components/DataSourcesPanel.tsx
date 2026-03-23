@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import {
   Plus, RefreshCw, Globe, Newspaper, Landmark, Sliders,
   ToggleLeft, ToggleRight, Trash2, Loader2, ExternalLink,
-  ChevronDown, FileSearch,
+  ChevronDown, FileSearch, Play, Check, Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
