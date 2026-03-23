@@ -164,7 +164,7 @@ const App = () => (
                             <Route path="/quests" element={<Quests />} />
                             <Route path="/leaderboards" element={<Leaderboards />} />
                             <Route path="/search" element={<SearchResults />} />
-                            <Route path="/chat" element={<GlobalChat />} />
+                            <Route path="/chat" element={<Chat />} />
                             <Route path="/civic-assistant" element={<CivicChat />} />
                             <Route path="/profile/setup" element={<ProfileSetup />} />
                             <Route path="/settings" element={<SettingsPage />} />

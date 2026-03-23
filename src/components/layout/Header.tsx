@@ -94,11 +94,7 @@ export const Header = () => {
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9">
-            <Link to="/dashboard">
-              <Bell className="w-4 h-4" />
-            </Link>
-          </Button>
+          <NotificationDropdown />
 
           <ThemeToggle />
 
