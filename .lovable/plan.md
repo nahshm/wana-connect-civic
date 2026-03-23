@@ -1,108 +1,160 @@
 
 
-# Dashboard Intelligence Redesign: Overview Stats + Mod Tab
+# AI Command Center: End-to-End Fix
 
-## Analysis
+## Issues Found (10 problems across 5 categories)
 
-### "Community (7d)" — Current Logic
-Counts all `civic_actions` in the user's county over the last 7 days using a text match (`ilike location_text`). Shows a raw number with the county name underneath.
+### A. admin-health Returning Error
 
-**Problem**: A bare number ("12") with no context is meaningless. The user doesn't know if 12 is good or bad, can't click it to see those issues, and the label "Community (7d)" is cryptic. It doesn't drive any action.
+**Root cause**: The function uses `sb()` which creates a service-role client. But the frontend calls it via `supabase.functions.invoke('admin-health')` which passes the anon key. The function itself doesn't use JWT auth — it uses an optional `ADMIN_HEALTH_SECRET` header. The real issue is that the function queries tables like `data_sources` using `(client as any)` with the service role key, but the `is_admin()` RLS checks on `agent_runs` require `auth.uid()` — which is null for a service-role client without a user session.
 
-**Better approach**: Replace with **"Community Pulse"** — show the count AND make it clickable to navigate to the Community tab filtered to the user's county. Add a trend indicator (up/down vs. previous 7 days). Show a one-line insight like "5 new issues in Nairobi County this week".
+Wait — `sb()` uses `SUPABASE_SERVICE_ROLE_KEY` which bypasses RLS entirely. So the function should work. The error is likely a deployment issue or the function isn't deployed.
 
-### "Representatives" — Current Logic
-Counts officials in the `officials` table matching the user's `county_id`. Shows a number + "Contact" button linking to `/officials`.
+**Investigation**: No logs at all for `admin-health` — the function may not be deployed. The code exists but may have never been pushed to Supabase.
 
-**Problem**: The count alone is low-value. Knowing "you have 8 representatives" doesn't help unless you can see WHO they are and if any have pending promises or projects. The "Contact" button is useful but the card takes up the same space as the 4 personal stats while providing much less value.
+**Fix**: Ensure the function is deployed (it will auto-deploy on code change). Also, the `agent_runs` data only has runs for `civic-guardian`, `civic-minion`, `civic-sage`, `civic-scout` — but the health check looks for `civic-steward`, `civic-quill`, `civic-brain`, `civic-router`, `civic-ingest`. None of those have runs, so all agents show "No runs recorded" / "unknown" status. This is expected for a fresh system but looks broken.
 
-**Better approach**: Replace with a **"Your Representatives"** compact card that shows the count, the names of the top 2-3 officials (governor, senator, MP — by position), and a "View All" link. This makes it immediately useful — the user sees their actual leaders at a glance.
+### B. data_sources RLS — INSERT/UPDATE/DELETE Missing
 
-### Mod Tab — Current State
-The ModToolsTab is a shell with two problems:
-1. **`content_flags` query is hardcoded to return `[]`** — the comment says "table does not exist yet" but `content_flags` DOES exist in the DB schema with full RLS policies
-2. **No actual moderation actions** — mods can only see community names and a permanently-empty reports list
-3. **No tools** — can't remove posts, ban users, pin announcements, or manage community settings
-4. **Ugly design** — plain cards with emoji icons, no visual hierarchy
+**Root cause**: `data_sources` has RLS enabled with only a `SELECT` policy (public read). There are NO policies for INSERT, UPDATE, or DELETE. Admin operations from the frontend (add source, toggle active, delete) all fail with "new row violates row-level security policy".
 
----
+**Fix**: Add INSERT, UPDATE, DELETE policies for admins using `is_admin()`.
 
-## Plan
+### C. Agent Trigger Runs Not Working
 
-### 1. Redesign Overview Stats (DashboardOverview.tsx)
+**Root cause**: The "Trigger Run" button in Agent Directory does `supabase.from('agent_runs').insert(...)` from the browser. But `agent_runs` has RLS enabled with only a SELECT policy for admins — no INSERT policy. The insert silently fails.
 
-**Replace "Community (7d)"** with a smarter "Community Pulse" card:
-- Show count of civic_actions in user's county (last 7 days) — keep the query
-- Add previous-week comparison: fetch count for days 7-14 ago, show ↑/↓ trend arrow with delta
-- Make the card clickable → switches to Community tab
-- Show county name + "X new this week" as subtitle
+Also, this button doesn't actually trigger the edge function — it just inserts a fake run log record. It should invoke the actual edge function.
 
-**Replace "Representatives" card** with "Your Representatives" card:
-- Query top 3 officials by position (governor, senator, MP) from `officials` table joined with `office_holders` for names
-- Show their names + positions in a compact list
-- Keep "View All" link to `/officials`
-- If no county set, show "Set your location" CTA linking to `/settings`
+**Fix**: 
+1. Add INSERT policy on `agent_runs` for admins
+2. Change the "Trigger Run" button to actually invoke the edge function via `supabase.functions.invoke(agent.name)`
 
-**Add "No Location" prompt**: If `profile.county` is null, replace both community stats with a single prompt card: "Set your county to see local activity and representatives" → link to settings/onboarding.
+### D. Live Events — Empty
 
-### 2. Full Mod Tab Redesign (PersonalActionTabs.tsx → ModToolsTab)
+**Root cause**: `agent_events` table has 0 rows. Events are only created by edge functions via `emitTypedEvent()`. Since no agents have been triggered with the new codebase (runs are all from old agents: civic-guardian, civic-sage), no events exist.
 
-**Fix the content_flags query** — the table exists. Remove the `return []` stub and wire the real query:
-```
-supabase.from('content_flags')
-  .select('*, posts(title, author_id), project_comments(content)')
-  .in('community_id', communityIds) // Note: content_flags doesn't have community_id
-```
+The Realtime subscription is correctly wired. Events will appear once agents actually run and emit events. Not a bug — just no data yet.
 
-Actually, `content_flags` has `post_id` and `comment_id` but no `community_id`. Need to join through `posts.community_id` to filter by the mod's communities.
+**Fix**: No code change needed for the subscription. Once agents run, events will flow. But the Live Events tab should show a better empty state explaining this.
 
-**Redesign into 3 sections**:
+### E. Data Sources — Where Does Scraped Data Go?
 
-**Section A — Overview Bar** (horizontal stats strip):
-- Communities moderated (count)
-- Pending reports (count from content_flags where status = 'pending')
-- Actions taken this week (count from moderation_log)
+`civic-scout` reads from `data_sources`, scrapes URLs, classifies with LLM, and inserts into `scout_findings`. Currently `scout_findings` has 0 rows because:
+1. `data_sources` can't be populated (RLS blocks inserts — see B above)
+2. `civic-scout` hasn't been triggered since the redesign
 
-**Section B — Moderation Queue** (the main content):
-- Query `content_flags` joined with `posts` (for community_id filtering + content preview) and `project_comments` (for comment content)
-- Filter: flags where the post's `community_id` is in the mod's community list
-- Each flag card shows:
-  - Content type badge (Post / Comment)
-  - Content preview (post title or comment excerpt, max 100 chars)
-  - Flag reason
-  - Reporter info (anonymized)
-  - Time since flagged
-  - Action buttons: Approve (dismiss flag), Remove Content, Warn Author
-- Actions call `supabase.from('content_flags').update({ status, reviewed_by, reviewed_at })` and insert into `moderation_log`
+Once data_sources RLS is fixed and scout runs, findings go to `scout_findings` table. The admin UI doesn't currently have a view for scout_findings — it should be linked from the Data Sources panel.
 
-**Section C — Community Management** (compact):
-- List of mod's communities with member count
-- Quick links: "View Community", "Community Settings"
-- Each community shows recent activity count
+### F. Agent Run Statistics — Items is 0
 
-### 3. Moderation Action Handlers
+The Analytics tab queries `agent_runs` from the last 7 days. All 8,767 runs are from old agents (`civic-guardian`, `civic-minion`, `civic-sage`, `civic-scout`). The Analytics query uses `AGENT_NAMES` filter — but it doesn't filter by name, it just selects all. The issue is `items_scanned` is 0 for most runs.
 
-When a mod takes action on a flag:
-- **Approve** (dismiss): Update `content_flags.status = 'approved'`, set `reviewed_by` and `reviewed_at`
-- **Remove Content**: Update flag status to `'removed'`, soft-delete the post/comment (update `posts.status = 'removed'` or similar), log to `moderation_log`
-- **Warn Author**: Update flag status to `'warn_author'`, log to `moderation_log`
+Actually, looking at the Analytics code, it queries ALL agent_runs (no name filter). The data exists (8,767 rows) but the admin might not see it due to the RLS SELECT policy requiring `is_admin()`. If the admin user doesn't have the admin role in `user_roles`, the query returns empty.
 
-All actions invalidate the pending flags query.
+**Fix**: Verify admin user has proper role. Also update agent names in AGENT_REGISTRY to include legacy agents or show them as "deprecated".
 
-### 4. Empty States
+### G. Agent Queue — No Proposals
 
-- **Not a mod**: "You're not moderating any communities yet. Active community members can be invited as moderators by community admins." — with link to explore communities
-- **No pending flags**: Success state with checkmark and "All clear — no reports need attention"
-- **No location set**: For Overview stats, show location setup prompt instead of "—" values
+`agent_proposals` has 0 rows. Proposals are created by agents (civic-steward creates moderation proposals, civic-minion reviews them). Since civic-steward hasn't run with the new code, no proposals exist.
+
+**How proposals should work**: civic-steward scans content, detects violations, creates proposals with confidence scores. civic-minion auto-approves high-confidence proposals and escalates low-confidence ones for admin review in this Queue tab. The Queue UI is correctly built — it just needs data flowing.
+
+### H. Content Drafts — Empty
+
+`agent_drafts` has 0 rows. Drafts are created by civic-quill (issue summaries). civic-quill hasn't been triggered. The UI is correctly built.
+
+### I. Knowledge Base — No PDF Support
+
+`civic-ingest` currently:
+- Accepts `content` (raw text) or `storage_path` (file in Supabase Storage)
+- Does NOT accept a `url` parameter for PDF URLs
+- PDF parsing returns an error: "PDF parsing not yet implemented"
+- Only `.txt` and `.md` files work
+- Inserts into `vectors` table (not `civic_documents` as mentioned in user's notes)
+- Drag-and-drop only accepts `.txt`, `.md`, `.csv`
+
+The KB UI has no "Ingest PDF from URL" button at all.
+
+**Fix**: 
+1. Add URL-based ingestion to `civic-ingest` (fetch URL → extract text → chunk → embed)
+2. For PDFs: use Jina AI reader (`https://r.jina.ai/URL`) to extract text (already used by civic-scout)
+3. Add "Ingest from URL" button to Knowledge Base UI
+
+### J. Knowledge Base Insert — Missing Embeddings
+
+The "Add Document" button in KB inserts into `vectors` with `embedding: null`. Without an embedding, the document is invisible to RAG search (civic-brain uses vector similarity). The insert should call civic-ingest to generate proper embeddings, not insert directly.
 
 ---
 
-## Files
+## Implementation Plan
 
-| Action | File | What |
-|--------|------|------|
-| EDIT | `DashboardOverview.tsx` | Replace Community(7d) with trend-aware pulse card, replace Representatives with named officials card, add no-location prompt |
-| REWRITE | `PersonalActionTabs.tsx` (ModToolsTab section) | Full redesign: overview stats bar, real content_flags query with post join, moderation actions (approve/remove/warn), moderation_log integration |
+### Migration 1: RLS Policies for AI Command Tables
 
-Total: 2 files edited. No migrations needed — all tables exist.
+```sql
+-- data_sources: admin CRUD
+CREATE POLICY "Admins can insert data_sources" ON public.data_sources
+  FOR INSERT TO authenticated WITH CHECK (is_admin());
+CREATE POLICY "Admins can update data_sources" ON public.data_sources
+  FOR UPDATE TO authenticated USING (is_admin()) WITH CHECK (is_admin());
+CREATE POLICY "Admins can delete data_sources" ON public.data_sources
+  FOR DELETE TO authenticated USING (is_admin());
+
+-- agent_runs: admin insert (for manual triggers + edge functions use service role)
+CREATE POLICY "Admins can insert agent_runs" ON public.agent_runs
+  FOR INSERT TO authenticated WITH CHECK (is_admin());
+
+-- agent_events: admin insert
+CREATE POLICY "Admins can insert agent_events" ON public.agent_events
+  FOR INSERT TO authenticated WITH CHECK (is_admin());
+```
+
+### Edit 1: AICommandSection.tsx — Fix "Trigger Run" Button
+
+Change from inserting a fake log to actually invoking the edge function:
+```typescript
+onClick={async () => {
+  toast.info(`Triggering ${agent.displayName}...`);
+  const { error } = await supabase.functions.invoke(agent.name, {
+    body: { mode: 'manual' }
+  });
+  if (error) toast.error(`Failed: ${error.message}`);
+  else toast.success(`${agent.displayName} triggered successfully`);
+}}
+```
+
+### Edit 2: AICommandSection.tsx — Knowledge Base "Ingest from URL"
+
+Add a URL ingestion form that calls `civic-ingest` with a URL. The edge function will use Jina reader to extract text from any URL (including PDFs).
+
+### Edit 3: civic-ingest — Add URL Support + PDF via Jina
+
+Add `url` parameter to the request body. When provided:
+1. Fetch via Jina reader (`https://r.jina.ai/URL`) to get clean text
+2. Chunk and embed as normal
+3. This handles PDFs, web pages, and any document Jina can read
+
+### Edit 4: AICommandSection.tsx — KB "Add Document" Should Use civic-ingest
+
+Instead of inserting directly into `vectors` with `embedding: null`, call `civic-ingest` with `content` so embeddings are generated.
+
+### Edit 5: Data Sources Panel — Add Scout Findings View
+
+Add a collapsible section showing recent `scout_findings` so admins can see where scraped data goes.
+
+### Edit 6: Live Events — Better Empty State
+
+Show explanation that events appear when agents run, with a "Trigger an agent from the Agents tab" call-to-action.
+
+---
+
+## Files Changed
+
+| Action | File |
+|--------|------|
+| MIGRATION | RLS policies for `data_sources`, `agent_runs`, `agent_events` |
+| EDIT | `AICommandSection.tsx` — Fix trigger button, KB URL ingest, KB add doc to use civic-ingest, better empty states |
+| EDIT | `civic-ingest/index.ts` — Add `url` parameter with Jina reader for PDF/web content |
+| EDIT | `DataSourcesPanel.tsx` — Add scout_findings preview section |
+| EDIT | `LiveEventsFeed.tsx` — Better empty state |
 
