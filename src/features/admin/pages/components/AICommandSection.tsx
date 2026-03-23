@@ -694,6 +694,9 @@ function KnowledgeBaseSubTab() {
   const [addingDoc, setAddingDoc] = useState(false);
   const [newDoc, setNewDoc] = useState({ title: '', content: '', source_type: 'manual' });
   const [ragSaving, setRagSaving] = useState(false);
+  const [urlIngest, setUrlIngest] = useState({ url: '', title: '', source_type: 'manual' });
+  const [urlIngesting, setUrlIngesting] = useState(false);
+  const [showUrlIngest, setShowUrlIngest] = useState(false);
 
   const ragSourceTypes = ['all', 'kenya_constitution', 'kenya_ppada', 'kenya_pfma', 'kenya_kica', 'wanaiq_guidelines', 'scout_finding', 'manual'];
 
@@ -711,12 +714,25 @@ function KnowledgeBaseSubTab() {
   const handleAddDoc = async () => {
     if (!newDoc.content.trim()) { toast.error('Content is required'); return; }
     setRagSaving(true);
-    const { error } = await (supabase as any).from('vectors').insert({
-      title: newDoc.title || null, content: newDoc.content, source_type: newDoc.source_type, embedding: null
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.functions.invoke('civic-ingest', {
+      body: { content: newDoc.content, title: newDoc.title || 'Manual Document', source_type: newDoc.source_type },
     });
     if (error) toast.error(`Failed: ${error.message}`);
-    else { toast.success('Document added'); setNewDoc({ title: '', content: '', source_type: 'manual' }); setAddingDoc(false); refetch(); }
+    else { toast.success('Document ingested with embeddings'); setNewDoc({ title: '', content: '', source_type: 'manual' }); setAddingDoc(false); refetch(); }
     setRagSaving(false);
+  };
+
+  const handleUrlIngest = async () => {
+    if (!urlIngest.url.trim()) { toast.error('URL is required'); return; }
+    try { new URL(urlIngest.url); } catch { toast.error('Please enter a valid URL'); return; }
+    setUrlIngesting(true);
+    const { error } = await supabase.functions.invoke('civic-ingest', {
+      body: { url: urlIngest.url, title: urlIngest.title || urlIngest.url, source_type: urlIngest.source_type || 'manual' },
+    });
+    if (error) toast.error(`Failed: ${error.message}`);
+    else { toast.success('URL content ingested successfully'); setUrlIngest({ url: '', title: '', source_type: 'manual' }); setShowUrlIngest(false); refetch(); }
+    setUrlIngesting(false);
   };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
