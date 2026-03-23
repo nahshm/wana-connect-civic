@@ -146,16 +146,16 @@ async function clusterPipeline(
     // Only trigger quill for groups with enough findings to summarise
     if (items.length >= MIN_CLUSTER_SIZE) {
       try {
-        const issues = items.map((f) => ({
-          title: f.title,
-          summary: f.summary ?? "",
-        }));
+        // civic-quill expects issues as string[] — serialize title + summary
+        const issues = items.map((f) =>
+          `${f.title}${f.summary ? `: ${f.summary}` : ""}`
+        );
 
         // Invoke civic-quill to generate a summary for this cluster
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-        await fetch(`${supabaseUrl}/functions/v1/civic-quill`, {
+        const quillRes = await fetch(`${supabaseUrl}/functions/v1/civic-quill`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${supabaseServiceKey}`,
@@ -163,11 +163,14 @@ async function clusterPipeline(
           },
           body: JSON.stringify({
             cluster_id: clusterId,
-            category,
             issues,
-            trigger: "processor",
           }),
         });
+
+        if (!quillRes.ok) {
+          const errText = await quillRes.text();
+          console.error(`[${AGENT_NAME}] Quill returned ${quillRes.status} for cluster ${clusterId}: ${errText}`);
+        }
 
         quillTriggered++;
       } catch (err) {
