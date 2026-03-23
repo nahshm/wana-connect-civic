@@ -11,6 +11,7 @@ export default function Chat() {
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>();
   const [selectedChatType, setSelectedChatType] = useState<'direct' | 'group' | 'mod_mail'>('direct');
   const [isNewChat, setIsNewChat] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -29,33 +30,39 @@ export default function Chat() {
     if (!user) return;
 
     try {
-      // Find an existing direct room shared by both participants
-      const { data: myRooms } = await supabase
-        .from('chat_participants')
-        .select('room_id, chat_rooms!inner(type)')
-        .eq('user_id', user.id);
-
-      const { data: theirRooms } = await supabase
+      // Use the new RLS policy that allows seeing all participants in your rooms
+      const { data: myParticipations } = await supabase
         .from('chat_participants')
         .select('room_id')
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
 
-      const myRoomIds = new Set((myRooms || []).map((r) => r.room_id));
-      const sharedDirectRoom = (theirRooms || []).find(
-        (r) =>
-          myRoomIds.has(r.room_id) &&
-          (myRooms || []).find(
-            (m) =>
-              m.room_id === r.room_id &&
-              (m.chat_rooms as { type: string } | null)?.type === 'direct'
-          )
-      );
+      if (myParticipations?.length) {
+        const myRoomIds = myParticipations.map(p => p.room_id);
 
-      if (sharedDirectRoom) {
-        setSelectedChatId(sharedDirectRoom.room_id);
-        setSelectedChatType('direct');
-        setIsNewChat(false);
-        return;
+        // Now we can see other participants in our rooms
+        const { data: sharedParticipations } = await supabase
+          .from('chat_participants')
+          .select('room_id')
+          .eq('user_id', userId)
+          .in('room_id', myRoomIds);
+
+        if (sharedParticipations?.length) {
+          // Check which shared rooms are direct type
+          const sharedRoomIds = sharedParticipations.map(p => p.room_id);
+          const { data: directRooms } = await supabase
+            .from('chat_rooms')
+            .select('id')
+            .in('id', sharedRoomIds)
+            .eq('type', 'direct')
+            .limit(1);
+
+          if (directRooms?.[0]) {
+            setSelectedChatId(directRooms[0].id);
+            setSelectedChatType('direct');
+            setIsNewChat(false);
+            return;
+          }
+        }
       }
 
       // No existing room — create a new direct room
@@ -79,6 +86,7 @@ export default function Chat() {
       setSelectedChatId(room.id);
       setSelectedChatType('direct');
       setIsNewChat(false);
+      setRefreshKey(k => k + 1);
     } catch (error) {
       console.error('Error starting chat:', error);
       toast({
@@ -116,6 +124,7 @@ export default function Chat() {
       setSelectedChatType('group');
       setIsNewChat(false);
       setActiveTab('group');
+      setRefreshKey(k => k + 1);
 
       toast({ title: 'Group created', description: `${name} is ready to chat.` });
     } catch (error) {
@@ -128,6 +137,11 @@ export default function Chat() {
     }
   };
 
+  const handleChatDeleted = () => {
+    setSelectedChatId(undefined);
+    setRefreshKey(k => k + 1);
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background relative">
       <div
@@ -136,6 +150,7 @@ export default function Chat() {
         } w-full md:w-80 flex-col border-r`}
       >
         <ChatSidebar
+          key={refreshKey}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onSelectChat={handleSelectChat}
@@ -172,7 +187,11 @@ export default function Chat() {
             <UserSearch onStartChat={handleStartChat} />
           </div>
         ) : selectedChatId ? (
-          <ChatWindow chatId={selectedChatId} type={selectedChatType} />
+          <ChatWindow
+            chatId={selectedChatId}
+            type={selectedChatType}
+            onChatDeleted={handleChatDeleted}
+          />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">
             <div className="p-4 bg-sidebar-accent rounded-full">

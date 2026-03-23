@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Communities', icon: Users, path: '/communities' },
-  { label: 'Create', icon: PlusCircle, path: '/create-post' },
+  { label: 'Create', icon: PlusCircle, path: '/create' },
   { label: 'Chat', icon: MessageSquare, path: '/chat' },
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
 ];
