@@ -50,6 +50,7 @@ export function DataSourcesPanel() {
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [findingsOpen, setFindingsOpen] = useState(false);
 
   const { data: sources, isLoading, refetch } = useQuery<DataSource[]>({
     queryKey: ['admin-data-sources'],
@@ -58,6 +59,20 @@ export function DataSourcesPanel() {
         .from('data_sources')
         .select('*')
         .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: findings, isLoading: findingsLoading } = useQuery({
+    queryKey: ['admin-scout-findings'],
+    enabled: findingsOpen,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('scout_findings')
+        .select('id, title, source_url, category, relevance_score, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20);
       if (error) throw error;
       return data ?? [];
     },
