@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { embedText } from "../_shared/embeddings.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
