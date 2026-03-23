@@ -191,37 +191,45 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
     setGovernanceResult(null)
 
     try {
-      // STEP 1: AI Governance Check
-      const governance = await aiClient.governance(
-        'post',
-        JSON.stringify({
-          title: title.trim(),
-          description: content.trim(),
-          metadata: { tags: flairIds }
-        })
-      );
-      
-      setGovernanceResult(governance);
-
-      // STEP 2: Handle Verdict
-      if (governance.verdict === 'BLOCKED') {
-        setIsSubmitting(false)
-        return; // UI will show the block message
-      }
-
-      if (governance.verdict === 'NEEDS_REVISION') {
-        setShowSuggestions(true);
-        setIsSubmitting(false)
-        return;
-      }
-
-      if (governance.verdict === 'FLAGGED') {
-        const confirmed = confirm(
-          `Your post was flagged: ${governance.reason}\n\nDo you still want to post?`
+      // STEP 1: AI Governance Check (with graceful fallback)
+      let governance: ModerationResult | null = null;
+      try {
+        governance = await aiClient.governance(
+          'post',
+          JSON.stringify({
+            title: title.trim(),
+            description: content.trim(),
+            metadata: { tags: flairIds }
+          })
         );
-        if (!confirmed) {
-            setIsSubmitting(false)
-            return;
+        setGovernanceResult(governance);
+      } catch (aiError) {
+        console.warn('AI Moderation failed or timed out. Proceeding with graceful fallback.', aiError);
+        // We don't block the post if the AI is down. We allow it to proceed.
+        // It can be moderated by backend triggers or human moderators later.
+      }
+
+      // STEP 2: Handle Verdict (only if AI succeeded)
+      if (governance) {
+        if (governance.verdict === 'BLOCKED') {
+          setIsSubmitting(false)
+          return; // UI will show the block message
+        }
+
+        if (governance.verdict === 'NEEDS_REVISION') {
+          setShowSuggestions(true);
+          setIsSubmitting(false)
+          return;
+        }
+
+        if (governance.verdict === 'FLAGGED') {
+          const confirmed = confirm(
+            `Your post was flagged: ${governance.reason}\n\nDo you still want to post?`
+          );
+          if (!confirmed) {
+              setIsSubmitting(false)
+              return;
+          }
         }
       }
 
@@ -238,8 +246,8 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
         linkDescription: postType === 'link' ? (linkPreview?.description || undefined) : undefined,
         linkImage: postType === 'link' ? (linkPreview?.image || undefined) : undefined,
         flairIds,
-        governance_verdict: governance.verdict,
-        governance_confidence: governance.confidence
+        governance_verdict: governance?.verdict || 'UNMODERATED',
+        governance_confidence: governance?.confidence || 0
       }
 
       await onSubmit(formData)

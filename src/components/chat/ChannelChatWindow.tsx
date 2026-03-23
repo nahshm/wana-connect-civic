@@ -52,6 +52,7 @@ import { EmojiPicker } from './EmojiPicker';
 import { MessageContent } from './MessageContent';
 import { MessageMedia } from './MessageMedia';
 import { TypingIndicator } from './TypingIndicator';
+import { VerifiedBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
 
 // Quick reaction emojis
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '✅'];
@@ -77,6 +78,8 @@ interface Message {
         display_name?: string;
         avatar_url?: string;
         role?: string;
+        is_verified?: boolean;
+        official_position?: string;
     };
     reactions?: { [emoji: string]: string[] };
 }
@@ -129,7 +132,7 @@ export function ChannelChatWindow({
             .select(`
                 *,
                 reply_to_id,
-                sender:profiles!sender_id(id, username, display_name, avatar_url, role)
+                sender:profiles!sender_id(id, username, display_name, avatar_url, role, is_verified, official_position)
             `)
             .eq('channel_id', channelId)
             .order('created_at', { ascending: true })
@@ -291,7 +294,7 @@ export function ChannelChatWindow({
             supabase.removeChannel(typingChannel);
             typingChannelRef.current = null;
         };
-    }, [channelId, fetchMessages]);
+    }, [channelId, fetchMessages, user?.id]);
 
     // ─── Helpers ───
     const isNearBottom = () => {
@@ -768,9 +771,21 @@ export function ChannelChatWindow({
                                                                     <span className={cn('font-medium hover:underline cursor-pointer', getRoleColor(msg.sender?.role))}>
                                                                         {msg.sender?.display_name || msg.sender?.username}
                                                                     </span>
+                                                                    
+                                                                    {/* Verified / Trusted Badges */}
+                                                                    {msg.sender?.is_verified && msg.sender?.official_position && <VerifiedBadge size="xs" positionTitle={msg.sender.official_position} />}
+                                                                    {msg.sender?.is_verified && !msg.sender?.official_position && <TrustedUserBadge size="xs" label={msg.sender.role || 'Trusted Member'} />}
+                                                                    
                                                                     {roleBadge && (
-                                                                        <Badge variant={roleBadge.variant} className="text-[10px] px-1.5 py-0 h-4">
+                                                                        <Badge variant={roleBadge.variant} className="text-[10px] px-1.5 py-0 h-4 uppercase">
                                                                             {roleBadge.label}
+                                                                        </Badge>
+                                                                    )}
+                                                                    
+                                                                    {/* Custom Role Tag fallback for regular tags if no verified badge */}
+                                                                    {!roleBadge && !msg.sender?.official_position && msg.sender?.role && msg.sender.role !== 'citizen' && (
+                                                                        <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 uppercase tracking-wider font-semibold ${getRoleColor(msg.sender?.role)}`}>
+                                                                            {msg.sender.role}
                                                                         </Badge>
                                                                     )}
                                                                     <span className="text-xs text-muted-foreground">

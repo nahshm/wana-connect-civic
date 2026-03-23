@@ -96,16 +96,17 @@ async function screenContent(
 // ── Batch scan (Mode B) ───────────────────────────────────────────────────────
 
 async function batchScan(
-  table: 'posts' | 'comments',
+  table: 'posts' | 'comments' | 'chat_messages',
   client: ReturnType<typeof sb>,
   sinceHours = 1,
 ): Promise<{ scanned: number; actioned: number; failed: number }> {
   const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
+  const userColumn = table === 'chat_messages' ? 'sender_id' : 'author_id';
 
   const { data: rows, error } = await client
     .from(table)
-    .select('id, content, user_id')
-    .eq('is_hidden', false)
+    .select(`id, content, ${userColumn}`)
+    .eq(table === 'chat_messages' ? 'is_deleted' : 'is_hidden', false)
     .gte('created_at', since)
     .limit(50);
 
@@ -117,7 +118,8 @@ async function batchScan(
 
   for (const row of rows) {
     try {
-      const result = await screenContent(table.slice(0, -1), row.content ?? '');
+      const contentTypeStr = table === 'chat_messages' ? 'chat message' : table.slice(0, -1);
+      const result = await screenContent(contentTypeStr, row.content ?? '');
 
       if (result.verdict === 'none' || result.category === 'clean') continue;
 
@@ -136,12 +138,19 @@ async function batchScan(
       });
 
       if (result.verdict === 'remove' && result.confidence >= 0.85) {
-        await hideContent(client, table.slice(0, -1) as 'post' | 'comment', row.id, AGENT_NAME, result.reason);
+        // chat_messages might need a custom delete function if hideContent expects post/comment
+        if (table === 'chat_messages') {
+             await client.from('chat_messages').update({ is_deleted: true }).eq('id', row.id);
+        } else {
+             await hideContent(client, table.slice(0, -1) as 'post' | 'comment', row.id, AGENT_NAME, result.reason);
+        }
         actioned++;
       } else if (result.verdict === 'flag' || result.confidence < 0.85) {
         await createProposal(client, AGENT_NAME, {
-          proposal_type: `moderate_${table.slice(0, -1)}`,
-          subject_type: table.slice(0, -1) as 'post' | 'comment',
+          proposal_type: `moderate_${table}`,
+          subject_type: (table === 'posts' ? 'post' :
+                      table === 'comments' ? 'comment' :
+                      table === 'chat_messages' ? 'message' : 'post') as 'post' | 'comment' | 'message' | 'user',
           subject_id: row.id,
           reasoning: `[${result.category}] ${result.reason}`,
           confidence: result.confidence,
@@ -152,7 +161,7 @@ async function batchScan(
         await createProposal(client, AGENT_NAME, {
           proposal_type: 'ban_user',
           subject_type: 'user',
-          subject_id: row.user_id,
+          subject_id: row[userColumn],
           reasoning: `Repeated serious violation. Latest: ${result.reason}`,
           confidence: result.confidence,
           evidence: { flags: result.flags, trigger_content_id: row.id },
@@ -170,6 +179,7 @@ async function batchScan(
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
+// @ts-ignore
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: agentCorsHeaders });
@@ -184,7 +194,7 @@ Deno.serve(async (req: Request) => {
     // Mode B: batch scan
     if (trigger === 'cron' || trigger === 'webhook') {
       const client = sb();
-      const tables: Array<'posts' | 'comments'> = ['posts', 'comments'];
+      const tables: Array<'posts' | 'comments' | 'chat_messages'> = ['posts', 'comments', 'chat_messages'];
       const sinceHours: number = typeof body.since_hours === 'number' ? body.since_hours : 1;
       let totalScanned = 0, totalActioned = 0, totalFailed = 0;
 
@@ -211,7 +221,25 @@ Deno.serve(async (req: Request) => {
     // Mode A: pre-publish screening (backward-compatible)
     if (content_type && content) {
       const result = await screenContent(content_type, content);
-      return jsonResponse({ ok: true, ...result });
+      
+      // Map backend verdict to frontend expected ModerationResult format
+      let feVerdict: 'APPROVED' | 'NEEDS_REVISION' | 'BLOCKED' | 'FLAGGED' = 'APPROVED';
+      if (result.verdict === 'flag') {
+        feVerdict = 'FLAGGED';
+      } else if (result.verdict === 'remove') {
+        feVerdict = (result.confidence && result.confidence < 0.85) ? 'NEEDS_REVISION' : 'BLOCKED';
+      } else if (result.verdict === 'ban_user') {
+        feVerdict = 'BLOCKED';
+      }
+
+      return jsonResponse({
+        ok: true,
+        verdict: feVerdict,
+        reason: result.reason || 'Content meets community guidelines.',
+        confidence: result.confidence || 1.0,
+        flags: result.flags || [],
+        processing_time_ms: Date.now() - startTime
+      });
     }
 
     return jsonResponse({ error: "Missing required fields: trigger OR (content_type + content)" }, 400);

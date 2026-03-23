@@ -16,6 +16,20 @@ import DeletedComment from './DeletedComment';
 import { supabase } from '@/integrations/supabase/client';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
 import type { Comment, CommentMedia } from '@/types';
+import { VerifiedBadge, OfficialPositionBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
+
+const getRoleColor = (role?: string) => {
+  switch (role) {
+    case 'official':
+      return 'bg-civic-blue/10 text-civic-blue border-civic-blue/20';
+    case 'expert':
+      return 'bg-civic-green/10 text-civic-green border-civic-green/20';
+    case 'journalist':
+      return 'bg-civic-orange/10 text-civic-orange border-civic-orange/20';
+    default:
+      return 'bg-muted text-muted-foreground';
+  }
+};
 
 interface CommentSectionProps {
   postId: string;
@@ -191,9 +205,22 @@ const CommentItem = ({ comment, onReply, onVote, onDelete, onEdit, depth = 0 }: 
           <span className="font-semibold text-foreground hover:underline cursor-pointer">
             {comment.author.displayName || comment.author.username}
           </span>
-          {comment.author.isVerified && (
-            <Badge variant="secondary" className="h-4 px-1 text-[10px] leading-none">
-              {comment.author.role === 'official' ? 'Official' : '✓'}
+          
+          {/* Verified badge or Trusted User badge */}
+          {comment.author.isVerified && comment.author.officialPosition && <VerifiedBadge size="xs" positionTitle={comment.author.officialPosition} />}
+          {comment.author.isVerified && !comment.author.officialPosition && <TrustedUserBadge size="xs" label={comment.author.role || 'Trusted Member'} />}
+          
+          {/* Title icon with hover - if has position */}
+          {comment.author.officialPosition && (
+            <Badge variant="outline" className="text-[10px] px-1 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate" title={comment.author.officialPosition}>
+              {comment.author.officialPosition}
+            </Badge>
+          )}
+
+          {/* Role Tag */}
+          {!comment.author.officialPosition && comment.author.role && comment.author.role !== 'citizen' && (
+            <Badge variant="outline" className={`text-[9px] px-1 py-0 uppercase tracking-wider font-semibold ${getRoleColor(comment.author.role)}`}>
+              {comment.author.role}
             </Badge>
           )}
           <span className="text-muted-foreground">·</span>
@@ -369,10 +396,11 @@ export const CommentSection = ({ postId, comments = [], onAddComment, onVoteComm
       case 'new':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case 'best':
-      default:
+      default: {
         const scoreA = a.upvotes + a.downvotes > 0 ? a.upvotes / (a.upvotes + a.downvotes) : 0;
         const scoreB = b.upvotes + b.downvotes > 0 ? b.upvotes / (b.upvotes + b.downvotes) : 0;
         return scoreB - scoreA;
+      }
     }
   });
 

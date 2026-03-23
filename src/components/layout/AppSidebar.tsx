@@ -21,8 +21,8 @@ const mainItems = [{
   url: '/popular',
   icon: TrendingUp
 }, {
-  title: 'Government Tracker',
-  url: '/officials',
+  title: 'Discover',
+  url: '/discover',
   icon: Building2
 }, {
   title: 'Explore',

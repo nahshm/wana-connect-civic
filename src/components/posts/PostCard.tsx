@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield, ChevronDown, ChevronUp, Smile, Eye, ThumbsUp, ThumbsDown, Play, Pause, Volume2, VolumeX, Maximize2, Image as ImageIcon, Film, FileText, ExternalLink, Bell, EyeOff, X, Flag } from 'lucide-react';
-import { VerifiedBadge, OfficialPositionBadge } from '@/components/ui/verified-badge';
+import { VerifiedBadge, OfficialPositionBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
 import { CIVIC_FLAIRS } from '@/config/flairs';
 import { SafeContentRenderer } from './SafeContentRenderer';
 import { Post } from '@/types';
@@ -753,9 +753,27 @@ export const PostCard = ({
                   
                   {/* Line 2: Prefix/username • time • suggestion */}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="hover:underline">
+                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="hover:underline font-semibold text-foreground">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
+
+                    {/* Verified badge or Trusted User badge */}
+                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} />}
+                    {post.author.isVerified && !post.author.officialPosition && <TrustedUserBadge size="xs" label={post.author.role || 'Trusted Member'} />}
+                    
+                    {/* Title icon with hover - if has position */}
+                    {post.author.officialPosition && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate" title={post.author.officialPosition}>
+                        {post.author.officialPosition}
+                      </Badge>
+                    )}
+
+                    {/* Role Tag (for non-officials with roles like expert, journalist, etc) */}
+                    {!post.author.officialPosition && post.author.role && post.author.role !== 'citizen' && (
+                      <Badge variant="outline" className={`text-[9px] px-1 py-0 uppercase tracking-wider font-semibold ${getRoleColor(post.author.role)}`}>
+                        {post.author.role}
+                      </Badge>
+                    )}
                     <span>•</span>
                     <span>{formatPostDate(post.createdAt)} ago</span>
                     {/* Suggestion reason - example */}
@@ -769,13 +787,23 @@ export const PostCard = ({
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
                     
-                    {/* Verified badge inline */}
-                    {post.author.isVerified && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} />}
+                    {/* Verified badge or Trusted User badge */}
+                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} />}
+                    {post.author.isVerified && !post.author.officialPosition && <TrustedUserBadge size="xs" label={post.author.role || 'Trusted Member'} />}
                     
                     {/* Title icon with hover - if has position */}
-                    {post.author.officialPosition && <Badge variant="outline" className="text-xs px-1.5 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate" title={post.author.officialPosition}>
+                    {post.author.officialPosition && (
+                      <Badge variant="outline" className="text-xs px-1.5 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate" title={post.author.officialPosition}>
                         {post.author.officialPosition}
-                      </Badge>}
+                      </Badge>
+                    )}
+
+                    {/* Role Tag (for non-officials with roles like expert, journalist, etc) */}
+                    {!post.author.officialPosition && post.author.role && post.author.role !== 'citizen' && (
+                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 uppercase tracking-wider font-semibold ${getRoleColor(post.author.role)}`}>
+                        {post.author.role}
+                      </Badge>
+                    )}
                   </div>
                   
                   {/* Line 2: time • suggestion */}

@@ -51,6 +51,25 @@ interface DelayedProject {
     budget_allocated?: number;
 }
 
+interface PromiseResponse {
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+    created_at: string;
+    office_holder?: {
+        id: string;
+        position?: { title: string };
+        profile?: { display_name: string; username: string };
+    };
+}
+
+interface HolderResponse {
+    id: string;
+    position?: { title: string; jurisdiction_name: string };
+    profile?: { display_name: string; username: string; avatar_url: string };
+}
+
 const DiscoveryDashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -69,18 +88,35 @@ const DiscoveryDashboard = () => {
         try {
             setLoading(true);
 
-            // Fetch broken promises (cancelled or long-delayed)
+            // Fetch broken promises (failed/cancelled)
             const { data: promisesData } = await supabase
-                .from('development_promises')
+                .from('office_promises')
                 .select(`
-          id, title, description, status, created_at,
-          official:officials(id, name, position)
-        `)
-                .in('status', ['cancelled', 'not_started'])
+                  id, title, description, status, created_at,
+                  office_holder:office_holders(
+                      id, 
+                      position:government_positions(title), 
+                      profile:profiles!office_holders_user_id_fkey(display_name, username)
+                  )
+                `)
+                .in('status', ['failed'])
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            setBrokenPromises(promisesData || []);
+            // Format broken promises
+            const formattedPromises: BrokenPromise[] = (promisesData || []).map((p: PromiseResponse) => ({
+                id: p.id,
+                title: p.title,
+                description: p.description,
+                status: p.status,
+                created_at: p.created_at,
+                official: {
+                    id: p.office_holder?.id || '',
+                    name: p.office_holder?.profile?.display_name || p.office_holder?.profile?.username || 'Unknown Official',
+                    position: p.office_holder?.position?.title || 'Unknown Position',
+                }
+            }));
+            setBrokenPromises(formattedPromises);
 
             // Fetch delayed projects
             const { data: projectsData } = await supabase
@@ -93,25 +129,31 @@ const DiscoveryDashboard = () => {
             setDelayedProjects(projectsData || []);
 
             // Fetch all officials with promise stats
-            const { data: officialsData } = await supabase
-                .from('officials')
+            const { data: holdersData } = await supabase
+                .from('office_holders')
                 .select(`
-          id, name, position, county, constituency, party, photo_url
-        `);
+                  id,
+                  position:government_positions(title, jurisdiction_name),
+                  profile:profiles!office_holders_user_id_fkey(display_name, username, avatar_url)
+                `);
 
             const { data: allPromises } = await supabase
-                .from('development_promises')
-                .select('id, status, official_id');
+                .from('office_promises')
+                .select('id, status, office_holder_id');
 
             // Calculate stats for each official
-            const officialsWithStats: OfficialWithStats[] = (officialsData || []).map(official => {
-                const promises = (allPromises || []).filter(p => p.official_id === official.id);
-                const completed = promises.filter(p => p.status === 'completed').length;
-                const total = promises.length;
+            const officialsWithStats: OfficialWithStats[] = (holdersData || []).map((holder: HolderResponse) => {
+                const holderPromises = (allPromises || []).filter(p => p.office_holder_id === holder.id);
+                const completed = holderPromises.filter(p => p.status === 'completed').length;
+                const total = holderPromises.length;
                 const rate = total > 0 ? (completed / total) * 100 : 0;
 
                 return {
-                    ...official,
+                    id: holder.id,
+                    name: holder.profile?.display_name || holder.profile?.username || 'Unknown',
+                    position: holder.position?.title || 'Unknown Position',
+                    county: holder.position?.jurisdiction_name || '',
+                    photo_url: holder.profile?.avatar_url || '',
                     totalPromises: total,
                     completedPromises: completed,
                     completionRate: rate
@@ -245,7 +287,7 @@ const DiscoveryDashboard = () => {
                                                                 by {promise.official.name} - {promise.official.position}
                                                             </span>
                                                             <Badge variant="destructive">
-                                                                {promise.status === 'cancelled' ? 'Cancelled' : 'Not Started'}
+                                                                {promise.status === 'failed' ? 'Failed' : 'Broken'}
                                                             </Badge>
                                                         </div>
                                                     </div>

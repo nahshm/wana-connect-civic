@@ -27,6 +27,8 @@ import { useToast } from '@/hooks/use-toast';
 import { EmojiPicker } from './EmojiPicker';
 import { TypingIndicator } from './TypingIndicator';
 import { MessageMedia } from './MessageMedia';
+import { Badge } from '@/components/ui/badge';
+import { VerifiedBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
 
 interface PendingFile {
   file: File;
@@ -194,7 +196,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
             const senderIds = [...new Set(messagesData.map(m => m.sender_id).filter(Boolean))];
             const { data: profiles } = await supabase
               .from('profiles')
-              .select('id, username, avatar_url')
+              .select('id, username, display_name, avatar_url, role, is_verified, official_position')
               .in('id', senderIds);
 
             setMessages(messagesData.map(msg => ({
@@ -267,7 +269,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
           if (newMsg.sender_id) {
             const { data: profile } = await supabase
               .from('profiles')
-              .select('id, username, avatar_url')
+              .select('id, username, display_name, avatar_url, role, is_verified, official_position')
               .eq('id', newMsg.sender_id)
               .single();
             newMsg.sender = profile;
@@ -441,6 +443,16 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
     );
   }
 
+  const getRoleColor = (role?: string) => {
+    switch (role) {
+      case 'official': return 'text-civic-blue bg-civic-blue/10 border-civic-blue/30';
+      case 'expert': return 'text-purple-600 bg-purple-50 border-purple-200 dark:text-purple-400 dark:bg-purple-900/20 dark:border-purple-800';
+      case 'journalist': return 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/20 dark:border-emerald-800';
+      case 'admin': return 'text-destructive bg-destructive/10 border-destructive/30';
+      default: return 'text-muted-foreground bg-muted border-muted-foreground/30';
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-background">
       {/* Header */}
@@ -496,6 +508,18 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
                     </Avatar>
                   )}
                   <div>
+                    {!isMe && msg.sender && (
+                      <div className="flex items-center gap-1.5 pb-1 pl-1">
+                        <span className="text-[10px] font-medium text-muted-foreground">{msg.sender.display_name || msg.sender.username}</span>
+                        {msg.sender.is_verified && msg.sender.official_position && <VerifiedBadge size="xs" positionTitle={msg.sender.official_position} />}
+                        {msg.sender.is_verified && !msg.sender.official_position && <TrustedUserBadge size="xs" label={msg.sender.role || 'Trusted Member'} />}
+                        {!msg.sender.official_position && msg.sender.role && msg.sender.role !== 'citizen' && (
+                            <Badge variant="outline" className={`text-[8px] px-1 py-0 h-3 uppercase tracking-wider font-semibold ${getRoleColor(msg.sender.role)}`}>
+                                {msg.sender.role}
+                            </Badge>
+                        )}
+                      </div>
+                    )}
                     <div
                       className={`p-3 rounded-2xl ${isMe
                         ? 'bg-primary text-primary-foreground rounded-tr-none'
