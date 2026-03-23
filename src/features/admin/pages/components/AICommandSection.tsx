@@ -817,6 +817,7 @@ function KnowledgeBaseSubTab() {
           </CardContent>
         </Card>
       )}
+      {addingDoc && (
         <Card className="border-dashed border-2 border-primary/40">
           <CardHeader><CardTitle className="text-base">Add Knowledge Document</CardTitle></CardHeader>
           <CardContent className="space-y-3">
