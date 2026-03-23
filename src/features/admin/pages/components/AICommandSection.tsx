@@ -763,6 +763,7 @@ function KnowledgeBaseSubTab() {
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
+          <Button size="sm" variant="outline" onClick={() => setShowUrlIngest(!showUrlIngest)}><Globe className="w-4 h-4 mr-2" />Ingest from URL</Button>
           <Button size="sm" onClick={() => setAddingDoc(!addingDoc)}><Plus className="w-4 h-4 mr-2" />Add Document</Button>
         </div>
       </div>
