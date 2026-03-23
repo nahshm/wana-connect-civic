@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { Header } from '@/components/layout/Header';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { InstallPromptBanner } from '@/components/pwa/InstallPromptBanner';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -19,10 +21,13 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       <Header />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <AppSidebar />
-        <SidebarInset className={cn(
-          "flex-1 w-full h-full !min-h-0",
-          (isCommunityPage || isCivicAssistant) ? "overflow-hidden" : "overflow-auto"
-        )}>
+        <SidebarInset
+          data-scroll-container
+          className={cn(
+            "flex-1 w-full h-full !min-h-0 pb-14 md:pb-0",
+            (isCommunityPage || isCivicAssistant) ? "overflow-hidden" : "overflow-auto"
+          )}
+        >
           {isCivicAssistant ? (
             <div className="relative h-full min-h-0 w-full overflow-hidden">
               {children}
@@ -32,6 +37,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           )}
         </SidebarInset>
       </div>
+      <MobileBottomNav />
+      <InstallPromptBanner />
     </div>
   );
 };

@@ -21,19 +21,19 @@ export default defineConfig(({ mode }) => ({
         name: 'ama - Civic Accountability & Action',
         short_name: 'ama',
         description: 'Empowering citizens through civic engagement, community discussions, and government accountability',
-        theme_color: '#ea580c',
+        theme_color: '#c1351d',
         background_color: '#0a0a0a',
         display: 'standalone',
         scope: '/',
         start_url: '/',
         icons: [
           {
-            src: '/favicon.png',
+            src: '/pwa-icon-512.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: '/favicon.png',
+            src: '/pwa-icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
