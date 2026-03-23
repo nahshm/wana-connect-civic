@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExternalLink, TrendingUp } from 'lucide-react';
+import { ExternalLink, TrendingUp, Bot } from 'lucide-react';
 
 interface CivicIntelligenceCardProps {
   title: string;
@@ -9,6 +9,8 @@ interface CivicIntelligenceCardProps {
   relevance_score?: number | null;
   source_url?: string | null;
   created_at: string;
+  auto_generated?: boolean;
+  source_attribution?: string | null;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -29,6 +31,8 @@ export function CivicIntelligenceCard({
   relevance_score,
   source_url,
   created_at,
+  auto_generated,
+  source_attribution,
 }: CivicIntelligenceCardProps) {
   const cat = category ?? 'other';
   const colorClass = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.other;
@@ -44,6 +48,11 @@ export function CivicIntelligenceCard({
               <Badge variant="outline" className={`text-[10px] capitalize ${colorClass}`}>
                 {cat.replace('_', ' ')}
               </Badge>
+              {auto_generated && (
+                <Badge variant="secondary" className="text-[10px] gap-0.5">
+                  <Bot className="w-2.5 h-2.5" />AI Generated
+                </Badge>
+              )}
               {relevance_score != null && (
                 <span className="text-[10px] text-muted-foreground">
                   {Math.round(relevance_score * 100)}% relevant
@@ -57,17 +66,22 @@ export function CivicIntelligenceCard({
             )}
           </div>
         </div>
-        {source_url && (
-          <a
-            href={source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline flex items-center gap-1"
-          >
-            <ExternalLink className="w-3 h-3" />
-            Source
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {source_url && (
+            <a
+              href={source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Source
+            </a>
+          )}
+          {source_attribution && (
+            <span className="text-[10px] text-muted-foreground">via {source_attribution}</span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

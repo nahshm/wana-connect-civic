@@ -338,6 +338,7 @@ function AgentDirectorySubTab() {
                       'civic-minion': { trigger: 'cron' },
                       'civic-scout': { trigger: 'cron' },
                       'civic-quill': { trigger: 'cron' },
+                      'civic-publisher': { trigger: 'cron' },
                     };
                     toast.info(`Triggering ${agent.displayName}...`);
                     const { error } = await supabase.functions.invoke(agent.name, {
