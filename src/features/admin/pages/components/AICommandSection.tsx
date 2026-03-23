@@ -330,8 +330,8 @@ function AgentDirectorySubTab() {
                   </span>
                 </div>
                 <Button size="sm" variant="outline" className="w-full gap-1 text-xs"
-                  disabled={['civic-brain', 'civic-router', 'civic-ingest'].includes(agent.name)}
-                  title={['civic-brain', 'civic-router', 'civic-ingest'].includes(agent.name) ? 'Real-time only — requires user input' : `Trigger ${agent.displayName}`}
+                  disabled={['civic-brain', 'civic-router', 'civic-ingest', 'civic-quill'].includes(agent.name)}
+                  title={['civic-brain', 'civic-router', 'civic-ingest'].includes(agent.name) ? 'Real-time only — requires user input' : agent.name === 'civic-quill' ? 'Triggered automatically by civic-processor per cluster' : `Trigger ${agent.displayName}`}
                   onClick={async () => {
                     const payloads: Record<string, object> = {
                       'civic-steward': { trigger: 'webhook', since_hours: 1 },
