@@ -12,7 +12,7 @@ import {
   CheckCircle, XCircle, Loader2, Clock, AlertTriangle,
   MapPin, ChevronRight, Pencil, Plus, Check, X,
   Upload, Zap, Eye, FileText, MessageSquare, Search as SearchIcon,
-  HardDrive, Activity, Radio, Server, BarChart2, ShieldCheck,
+  HardDrive, Activity, Radio, Server, BarChart2, ShieldCheck, Globe, Link,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
@@ -322,15 +322,12 @@ function AgentDirectorySubTab() {
                 </div>
                 <Button size="sm" variant="outline" className="w-full gap-1 text-xs"
                   onClick={async () => {
-                    const { error } = await supabase.from('agent_runs').insert({
-                      agent_name: agent.name,
-                      trigger_type: 'manual',
-                      status: 'success',
-                      items_scanned: 0, items_actioned: 0, items_failed: 0,
-                      metadata: { triggered_by: 'admin_dashboard' },
+                    toast.info(`Triggering ${agent.displayName}...`);
+                    const { error } = await supabase.functions.invoke(agent.name, {
+                      body: { mode: 'manual', triggered_by: 'admin_dashboard' },
                     });
-                    if (error) toast.error('Failed to trigger');
-                    else toast.success(`Triggered ${agent.displayName} run`);
+                    if (error) toast.error(`Failed: ${error.message}`);
+                    else toast.success(`${agent.displayName} triggered successfully`);
                   }}>
                   <Zap className="w-3 h-3" />Trigger Run
                 </Button>
@@ -697,6 +694,9 @@ function KnowledgeBaseSubTab() {
   const [addingDoc, setAddingDoc] = useState(false);
   const [newDoc, setNewDoc] = useState({ title: '', content: '', source_type: 'manual' });
   const [ragSaving, setRagSaving] = useState(false);
+  const [urlIngest, setUrlIngest] = useState({ url: '', title: '', source_type: 'manual' });
+  const [urlIngesting, setUrlIngesting] = useState(false);
+  const [showUrlIngest, setShowUrlIngest] = useState(false);
 
   const ragSourceTypes = ['all', 'kenya_constitution', 'kenya_ppada', 'kenya_pfma', 'kenya_kica', 'wanaiq_guidelines', 'scout_finding', 'manual'];
 
@@ -714,12 +714,25 @@ function KnowledgeBaseSubTab() {
   const handleAddDoc = async () => {
     if (!newDoc.content.trim()) { toast.error('Content is required'); return; }
     setRagSaving(true);
-    const { error } = await (supabase as any).from('vectors').insert({
-      title: newDoc.title || null, content: newDoc.content, source_type: newDoc.source_type, embedding: null
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.functions.invoke('civic-ingest', {
+      body: { content: newDoc.content, title: newDoc.title || 'Manual Document', source_type: newDoc.source_type },
     });
     if (error) toast.error(`Failed: ${error.message}`);
-    else { toast.success('Document added'); setNewDoc({ title: '', content: '', source_type: 'manual' }); setAddingDoc(false); refetch(); }
+    else { toast.success('Document ingested with embeddings'); setNewDoc({ title: '', content: '', source_type: 'manual' }); setAddingDoc(false); refetch(); }
     setRagSaving(false);
+  };
+
+  const handleUrlIngest = async () => {
+    if (!urlIngest.url.trim()) { toast.error('URL is required'); return; }
+    try { new URL(urlIngest.url); } catch { toast.error('Please enter a valid URL'); return; }
+    setUrlIngesting(true);
+    const { error } = await supabase.functions.invoke('civic-ingest', {
+      body: { url: urlIngest.url, title: urlIngest.title || urlIngest.url, source_type: urlIngest.source_type || 'manual' },
+    });
+    if (error) toast.error(`Failed: ${error.message}`);
+    else { toast.success('URL content ingested successfully'); setUrlIngest({ url: '', title: '', source_type: 'manual' }); setShowUrlIngest(false); refetch(); }
+    setUrlIngesting(false);
   };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -750,6 +763,7 @@ function KnowledgeBaseSubTab() {
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
+          <Button size="sm" variant="outline" onClick={() => setShowUrlIngest(!showUrlIngest)}><Globe className="w-4 h-4 mr-2" />Ingest from URL</Button>
           <Button size="sm" onClick={() => setAddingDoc(!addingDoc)}><Plus className="w-4 h-4 mr-2" />Add Document</Button>
         </div>
       </div>
@@ -769,6 +783,40 @@ function KnowledgeBaseSubTab() {
         <p className="text-sm text-muted-foreground">{isDragActive ? 'Drop files here...' : 'Drag & drop .txt, .md, or .csv files'}</p>
       </div>
 
+      {showUrlIngest && (
+        <Card className="border-dashed border-2 border-primary/40">
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Link className="w-4 h-4" />Ingest from URL</CardTitle>
+            <CardDescription>Paste any URL — PDFs, web pages, and documents are supported via AI text extraction.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label className="text-sm">URL *</Label>
+              <Input value={urlIngest.url} onChange={e => setUrlIngest({ ...urlIngest, url: e.target.value })} placeholder="https://example.com/document.pdf" className="mt-1" type="url" />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm">Title (optional)</Label>
+                <Input value={urlIngest.title} onChange={e => setUrlIngest({ ...urlIngest, title: e.target.value })} placeholder="E.g. Kenya Constitution 2010" className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-sm">Source Type</Label>
+                <select value={urlIngest.source_type} onChange={e => setUrlIngest({ ...urlIngest, source_type: e.target.value })}
+                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                  {ragSourceTypes.filter(s => s !== 'all').map(st => (
+                    <option key={st} value={st}>{st.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowUrlIngest(false)}>Cancel</Button>
+              <Button disabled={urlIngesting} onClick={handleUrlIngest}>
+                {urlIngesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Globe className="w-4 h-4 mr-2" />}Ingest URL
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {addingDoc && (
         <Card className="border-dashed border-2 border-primary/40">
           <CardHeader><CardTitle className="text-base">Add Knowledge Document</CardTitle></CardHeader>

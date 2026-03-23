@@ -7,56 +7,64 @@ const corsHeaders = {
 };
 
 interface IngestRequest {
-  // Either provide a storage path (file already in Supabase Storage)
   storage_path?: string;
-  // Or provide raw text content directly
   content?: string;
-  // Document metadata
+  url?: string;
   title: string;
   source_type: string;
   metadata?: Record<string, unknown>;
 }
 
-// Simple text chunking with overlap
 function chunkText(text: string, chunkSize = 1500, overlap = 200): string[] {
   const chunks: string[] = [];
   let start = 0;
-  
-  // Clean up text
-  const cleanText = text
-    .replace(/\r\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  const cleanText = text.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 
   while (start < cleanText.length) {
     let end = start + chunkSize;
-    
-    // Try to break at paragraph or sentence boundary
     if (end < cleanText.length) {
-      // Look for paragraph break
       const paragraphBreak = cleanText.lastIndexOf("\n\n", end);
       if (paragraphBreak > start + chunkSize / 2) {
         end = paragraphBreak;
       } else {
-        // Look for sentence break
         const sentenceBreak = cleanText.lastIndexOf(". ", end);
         if (sentenceBreak > start + chunkSize / 2) {
           end = sentenceBreak + 1;
         }
       }
     }
-
     const chunk = cleanText.slice(start, end).trim();
-    if (chunk.length > 50) {
-      chunks.push(chunk);
-    }
-
+    if (chunk.length > 50) chunks.push(chunk);
     start = end - overlap;
     if (start < 0) start = 0;
     if (start >= cleanText.length) break;
   }
-
   return chunks;
+}
+
+async function fetchUrlContent(url: string): Promise<string> {
+  // Use Jina AI reader for clean text extraction (handles PDFs, web pages, etc.)
+  const jinaUrl = `https://r.jina.ai/${url}`;
+  console.log(`[civic-ingest] Fetching via Jina reader: ${jinaUrl}`);
+  
+  const response = await fetch(jinaUrl, {
+    headers: {
+      "Accept": "text/plain",
+    },
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Jina reader failed (${response.status}): ${errText.slice(0, 200)}`);
+  }
+
+  const text = await response.text();
+  if (!text || text.trim().length < 50) {
+    throw new Error("Jina reader returned insufficient content");
+  }
+
+  console.log(`[civic-ingest] Jina extracted ${text.length} chars`);
+  return text;
 }
 
 Deno.serve(async (req) => {
@@ -85,7 +93,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Auth validation
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -99,15 +106,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: hasAdminRole } = await serviceClient.rpc("has_role", {
-      _user_id: user.id,
-      _role: "admin",
+      _user_id: user.id, _role: "admin",
     });
     const { data: hasSuperAdminRole } = await serviceClient.rpc("has_role", {
-      _user_id: user.id,
-      _role: "super_admin",
+      _user_id: user.id, _role: "super_admin",
     });
 
     if (!hasAdminRole && !hasSuperAdminRole) {
@@ -118,7 +122,7 @@ Deno.serve(async (req) => {
     }
 
     const body: IngestRequest = await req.json();
-    const { storage_path, content, title, source_type, metadata = {} } = body;
+    const { storage_path, content, url, title, source_type, metadata = {} } = body;
 
     if (!title || !source_type) {
       return new Response(
@@ -127,22 +131,33 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!storage_path && !content) {
+    if (!storage_path && !content && !url) {
       return new Response(
-        JSON.stringify({ error: "Either storage_path or content is required" }),
+        JSON.stringify({ error: "Either storage_path, content, or url is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     let textContent = content || "";
 
-    // If storage_path provided, download and extract text
-    if (storage_path && !content) {
+    // URL-based ingestion via Jina reader
+    if (url && !content) {
+      try {
+        textContent = await fetchUrlContent(url);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Failed to fetch URL";
+        return new Response(
+          JSON.stringify({ error: msg }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Storage-based ingestion
+    if (storage_path && !content && !url) {
       console.log(`[civic-ingest] Downloading from storage: ${storage_path}`);
-      
       const { data: fileData, error: downloadError } = await serviceClient.storage
-        .from("documents")
-        .download(storage_path);
+        .from("documents").download(storage_path);
 
       if (downloadError || !fileData) {
         return new Response(
@@ -151,22 +166,15 @@ Deno.serve(async (req) => {
         );
       }
 
-      // For now, handle text files directly
-      // PDF parsing would require a separate library
       const fileName = storage_path.toLowerCase();
       if (fileName.endsWith(".txt") || fileName.endsWith(".md")) {
         textContent = await fileData.text();
       } else if (fileName.endsWith(".pdf")) {
-        // For PDFs, we'd need pdf-parse or similar
-        // For now, return an error suggesting to use the content field
         return new Response(
-          JSON.stringify({ 
-            error: "PDF parsing not yet implemented. Please extract text and use the 'content' field, or upload a .txt/.md file." 
-          }),
+          JSON.stringify({ error: "For PDFs, use the 'url' parameter with a public URL. Jina AI will extract the text automatically." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else {
-        // Try to read as text
         try {
           textContent = await fileData.text();
         } catch {
@@ -185,34 +193,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Chunk the text
+    // Chunk and embed
     console.log(`[civic-ingest] Chunking ${textContent.length} chars...`);
     const chunks = chunkText(textContent);
     console.log(`[civic-ingest] Created ${chunks.length} chunks`);
 
-    // Generate embeddings and insert
-    const results = {
-      total_chunks: chunks.length,
-      inserted: 0,
-      failed: 0,
-      errors: [] as string[],
-    };
+    const results = { total_chunks: chunks.length, inserted: 0, failed: 0, errors: [] as string[] };
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
-
       try {
-        // Generate embedding
         const embeddingResponse = await fetch("https://api.openai.com/v1/embeddings", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${openAIKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "text-embedding-ada-002",
-            input: chunk,
-          }),
+          headers: { Authorization: `Bearer ${openAIKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "text-embedding-ada-002", input: chunk }),
         });
 
         if (!embeddingResponse.ok) {
@@ -223,38 +217,38 @@ Deno.serve(async (req) => {
         const { data: embeddings } = await embeddingResponse.json();
         const embedding = embeddings[0].embedding;
 
-        // Insert into vectors table
         const { error: insertError } = await serviceClient.from("vectors").insert({
-          content: chunk,
-          embedding,
-          source_type,
+          content: chunk, embedding, source_type,
           title: `${title} (Part ${i + 1}/${chunks.length})`,
           metadata: {
-            ...metadata,
-            source: title,
-            chunk_index: i,
-            total_chunks: chunks.length,
-            ingested_by: user.id,
-            ingested_at: new Date().toISOString(),
+            ...metadata, source: title, chunk_index: i, total_chunks: chunks.length,
+            ingested_by: user.id, ingested_at: new Date().toISOString(),
+            ...(url ? { source_url: url } : {}),
           },
         });
 
-        if (insertError) {
-          throw new Error(`Insert error: ${insertError.message}`);
-        }
-
+        if (insertError) throw new Error(`Insert error: ${insertError.message}`);
         results.inserted++;
         console.log(`[civic-ingest] Inserted chunk ${i + 1}/${chunks.length}`);
 
-        // Small delay to avoid rate limits
-        if (i < chunks.length - 1) {
-          await new Promise((r) => setTimeout(r, 100));
-        }
+        if (i < chunks.length - 1) await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
         results.failed++;
         results.errors.push(`Chunk ${i + 1}: ${e instanceof Error ? e.message : "Unknown error"}`);
         console.error(`[civic-ingest] Chunk ${i + 1} failed:`, e);
       }
+    }
+
+    // Emit ingest_complete event
+    try {
+      await serviceClient.from("agent_events").insert({
+        event_type: "ingest_complete",
+        source_agent: "civic-ingest",
+        payload: { title, source_type, chunks: results.total_chunks, inserted: results.inserted, failed: results.failed, ...(url ? { url } : {}) },
+        status: results.failed === 0 ? "success" : "partial",
+      });
+    } catch (e) {
+      console.error("[civic-ingest] Failed to emit event:", e);
     }
 
     console.log(`[civic-ingest] Complete: ${results.inserted}/${results.total_chunks} chunks inserted`);

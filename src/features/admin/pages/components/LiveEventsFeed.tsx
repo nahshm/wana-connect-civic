@@ -133,8 +133,12 @@ export function LiveEventsFeed() {
       {/* Event list */}
       {!filtered.length ? (
         <Card>
-          <CardContent className="py-10 text-center text-muted-foreground text-sm">
-            Waiting for agent events…
+          <CardContent className="py-10 text-center space-y-3">
+            <Activity className="w-10 h-10 mx-auto text-muted-foreground/40" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">No events yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Events appear here in real-time when agents run. Go to the <strong>Agents</strong> tab and trigger a run to see events flow.</p>
+            </div>
           </CardContent>
         </Card>
       ) : (
