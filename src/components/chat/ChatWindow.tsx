@@ -43,7 +43,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Mark chat as read
-  const markAsRead = async (chatName?: string | null) => {
+  const markAsRead = async () => {
     if (!user || !chatId || type === 'mod_mail') return;
     const { error } = await supabase
       .from('chat_participants')
@@ -56,18 +56,16 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
       return;
     }
 
-    if (type === 'direct' && chatName) {
-      const { error: notificationError } = await supabase
+    const { error: notificationError } = await supabase
         .from('comment_notifications')
         .update({ is_read: true })
         .eq('recipient_id', user.id)
         .eq('notification_type', 'chat_message')
         .eq('is_read', false)
-        .like('message', `${chatName}:%`);
+        .contains('metadata', { room_id: chatId });
 
-      if (notificationError) {
-        console.error('Error marking chat notifications as read:', notificationError);
-      }
+    if (notificationError) {
+      console.error('Error marking chat notifications as read:', notificationError);
     }
 
     onReadStateChange?.();
@@ -158,14 +156,14 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
                 avatar_url: otherProfile?.avatar_url,
               });
 
-              await markAsRead(resolvedName);
+              await markAsRead();
             } else {
               setChatDetails(room);
-              await markAsRead(room.name);
+              await markAsRead();
             }
           } else {
             setChatDetails(room);
-            await markAsRead(room?.name);
+            await markAsRead();
           }
         }
       } finally {
@@ -198,7 +196,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
           }
           setMessages((prev) => [...prev, newMsg]);
           // Mark as read when receiving messages while chat is open
-          void markAsRead(chatDetails?.name);
+          void markAsRead();
         }
       )
       .subscribe();
@@ -233,7 +231,7 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
           content: newMessage
         });
         // Update last_read_at after sending
-        await markAsRead(chatDetails?.name);
+        await markAsRead();
       }
       setNewMessage('');
     } catch (error) {
@@ -271,6 +269,13 @@ export const ChatWindow = ({ chatId, type, onChatDeleted, onReadStateChange }: C
         .eq('recipient_id', user.id)
         .eq('notification_type', 'chat_message')
         .eq('is_read', false);
+        
+      await supabase
+        .from('comment_notifications')
+        .delete()
+        .eq('recipient_id', user.id)
+        .eq('notification_type', 'chat_message')
+        .contains('metadata', { room_id: chatId });
 
       toast({ title: type === 'group' ? 'You left the chat' : 'Conversation removed' });
       onChatDeleted?.();
