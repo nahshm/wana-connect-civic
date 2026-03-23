@@ -75,7 +75,7 @@ const CivicDashboard = lazy(() => import("./pages/Dashboard/CivicDashboard"));
 const Analytics = lazy(() => import("./pages/Dashboard/Analytics"));
 const SearchResults = lazy(() => import("./pages/SearchResults").then(m => ({ default: m.SearchResults })));
 // GlobalChat deleted — /chat now uses the functional Chat component
-const Quests = lazy(() => import("./pages/Quests"));
+const Install = lazy(() => import("./pages/Install"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const DiscoveryDashboard = lazy(() => import("./pages/DiscoveryDashboard"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
