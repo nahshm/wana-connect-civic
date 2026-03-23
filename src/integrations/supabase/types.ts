@@ -2308,6 +2308,7 @@ export type Database = {
           member_count: number | null
           minimum_karma_to_post: number | null
           name: string
+          publisher_context: string | null
           region_type: string | null
           search_vector: unknown
           sensitivity_level: string | null
@@ -2340,6 +2341,7 @@ export type Database = {
           member_count?: number | null
           minimum_karma_to_post?: number | null
           name: string
+          publisher_context?: string | null
           region_type?: string | null
           search_vector?: unknown
           sensitivity_level?: string | null
@@ -2372,6 +2374,7 @@ export type Database = {
           member_count?: number | null
           minimum_karma_to_post?: number | null
           name?: string
+          publisher_context?: string | null
           region_type?: string | null
           search_vector?: unknown
           sensitivity_level?: string | null
@@ -5919,6 +5922,7 @@ export type Database = {
         Row: {
           agent_flags: Json
           author_id: string
+          auto_generated: boolean | null
           comment_count: number | null
           community_id: string | null
           content: string
@@ -5926,6 +5930,7 @@ export type Database = {
           content_type: Database["public"]["Enums"]["content_type"] | null
           created_at: string
           downvotes: number | null
+          finding_id: string | null
           hidden_by_agent: string | null
           hidden_reason: string | null
           id: string
@@ -5940,6 +5945,7 @@ export type Database = {
           moderation_status: string | null
           moderation_timestamp: string | null
           official_id: string | null
+          published_by_agent: string | null
           search_vector: unknown
           sentiment_id: string | null
           tags: string[] | null
@@ -5954,6 +5960,7 @@ export type Database = {
         Insert: {
           agent_flags?: Json
           author_id: string
+          auto_generated?: boolean | null
           comment_count?: number | null
           community_id?: string | null
           content: string
@@ -5961,6 +5968,7 @@ export type Database = {
           content_type?: Database["public"]["Enums"]["content_type"] | null
           created_at?: string
           downvotes?: number | null
+          finding_id?: string | null
           hidden_by_agent?: string | null
           hidden_reason?: string | null
           id?: string
@@ -5975,6 +5983,7 @@ export type Database = {
           moderation_status?: string | null
           moderation_timestamp?: string | null
           official_id?: string | null
+          published_by_agent?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
           tags?: string[] | null
@@ -5989,6 +5998,7 @@ export type Database = {
         Update: {
           agent_flags?: Json
           author_id?: string
+          auto_generated?: boolean | null
           comment_count?: number | null
           community_id?: string | null
           content?: string
@@ -5996,6 +6006,7 @@ export type Database = {
           content_type?: Database["public"]["Enums"]["content_type"] | null
           created_at?: string
           downvotes?: number | null
+          finding_id?: string | null
           hidden_by_agent?: string | null
           hidden_reason?: string | null
           id?: string
@@ -6010,6 +6021,7 @@ export type Database = {
           moderation_status?: string | null
           moderation_timestamp?: string | null
           official_id?: string | null
+          published_by_agent?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
           tags?: string[] | null
@@ -6048,6 +6060,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "scout_findings"
             referencedColumns: ["id"]
           },
           {
@@ -6738,6 +6757,45 @@ export type Database = {
           },
         ]
       }
+      publisher_templates: {
+        Row: {
+          active: boolean | null
+          category: string
+          created_at: string | null
+          example_bad: string | null
+          example_good: string | null
+          id: string
+          output_format: Json | null
+          requires_review: boolean | null
+          system_prompt: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category: string
+          created_at?: string | null
+          example_bad?: string | null
+          example_good?: string | null
+          id?: string
+          output_format?: Json | null
+          requires_review?: boolean | null
+          system_prompt: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string
+          created_at?: string | null
+          example_bad?: string | null
+          example_good?: string | null
+          id?: string
+          output_format?: Json | null
+          requires_review?: boolean | null
+          system_prompt?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       quests: {
         Row: {
           category: string
@@ -6927,6 +6985,7 @@ export type Database = {
           id: string
           processed: boolean
           processor_run_id: string | null
+          published: boolean | null
           raw_content: string | null
           related_id: string | null
           related_name: string | null
@@ -6946,6 +7005,7 @@ export type Database = {
           id?: string
           processed?: boolean
           processor_run_id?: string | null
+          published?: boolean | null
           raw_content?: string | null
           related_id?: string | null
           related_name?: string | null
@@ -6965,6 +7025,7 @@ export type Database = {
           id?: string
           processed?: boolean
           processor_run_id?: string | null
+          published?: boolean | null
           raw_content?: string | null
           related_id?: string | null
           related_name?: string | null
