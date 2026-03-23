@@ -168,6 +168,7 @@ const App = () => (
                             <Route path="/chat" element={<Chat />} />
                             <Route path="/civic-assistant" element={<CivicChat />} />
                             <Route path="/profile/setup" element={<ProfileSetup />} />
+                            <Route path="/install" element={<Install />} />
                             <Route path="/settings" element={<SettingsPage />} />
 
                             {/* Functional prefix routes - handled by PrefixRouter */}
