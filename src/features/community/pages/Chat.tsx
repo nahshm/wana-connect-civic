@@ -71,24 +71,22 @@ export default function Chat() {
 
       // No existing room — create a new direct room
       const roomId = uuidv4();
-      const { data: room, error: roomError } = await supabase
+      const { error: roomError } = await supabase
         .from('chat_rooms')
-        .insert({ id: roomId, type: 'direct', created_by: user.id })
-        .select()
-        .single();
+        .insert({ id: roomId, type: 'direct', created_by: user.id });
 
       if (roomError) throw roomError;
 
       const { error: participantsError } = await supabase
         .from('chat_participants')
         .insert([
-          { room_id: room.id, user_id: user.id },
-          { room_id: room.id, user_id: userId },
+          { room_id: roomId, user_id: user.id },
+          { room_id: roomId, user_id: userId },
         ]);
 
       if (participantsError) throw participantsError;
 
-      setSelectedChatId(room.id);
+      setSelectedChatId(roomId);
       setSelectedChatType('direct');
       setActiveTab('direct');
       setIsNewChat(false);
@@ -108,16 +106,14 @@ export default function Chat() {
 
     try {
       const roomId = uuidv4();
-      const { data: room, error: roomError } = await supabase
+      const { error: roomError } = await supabase
         .from('chat_rooms')
-        .insert({ id: roomId, type: 'group', name, created_by: user.id })
-        .select()
-        .single();
+        .insert({ id: roomId, type: 'group', name, created_by: user.id });
 
       if (roomError) throw roomError;
 
       const participants = [user.id, ...memberIds].map(uid => ({
-        room_id: room.id,
+        room_id: roomId,
         user_id: uid,
       }));
 
@@ -127,7 +123,7 @@ export default function Chat() {
 
       if (participantsError) throw participantsError;
 
-      setSelectedChatId(room.id);
+      setSelectedChatId(roomId);
       setSelectedChatType('group');
       setIsNewChat(false);
       setActiveTab('group');
