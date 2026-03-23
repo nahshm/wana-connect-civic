@@ -322,15 +322,12 @@ function AgentDirectorySubTab() {
                 </div>
                 <Button size="sm" variant="outline" className="w-full gap-1 text-xs"
                   onClick={async () => {
-                    const { error } = await supabase.from('agent_runs').insert({
-                      agent_name: agent.name,
-                      trigger_type: 'manual',
-                      status: 'success',
-                      items_scanned: 0, items_actioned: 0, items_failed: 0,
-                      metadata: { triggered_by: 'admin_dashboard' },
+                    toast.info(`Triggering ${agent.displayName}...`);
+                    const { error } = await supabase.functions.invoke(agent.name, {
+                      body: { mode: 'manual', triggered_by: 'admin_dashboard' },
                     });
-                    if (error) toast.error('Failed to trigger');
-                    else toast.success(`Triggered ${agent.displayName} run`);
+                    if (error) toast.error(`Failed: ${error.message}`);
+                    else toast.success(`${agent.displayName} triggered successfully`);
                   }}>
                   <Zap className="w-3 h-3" />Trigger Run
                 </Button>
