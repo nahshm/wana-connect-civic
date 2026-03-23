@@ -993,6 +993,9 @@ export type Database = {
           id: string
           media_type: string | null
           media_urls: string[] | null
+          moderation_reason: string | null
+          moderation_status: string | null
+          moderation_timestamp: string | null
           reply_to_id: string | null
           room_id: string | null
           sender_id: string | null
@@ -1006,6 +1009,9 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_urls?: string[] | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
+          moderation_timestamp?: string | null
           reply_to_id?: string | null
           room_id?: string | null
           sender_id?: string | null
@@ -1019,6 +1025,9 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_urls?: string[] | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
+          moderation_timestamp?: string | null
           reply_to_id?: string | null
           room_id?: string | null
           sender_id?: string | null
@@ -5927,6 +5936,9 @@ export type Database = {
           link_image: string | null
           link_title: string | null
           link_url: string | null
+          moderation_reason: string | null
+          moderation_status: string | null
+          moderation_timestamp: string | null
           official_id: string | null
           search_vector: unknown
           sentiment_id: string | null
@@ -5959,6 +5971,9 @@ export type Database = {
           link_image?: string | null
           link_title?: string | null
           link_url?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
+          moderation_timestamp?: string | null
           official_id?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
@@ -5991,6 +6006,9 @@ export type Database = {
           link_image?: string | null
           link_title?: string | null
           link_url?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
+          moderation_timestamp?: string | null
           official_id?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
