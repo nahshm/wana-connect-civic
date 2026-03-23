@@ -1,78 +1,58 @@
 
 
-# PWA Branding, Bottom Navigation, Auto-Update & Install Prompt
+# Fix: Agent Trigger Runs + Confirm Moderation Pipeline
 
-## What Needs to Change
+## Findings
 
-### 1. PWA Branding — Wrong Logo & Identity
-- `vite.config.ts` manifest uses `/favicon.png` for icons — should use the new meerkat mascot logo
-- `index.html` still references old favicon and has `apple-mobile-web-app-title` as "ama" with old theme color `#ea580c`
-- Install page (`Install.tsx`) uses generic text with no logo imagery
-- Need to copy uploaded logos to `public/` for PWA icon use and create properly sized icons
+### Moderation (civic-steward) — CONFIRMED WORKING
 
-### 2. Bottom Navigation Bar — Does Not Exist
-No mobile bottom nav exists anywhere in the codebase. Need to create a thumb-friendly bottom nav for mobile with auto-hide on scroll down, show on scroll up.
+Tested the deployed edge function directly:
+- **Clean content** → `{ verdict: "APPROVED", confidence: 1.0 }` 
+- **Hate speech** → `{ verdict: "BLOCKED", confidence: 0.99, flags: ["Death to all Kikuyus", ...] }` 
 
-**Tabs**: Home, Communities, Create (+), Chat, Dashboard — the 5 primary actions matching the sidebar.
+The verdict mapping (lines 226-233) is correctly deployed and functional. Frontend UI panels for BLOCKED/NEEDS_REVISION/FLAGGED are all wired at lines 214-233 and 393+ in CreatePostForm.tsx.
 
-### 3. Auto-Update — Already Configured
-`vite-plugin-pwa` has `registerType: 'autoUpdate'` which auto-updates the service worker. This is correct. No change needed.
+### "Trigger Run" Button — ROOT CAUSE OF ERROR
 
-### 4. Install Prompt — Plain & Boring
-Current Install page is a plain card layout with no visual appeal. Need a branded, eye-catching design with the mascot logo, gradient background, and an auto-showing install banner/toast for first-time visitors.
+The "Trigger Run" button sends `{ mode: 'manual', triggered_by: 'admin_dashboard' }` to every agent. But:
 
----
+| Agent | Expected payload | What trigger sends | Result |
+|-------|------------------|--------------------|--------|
+| civic-steward | `{ trigger: 'cron' }` OR `{ content_type, content }` | `{ mode: 'manual' }` | **400** — "Missing required fields" |
+| civic-brain | `{ query, session_id }` | `{ mode: 'manual' }` | Likely error |
+| civic-router | `{ issue_description }` | `{ mode: 'manual' }` | Likely error |
+| civic-scout | `{ trigger: 'cron' }` | `{ mode: 'manual' }` | Likely error |
+| civic-minion | Unknown | `{ mode: 'manual' }` | Unknown |
 
-## Implementation
+The button sends a payload none of the agents understand.
 
-### A. Copy Logos to Public
-- Copy `WanaIQ_Logo_Primary.png` to `public/pwa-icon-512.png` (mascot face — used as app icon)
-- Copy `WanaIQ_Logo_Sec.png` to `public/pwa-logo-wide.png` (mascot + "ama" text — used on install page)
+## Fix
 
-### B. Update PWA Manifest (`vite.config.ts`)
-- Update icon paths to use `pwa-icon-512.png`
-- Update `theme_color` to `#c1351d` (the red from the "ama" text in the logo)
-- Keep `short_name: 'ama'`
+### Edit: `AICommandSection.tsx` — Agent-specific trigger payloads
 
-### C. Update `index.html`
-- Add `<link rel="apple-touch-icon" href="/pwa-icon-512.png">`
-- Update `theme-color` meta tag
-- Remove duplicate `<meta name="description">` and `<meta name="author">` tags
+Map each agent to its correct trigger payload:
 
-### D. Create `MobileBottomNav.tsx`
-- Fixed bottom bar, visible only on mobile (`md:hidden`)
-- 5 tabs: Home, Communities, Create, Chat, Dashboard
-- Active tab highlighted with primary color
-- Auto-hide on scroll down, show on scroll up (track scroll direction via `useEffect` on the `SidebarInset` scroll container)
-- Add `pb-16 md:pb-0` padding to `AppLayout` content area to prevent content from being hidden behind the nav
+```typescript
+const AGENT_TRIGGER_PAYLOADS: Record<string, object> = {
+  'civic-steward': { trigger: 'webhook', since_hours: 1 },
+  'civic-minion':  { trigger: 'cron' },
+  'civic-scout':   { trigger: 'cron' },
+  'civic-quill':   { trigger: 'cron' },
+  'civic-brain':   {},  // Not triggerable manually (needs query)
+  'civic-router':  {},  // Not triggerable manually (needs issue)
+  'civic-ingest':  {},  // Not triggerable manually (needs content)
+};
+```
 
-### E. Redesign `Install.tsx` — Eye-Catching Install Page
-- Full-width gradient hero with mascot logo centered
-- Large "Install ama" heading with animated download icon
-- One-tap install button (prominent, full-width on mobile)
-- Platform-specific instructions in collapsible sections below
-- Benefits listed with icons
+For agents that can't be manually triggered (brain, router, ingest), disable the button and show "Real-time only" tooltip.
 
-### F. Create `InstallPromptBanner.tsx` — Auto-Showing Install Banner
-- Floating banner/toast that appears at the bottom of the screen for non-installed users
-- Shows mascot icon + "Install ama for a better experience" + Install button + dismiss X
-- Only shows once per session (uses `sessionStorage`)
-- Appears after 30 seconds of browsing (not immediately — avoid annoyance)
-- Dismissed permanently via `localStorage` key
-- Integrated into `AppLayout.tsx`
+For triggerable agents (steward, minion, scout, quill), send the correct payload.
 
----
-
-## Files
+### Files
 
 | Action | File | What |
 |--------|------|------|
-| COPY | Uploaded logos → `public/pwa-icon-512.png`, `public/pwa-logo-wide.png` | PWA icons |
-| EDIT | `vite.config.ts` | Update manifest icons, theme_color |
-| EDIT | `index.html` | Apple touch icon, fix duplicate metas, update theme-color |
-| CREATE | `src/components/layout/MobileBottomNav.tsx` | Bottom nav with auto-hide on scroll |
-| EDIT | `src/components/layout/AppLayout.tsx` | Add MobileBottomNav + bottom padding |
-| REWRITE | `src/pages/Install.tsx` | Branded, eye-catching install page |
-| CREATE | `src/components/pwa/InstallPromptBanner.tsx` | Auto-showing install banner for non-installed users |
-| EDIT | `src/components/layout/AppLayout.tsx` | Add InstallPromptBanner |
+| EDIT | `AICommandSection.tsx` | Add per-agent trigger payloads, disable button for non-triggerable agents |
+
+1 file, ~20 lines changed. No migration needed.
 
