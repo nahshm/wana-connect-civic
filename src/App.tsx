@@ -74,7 +74,7 @@ const ProfileSetup = lazy(() => import("@/components/onboarding/ProfileSetup").t
 const CivicDashboard = lazy(() => import("./pages/Dashboard/CivicDashboard"));
 const Analytics = lazy(() => import("./pages/Dashboard/Analytics"));
 const SearchResults = lazy(() => import("./pages/SearchResults").then(m => ({ default: m.SearchResults })));
-const GlobalChat = lazy(() => import("./pages/GlobalChat"));
+// GlobalChat deleted — /chat now uses the functional Chat component
 const Quests = lazy(() => import("./pages/Quests"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const DiscoveryDashboard = lazy(() => import("./pages/DiscoveryDashboard"));
