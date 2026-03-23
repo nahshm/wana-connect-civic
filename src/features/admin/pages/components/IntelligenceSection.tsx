@@ -302,14 +302,14 @@ function TemplatesTab() {
       const { error } = await supabase
         .from('publisher_templates')
         .update({
-          system_prompt: vals.system_prompt,
-          example_good: vals.example_good || null,
-          example_bad: vals.example_bad || null,
-          requires_review: vals.requires_review,
-          active: vals.active,
+          system_prompt: vals.system_prompt as string,
+          example_good: (vals.example_good as string) || null,
+          example_bad: (vals.example_bad as string) || null,
+          requires_review: vals.requires_review as boolean,
+          active: vals.active as boolean,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', vals.id);
+        .eq('id', vals.id as string);
       if (error) throw error;
     },
     onSuccess: () => {
