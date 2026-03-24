@@ -137,9 +137,22 @@ async function extractArticlesViaLLM(
     { maxTokens: 2048, temperature: 0, jsonMode: true },
   );
 
-  const parsed = parseLLMJson<FeedItem[]>(response.content);
-  if (!Array.isArray(parsed)) {
-    console.warn("[scout] LLM extraction returned non-array:", response.content.slice(0, 200));
+  const raw = parseLLMJson<FeedItem[] | Record<string, unknown>>(response.content);
+
+  // Handle both flat array and wrapped object (e.g. { "articles": [...] })
+  let parsed: FeedItem[];
+  if (Array.isArray(raw)) {
+    parsed = raw;
+  } else if (raw && typeof raw === "object") {
+    const firstArray = Object.values(raw).find(Array.isArray) as FeedItem[] | undefined;
+    if (firstArray) {
+      parsed = firstArray;
+    } else {
+      console.warn("[scout] LLM extraction returned unexpected shape:", response.content.slice(0, 200));
+      return [];
+    }
+  } else {
+    console.warn("[scout] LLM extraction returned non-object:", response.content.slice(0, 200));
     return [];
   }
 
