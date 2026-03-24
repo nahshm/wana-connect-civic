@@ -158,6 +158,7 @@ const App = () => (
                             {/* Admin Routes */}
                             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                             <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
+                            <Route path="/admin/intelligence" element={<SuperAdminDashboard initialSection="intelligence" />} />
                             <Route path="/admin/verification" element={<PositionVerification />} />
                             <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
                             <Route path="/admin/feature-flags" element={<FeatureFlagsManager />} />

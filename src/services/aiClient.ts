@@ -115,7 +115,7 @@ export const aiClient = {
       return;
     }
 
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/civic-brain`;
+    const url = `https://zcnjpczplkbdmmovlrtv.supabase.co/functions/v1/civic-brain`;
     
     try {
       const response = await fetch(url, {

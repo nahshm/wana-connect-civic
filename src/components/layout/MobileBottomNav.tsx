@@ -1,21 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Users, PlusCircle, MessageSquare, LayoutDashboard } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const NAV_ITEMS = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Communities', icon: Users, path: '/communities' },
-  { label: 'Create', icon: PlusCircle, path: '/create' },
+  { label: 'Create', icon: PlusCircle, path: '/create', authRequired: true },
   { label: 'Chat', icon: MessageSquare, path: '/chat' },
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', authRequired: true },
 ];
 
 export const MobileBottomNav = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  const filteredItems = NAV_ITEMS.filter(item => !item.authRequired || user);
 
   const handleScroll = useCallback(() => {
     const scrollContainer = document.querySelector('[data-scroll-container]');
@@ -55,7 +59,7 @@ export const MobileBottomNav = () => {
       )}
     >
       <div className="flex items-center justify-around h-14">
-        {NAV_ITEMS.map((item) => {
+        {filteredItems.map((item) => {
           const isActive = item.path === '/'
             ? location.pathname === '/'
             : location.pathname.startsWith(item.path);

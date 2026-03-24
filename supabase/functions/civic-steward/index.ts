@@ -218,23 +218,42 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ ok: true, scanned: totalScanned, actioned: totalActioned });
     }
 
-    // Mode A: pre-publish screening (backward-compatible)
+    // Mode A: pre-publish screening (backward-compatible with frontend)
     if (content_type && content) {
       const result = await screenContent(content_type, content);
       
-      // Map backend verdict to frontend expected ModerationResult format
-      let feVerdict: 'APPROVED' | 'NEEDS_REVISION' | 'BLOCKED' | 'FLAGGED' = 'APPROVED';
-      if (result.verdict === 'flag') {
-        feVerdict = 'FLAGGED';
-      } else if (result.verdict === 'remove') {
-        feVerdict = (result.confidence && result.confidence < 0.85) ? 'NEEDS_REVISION' : 'BLOCKED';
-      } else if (result.verdict === 'ban_user') {
-        feVerdict = 'BLOCKED';
+      // Map internal backend verdict to frontend expected ModerationResult format
+      let feVerdict: 'APPROVED' | 'NEEDS_REVISION' | 'BLOCKED' | 'FLAGGED';
+      
+      switch (result.verdict) {
+        case 'flag':
+          feVerdict = 'FLAGGED';
+          break;
+        case 'remove':
+          // If we're not 100% sure, ask for revision instead of outright block
+          feVerdict = (result.confidence < 0.8) ? 'NEEDS_REVISION' : 'BLOCKED';
+          break;
+        case 'ban_user':
+          feVerdict = 'BLOCKED';
+          break;
+        case 'none':
+        default:
+          feVerdict = 'APPROVED';
+          break;
       }
+
+      logRun(sb(), AGENT_NAME, {
+        trigger_type: 'api',
+        items_scanned: 1,
+        items_actioned: feVerdict === 'APPROVED' ? 0 : 1,
+        status: 'success',
+        metadata: { verdict: feVerdict, internal_verdict: result.verdict }
+      }).catch(err => console.error("Failed to log pre-publish run:", err));
 
       return jsonResponse({
         ok: true,
         verdict: feVerdict,
+        category: result.category,
         reason: result.reason || 'Content meets community guidelines.',
         confidence: result.confidence || 1.0,
         flags: result.flags || [],

@@ -1,8 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield, ChevronDown, ChevronUp, Smile, Eye, ThumbsUp, ThumbsDown, Play, Pause, Volume2, VolumeX, Maximize2, Image as ImageIcon, Film, FileText, ExternalLink, Bell, EyeOff, X, Flag } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield, ChevronDown, ChevronUp, Smile, Eye, ThumbsUp, ThumbsDown, Play, Pause, Volume2, VolumeX, Maximize2, Image as ImageIcon, Film, FileText, ExternalLink, Bell, EyeOff, X, Flag, Bot } from 'lucide-react';
 import { VerifiedBadge, OfficialPositionBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
 import { CIVIC_FLAIRS } from '@/config/flairs';
 import { SafeContentRenderer } from './SafeContentRenderer';
@@ -12,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { buildProfileLink } from '@/lib/profile-links';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
@@ -377,6 +379,10 @@ export const PostCard = ({
         return 'bg-civic-green/10 text-civic-green border-civic-green/20';
       case 'journalist':
         return 'bg-civic-orange/10 text-civic-orange border-civic-orange/20';
+      case 'moderator':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'bot':
+        return 'bg-indigo-50 text-indigo-600 border-indigo-200';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -728,7 +734,11 @@ export const PostCard = ({
         </div>
       </div>;
   }
-  return <><article className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+  return <><article className={cn(
+    "border-b border-border/50 hover:bg-muted/30 transition-colors relative px-2",
+    post.author.officialPosition && "border-l-4 border-l-civic-blue bg-civic-blue/[0.02] shadow-[inset_4px_0_0_0_rgba(0,102,204,0.1)]",
+    post.auto_generated && !post.author.officialPosition && "border-l-4 border-l-indigo-400/40 bg-indigo-50/[0.02]"
+  )}>
       <div className="flex flex-col">
         {/* Main Content */}
         <div className="flex-1 min-w-0 py-[12px] px-[2px]">
@@ -770,9 +780,47 @@ export const PostCard = ({
 
                     {/* Role Tag (for non-officials with roles like expert, journalist, etc) */}
                     {!post.author.officialPosition && post.author.role && post.author.role !== 'citizen' && (
-                      <Badge variant="outline" className={`text-[9px] px-1 py-0 uppercase tracking-wider font-semibold ${getRoleColor(post.author.role)}`}>
-                        {post.author.role}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className={`text-[9px] px-1 py-0 uppercase tracking-wider font-semibold cursor-help ${getRoleColor(post.author.role)}`}>
+                            {post.author.role}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="flex flex-col gap-1 max-w-[220px]">
+                            <p className="font-semibold text-sm capitalize">{post.author.role} Account</p>
+                            <p className="text-xs text-muted-foreground">
+                              {post.author.role === 'expert' ? 'Verified domain expert with specialized knowledge in civic matters.' :
+                               post.author.role === 'journalist' ? 'Verified journalist focusing on public interest stories.' :
+                               post.author.role === 'moderator' ? 'Community moderator responsible for maintaining discourse quality.' :
+                               post.author.role === 'bot' ? 'Automated system account providing official data and civic updates.' :
+                               post.author.role === 'admin' ? 'Platform administrator with global oversight.' :
+                               'Verified contributor to the WanaIQ platform.'}
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {/* AI Generated Badge */}
+                    {post.auto_generated && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="text-[9px] h-4 gap-0.5 px-1 bg-civic-blue/10 text-civic-blue border-civic-blue/20 cursor-help">
+                            <Bot className="w-2.5 h-2.5" />
+                            AI
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="flex items-center gap-2">
+                            <Bot className="w-4 h-4 text-civic-blue" />
+                            <div>
+                              <p className="font-semibold text-sm">AI Generated Content</p>
+                              <p className="text-xs text-muted-foreground">This post was synthesized by WanaIQ AI from official sources.</p>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                     <span>•</span>
                     <span>{formatPostDate(post.createdAt)} ago</span>
@@ -800,9 +848,47 @@ export const PostCard = ({
 
                     {/* Role Tag (for non-officials with roles like expert, journalist, etc) */}
                     {!post.author.officialPosition && post.author.role && post.author.role !== 'citizen' && (
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 uppercase tracking-wider font-semibold ${getRoleColor(post.author.role)}`}>
-                        {post.author.role}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 uppercase tracking-wider font-semibold cursor-help ${getRoleColor(post.author.role)}`}>
+                            {post.author.role}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="flex flex-col gap-1 max-w-[220px]">
+                            <p className="font-semibold text-sm capitalize">{post.author.role} Account</p>
+                            <p className="text-xs text-muted-foreground">
+                              {post.author.role === 'expert' ? 'Verified domain expert with specialized knowledge in civic matters.' :
+                               post.author.role === 'journalist' ? 'Verified journalist focusing on public interest stories.' :
+                               post.author.role === 'moderator' ? 'Community moderator responsible for maintaining discourse quality.' :
+                               post.author.role === 'bot' ? 'Automated system account providing official data and civic updates.' :
+                               post.author.role === 'admin' ? 'Platform administrator with global oversight.' :
+                               'Verified contributor to the WanaIQ platform.'}
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {/* AI Generated Badge */}
+                    {post.auto_generated && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="text-[9px] h-4 gap-0.5 px-1 bg-civic-blue/10 text-civic-blue border-civic-blue/20 cursor-help">
+                            <Bot className="w-2.5 h-2.5" />
+                            AI
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="flex items-center gap-2">
+                            <Bot className="w-4 h-4 text-civic-blue" />
+                            <div>
+                              <p className="font-semibold text-sm">AI Generated Content</p>
+                              <p className="text-xs text-muted-foreground">This post was synthesized by WanaIQ AI from official sources.</p>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                   

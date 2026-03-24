@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Json } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +13,20 @@ import { Switch } from '@/components/ui/switch';
 import {
   Search, Filter, Trash2, Send, Check, X, Eye, Bot,
   RefreshCw, Loader2, FileText, Settings, BookOpen,
-  ChevronDown, Sparkles, AlertTriangle, Globe, Cpu,
-  Zap, BarChart2, CheckCircle, XCircle, Clock,
+  ChevronDown, Sparkles, AlertTriangle, Globe, Cpu, BrainCircuit,
+  Zap, BarChart2, CheckCircle, XCircle, Clock, CheckSquare, Square
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // ── 1. Findings Review Tab (Scout output) ────────────────────────────────────
 function FindingsReviewTab() {
@@ -40,30 +51,34 @@ function FindingsReviewTab() {
 
   const publishMutation = useMutation({
     mutationFn: async (findingIds: string[]) => {
-      const { data: currentState } = await supabase
+      const { data: currentState, error: selectError } = await supabase
         .from('agent_state')
         .select('state_value')
         .eq('agent_name', 'civic-publisher')
         .eq('state_key', 'publish_queue')
         .maybeSingle();
 
+      if (selectError) throw selectError;
+
       const existing = (currentState?.state_value as string[]) || [];
       const merged = [...new Set([...existing, ...findingIds])];
 
-      await (supabase.from('agent_state') as any).upsert({
+      const { error: upsertError } = await supabase.from('agent_state').upsert({
         agent_name: 'civic-publisher',
         state_key: 'publish_queue',
         state_value: merged,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'agent_name,state_key' });
 
-      const { error } = await supabase.functions.invoke('civic-publisher', {
+      if (upsertError) throw upsertError;
+
+      const { error: invokeError } = await supabase.functions.invoke('civic-publisher', {
         body: { trigger: 'queue' },
       });
-      if (error) throw error;
+      if (invokeError) throw invokeError;
     },
     onSuccess: () => {
-      toast.success('Findings queued for publishing');
+      toast.success('Findings published to queue');
       setSelectedIds([]);
       queryClient.invalidateQueries({ queryKey: ['intelligence-findings'] });
     },
@@ -110,13 +125,20 @@ function FindingsReviewTab() {
             </Button>
           ))}
         </div>
-        {selectedIds.length > 0 && (
-          <Button size="sm" onClick={() => publishMutation.mutate(selectedIds)}
-            disabled={publishMutation.isPending} className="gap-1">
-            <Send className="w-3 h-3" />
-            Publish {selectedIds.length} to Communities
-          </Button>
-        )}
+        <div className="flex items-center gap-4">
+          {selectedIds.length > 0 && (
+            <Button size="sm" onClick={() => publishMutation.mutate(selectedIds)}
+              disabled={publishMutation.isPending} className="gap-1">
+              <CheckSquare className="w-3 h-3" />
+              Add {selectedIds.length} to Publisher Queue
+            </Button>
+          )}
+          <div className="flex items-center gap-2 text-[10px] bg-muted/50 px-3 py-1.5 rounded-full">
+            <Clock className="w-3 h-3 text-muted-foreground" />
+            <span className="font-medium">Queue Status:</span>
+            <span className="text-primary italic">Findings are processed in the background</span>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
@@ -331,19 +353,36 @@ function ProcessorTab() {
         </Card>
       )}
 
-      {/* Trigger Button */}
+      {/* Trigger Buttons */}
       <Card>
-        <CardContent className="p-4 flex items-center justify-between">
-          <div>
+        <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex-1">
             <p className="text-sm font-medium">Run Processor Pipeline</p>
             <p className="text-xs text-muted-foreground">
-              Embeds unembedded findings → clusters by category → triggers quill summaries
+              Embeds findings → clusters by category → triggers quill summaries
             </p>
           </div>
-          <Button onClick={triggerProcessor} disabled={running} className="gap-2">
-            {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {running ? 'Running...' : 'Run Processor'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={triggerProcessor} disabled={running} variant="outline" className="gap-2">
+              {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {running ? 'Processing...' : 'Run Processor'}
+            </Button>
+            <Button onClick={async () => {
+              try {
+                toast.info('Triggering publisher...');
+                const { error } = await supabase.functions.invoke('civic-publisher', { body: { trigger: 'queue' } });
+                if (error) throw error;
+                toast.success('Publisher triggered. Check Step 4 for drafts.');
+                queryClient.invalidateQueries({ queryKey: ['intelligence-auto-posts'] });
+                queryClient.invalidateQueries({ queryKey: ['processor-stats'] });
+              } catch (e: any) {
+                toast.error(`Publish failed: ${e.message}`);
+              }
+            }} variant="default" className="gap-2">
+              <Send className="w-4 h-4" />
+              Trigger Publishing
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -535,8 +574,61 @@ function TemplatesTab() {
 }
 
 // ── 4. Auto-Generated Posts Tab ──────────────────────────────────────────────
+function EditPostDialog({
+  open,
+  onOpenChange,
+  post,
+  onSave,
+  loading
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  post: any;
+  onSave: (vals: { title: string; content: string }) => void;
+  loading: boolean;
+}) {
+  const [title, setTitle] = useState(post?.title || '');
+  const [content, setContent] = useState(post?.content || '');
+
+  useEffect(() => {
+    if (post) {
+      setTitle(post.title);
+      setContent(post.content);
+    }
+  }, [post]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Auto-Generated Post</DialogTitle>
+          <DialogDescription>Refine the AI-generated content before publishing to the community feed.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Post Title</Label>
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter a compelling headline..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Post Content</Label>
+            <Textarea value={content} onChange={e => setContent(e.target.value)} rows={8} placeholder="Write the community update..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => onSave({ title, content })} disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AutoPostsTab() {
   const queryClient = useQueryClient();
+  const [editingPost, setEditingPost] = useState<any | null>(null);
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ['intelligence-auto-posts'],
@@ -553,12 +645,18 @@ function AutoPostsTab() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from('posts').update({ moderation_status: status }).eq('id', id);
+    mutationFn: async ({ id, status, title, content }: { id: string; status?: string; title?: string; content?: string }) => {
+      const updates: any = {};
+      if (status) updates.moderation_status = status;
+      if (title) updates.title = title;
+      if (content) updates.content = content;
+      
+      const { error } = await supabase.from('posts').update(updates).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Post updated');
+      setEditingPost(null);
       queryClient.invalidateQueries({ queryKey: ['intelligence-auto-posts'] });
     },
   });
@@ -593,113 +691,274 @@ function AutoPostsTab() {
           <p>No auto-generated posts yet. Process findings first, then publish.</p>
         </CardContent></Card>
       ) : (
-        <div className="space-y-2">
-          {posts.map(post => (
-            <Card key={post.id}>
-              <CardContent className="p-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Bot className="w-3.5 h-3.5 text-primary" />
-                      <h4 className="text-sm font-medium truncate">{post.title}</h4>
-                      <Badge variant={
-                        post.moderation_status === 'approved' ? 'default' :
-                        post.moderation_status === 'pending_review' ? 'secondary' : 'destructive'
-                      } className="text-[10px]">
-                        {post.moderation_status || 'unknown'}
-                      </Badge>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {posts.map(post => (
+              <Card key={post.id} className="overflow-hidden border-2 hover:border-primary/50 transition-all">
+                <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-primary/10 rounded-full">
+                      <Bot className="w-4 h-4 text-primary" />
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
-                    <div className="text-[10px] text-muted-foreground">
-                      {new Date(post.created_at).toLocaleString()} · Agent: {post.published_by_agent}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider leading-none">AI Generated Draft</span>
+                      <span className="text-xs font-semibold leading-none mt-1">{post.published_by_agent || 'Civic Publisher'}</span>
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    {post.moderation_status !== 'approved' && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600"
-                        onClick={() => updateStatus.mutate({ id: post.id, status: 'approved' })}
-                        title="Approve">
-                        <Check className="w-3 h-3" />
+                  <Badge variant={
+                    post.moderation_status === 'approved' ? 'default' :
+                    post.moderation_status === 'pending_review' ? 'secondary' : 'destructive'
+                  } className="capitalize text-[10px]">
+                    {post.moderation_status || 'Pending'}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <h4 className="font-bold text-base leading-tight">{post.title}</h4>
+                  <p className="text-sm text-muted-foreground line-clamp-4 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-border mt-2">
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(post.created_at).toLocaleDateString()} · {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" className="h-8 px-3 text-xs"
+                        onClick={() => setEditingPost(post)}>
+                        Edit
                       </Button>
-                    )}
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                      onClick={() => deletePost.mutate(post.id)}
-                      title="Delete">
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                      {post.moderation_status !== 'approved' && (
+                        <Button size="sm" variant="default" className="h-8 px-3 text-xs"
+                          onClick={() => updateStatus.mutate({ id: post.id, status: 'approved' })}>
+                          <Check className="w-3.5 h-3.5 mr-1" /> Approve
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="h-8 px-3 text-xs text-destructive hover:bg-destructive/5"
+                        onClick={() => deletePost.mutate(post.id)}>
+                        <X className="w-3.5 h-3.5 mr-1" /> Reject
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
       )}
+
+      <EditPostDialog 
+        open={!!editingPost}
+        onOpenChange={(open) => !open && setEditingPost(null)}
+        post={editingPost}
+        loading={updateStatus.isPending}
+        onSave={(vals) => updateStatus.mutate({ id: editingPost.id, ...vals })}
+      />
     </div>
   );
 }
 
 // ── 5. Publisher Settings Tab ─────────────────────────────────────────────────
+interface PreviewPost {
+  title: string;
+  content: string;
+  community_id: string;
+  finding_id: string;
+  finding_title: string;
+  moderation_status: string;
+}
+
+function SeedPreviewDialog({ 
+  open, 
+  onOpenChange, 
+  posts, 
+  onConfirm, 
+  loading,
+  communities 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void;
+  posts: PreviewPost[];
+  onConfirm: (selectedFindingIdsPerCommunity: Record<string, string[]>) => void;
+  loading: boolean;
+  communities: Record<string, unknown>[];
+}) {
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+
+  // Update selection when posts change
+  useEffect(() => {
+    if (posts.length > 0) {
+      setSelectedIndices(posts.map((_, i) => i));
+    }
+  }, [posts]);
+
+  const handleConfirm = () => {
+    const selected = posts.filter((_, i) => selectedIndices.includes(i));
+    const grouped: Record<string, string[]> = {};
+    selected.forEach(p => {
+      if (!grouped[p.community_id]) grouped[p.community_id] = [];
+      grouped[p.community_id].push(p.finding_id);
+    });
+    onConfirm(grouped);
+  };
+
+  const toggleSelect = (i: number) => {
+    setSelectedIndices(prev => 
+      prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Preview Auto-Generated Seed Posts</DialogTitle>
+          <DialogDescription>
+            Review the content AI generated for your selected communities. Uncheck any you wish to discard.
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="flex-1 mt-4 pr-4 border rounded-md">
+          <div className="p-4 space-y-4">
+            {posts.map((post, i) => {
+              const community = communities.find(c => c.id === post.community_id);
+              return (
+                <div key={i} className="flex gap-3 p-3 border rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                  <Checkbox 
+                    id={`preview-${i}`}
+                    checked={selectedIndices.includes(i)} 
+                    onCheckedChange={() => toggleSelect(i)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={`preview-${i}`} className="cursor-pointer">
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {(community?.name as string) || 'Unknown Community'}
+                        </Badge>
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground italic">
+                        Source: {post.finding_title}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold">{post.title}</h4>
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                      {post.content}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="mt-6">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleConfirm} disabled={loading || selectedIndices.length === 0}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+            Confirm & Publish {selectedIndices.length} Posts
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PublisherSettingsTab() {
-  const [seedCommunityId, setSeedCommunityId] = useState('');
+  const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
+  const [seedCommunityIds, setSeedCommunityIds] = useState<string[]>([]);
   const [seeding, setSeeding] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewPosts, setPreviewPosts] = useState<PreviewPost[]>([]);
+  const [editingContext, setEditingContext] = useState<string | null>(null);
+  const [contextText, setContextText] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: settings } = useQuery({
-    queryKey: ['publisher-settings'],
+  // Load publisher state
+  const { data: state } = useQuery({
+    queryKey: ['publisher-state'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('agent_state')
-        .select('state_key, state_value')
-        .eq('agent_name', 'civic-publisher');
-      const map: Record<string, unknown> = {};
-      (data || []).forEach((r: { state_key: string; state_value: unknown }) => {
-        map[r.state_key] = r.state_value;
-      });
-      return map;
-    },
+      const { data } = await supabase.from('agent_state').select('*').eq('agent_name', 'civic-publisher');
+      const s: Record<string, unknown> = {};
+      data?.forEach(row => s[row.state_key] = row.state_value);
+      setSettings(s);
+      return s;
+    }
+  });
+
+  const { data: communities, isLoading: loadingCommunities } = useQuery({
+    queryKey: ['communities-list-publisher'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('communities').select('*').order('name');
+      if (error) throw error;
+      return data || [];
+    }
   });
 
   const updateSetting = async (key: string, value: unknown) => {
-    await (supabase.from('agent_state') as any).upsert({
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    await supabase.from('agent_state').upsert({
       agent_name: 'civic-publisher',
       state_key: key,
-      state_value: value,
-      updated_at: new Date().toISOString(),
+      state_value: value as Json,
+      updated_at: new Date().toISOString()
     }, { onConflict: 'agent_name,state_key' });
-    queryClient.invalidateQueries({ queryKey: ['publisher-settings'] });
-    toast.success(`Setting "${key}" updated`);
+    toast.success(`${key} updated`);
   };
 
-  const handleSeed = async () => {
-    if (!seedCommunityId.trim()) { toast.error('Enter a community ID'); return; }
+  const handlePreviewSeed = async () => {
+    if (seedCommunityIds.length === 0) return;
     setSeeding(true);
     try {
-      const { error } = await supabase.functions.invoke('civic-publisher', {
-        body: { seed: true, community_id: seedCommunityId.trim() },
+      const { data, error } = await supabase.functions.invoke('civic-publisher', {
+        body: { 
+          seed: true, 
+          preview: true,
+          trigger: 'seed',
+          community_ids: seedCommunityIds 
+        }
       });
       if (error) throw error;
-      toast.success('Seed triggered! Check Auto-Generated Posts tab.');
+      if (data?.posts && data.posts.length > 0) {
+        setPreviewPosts(data.posts);
+        setPreviewOpen(true);
+      } else {
+        toast.info("No new findings available to seed these specific communities right now.");
+      }
     } catch (e: unknown) {
-      toast.error(`Seed failed: ${e instanceof Error ? e.message : 'Unknown'}`);
+      const err = e as Error;
+      toast.error(`Preview failed: ${err.message}`);
     } finally {
       setSeeding(false);
     }
   };
 
-  const { data: communities } = useQuery({
-    queryKey: ['communities-list-publisher'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('communities')
-        .select('id, name, location_type, location_value, publisher_context')
-        .order('name')
-        .limit(100);
-      return data || [];
-    },
-  });
+  const handleFinalPublish = async (grouped: Record<string, string[]>) => {
+    setSeeding(true);
+    try {
+      // Flatten the grouped selection back into specific post objects from previewPosts
+      const chosenPosts = previewPosts.filter(p => 
+        grouped[p.community_id]?.includes(p.finding_id)
+      );
 
-  const [editingContext, setEditingContext] = useState<string | null>(null);
-  const [contextText, setContextText] = useState('');
+      if (chosenPosts.length === 0) {
+        toast.info("No posts selected to publish.");
+        return;
+      }
+
+      const { error } = await supabase.functions.invoke('civic-publisher', {
+        body: { 
+          publish_posts: chosenPosts
+        }
+      });
+      
+      if (error) throw error;
+      toast.success(`${chosenPosts.length} posts published successfully!`);
+      setPreviewOpen(false);
+      setSeedCommunityIds([]);
+      queryClient.invalidateQueries({ queryKey: ['intelligence-auto-posts'] });
+    } catch (e: unknown) {
+      const err = e as Error;
+      toast.error(`Seeding failed: ${err.message}`);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const saveContext = async (communityId: string) => {
     const { error } = await supabase.from('communities')
@@ -709,6 +968,20 @@ function PublisherSettingsTab() {
     toast.success('Context saved');
     setEditingContext(null);
     queryClient.invalidateQueries({ queryKey: ['communities-list-publisher'] });
+  };
+
+  const toggleCommunity = (id: string) => {
+    setSeedCommunityIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    if (seedCommunityIds.length === (communities || []).length) {
+      setSeedCommunityIds([]);
+    } else {
+      setSeedCommunityIds((communities || []).map(c => c.id));
+    }
   };
 
   return (
@@ -750,28 +1023,59 @@ function PublisherSettingsTab() {
 
       {/* Seed Mode */}
       <Card>
-        <CardHeader><CardTitle className="text-sm">Seed Community</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm">Bulk Seed Communities</CardTitle>
+          <Button variant="outline" size="sm" onClick={selectAll} disabled={loadingCommunities || !communities?.length}>
+            {seedCommunityIds.length === (communities || []).length ? 'Deselect All' : 'Select All'}
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Backfill a new community with 3–5 auto-generated posts from the last 30 days of findings.
+            Select one or more communities to backfill with 3–5 auto-generated posts from available findings.
           </p>
-          <div className="flex gap-2">
-            <select
-              className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={seedCommunityId}
-              onChange={e => setSeedCommunityId(e.target.value)}>
-              <option value="">Select a community</option>
-              {(communities || []).map(c => (
-                <option key={c.id} value={c.id}>{c.name} ({c.location_type}: {c.location_value})</option>
-              ))}
-            </select>
-            <Button onClick={handleSeed} disabled={seeding || !seedCommunityId}>
-              {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              Seed
+          
+          <ScrollArea className="h-[200px] rounded-md border p-2 bg-muted/10">
+            {loadingCommunities ? (
+              <div className="flex items-center justify-center h-full"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {(communities || []).map(c => (
+                  <div key={c.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded transition-colors">
+                    <Checkbox 
+                      id={`seed-${c.id}`} 
+                      checked={seedCommunityIds.includes(c.id)}
+                      onCheckedChange={() => toggleCommunity(c.id)}
+                    />
+                    <label 
+                      htmlFor={`seed-${c.id}`}
+                      className="text-xs font-medium leading-none cursor-pointer truncate"
+                      title={`${c.name} (${c.location_value})`}
+                    >
+                      {c.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
+          <div className="flex justify-end">
+            <Button onClick={handlePreviewSeed} disabled={seeding || seedCommunityIds.length === 0}>
+              {seeding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+              Preview & Seed ({seedCommunityIds.length})
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <SeedPreviewDialog 
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        posts={previewPosts}
+        loading={seeding}
+        communities={communities || []}
+        onConfirm={handleFinalPublish}
+      />
 
       {/* Community Context Editor */}
       <Card>
@@ -814,6 +1118,119 @@ function PublisherSettingsTab() {
   );
 }
 
+// ── 6. Agent Proposals Tab ──────────────────────────────────────────────────
+function AgentProposalsTab() {
+  const queryClient = useQueryClient();
+  const { data: proposals, isLoading } = useQuery({
+    queryKey: ['agent-proposals'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agent_proposals')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const actionMutation = useMutation({
+    mutationFn: async ({ id, action, subjectId }: { id: string; action: 'accept' | 'reject'; subjectId?: string }) => {
+      const { error: propError } = await supabase
+        .from('agent_proposals')
+        .update({ 
+          status: action === 'accept' ? 'approved' : 'rejected',
+          reviewed_at: new Date().toISOString(),
+          action_taken: action
+        })
+        .eq('id', id);
+      if (propError) throw propError;
+
+      if (action === 'accept' && subjectId) {
+        // Find the proposal to get its type if not passed
+        const { data: prop } = await supabase.from('agent_proposals').select('proposal_type, subject_type').eq('id', id).single();
+        if (!prop) return;
+
+        if (prop.subject_type === 'post') {
+          // Determine status from proposal_type or reasoning
+          const newStatus = prop.proposal_type === 'remove' ? 'hidden' : 'flagged';
+          const { error: postError } = await supabase.from('posts').update({ moderation_status: newStatus }).eq('id', subjectId);
+          if (postError) throw postError;
+          toast.success(`Post ${newStatus}`);
+        } else if (prop.subject_type === 'comment') {
+          const newStatus = prop.proposal_type === 'remove' ? 'hidden' : 'flagged';
+          const { error: commentError } = await supabase.from('comments').update({ moderation_status: newStatus }).eq('id', subjectId);
+          if (commentError) throw commentError;
+          toast.success(`Comment ${newStatus}`);
+        }
+      }
+    },
+    onSuccess: () => {
+      toast.success('Proposal processed');
+      queryClient.invalidateQueries({ queryKey: ['agent-proposals'] });
+    },
+    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card className="bg-muted/30">
+        <CardContent className="py-3 px-4 text-xs text-muted-foreground">
+          <strong>Review AI Agent Proposals:</strong> Approve or reject suggestions from autonomous agents. 
+          Current proposals include content flags, publication summaries, and moderation verdicts.
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+      ) : !proposals?.length ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">
+          <BrainCircuit className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p>No pending agent proposals to review.</p>
+        </CardContent></Card>
+      ) : (
+        <div className="space-y-2">
+          {proposals.map((p) => (
+            <Card key={p.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className={`p-2 rounded-lg ${
+                    p.proposal_type === 'remove' ? 'bg-red-50 text-red-600' : 
+                    p.proposal_type === 'flag' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
+                  }`}>
+                    <Bot className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-semibold capitalize">{p.agent_name} Proposal</h4>
+                      <Badge variant="outline" className="text-[10px] uppercase">{p.proposal_type}</Badge>
+                      <Badge variant="secondary" className="text-[10px]">{Math.round((p.confidence || 0) * 100)}% Confidence</Badge>
+                    </div>
+                    <p className="text-xs font-medium">{p.reasoning}</p>
+                    <div className="text-[10px] text-muted-foreground mt-2">
+                      Subject: {p.subject_type} · {new Date(p.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <Button size="sm" onClick={() => actionMutation.mutate({ id: p.id, action: 'accept', subjectId: p.subject_id })}
+                      disabled={actionMutation.isPending}>
+                      Accept
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => actionMutation.mutate({ id: p.id, action: 'reject' })}
+                      disabled={actionMutation.isPending}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Root Export ───────────────────────────────────────────────────────────────
 export default function IntelligenceSection() {
   return (
@@ -833,7 +1250,7 @@ export default function IntelligenceSection() {
         </TabsTrigger>
         <TabsTrigger value="auto-posts" className="gap-2">
           <Bot className="w-4 h-4" />
-          <span className="hidden sm:inline">4.</span> Auto-Posts
+          <span className="hidden sm:inline">4.</span> Auto-Generated Posts
         </TabsTrigger>
         <TabsTrigger value="settings" className="gap-2">
           <Settings className="w-4 h-4" />
@@ -846,6 +1263,7 @@ export default function IntelligenceSection() {
       <TabsContent value="templates"><TemplatesTab /></TabsContent>
       <TabsContent value="auto-posts"><AutoPostsTab /></TabsContent>
       <TabsContent value="settings"><PublisherSettingsTab /></TabsContent>
+      <TabsContent value="proposals"><AgentProposalsTab /></TabsContent>
     </Tabs>
   );
 }

@@ -86,6 +86,7 @@ export interface Post {
   link_title?: string | null;
   link_description?: string | null;
   link_image?: string | null;
+  auto_generated?: boolean;
 }
 
 export interface PostMedia {
@@ -189,7 +190,7 @@ export interface User {
   isVerified?: boolean;
   officialPosition?: string; // Title of government position if verified official
   officialPositionId?: string; // Reference to government_positions
-  role?: 'citizen' | 'official' | 'expert' | 'journalist' | 'admin';
+  role?: 'citizen' | 'official' | 'expert' | 'journalist' | 'admin' | 'moderator' | 'bot';
   karma?: number;
   postKarma?: number;
   commentKarma?: number;

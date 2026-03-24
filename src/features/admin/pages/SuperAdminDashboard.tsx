@@ -35,10 +35,10 @@ const sections = [
   { id: 'system', label: 'System', icon: Server },
 ];
 
-export default function SuperAdminDashboard() {
+export default function SuperAdminDashboard({ initialSection = 'overview' }: { initialSection?: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedSection, setSelectedSection] = useState('overview');
+  const [selectedSection, setSelectedSection] = useState(initialSection);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 

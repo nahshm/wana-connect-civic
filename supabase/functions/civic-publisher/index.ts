@@ -1,427 +1,413 @@
 /**
- * civic-publisher — Auto-generates localized community posts from scout findings.
- *
- * Two modes:
- *   - Ongoing: { trigger: 'cron' } — processes recent high-relevance findings
- *   - Seed:    { seed: true, community_id } — backfills a new community with 5 posts
- *
- * Uses Lovable AI Gateway for LLM rewriting.
+ * civic-publisher — Self-Contained Version (Gateway-Free)
+ * 
+ * Auto-generates localized community posts from scout findings.
+ * Includes all necessary shared logic to ensure successful deployment.
  */
-import { createClient } from "@supabase/supabase-js";
-import {
-  logAgentRun,
-  emitEvent,
-  agentCorsHeaders,
-  jsonResponse,
-  getAgentState,
-  updateAgentState,
-} from "../_shared/agentUtils.ts";
-import { embedText } from "../_shared/embeddings.ts";
 
-const AGENT = "civic-publisher";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function sb() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+// ── Shared Types ─────────────────────────────────────────────────────────────
+type AgentRunStatus = 'success' | 'partial' | 'failed';
+type AgentTriggerType = 'cron' | 'webhook' | 'event' | 'api' | 'manual' | 'queue' | 'seed';
+
+interface AgentRun {
+  agent_name: string;
+  trigger_type: AgentTriggerType;
+  items_scanned?: number;
+  items_actioned?: number;
+  items_failed?: number;
+  duration_ms?: number;
+  status: AgentRunStatus;
+  error_summary?: string;
+  metadata?: Record<string, unknown>;
 }
 
-// ── Scope Resolution ─────────────────────────────────────────────────────────
-interface ScopeResult {
-  community_ids: string[];
+interface Finding {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  embedded?: boolean;
+  processed?: boolean;
+  published?: boolean;
+  related_name?: string;
+  county?: string;
 }
 
-async function resolveScope(
-  client: ReturnType<typeof sb>,
-  finding: Record<string, unknown>,
-): Promise<ScopeResult> {
-  const relatedTo = (finding.related_to as string) || "";
-  const relatedName = (finding.related_name as string) || "";
-  const county = (finding.county as string) || "";
-
-  let query;
-
-  if (relatedTo === "ward" && relatedName) {
-    // Rule 1: ward-level → exact match
-    query = client
-      .from("communities")
-      .select("id")
-      .eq("location_type", "ward")
-      .eq("location_value", relatedName);
-  } else if ((relatedTo === "county" || county) && !relatedTo.includes("national")) {
-    // Rule 2: county-level → all communities in that county
-    const countyVal = relatedName || county;
-    query = client
-      .from("communities")
-      .select("id")
-      .or(`and(location_type.eq.county,location_value.eq.${countyVal}),and(location_type.eq.ward,location_value.ilike.%${countyVal}%)`);
-  } else {
-    // Rule 3: national or unknown → all communities
-    query = client.from("communities").select("id").limit(100);
-  }
-
-  const { data, error } = await query;
-  if (error) {
-    console.error(`[${AGENT}] resolveScope error:`, error.message);
-    return { community_ids: [] };
-  }
-  return { community_ids: (data || []).map((c: { id: string }) => c.id) };
+interface PublisherTemplate {
+  id: string;
+  category: string;
+  system_prompt: string;
+  example_good?: string;
+  example_bad?: string;
+  requires_review: boolean;
+  active: boolean;
 }
 
-// ── Dedup ────────────────────────────────────────────────────────────────────
-async function isDuplicate(
-  client: ReturnType<typeof sb>,
-  text: string,
-): Promise<boolean> {
-  try {
-    const embedding = await embedText(text);
-    const { data } = await client.rpc("match_vectors", {
-      query_embedding: embedding,
-      match_threshold: 0.91,
-      match_count: 1,
-      filter_source: "scout",
-    });
-    return (data && data.length > 0);
-  } catch {
-    // If dedup fails, allow the post (better to publish than silently drop)
-    return false;
-  }
+interface Community {
+  id: string;
+  name: string;
+  location_type: string;
+  location_value: string;
+  publisher_context?: string;
 }
 
-// ── LLM Rewrite ──────────────────────────────────────────────────────────────
-async function rewriteFinding(
-  finding: Record<string, unknown>,
-  template: Record<string, unknown>,
-  communityContext: string | null,
-  ward: string,
-  county: string,
-): Promise<{ headline: string; body: string; call_to_action?: string } | null> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) {
-    console.error(`[${AGENT}] LOVABLE_API_KEY not set`);
-    return null;
-  }
+// ── Shared Utils ─────────────────────────────────────────────────────────────
+const agentCorsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-internal-trigger",
+};
 
-  const systemPrompt = (template.system_prompt as string)
-    .replace(/\{\{ward\}\}/g, ward)
-    .replace(/\{\{county\}\}/g, county)
-    + (communityContext ? `\n\nCOMMUNITY CONTEXT:\n${communityContext}` : "");
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...agentCorsHeaders, "Content-Type": "application/json" },
+  });
+}
 
-  const userPrompt = `SOURCE FINDING:
-Title: ${finding.title}
-Summary: ${finding.summary || ""}
-Category: ${finding.category || "other"}
-Relevance score: ${finding.relevance_score || "unknown"}
+async function logAgentRun(client: SupabaseClient, agentName: string, run: Omit<AgentRun, "agent_name">): Promise<void> {
+  const { error } = await client.from("agent_runs").insert({
+    agent_name: agentName,
+    ...run
+  });
+  if (error) console.error(`[logAgentRun] Error: ${error.message}`);
+}
 
-${template.example_good ? `GOOD EXAMPLE:\n${template.example_good}\n` : ""}
-${template.example_bad ? `BAD EXAMPLE (avoid this style):\n${template.example_bad}\n` : ""}
+// ── Shared LLM Client ────────────────────────────────────────────────────────
+interface LLMMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
 
-Write a post for ${ward} residents.
-Return valid JSON with keys: headline, body, call_to_action`;
+interface LLMOptions {
+  temperature?: number;
+  maxTokens?: number;
+  jsonMode?: boolean;
+}
 
-  try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "create_post",
-            description: "Create a civic post from a finding",
-            parameters: {
-              type: "object",
-              properties: {
-                headline: { type: "string" },
-                body: { type: "string" },
-                call_to_action: { type: "string" },
-              },
-              required: ["headline", "body"],
-              additionalProperties: false,
-            },
+async function callLLM(messages: LLMMessage[], options: LLMOptions = {}) {
+  const providers = [
+    {
+      id: "groq",
+      url: "https://api.groq.com/openai/v1/chat/completions",
+      key: Deno.env.get("GROQ_API_KEY"),
+      model: "llama-3.3-70b-versatile",
+    },
+    {
+      id: "anthropic",
+      url: "https://api.anthropic.com/v1/messages",
+      key: Deno.env.get("ANTHROPIC_API_KEY"),
+      model: "claude-3-5-haiku-20241022",
+    }
+  ];
+
+  for (const provider of providers) {
+    if (!provider.key) continue;
+
+    try {
+      if (provider.id === "groq") {
+        const res = await fetch(provider.url, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${provider.key}`,
+            "Content-Type": "application/json",
           },
-        }],
-        tool_choice: { type: "function", function: { name: "create_post" } },
-      }),
-    });
-
-    if (!res.ok) {
-      const t = await res.text();
-      console.error(`[${AGENT}] LLM error ${res.status}:`, t);
-      return null;
+          body: JSON.stringify({
+            model: provider.model,
+            messages,
+            temperature: options.temperature ?? 0.7,
+            max_tokens: options.maxTokens ?? 1024,
+            response_format: options.jsonMode ? { type: "json_object" } : undefined,
+          }),
+        });
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        return { content: data.choices[0].message.content, provider: "groq" };
+      } else {
+        const res = await fetch(provider.url, {
+          method: "POST",
+          headers: {
+            "x-api-key": provider.key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: provider.model,
+            system: messages.find(m => m.role === "system")?.content,
+            messages: messages.filter(m => m.role !== "system"),
+            max_tokens: options.maxTokens ?? 1024,
+            temperature: options.temperature ?? 0.7,
+          }),
+        });
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        return { content: data.content[0].text, provider: "anthropic" };
+      }
+    } catch (e) {
+      console.warn(`[llm] ${provider.id} failed: ${e}`);
     }
+  }
+  throw new Error("All LLM providers failed");
+}
 
-    const data = await res.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall) {
-      return JSON.parse(toolCall.function.arguments);
-    }
-
-    // Fallback: try parsing content directly
-    const content = data.choices?.[0]?.message?.content;
-    if (content) {
-      const cleaned = content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
-      return JSON.parse(cleaned);
-    }
-
+function parseLLMJson<T>(content: string): T | null {
+  try {
+    const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
+    return JSON.parse(cleaned) as T;
+  } catch {
     return null;
+  }
+}
+
+// ── Shared Embeddings ────────────────────────────────────────────────────────
+async function embedText(text: string): Promise<number[]> {
+  const jinaKey = Deno.env.get("JINA_API_KEY");
+  if (!jinaKey) throw new Error("JINA_API_KEY not configured");
+
+  const res = await fetch("https://api.jina.ai/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${jinaKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "jina-embeddings-v3",
+      input: [text],
+      task: "text-matching",
+      dimensions: 1024,
+    }),
+  });
+  if (!res.ok) throw new Error(`Jina error ${res.status}`);
+  const json = await res.json();
+  return json.data[0].embedding;
+}
+
+// ── Local Utils ─────────────────────────────────────────────────────────────
+const AGENT = "civic-publisher";
+const log = {
+  info: (msg: string) => console.log(`[${AGENT}] INFO: ${msg}`),
+  warn: (msg: string) => console.warn(`[${AGENT}] WARN: ${msg}`),
+  error: (msg: string) => console.error(`[${AGENT}] ERROR: ${msg}`),
+};
+
+async function resolveScope(client: SupabaseClient, finding: Finding) {
+  const val = finding.related_name || finding.county;
+  if (!val) {
+    log.info(`No location for finding ${finding.id}, falling back to general interest communities`);
+    const { data: general } = await client.from("communities")
+      .select("id")
+      .is("location_type", null)
+      .limit(3);
+    return { community_ids: (general || []).map((c: { id: string }) => c.id) };
+  }
+
+  // Broad search for matching community
+  const { data } = await client.from("communities")
+    .select("id")
+    .or(`location_value.eq."${val}",and(location_type.eq.ward,location_value.ilike.%${val}%)`);
+  
+  const community_ids = (data || []).map((c: { id: string }) => c.id);
+  
+  if (!community_ids.length) {
+    log.info(`No specific community matches found for "${val}" (Finding: ${finding.id}). Falling back to general.`);
+    const { data: generalFallback } = await client.from("communities")
+      .select("id")
+      .is("location_type", null)
+      .limit(2);
+    return { community_ids: (generalFallback || []).map((c: { id: string }) => c.id) };
+  }
+  
+  return { community_ids };
+}
+
+async function rewriteFinding(finding: Finding, template: PublisherTemplate, context: string | null, ward: string, county: string) {
+  const systemPrompt = "You are a professional civic journalist for WanaIQ, localizing news for Kenyan communities.";
+  const prompt = `Ward: ${ward}, County: ${county}\nContext: ${context || "None"}\nFinding: ${finding.title}\nSummary: ${finding.summary}\nReturn JSON with headline and body.`;
+  
+  try {
+    const res = await callLLM([{ role: "system", content: systemPrompt }, { role: "user", content: prompt }], { jsonMode: true });
+    return parseLLMJson<{ headline: string; body: string; call_to_action?: string }>(res.content);
   } catch (e) {
-    console.error(`[${AGENT}] rewrite error:`, e);
+    log.error(`Rewrite failed: ${e}`);
     return null;
   }
 }
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: agentCorsHeaders });
-  }
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: agentCorsHeaders });
 
   const start = Date.now();
-  const client = sb();
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+
   let scanned = 0, actioned = 0, failed = 0;
+  const previewPosts: {
+    title: string;
+    content: string;
+    community_id: string;
+    finding_id: string;
+    finding_title: string;
+    community_name: string;
+    moderation_status: string;
+    tags: string[];
+  }[] = [];
 
   try {
     const body = await req.json().catch(() => ({}));
-    const isSeed = body.seed === true;
-    const targetCommunityId = body.community_id as string | undefined;
+    const isSeed = !!body.seed;
+    const isPreview = !!body.preview;
+    const trigger = body.trigger || (isSeed ? "seed" : "cron");
 
-    // Check global kill switch
-    const autoPublish = await getAgentState(client, AGENT, "auto_publish");
-    if (autoPublish === false && !isSeed) {
-      return jsonResponse({ ok: true, message: "Auto-publish disabled" });
-    }
+    log.info(`Run started. Mode: ${isSeed ? "seed" : trigger}`);
 
-    // Check for queued publish requests
-    const publishQueue = (await getAgentState(client, AGENT, "publish_queue")) as string[] | null;
-    const queuedIds = publishQueue || [];
-
-    // Config
-    const minRelevance = isSeed ? 0.5 : 0.7;
-    const maxPostsPerCommunity = isSeed ? 5 : 2;
-    const lookbackDays = isSeed ? 30 : 1;
-
-    // Get findings
-    let findingsQuery = client
-      .from("scout_findings")
-      .select("*")
-      .eq("published", false)
-      .gte("relevance_score", minRelevance)
-      .gte("created_at", new Date(Date.now() - lookbackDays * 86400000).toISOString())
-      .order("relevance_score", { ascending: false })
-      .limit(isSeed ? 20 : 10);
-
-    if (!isSeed) {
-      findingsQuery = findingsQuery.eq("processed", true);
-    }
-
-    // If queued IDs exist, process those first
-    if (queuedIds.length > 0) {
-      const { data: queuedFindings } = await client
-        .from("scout_findings")
-        .select("*")
-        .in("id", queuedIds.slice(0, 10));
-
-      if (queuedFindings && queuedFindings.length > 0) {
-        // Process queued findings - clear queue
-        await updateAgentState(client, AGENT, "publish_queue", 
-          queuedIds.slice(10));
-        
-        // Process them below
-        const { data: templates } = await client.from("publisher_templates").select("*").eq("active", true);
-        const templateMap = Object.fromEntries((templates || []).map((t: Record<string, unknown>) => [t.category, t]));
-
-        for (const finding of queuedFindings) {
-          scanned++;
-          const scope = await resolveScope(client, finding);
-          if (scope.community_ids.length === 0) { failed++; continue; }
-
-          const template = templateMap[finding.category as string] || templateMap.other;
-          if (!template) { failed++; continue; }
-
-          let postsCreated = 0;
-          for (const communityId of scope.community_ids) {
-            if (postsCreated >= maxPostsPerCommunity) break;
-
-            const { data: community } = await client
-              .from("communities")
-              .select("name, location_type, location_value, publisher_context")
-              .eq("id", communityId)
-              .single();
-
-            if (!community) continue;
-
-            const ward = community.location_value || community.name || "your area";
-            const county = community.location_type === "county" ? community.location_value : "";
-
-            const result = await rewriteFinding(finding, template, community.publisher_context, ward, county || "Kenya");
-            if (!result) { failed++; continue; }
-
-            const moderationStatus = (template as Record<string, unknown>).requires_review ? "pending_review" : "approved";
-
-            const { error: insertError } = await client.from("posts").insert({
-              title: result.headline,
-              content: `${result.body}${result.call_to_action ? `\n\n${result.call_to_action}` : ""}`,
-              community_id: communityId,
-              author_id: "00000000-0000-0000-0000-000000000000", // system bot
-              auto_generated: true,
-              finding_id: finding.id,
-              published_by_agent: AGENT,
-              moderation_status: moderationStatus,
-              tags: [finding.category || "civic"],
-            });
-
-            if (insertError) {
-              console.error(`[${AGENT}] post insert error:`, insertError.message);
-              failed++;
-            } else {
-              postsCreated++;
-              actioned++;
-            }
-          }
-
-          // Mark as published
-          await client.from("scout_findings").update({ published: true }).eq("id", finding.id);
-        }
+    // Manual push
+    if (body.publish_posts?.length > 0) {
+      for (const p of body.publish_posts) {
+        const { error } = await client.from("posts").insert({
+          title: p.title,
+          content: p.content,
+          community_id: p.community_id,
+          author_id: "66033a0b-3540-4ccd-988e-4ddae3057f8c",
+          auto_generated: true,
+          finding_id: p.finding_id,
+          moderation_status: p.moderation_status || "approved",
+          tags: p.tags || ["civic"],
+        });
+        if (error) { log.error(`Insert failed: ${error.message}`); failed++; }
+        else { actioned++; await client.from("scout_findings").update({ published: true }).eq("id", p.finding_id); }
       }
+      return jsonResponse({ ok: true, actioned, failed, message: "Posts published successfully" });
     }
 
-    // Regular processing
-    const { data: findings } = await findingsQuery;
-    if (!findings || findings.length === 0) {
-      await logAgentRun(client, AGENT, {
-        trigger_type: isSeed ? "api" : "cron",
-        items_scanned: scanned,
-        items_actioned: actioned,
-        items_failed: failed,
-        duration_ms: Date.now() - start,
-        status: "success",
-        metadata: { mode: isSeed ? "seed" : "ongoing", message: "No findings to process" },
-      });
-      return jsonResponse({ ok: true, scanned, actioned, failed });
+    if (trigger === "manual" && isPreview) {
+      log.info("Manual preview requested, scanning findings...");
     }
 
-    // Load templates
-    const { data: templates } = await client.from("publisher_templates").select("*").eq("active", true);
-    const templateMap = Object.fromEntries((templates || []).map((t: Record<string, unknown>) => [t.category, t]));
+    let queueIds: string[] = [];
+    if (trigger === "queue") {
+      const { data: queueState } = await client
+        .from("agent_state")
+        .select("state_value")
+        .eq("agent_name", AGENT)
+        .eq("state_key", "publish_queue")
+        .single();
+      queueIds = (queueState?.state_value as string[]) || [];
+      log.info(`Queue mode: ${queueIds.length} items in queue`);
+    }
+
+    // Load findings
+    let findingsQuery = client.from("scout_findings").select("*");
+    
+    if (trigger === "queue") {
+      if (!queueIds.length) return jsonResponse({ ok: true, message: "Queue is empty" });
+      findingsQuery = findingsQuery.in("id", queueIds);
+    } else if (isSeed) {
+      findingsQuery = findingsQuery.limit(20);
+    } else {
+      findingsQuery = findingsQuery.limit(5).eq("published", false);
+    }
+    
+    // Always only action processed findings
+    findingsQuery = findingsQuery.eq("processed", true);
+    
+    const { data: findings } = await findingsQuery.returns<Finding[]>();
+    if (!findings?.length) return jsonResponse({ ok: true, message: "No processed findings found" });
+
+    const processedFindingIds: string[] = [];
+
+    // Templates
+    const { data: templates } = await client.from("publisher_templates").select("*").eq("active", true).returns<PublisherTemplate[]>();
+    const templateMap = Object.fromEntries((templates || []).map((t: PublisherTemplate) => [t.category, t]));
 
     for (const finding of findings) {
       scanned++;
+      const scope = await resolveScope(client, finding);
+      if (!scope.community_ids.length) continue;
 
-      // Dedup check
-      const dupText = `${finding.title} ${finding.summary || ""}`;
-      if (await isDuplicate(client, dupText)) {
-        await client.from("scout_findings").update({ published: true }).eq("id", finding.id);
-        continue;
-      }
-
-      // Resolve scope
-      let scopeResult: ScopeResult;
-      if (isSeed && targetCommunityId) {
-        scopeResult = { community_ids: [targetCommunityId] };
-      } else {
-        scopeResult = await resolveScope(client, finding);
-      }
-
-      if (scopeResult.community_ids.length === 0) { failed++; continue; }
-
-      const template = templateMap[finding.category as string] || templateMap.budget;
+      const template = templateMap[finding.category] || templateMap.other;
       if (!template) { failed++; continue; }
 
-      let postsCreated = 0;
-      for (const communityId of scopeResult.community_ids) {
-        if (postsCreated >= maxPostsPerCommunity) break;
+      for (const cid of scope.community_ids) {
+        const { data: comm } = await client.from("communities").select("*").eq("id", cid).single() as { data: Community | null };
+        if (!comm) continue;
 
-        const { data: community } = await client
-          .from("communities")
-          .select("name, location_type, location_value, publisher_context")
-          .eq("id", communityId)
-          .single();
-
-        if (!community) continue;
-
-        const ward = community.location_value || community.name || "your area";
-        const county = community.location_type === "county" ? community.location_value : "";
-
-        const result = await rewriteFinding(finding, template, community.publisher_context, ward, county || "Kenya");
+        const result = await rewriteFinding(finding, template, comm.publisher_context || null, comm.location_value || comm.name, comm.location_type === "county" ? comm.location_value : "");
         if (!result) { failed++; continue; }
 
-        // Determine moderation status
-        let moderationStatus: string;
-        if ((template as Record<string, unknown>).requires_review) {
-          moderationStatus = "pending_review";
-        } else if (isSeed) {
-          moderationStatus = "approved";
-        } else {
-          moderationStatus = "pending_review"; // ongoing always needs review
+        if (isPreview) { 
+          previewPosts.push({
+            title: result.headline,
+            content: `${result.body}${result.call_to_action ? `\n\n${result.call_to_action}` : ""}`,
+            community_id: cid,
+            finding_id: finding.id,
+            finding_title: finding.title,
+            community_name: comm.name,
+            moderation_status: "approved",
+            tags: [finding.category || "civic"]
+          });
+          actioned++; 
+          continue; 
         }
 
-        // Backdating for seed mode
-        const createdAt = isSeed
-          ? new Date(Date.now() - postsCreated * 18 * 3600000).toISOString()
-          : new Date().toISOString();
-
-        const { error: insertError } = await client.from("posts").insert({
+        const { error } = await client.from("posts").insert({
           title: result.headline,
           content: `${result.body}${result.call_to_action ? `\n\n${result.call_to_action}` : ""}`,
-          community_id: communityId,
-          author_id: "00000000-0000-0000-0000-000000000000",
+          community_id: cid,
+          author_id: "66033a0b-3540-4ccd-988e-4ddae3057f8c",
           auto_generated: true,
           finding_id: finding.id,
-          published_by_agent: AGENT,
-          moderation_status: moderationStatus,
-          tags: [finding.category || "civic"],
-          created_at: createdAt,
+          moderation_status: (template.requires_review || !isSeed) ? "pending_review" : "approved",
+          tags: [finding.category || "civic"]
         });
 
-        if (insertError) {
-          console.error(`[${AGENT}] post insert error:`, insertError.message);
-          failed++;
-        } else {
-          postsCreated++;
-          actioned++;
+        if (error) { log.error(`DB error: ${error.message}`); failed++; }
+        else { 
+          actioned++; 
+          if (!processedFindingIds.includes(finding.id)) {
+            processedFindingIds.push(finding.id);
+          }
         }
       }
-
-      // Mark finding as published
-      await client.from("scout_findings").update({ published: true }).eq("id", finding.id);
     }
 
-    await emitEvent(client, "insight_ready", AGENT, {
-      mode: isSeed ? "seed" : "ongoing",
-      findings_processed: scanned,
-      posts_created: actioned,
-    });
+    // Cleanup queue and mark published
+    if (processedFindingIds.length > 0) {
+      log.info(`Updating status for ${processedFindingIds.length} findings...`);
+      await client.from("scout_findings")
+        .update({ published: true })
+        .in("id", processedFindingIds);
+      
+      if (trigger === "queue") {
+        const remainingQueue = queueIds.filter(id => !processedFindingIds.includes(id));
+        await client.from("agent_state")
+          .update({ state_value: remainingQueue })
+          .eq("agent_name", AGENT)
+          .eq("state_key", "publish_queue");
+        log.info(`Queue updated. ${remainingQueue.length} items remaining.`);
+      }
+    }
 
     await logAgentRun(client, AGENT, {
-      trigger_type: isSeed ? "api" : "cron",
+      trigger_type: trigger as AgentTriggerType,
       items_scanned: scanned,
       items_actioned: actioned,
       items_failed: failed,
       duration_ms: Date.now() - start,
-      status: failed > 0 && actioned === 0 ? "failed" : actioned > 0 ? "success" : "success",
-      metadata: { mode: isSeed ? "seed" : "ongoing" },
+      status: failed > 0 ? "partial" : "success",
     });
 
+    if (isPreview) {
+      log.info(`Preview generated for ${previewPosts.length} posts`);
+      return jsonResponse({ ok: true, posts: previewPosts, actioned });
+    }
+
     return jsonResponse({ ok: true, scanned, actioned, failed });
+
   } catch (e) {
-    console.error(`[${AGENT}] Fatal error:`, e);
-    await logAgentRun(client, AGENT, {
-      trigger_type: "cron",
-      status: "failed",
-      error_summary: e instanceof Error ? e.message : "Unknown error",
-      duration_ms: Date.now() - start,
-    });
-    return jsonResponse({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
+    log.error(`Fatal: ${e}`);
+    return jsonResponse({ error: String(e) }, 500);
   }
 });
