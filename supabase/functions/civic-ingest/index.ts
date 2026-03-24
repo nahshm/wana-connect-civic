@@ -85,10 +85,10 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openAIKey = Deno.env.get("OPENAI_API_KEY");
+    const jinaKey = Deno.env.get("JINA_API_KEY");
 
-    if (!openAIKey) {
-      return new Response(JSON.stringify({ error: "OPENAI_API_KEY not configured" }), {
+    if (!jinaKey) {
+      return new Response(JSON.stringify({ error: "JINA_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

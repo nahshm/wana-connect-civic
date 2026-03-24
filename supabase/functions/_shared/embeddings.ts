@@ -10,7 +10,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 type AnyClient = SupabaseClient<any, any, any>;
 
 const EMBEDDING_MODEL = "jina-embeddings-v3";
-const EMBEDDING_DIMENSIONS = 1536;
+const EMBEDDING_DIMENSIONS = 1024;
 const RATE_LIMIT_MS = 100; // pause between API calls
 
 /**
