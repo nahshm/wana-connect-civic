@@ -222,6 +222,15 @@ async function processItem(
 
   if (!result?.relevant || (result.relevance_score ?? 0) < 0.6) return false;
 
+  // Normalize category to match DB check constraint
+  const VALID_CATEGORIES = new Set([
+    "budget", "tender", "scandal", "promise", "policy",
+    "official_statement", "infrastructure", "other",
+  ]);
+  const normalizedCategory = VALID_CATEGORIES.has(result.category)
+    ? result.category
+    : "other";
+
   const { error } = await client.from("scout_findings").insert({
     source_url: item.link,
     source_type:
@@ -234,7 +243,7 @@ async function processItem(
     summary: result.summary ?? item.summary?.slice(0, 500),
     raw_content: text.slice(0, 2000),
     relevance_score: result.relevance_score,
-    category: result.category,
+    category: normalizedCategory,
     embedded: false,
     processed: false,
   });
