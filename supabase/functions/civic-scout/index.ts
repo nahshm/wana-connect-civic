@@ -453,9 +453,7 @@ Deno.serve(async (req: Request) => {
         ? "failed"
         : totalFailed > 0
           ? "partial"
-          : totalItemsFound === 0
-            ? "empty"
-            : "success";
+          : "success";
 
     await logRun(client, AGENT_NAME, {
       trigger_type: trigger === "cron" ? "cron" : "api",
