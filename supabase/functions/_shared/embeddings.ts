@@ -1,7 +1,7 @@
 /**
  * _shared/embeddings.ts
  * Shared embedding utilities for civic-ingest and civic-processor.
- * Centralises OpenAI embedding calls so model changes are one-line fixes.
+ * Uses Jina AI embeddings API. Model changes are one-line fixes.
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,29 +9,33 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 // deno-lint-ignore no-explicit-any
 type AnyClient = SupabaseClient<any, any, any>;
 
-const EMBEDDING_MODEL = "text-embedding-ada-002";
+const EMBEDDING_MODEL = "jina-embeddings-v3";
 const RATE_LIMIT_MS = 100; // pause between API calls
 
 /**
  * Generate an embedding vector for a single text string.
- * Requires OPENAI_API_KEY in the environment.
+ * Requires JINA_API_KEY in the environment.
  */
 export async function embedText(text: string): Promise<number[]> {
-  const openAIKey = Deno.env.get("OPENAI_API_KEY");
-  if (!openAIKey) throw new Error("OPENAI_API_KEY not configured");
+  const jinaKey = Deno.env.get("JINA_API_KEY");
+  if (!jinaKey) throw new Error("JINA_API_KEY not configured");
 
-  const res = await fetch("https://api.openai.com/v1/embeddings", {
+  const res = await fetch("https://api.jina.ai/v1/embeddings", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${openAIKey}`,
+      Authorization: `Bearer ${jinaKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: EMBEDDING_MODEL, input: text }),
+    body: JSON.stringify({
+      model: EMBEDDING_MODEL,
+      input: [text],
+      task: "text-matching",
+    }),
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Embedding API error (${res.status}): ${errText.slice(0, 200)}`);
+    throw new Error(`Jina Embedding API error (${res.status}): ${errText.slice(0, 200)}`);
   }
 
   const json = await res.json();
