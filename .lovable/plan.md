@@ -1,59 +1,74 @@
 
 
+# Fix civic-scout End-to-End Pipeline
 
-# Wire Scout Data Pipeline — Separated Architecture
+## Root Cause
 
-## Summary
+civic-scout runs successfully (logs show `items_scanned: 2, items_actioned: 0, status: success`) but produces **zero findings**. The problem is in `fetchFeedItems()`:
 
-The user's critique is correct. civic-scout is already doing scrape → parse → classify × N. Adding embedding + clustering + quill triggers into the same function creates a fragile monolith with no recovery path. The fix is to separate concerns into 3 clean layers.
+1. The configured data sources are **HTML web pages**, not RSS/Atom feeds:
+   - `https://parliament.go.ke/the-national-assembly/news-events`
+   - `https://parliament.go.ke/matter-articles-...`
 
-## Architecture
+2. `fetchFeedItems()` fetches via Jina reader (which returns clean markdown/text), then tries to parse `<item>` or `<entry>` XML blocks using regex. Since the Jina output is markdown, not XML, the regex matches nothing → returns `[]` → scout reports "success" with 0 items.
+
+3. No `JINA_API_KEY` is configured in secrets (only `GROQ_API_KEY`, `LOVABLE_API_KEY`, `OPENAI_API_KEY`), so Jina requests go unauthenticated and may be rate-limited or blocked.
+
+## Fix
+
+### 1. Rewrite `fetchFeedItems()` to handle both RSS feeds and HTML pages
+
+The function should:
+- First, try Jina reader to fetch the page content as markdown
+- Detect whether the response contains RSS/Atom XML — if yes, parse `<item>`/`<entry>` blocks (existing logic)
+- If not XML (i.e., it's a regular web page), use the LLM to extract news items from the markdown. Send the markdown to callLLM with a prompt like: "Extract news article titles, URLs, and summaries from this page. Return JSON array."
+- This makes civic-scout work with any URL — RSS feeds, news pages, government portals
+
+### 2. Add fallback: direct fetch before Jina
+
+If Jina fails (no API key, rate limited, timeout), fall back to a direct `fetch()` of the URL and parse the raw HTML for links and headlines. This ensures the pipeline never silently returns 0 items without trying alternatives.
+
+### 3. Better error reporting when 0 items found
+
+Currently scout reports `status: success` even when every source yields 0 items. Add a `warning` status or log a console warning when a source returns 0 feed items, so admins can see something is off.
+
+### 4. Add JINA_API_KEY secret (optional but recommended)
+
+Prompt user to add `JINA_API_KEY` for reliable Jina access. Without it, requests may be throttled.
+
+## Implementation
+
+### Edit: `supabase/functions/civic-scout/index.ts`
+
+Replace `fetchFeedItems()` with a two-strategy approach:
 
 ```text
-civic-scout (scrape + classify only)
-       │
-       ├── inserts scout_findings (embedded=false, processed=false)
-       └── emits "ingest_complete" event when done
-       
-civic-processor (new, idempotent cron)
-       │
-       ├── Step 1: embed unembedded findings → vectors table
-       │           marks embedded=true
-       │
-       └── Step 2: cluster unprocessed findings by category
-                   assigns cluster_id UUID to each group
-                   calls civic-quill per cluster
-                   marks processed=true
-
-civic-publisher (new, cron + seed mode)
-       │
-       ├── resolves geographic scope per finding
-       ├── deduplicates via embedding similarity (0.91 threshold)
-       ├── rewrites to citizen language via LLM (publisher_templates)
-       └── inserts into posts table (auto_generated=true)
-
-_shared/embeddings.ts (shared module)
-       └── embedText() + embedAndInsert() — used by civic-ingest AND civic-processor
+async function fetchFeedItems(url, client):
+  1. Fetch via Jina reader (or direct fetch as fallback)
+  2. Check if response looks like XML (contains <item> or <entry>)
+     → YES: parse RSS/Atom as before
+     → NO:  send markdown to callLLM with extraction prompt:
+            "Extract news items from this page. Return JSON:
+             [{ title, link, summary }]"
+            Parse the LLM response with parseLLMJson()
+  3. If still 0 items, log warning with URL
+  4. Return items
 ```
 
-## Status: IMPLEMENTED ✅
+### Edit: `scrapeSource()` — improve status reporting
 
-All migrations applied, all files created/edited, civic-publisher deployed.
+When `items.length === 0` after fetch, set `last_scraped_status: 'partial'` instead of `'success'` and log a warning. This surfaces the problem in the admin UI.
 
-### Files
+### Deploy civic-scout
 
-| Action | File | Status |
-|--------|------|--------|
-| MIGRATION | `scout_findings.cluster_id`, `processor_run_id` | ✅ Done |
-| MIGRATION | `posts.auto_generated`, `finding_id`, `published_by_agent` | ✅ Done |
-| MIGRATION | `publisher_templates` table + seed data | ✅ Done |
-| MIGRATION | `communities.publisher_context` | ✅ Done |
-| MIGRATION | `scout_findings.published` | ✅ Done |
-| CREATE | `supabase/functions/_shared/embeddings.ts` | ✅ Done |
-| CREATE | `supabase/functions/civic-processor/index.ts` | ✅ Done |
-| CREATE | `supabase/functions/civic-publisher/index.ts` | ✅ Done + Deployed |
-| CREATE | `src/features/admin/pages/components/IntelligenceSection.tsx` | ✅ Done |
-| EDIT | `src/features/admin/pages/SuperAdminDashboard.tsx` | ✅ Intelligence section added |
-| EDIT | `src/features/admin/pages/components/AICommandSection.tsx` | ✅ Publisher agent registered |
-| EDIT | `supabase/config.toml` | ✅ civic-publisher registered |
-| EDIT | `src/components/civic/CivicIntelligenceCard.tsx` | ✅ AI badge + source attribution |
+After code changes, deploy the updated function.
+
+## Files
+
+| Action | File | What |
+|--------|------|------|
+| EDIT | `supabase/functions/civic-scout/index.ts` | Rewrite fetchFeedItems with LLM extraction fallback, improve status reporting |
+| DEPLOY | `civic-scout` | Push updated function |
+
+Total: 1 file edit + deploy.
+
