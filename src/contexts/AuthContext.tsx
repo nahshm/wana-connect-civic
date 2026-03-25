@@ -188,7 +188,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: `${window.location.origin}/onboarding`,
           data: {
             username: username || email.split('@')[0]
           }
@@ -264,10 +264,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
+      const redirectTo = `${window.location.origin}/`;
+      
+      if (import.meta.env.DEV) {
+        console.log('Google Sign-in: Redirecting to', redirectTo);
+        console.log('Current window.location.origin:', window.location.origin);
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -298,10 +305,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithApple = async () => {
     try {
+      const redirectTo = `${window.location.origin}/`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo
         }
       });
 
@@ -328,10 +336,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGithub = async () => {
     try {
+      const redirectTo = `${window.location.origin}/`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo
         }
       });
 
@@ -358,10 +367,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const sendMagicLink = async (email: string) => {
     try {
+      const redirectTo = `${window.location.origin}/`;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: redirectTo
         }
       });
 
