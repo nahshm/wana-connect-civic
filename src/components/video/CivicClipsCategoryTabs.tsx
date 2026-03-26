@@ -30,7 +30,7 @@ interface CategoryTab {
 }
 
 const categories: CategoryTab[] = [
-    { id: null, label: 'For You', icon: <Sparkles className="w-4 h-4" />, color: 'text-white' },
+    { id: null, label: 'For You', icon: <Sparkles className="w-4 h-4" />, color: 'text-foreground' },
     { id: 'trending', label: 'Trending', icon: <Flame className="w-4 h-4" />, color: 'text-orange-400' },
     { id: 'civic_education', label: 'Learn', icon: <GraduationCap className="w-4 h-4" />, color: 'text-blue-400' },
     { id: 'promise_update', label: 'Promises', icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-green-400' },
@@ -44,23 +44,32 @@ const categories: CategoryTab[] = [
 interface CivicClipsCategoryTabsProps {
     activeCategory: CivicCategory | null
     onCategoryChange: (category: CivicCategory | null) => void
+    orientation?: 'horizontal' | 'vertical'
     className?: string
 }
 
 export const CivicClipsCategoryTabs = ({
     activeCategory,
     onCategoryChange,
+    orientation = 'horizontal',
     className
 }: CivicClipsCategoryTabsProps) => {
+    const isVertical = orientation === 'vertical'
+
     return (
         <div className={cn(
-            "fixed top-14 left-0 right-0 z-40",
-            "bg-gradient-to-b from-black/60 to-transparent pb-4 pt-1",
-            "pointer-events-none",
+            "relative w-full z-10",
+            isVertical ? "py-0" : "py-2",
             className
         )}>
-            <div className="overflow-x-auto scrollbar-hide pointer-events-auto">
-                <div className="flex gap-2 px-4 min-w-max">
+            <div className={cn(
+                "scrollbar-hide pointer-events-auto",
+                isVertical ? "h-full" : "overflow-x-auto"
+            )}>
+                <div className={cn(
+                    "flex px-4",
+                    isVertical ? "flex-col gap-1 w-full" : "gap-2 min-w-max"
+                )}>
                     {categories.map((category) => {
                         const isActive = activeCategory === category.id
                         return (
@@ -68,16 +77,20 @@ export const CivicClipsCategoryTabs = ({
                                 key={category.id ?? 'for_you'}
                                 onClick={() => onCategoryChange(category.id)}
                                 className={cn(
-                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
-                                    "text-sm font-medium whitespace-nowrap",
-                                    "transition-all duration-200",
-                                    "border",
+                                    "flex items-center gap-3 transition-all duration-200 border",
+                                    isVertical 
+                                        ? "w-full px-4 py-3 rounded-xl text-[15px] font-semibold justify-start" 
+                                        : "px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap",
                                     isActive 
-                                        ? "bg-white text-black border-white" 
-                                        : "bg-white/10 text-white/90 border-white/20 hover:bg-white/20 hover:border-white/30"
+                                        ? "bg-foreground text-background border-foreground shadow-lg" 
+                                        : "bg-foreground/5 text-muted-foreground border-border/50 hover:bg-foreground/10 hover:text-foreground hover:border-border"
                                 )}
                             >
-                                <span className={cn(isActive ? 'text-black' : category.color)}>
+                                <span className={cn(
+                                    "transition-colors",
+                                    isActive ? 'text-background' : category.color,
+                                    isVertical ? "w-5 h-5 flex items-center justify-center" : ""
+                                )}>
                                     {category.icon}
                                 </span>
                                 <span>{category.label}</span>

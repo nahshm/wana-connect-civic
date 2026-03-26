@@ -8,12 +8,16 @@ import { usePrimaryCommunity } from '@/hooks/usePrimaryCommunity';
 import { SetLocationModal } from '@/components/community/SetLocationModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
+import { CivicClipsCategoryTabs, CivicCategory } from '@/components/video/CivicClipsCategoryTabs';
+import { useSearchParams } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 const mainItems = [{
   title: 'For You',
   url: '/',
   icon: Home
 }, {
-  title: 'Reels',
+  title: 'Clips',
   url: '/civic-clips',
   icon: Video
 }, {
@@ -47,10 +51,22 @@ export function AppSidebar() {
     isLoading
   } = useOfficeHolderId();
   const {
-    path: primaryCommunityPath,
     hasLocation,
-    isLoading: communityLoading
+    isLoading: communityLoading,
+    path: primaryCommunityPath
   } = usePrimaryCommunity();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isClipsPage = currentPath === '/civic-clips';
+
+  const handleCategoryChange = (category: CivicCategory | null) => {
+    if (category) {
+      setSearchParams({ category });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const activeCategory = searchParams.get('category') as CivicCategory | null;
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -78,6 +94,23 @@ export function AppSidebar() {
   };
   return <Sidebar collapsible="icon" variant="sidebar">
     <SidebarContent className="gap-0 py-2 bg-popover px-0">
+      {/* Platform Identity - Only on /civic-clips */}
+      {isClipsPage && (
+        <SidebarGroup className="px-5 py-4 mb-2 animate-in slide-in-from-top duration-500 overflow-hidden">
+          <Link to="/civic-clips" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 shrink-0">
+              <Video className="h-6 w-6 stroke-[2.5]" />
+            </div>
+            {!collapsed && (
+              <div className="flex flex-col">
+                <span className="text-lg font-black tracking-tight leading-none text-foreground">CivicClips</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/80 mt-1">Beta</span>
+              </div>
+            )}
+          </Link>
+        </SidebarGroup>
+      )}
+
       <SidebarGroup className="px-2">
         <SidebarGroupContent>
           <SidebarMenu className="gap-1">
@@ -92,6 +125,34 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+      
+      {/* Civic Clips Navigation - Only on /civic-clips */}
+      {isClipsPage && (
+        <SidebarGroup className="px-2 pt-4 border-t border-sidebar-border/40 animate-in slide-in-from-left duration-300">
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'px-3 pb-2 text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-2'}>
+            <TrendingUp className="h-3 w-3" />
+            Clips Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="flex flex-col gap-4">
+              {/* Post Button inside Sidebar */}
+              <Link to="/create?type=civic-clip" className={cn("px-2", collapsed && "sr-only")}>
+                <Button className="w-full h-10 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-sm gap-2 shadow-md">
+                   <Plus className="h-4 w-4 stroke-[3]" />
+                   Post Clip
+                </Button>
+              </Link>
+              
+              <CivicClipsCategoryTabs
+                orientation="vertical"
+                activeCategory={activeCategory}
+                onCategoryChange={handleCategoryChange}
+                className="px-0"
+              />
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
 
       <SidebarGroup className="px-2 pt-4 border-t border-sidebar-border/40">
         <SidebarGroupLabel className={collapsed ? 'sr-only' : 'px-3 pb-2 text-xs font-semibold text-sidebar-muted-foreground uppercase tracking-wide'}>

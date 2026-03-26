@@ -1,10 +1,17 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { getVideoUrlsWithFallback, loadVideoWithRetry, getPreloadStrategy } from '@/lib/video-utils'
+
+export interface VideoPlayerRef {
+    seekTo: (time: number) => void;
+    togglePlay: () => void;
+    getDuration: () => number;
+    getCurrentTime: () => number;
+}
 
 interface VideoPlayerProps {
     videoUrl: string
@@ -21,9 +28,11 @@ interface VideoPlayerProps {
     lazyLoad?: boolean
     /** Root margin for intersection observer (how early to start loading) */
     preloadMargin?: string
+    /** Whether to show internal controls */
+    showControls?: boolean
 }
 
-export const VideoPlayer = ({
+export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     videoUrl,
     thumbnailUrl,
     autoPlay = false,
@@ -35,8 +44,9 @@ export const VideoPlayer = ({
     onComplete,
     onMuteChange,
     lazyLoad = true,
-    preloadMargin = '200px'
-}: VideoPlayerProps) => {
+    preloadMargin = '200px',
+    showControls: showInternalControls = true
+}, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
 
@@ -52,13 +62,31 @@ export const VideoPlayer = ({
     const [isBuffering, setIsBuffering] = useState(false)
     const [loadError, setLoadError] = useState<Error | null>(null)
     const [retryCount, setRetryCount] = useState(0)
+    const [aspectRatio, setAspectRatio] = useState<number | null>(null)
+
     const maxRetries = 3
+
+    useImperativeHandle(ref, () => ({
+        seekTo: (time: number) => {
+            if (videoRef.current) {
+                videoRef.current.currentTime = time
+            }
+        },
+        togglePlay: () => {
+            if (videoRef.current) {
+                if (videoRef.current.paused) videoRef.current.play()
+                else videoRef.current.pause()
+            }
+        },
+        getDuration: () => videoRef.current?.duration || 0,
+        getCurrentTime: () => videoRef.current?.currentTime || 0
+    }))
 
     // Intersection Observer for lazy loading
     const { ref: inViewRef, inView } = useInView({
         threshold: 0,
         rootMargin: preloadMargin,
-        triggerOnce: true, // Only trigger once - once loaded, stay loaded
+        triggerOnce: true,
     })
 
     // Combine refs
@@ -83,7 +111,6 @@ export const VideoPlayer = ({
             console.warn('Video load error, attempting fallback...', { url: videoUrl, attempt: retryCount })
             setLoadError(new Error('Video failed to load'))
 
-            // Try with fallback URLs
             if (retryCount < maxRetries) {
                 setRetryCount(prev => prev + 1)
                 setIsBuffering(true)
@@ -110,10 +137,7 @@ export const VideoPlayer = ({
 
         const handleTimeUpdate = () => {
             setCurrentTime(video.currentTime)
-
-            // Track viewing progress
             if (video.duration && video.currentTime > 0) {
-                const percentage = (video.currentTime / video.duration) * 100
                 if (!hasStarted && video.currentTime > 1) {
                     setHasStarted(true)
                 }
@@ -122,28 +146,22 @@ export const VideoPlayer = ({
 
         const handleLoadedMetadata = () => {
             setDuration(video.duration)
+            if (video.videoWidth && video.videoHeight) {
+                setAspectRatio(video.videoWidth / video.videoHeight)
+            }
         }
 
         const handleEnded = () => {
             setPlaying(false)
-
-            // Track view completion
             if (onView && video.duration) {
-                const percentage = 100
-                onView(video.duration, percentage)
+                onView(video.duration, 100)
             }
-
             onComplete?.()
         }
 
-        const handlePlay = () => {
-            setPlaying(true)
-        }
-
+        const handlePlay = () => setPlaying(true)
         const handlePause = () => {
             setPlaying(false)
-
-            // Track partial view
             if (onView && video.duration && video.currentTime > 0) {
                 const percentage = (video.currentTime / video.duration) * 100
                 onView(video.currentTime, percentage)
@@ -170,7 +188,6 @@ export const VideoPlayer = ({
         const handleFullscreenChange = () => {
             setIsFullscreen(!!document.fullscreenElement)
         }
-
         document.addEventListener('fullscreenchange', handleFullscreenChange)
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }, [])
@@ -183,63 +200,38 @@ export const VideoPlayer = ({
         const handlePlayPause = async () => {
             try {
                 if (isActive) {
-                    // Video is in view - play it
-                    // Only play if not already playing
-                    if (video.paused) {
-                        await video.play()
-                    }
+                    if (video.paused) await video.play()
                 } else {
-                    // Video is out of view - pause it
-                    // Only pause if not already paused
-                    if (!video.paused) {
-                        video.pause()
-                    }
+                    if (!video.paused) video.pause()
                 }
             } catch (error) {
-                // Silently handle AbortError when play/pause conflict
-                if (error instanceof DOMException && error.name === 'AbortError') {
-                    // Expected error when scrolling quickly, ignore it
-                    return
-                }
+                if (error instanceof DOMException && error.name === 'AbortError') return
                 console.error('Video play/pause error:', error)
             }
         }
-
         handlePlayPause()
     }, [isActive])
 
-    // Pause video when tab/window is not visible (Page Visibility API)
+    // Pause video when tab/window is not visible
     useEffect(() => {
         const video = videoRef.current
         if (!video) return
 
         const handleVisibilityChange = () => {
             if (document.hidden) {
-                // Tab is hidden - pause video
-                if (!video.paused) {
-                    video.pause()
-                }
-            } else {
-                // Tab is visible again - resume if this video is active
-                if (isActive && video.paused && autoPlay) {
-                    video.play().catch(() => {
-                        // Silently handle play errors
-                    })
-                }
+                if (!video.paused) video.pause()
+            } else if (isActive && video.paused && autoPlay) {
+                video.play().catch(() => {})
             }
         }
-
         document.addEventListener('visibilitychange', handleVisibilityChange)
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
     }, [isActive, autoPlay])
 
     const togglePlay = () => {
         if (videoRef.current) {
-            if (playing) {
-                videoRef.current.pause()
-            } else {
-                videoRef.current.play()
-            }
+            if (playing) videoRef.current.pause()
+            else videoRef.current.play()
         }
     }
 
@@ -271,12 +263,8 @@ export const VideoPlayer = ({
 
     const toggleFullscreen = () => {
         if (!containerRef.current) return
-
-        if (!isFullscreen) {
-            containerRef.current.requestFullscreen()
-        } else {
-            document.exitFullscreen()
-        }
+        if (!isFullscreen) containerRef.current.requestFullscreen()
+        else document.exitFullscreen()
     }
 
     const formatTime = (time: number) => {
@@ -289,15 +277,12 @@ export const VideoPlayer = ({
     useEffect(() => {
         const video = videoRef.current
         if (!video) return
-
         const handleWaiting = () => setIsBuffering(true)
         const handlePlaying = () => setIsBuffering(false)
         const handleCanPlay = () => setIsBuffering(false)
-
         video.addEventListener('waiting', handleWaiting)
         video.addEventListener('playing', handlePlaying)
         video.addEventListener('canplay', handleCanPlay)
-
         return () => {
             video.removeEventListener('waiting', handleWaiting)
             video.removeEventListener('playing', handlePlaying)
@@ -305,38 +290,57 @@ export const VideoPlayer = ({
         }
     }, [isLoaded])
 
+    const isLandscape = aspectRatio && aspectRatio > 1
+
     return (
         <div
             ref={setRefs}
             className={cn(
-                'relative aspect-[9/16] bg-black rounded-lg overflow-hidden group',
+                'relative bg-black overflow-hidden group h-full w-full',
                 className
             )}
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
         >
-            {/* Thumbnail placeholder shown before video loads */}
+            {/* Background Layer: Blurred for landscape */}
+            {isLandscape && (
+                <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                    <video
+                        src={isLoaded ? videoUrl : undefined}
+                        className="w-full h-full object-cover blur-2xl opacity-50 contrast-125 saturate-150 scale-110"
+                        muted
+                        playsInline
+                        loop
+                    />
+                    <div className="absolute inset-0 bg-black/40" />
+                </div>
+            )}
+
+            {/* Thumbnail placeholder */}
             {(!isLoaded || !videoUrl) && thumbnailUrl && (
                 <img
                     src={thumbnailUrl}
                     alt="Video thumbnail"
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover z-1"
                 />
             )}
 
             {/* Loading spinner */}
             {(!isLoaded || isBuffering) && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
                     <Loader2 className="h-10 w-10 text-white animate-spin" />
                 </div>
             )}
 
-            {/* Video element - only render src when loaded */}
+            {/* Main Video Layer */}
             <video
                 ref={videoRef}
                 src={isLoaded ? videoUrl : undefined}
                 poster={thumbnailUrl}
-                className="w-full h-full object-contain cursor-pointer"
+                className={cn(
+                    "relative w-full h-full cursor-pointer z-10 transition-all duration-700",
+                    isLandscape ? "object-contain" : "object-cover"
+                )}
                 autoPlay={isLoaded && autoPlay}
                 muted={muted}
                 loop={loop}
@@ -361,12 +365,13 @@ export const VideoPlayer = ({
             )}
 
             {/* Controls */}
-            <div
-                className={cn(
-                    'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 transition-opacity',
-                    showControls || !playing ? 'opacity-100' : 'opacity-0'
-                )}
-            >
+            {showInternalControls && (
+                <div
+                    className={cn(
+                        'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 transition-opacity',
+                        showControls || !playing ? 'opacity-100' : 'opacity-0'
+                    )}
+                >
                 {/* Progress Bar */}
                 <Slider
                     value={[currentTime]}
@@ -437,6 +442,7 @@ export const VideoPlayer = ({
                     </Button>
                 </div>
             </div>
+            )}
         </div>
     )
-}
+})

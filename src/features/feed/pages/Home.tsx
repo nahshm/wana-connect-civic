@@ -9,6 +9,7 @@ import { EmptyFeedState } from '@/components/feed/EmptyFeedState';
 import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 import { supabase } from '@/integrations/supabase/client';
 import { HomeSidebar } from '@/components/feed/HomeSidebar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Index() {
   const { user } = useAuth();
@@ -114,60 +115,64 @@ export default function Index() {
   }, [user, authModal, toast]);
 
   return (
-    <div className="flex w-full">
-      {/* Feed Column */}
-      <div className="flex-1 min-w-0 px-4 sm:px-6 py-4">
-        <div className="max-w-2xl mx-auto">
-          <FeedSortBar
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
+    <div className="w-full min-h-screen bg-transparent px-0 sm:px-4">
+      <div className="max-w-[1000px] mx-auto grid grid-cols-1 xl:grid-cols-[640px_312px] gap-6 relative overflow-visible">
+        {/* Feed Column */}
+        <div className="min-w-0 py-4">
+          <div className="w-full">
+            <FeedSortBar
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
 
-          <FeedErrorBoundary>
-            {isLoading ? (
-              <div className="divide-y divide-border/50">
-                <UnifiedFeedItemSkeleton />
-                <UnifiedFeedItemSkeleton />
-                <UnifiedFeedItemSkeleton />
-              </div>
-            ) : feedItems.length === 0 ? (
-              <EmptyFeedState />
-            ) : (
-              <div className="divide-y divide-border/50">
-                {feedItems.map(item => {
-                  const communityId = item.data?.community_id;
-                  const isMember = communityId ? memberCommunityIds.has(communityId) : true;
-                  return (
-                    <UnifiedFeedItem
-                      key={item.id}
-                      item={item}
-                      isMember={isMember}
-                      onJoinCommunity={handleJoinCommunity}
-                    />
-                  );
-                })}
-                <div ref={loadMoreRef}>
-                  {isFetchingNextPage && <UnifiedFeedItemSkeleton />}
-                  {!hasNextPage && feedItems.length > 0 && (
-                    <p className="text-center text-muted-foreground text-sm py-8">
-                      You've reached the end of the feed.
-                    </p>
-                  )}
+            <FeedErrorBoundary>
+              {isLoading ? (
+                <div className="divide-y divide-border/50">
+                  <UnifiedFeedItemSkeleton />
+                  <UnifiedFeedItemSkeleton />
+                  <UnifiedFeedItemSkeleton />
                 </div>
-              </div>
-            )}
-          </FeedErrorBoundary>
+              ) : feedItems.length === 0 ? (
+                <EmptyFeedState />
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {feedItems.map(item => {
+                    const communityId = item.data?.community_id;
+                    const isMember = communityId ? memberCommunityIds.has(communityId) : true;
+                    return (
+                      <UnifiedFeedItem
+                        key={item.id}
+                        item={item}
+                        isMember={isMember}
+                        onJoinCommunity={handleJoinCommunity}
+                      />
+                    );
+                  })}
+                  <div ref={loadMoreRef}>
+                    {isFetchingNextPage && <UnifiedFeedItemSkeleton />}
+                    {!hasNextPage && feedItems.length > 0 && (
+                      <p className="text-center text-muted-foreground text-sm py-8">
+                        You've reached the end of the feed.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </FeedErrorBoundary>
+          </div>
         </div>
-      </div>
 
-      {/* Right Sidebar — sticky, scrolls independently */}
-      <aside className="hidden xl:block w-[312px] flex-shrink-0">
-        <div className="sticky top-0 max-h-screen overflow-y-auto p-4 space-y-4">
-          <HomeSidebar userId={user?.id} />
-        </div>
-      </aside>
+        {/* Right Sidebar — Phase 9: Flush Alignment */}
+        <aside className="hidden xl:block w-[312px] h-fit sticky top-0 z-20 py-4">
+          <ScrollArea className="h-[calc(100vh-64px)] w-full rounded-xl border border-border bg-card shadow-sm">
+            <div className="p-4 space-y-6">
+              <HomeSidebar userId={user?.id} />
+            </div>
+          </ScrollArea>
+        </aside>
+      </div>
     </div>
   );
 }

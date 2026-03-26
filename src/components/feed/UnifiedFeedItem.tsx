@@ -80,7 +80,7 @@ export function UnifiedFeedItem({ item, onInteraction, isMember, onJoinCommunity
       createdAt: item.created_at,
       upvotes: item.data.upvotes || item.data.upvote_count || 0,
       downvotes: item.data.downvotes || item.data.downvote_count || 0,
-      commentCount: item.data.comment_count || 0,
+      commentCount: item.data.comment_count || item.data.commentCount || 0,
       userVote: item.data.user_vote || null,
       tags: item.data.tags || [],
       media: item.data.media || [],

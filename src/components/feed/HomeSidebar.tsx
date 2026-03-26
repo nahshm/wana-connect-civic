@@ -58,8 +58,9 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
       let posts: RecentPost[] = [];
 
       if (postsRes.data) {
-        posts = postsRes.data.map((p: any) => {
-          const imageMedia = (p.media || []).find((m: any) => m.file_type?.startsWith('image'));
+        posts = postsRes.data.map((p) => {
+          const media = p.media as unknown as { file_path: string; file_type: string }[] | null;
+          const imageMedia = (media || []).find((m) => m.file_type?.startsWith('image'));
           return {
             id: p.id,
             title: p.title,
@@ -85,21 +86,17 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
         });
 
         // Rank by engagement: recent activity first, then member_count
-        const ranked = commRes.data
-          .map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            display_name: c.display_name || null,
-            avatar_url: c.avatar_url || null,
-            member_count: c.member_count || 0,
+        const ranked = (commRes.data as unknown as PopularCommunity[])
+          .map((c) => ({
+            ...c,
             recent_activity: communityActivity.get(c.name) || 0,
           }))
-          .sort((a: any, b: any) => {
+          .sort((a, b) => {
             if (b.recent_activity !== a.recent_activity) return b.recent_activity - a.recent_activity;
             return b.member_count - a.member_count;
           })
           .slice(0, 5)
-          .map(({ recent_activity, ...c }: any) => c);
+          .map(({ recent_activity, ...c }) => c);
 
         setCommunities(ranked);
       }
@@ -135,8 +132,9 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
       if (error) throw error;
       setJoinedIds(prev => new Set([...prev, communityId]));
       toast({ title: 'Joined!' });
-    } catch (err: any) {
-      if (err?.code === '23505') {
+    } catch (err: unknown) {
+      const pgError = err as { code?: string };
+      if (pgError?.code === '23505') {
         setJoinedIds(prev => new Set([...prev, communityId]));
       } else {
         toast({ title: 'Error', description: 'Could not join.', variant: 'destructive' });
@@ -146,6 +144,7 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
 
   const thumbUrl = (post: RecentPost) => {
     if (post.thumbnail) {
+      if (post.thumbnail.startsWith('http')) return post.thumbnail;
       const { data } = supabase.storage.from('media').getPublicUrl(post.thumbnail);
       return data?.publicUrl || null;
     }
@@ -153,63 +152,64 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Recent Posts */}
       {showRecent && recentPosts.length > 0 && (
-        <div className="rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <div className="overflow-hidden">
+          <div className="flex items-center justify-between pb-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Recent Posts
             </h3>
             <button
               onClick={() => setShowRecent(false)}
-              className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+              className="text-xs text-civic-blue hover:text-civic-blue/80 transition-colors font-semibold"
             >
               Clear
             </button>
           </div>
-          <div className="divide-y divide-border/50">
+          <div className="space-y-1">
             {recentPosts.map(post => {
               const img = thumbUrl(post);
               return (
                 <Link
                   key={post.id}
                   to={`/post/${post.id}`}
-                  className="flex items-start gap-3 px-4 py-3 hover:bg-accent/50 transition-colors group"
+                  className="flex items-start gap-2.5 px-4 py-3 hover:bg-muted/30 transition-colors group"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                      <Avatar className="h-4 w-4">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-0.5">
+                      <Avatar className="h-4 w-4 rounded-full border border-border/10">
                         {post.community_avatar && <AvatarImage src={post.community_avatar} />}
-                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                        <AvatarFallback className="text-[7px] bg-primary/10 text-primary">
                           {post.community_name[0]?.toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span>c/{post.community_name}</span>
-                      <span className="text-muted-foreground/50">·</span>
+                      <span className="font-semibold text-foreground/80">c/{post.community_name}</span>
+                      <span className="text-muted-foreground/40">•</span>
                       <span>{formatDistanceToNowStrict(new Date(post.created_at), { addSuffix: false })} ago</span>
                     </div>
-                    <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                    <p className="text-[13.5px] font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-civic-blue transition-colors">
                       {post.title}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-0.5">
-                        <ArrowUp className="w-3 h-3" />
-                        {post.upvotes}
+                    <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground font-medium">
+                      <span className="flex items-center">
+                        {post.upvotes} upvotes
                       </span>
-                      <span className="flex items-center gap-0.5">
-                        <MessageSquare className="w-3 h-3" />
-                        {post.comment_count}
+                      <span className="text-muted-foreground/30">•</span>
+                      <span className="flex items-center">
+                        {post.comment_count} comments
                       </span>
                     </div>
                   </div>
                   {img && (
-                    <img
-                      src={img}
-                      alt=""
-                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                      loading="lazy"
-                    />
+                    <div className="w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 border border-border/10 bg-muted/20 mt-1">
+                      <img
+                        src={img}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
                   )}
                 </Link>
               );

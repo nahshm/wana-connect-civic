@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 // Feature-based imports
 import Community from '@/features/community/pages/Community';
+import PostDetail from '@/features/feed/pages/PostDetail';
 import OfficePage from '@/features/governance/pages/OfficePage';
 import ProjectDetail from '@/features/accountability/pages/ProjectDetail';
 import PromiseDetail from '@/features/accountability/pages/PromiseDetail';
@@ -54,8 +55,22 @@ const PrefixRouter: React.FC = () => {
     return <CivicResumePage context="w" />;
   }
 
-  // /c/ — Community
+  // /c/ — Community OR Community Post
   if (pathname.startsWith('/c/')) {
+    const parts = pathname.split('/');
+    // Check for /c/:name/post/:id
+    if (parts.length >= 5 && parts[3] === 'post') {
+      return <PostDetail />;
+    }
+    return <Community />;
+  }
+
+  // /r/ — Legacy Community support (aliases to /c/ patterns)
+  if (pathname.startsWith('/r/')) {
+    const parts = pathname.split('/');
+    if (parts.length >= 5 && parts[3] === 'post') {
+      return <PostDetail />;
+    }
     return <Community />;
   }
 

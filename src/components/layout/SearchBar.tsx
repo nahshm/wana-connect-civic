@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, X, Loader2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { useSearch } from '@/hooks/useSearch';
 import { SearchQuickResults } from './SearchQuickResults';
 
@@ -57,10 +58,10 @@ export const SearchBar = ({ placeholder = "Search discussions, communities...", 
   };
 
   return (
-    <div ref={searchRef} className={`relative ${className}`}>
+    <div ref={searchRef} className={cn("relative", className)}>
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-primary transition-colors" />
           <Input
             value={query}
             onChange={(e) => {
@@ -70,7 +71,13 @@ export const SearchBar = ({ placeholder = "Search discussions, communities...", 
             onKeyPress={handleKeyPress}
             onFocus={() => setShowResults(true)}
             placeholder={placeholder}
-            className="pl-10 pr-4 bg-muted/40 border-transparent focus-visible:bg-background focus-visible:border-ring transition-colors rounded-full"
+            className={cn(
+              "pl-10 pr-9 bg-muted/40 border-transparent focus-visible:bg-background transition-all rounded-full h-9 text-sm",
+              "focus-visible:ring-0 focus-visible:border-sidebar-border",
+              "md:focus-visible:border-primary/30",
+              /* Enhanced glow effect for mobile search - Reddit style */
+              "animate-search-glow border border-orange-200/30"
+            )}
           />
           {query && (
             <Button
@@ -81,20 +88,21 @@ export const SearchBar = ({ placeholder = "Search discussions, communities...", 
                 setQuery('');
                 setShowResults(false);
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 rounded-full"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 p-0 rounded-full hover:bg-muted"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>
 
+        {/* Ask button - compact on mobile */}
         <Button 
           variant="secondary" 
           onClick={() => navigate('/civic-assistant')}
-          className="rounded-full gap-2 px-4 shadow-sm hover:shadow-md transition-all bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 border border-orange-200/50"
+          className="rounded-full gap-1.5 px-3 h-9 shadow-sm hover:shadow-md transition-all bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 border border-orange-200/50 flex"
         >
-          <Sparkles className="w-4 h-4" />
-          <span className="font-medium">Ask</span>
+          <Sparkles className="w-3.5 h-3.5" />
+          <span className="font-semibold text-xs hidden sm:inline">Ask</span>
         </Button>
       </div>
 

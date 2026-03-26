@@ -161,8 +161,7 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false, sortBy 
     return (
         <div
             ref={containerRef}
-            className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth pt-24"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth scrollbar-hide"
         >
             {allClips.map((clip, index) => {
                 // Virtual rendering: only render current video +/- 1
@@ -174,7 +173,7 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false, sortBy 
                         key={clip.id}
                         data-video-card
                         data-index={index}
-                        className="h-screen snap-start snap-always"
+                        className="h-full snap-start snap-always"
                     >
                         {shouldRender ? (
                             <CivicClipCard

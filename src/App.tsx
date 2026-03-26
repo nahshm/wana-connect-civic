@@ -112,11 +112,11 @@ const App = () => (
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/onboarding" element={<OnboardingFlow />} />
-                    <Route path="/civic-clips" element={<CivicClipsPage />} />
                     <Route path="/*" element={
                       <AppLayout>
                         <Suspense fallback={<LoadingFallback />}>
                           <Routes>
+                            <Route path="/civic-clips" element={<CivicClipsPage />} />
                             <Route path="/" element={<Index />} />
                             <Route path="/dashboard" element={<CivicDashboard />} />
                             <Route path="/dashboard/report" element={<ReportIssue />} />
@@ -129,9 +129,6 @@ const App = () => (
                             <Route path="/submit" element={<CreatePost />} />
                             <Route path="/post/:id" element={<PostDetail />} />
                             <Route path="/edit-post/:id" element={<EditPost />} />
-                            <Route path="/c/:communityName/post/:id" element={<PostDetail />} />
-                            <Route path="/c/:communityName" element={<Community />} />
-                            <Route path="/community/:communityName" element={<Community />} />
                             <Route path="/communities" element={<Communities />} />
                             <Route path="/my-communities" element={<MyCommunitiesPage />} />
                             <Route path="/officials" element={<Officials />} />
@@ -140,45 +137,47 @@ const App = () => (
                             <Route path="/projects/submit" element={<SubmitProject />} />
                             <Route path="/claim-position" element={<ClaimPositionPage />} />
                             <Route path="/governance/build" element={<BuildGovernancePage />} />
-                            <Route path="/projects/:projectId" element={<ProjectDetail />} />
-                            <Route path="/promises/:promiseId" element={<PromiseDetail />} />
-                            <Route path="/discover" element={<DiscoveryDashboard />} />
-                            <Route path="/explore" element={<ExplorePlatform />} />
-                            <Route path="/privacy" element={<PrivacyPolicy />} />
-                            <Route path="/terms" element={<TermsOfService />} />
-
-                            {/* Position-first Office civic hub — accessible even for unclaimed offices */}
-                            <Route path="/office/:country/:level/:jurisdiction/:role" element={<OfficeHubPage />} />
-                            {/* Institution page — accessible even without a claimed handler */}
-                            <Route path="/institution/:slug" element={<InstitutionPage />} />
-
-                            {/* Profile Routes — /resume/:username is canonical; /u/, /w/, /g/ via PrefixRouter */}
-                            <Route path="/resume/:username" element={<CivicResumePage />} />
-
-                            {/* Admin Routes */}
-                            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                            <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
-                            <Route path="/admin/intelligence" element={<SuperAdminDashboard initialSection="intelligence" />} />
-                            <Route path="/admin/verification" element={<PositionVerification />} />
-                            <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
-                            <Route path="/admin/feature-flags" element={<FeatureFlagsManager />} />
-
-                            {/* Feature flags - keep existing structure */}
-                            <Route path="/quests" element={<Quests />} />
-                            <Route path="/leaderboards" element={<Leaderboards />} />
-                            <Route path="/search" element={<SearchResults />} />
-                            <Route path="/chat" element={<Chat />} />
-                            <Route path="/civic-assistant" element={<CivicChat />} />
-                            <Route path="/profile/setup" element={<ProfileSetup />} />
-                            <Route path="/install" element={<Install />} />
-                            <Route path="/settings" element={<SettingsPage />} />
-
-                            {/* Functional prefix routes - handled by PrefixRouter */}
-                            <Route path="/u/*" element={<PrefixRouter />} />
-                            <Route path="/w/*" element={<PrefixRouter />} />
-                            <Route path="/g/*" element={<PrefixRouter />} />
-                            <Route path="/p/*" element={<PrefixRouter />} />
-                            <Route path="/pr/*" element={<PrefixRouter />} />
+                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
+                             <Route path="/promises/:promiseId" element={<PromiseDetail />} />
+                             <Route path="/discover" element={<DiscoveryDashboard />} />
+                             <Route path="/explore" element={<ExplorePlatform />} />
+                             <Route path="/privacy" element={<PrivacyPolicy />} />
+                             <Route path="/terms" element={<TermsOfService />} />
+ 
+                             {/* Position-first Office civic hub — accessible even for unclaimed offices */}
+                             <Route path="/office/:country/:level/:jurisdiction/:role" element={<OfficeHubPage />} />
+                             {/* Institution page — accessible even without a claimed handler */}
+                             <Route path="/institution/:slug" element={<InstitutionPage />} />
+ 
+                             {/* Profile Routes — /resume/:username is canonical; /u/, /w/, /g/ via PrefixRouter */}
+                             <Route path="/resume/:username" element={<CivicResumePage />} />
+ 
+                             {/* Admin Routes */}
+                             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                             <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
+                             <Route path="/admin/intelligence" element={<SuperAdminDashboard initialSection="intelligence" />} />
+                             <Route path="/admin/verification" element={<PositionVerification />} />
+                             <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
+                             <Route path="/admin/feature-flags" element={<FeatureFlagsManager />} />
+ 
+                             {/* Feature flags - keep existing structure */}
+                             <Route path="/quests" element={<Quests />} />
+                             <Route path="/leaderboards" element={<Leaderboards />} />
+                             <Route path="/search" element={<SearchResults />} />
+                             <Route path="/chat" element={<Chat />} />
+                             <Route path="/civic-assistant" element={<CivicChat />} />
+                             <Route path="/profile/setup" element={<ProfileSetup />} />
+                             <Route path="/install" element={<Install />} />
+                             <Route path="/settings" element={<SettingsPage />} />
+ 
+                             {/* Functional dynamic prefix routes - consolidated to PrefixRouter */}
+                             <Route path="/u/*" element={<PrefixRouter />} />
+                             <Route path="/w/*" element={<PrefixRouter />} />
+                             <Route path="/g/*" element={<PrefixRouter />} />
+                             <Route path="/p/*" element={<PrefixRouter />} />
+                             <Route path="/pr/*" element={<PrefixRouter />} />
+                             <Route path="/c/*" element={<PrefixRouter />} />
+                             <Route path="/r/*" element={<PrefixRouter />} />
                             {/* Catch all */}
                             <Route path="*" element={<NotFound />} />
                           </Routes>

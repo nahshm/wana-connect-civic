@@ -32,10 +32,10 @@ export const CommunityCard = ({ community, onToggleFollow, showDescription = tru
             </Badge>
           </div>
           <Button
-            variant={community.isFollowing ? "secondary" : "default"}
+            variant={community.isFollowing ? "secondary" : "blue"}
             size="sm"
             onClick={() => onToggleFollow(community.id)}
-            className="ml-2"
+            className="ml-2 rounded-full"
           >
             {community.isFollowing ? (
               <>

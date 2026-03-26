@@ -90,7 +90,7 @@ export function CommunityInfoCard({ community }: CommunityInfoCardProps) {
         </CardTitle>
         <Link
           to={`/c/${community.name}`}
-          className="text-sm text-primary hover:underline font-semibold inline-block mt-1"
+          className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-semibold inline-block mt-1"
         >
           c/{community.displayName || community.name}
         </Link>
@@ -149,7 +149,7 @@ export function CommunityInfoCard({ community }: CommunityInfoCardProps) {
           {community.type !== 'location' && (
             <Button
               className="w-full font-semibold shadow-sm"
-              variant={isFollowing ? 'outline' : 'default'}
+              variant={isFollowing ? 'outline' : 'blue'}
               onClick={() => setIsFollowing(!isFollowing)}
             >
               {isFollowing ? 'Following' : 'Follow Community'}

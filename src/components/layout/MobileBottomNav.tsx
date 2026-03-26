@@ -1,25 +1,33 @@
+import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, PlusCircle, MessageSquare, LayoutDashboard } from 'lucide-react';
+import { Home, Users, PlusCircle, MessageSquare, Video, Menu } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSidebar, SidebarContext } from '@/components/ui/sidebar';
 
 const NAV_ITEMS = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Communities', icon: Users, path: '/communities' },
+  { label: 'Clips', icon: Video, path: '/civic-clips' },
   { label: 'Create', icon: PlusCircle, path: '/create', authRequired: true },
   { label: 'Chat', icon: MessageSquare, path: '/chat' },
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', authRequired: true },
+  { label: 'Menu', icon: Menu, path: 'menu' }, // Special case for sidebar
 ];
 
 export const MobileBottomNav = () => {
   const { user } = useAuth();
+  const sidebarContext = React.useContext(SidebarContext);
+  const setOpenMobile = sidebarContext?.setOpenMobile || ((_open: boolean) => {});
   const location = useLocation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  const filteredItems = NAV_ITEMS.filter(item => !item.authRequired || user);
+  const filteredItems = NAV_ITEMS.filter(item => {
+    if (item.label === 'Create') return true;
+    return !item.authRequired || user;
+  });
 
   const handleScroll = useCallback(() => {
     const scrollContainer = document.querySelector('[data-scroll-container]');
@@ -58,7 +66,7 @@ export const MobileBottomNav = () => {
         visible ? "translate-y-0" : "translate-y-full"
       )}
     >
-      <div className="flex items-center justify-around h-14">
+      <div className="flex items-center justify-around h-14 px-1">
         {filteredItems.map((item) => {
           const isActive = item.path === '/'
             ? location.pathname === '/'
@@ -68,7 +76,13 @@ export const MobileBottomNav = () => {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                if (item.label === 'Menu') {
+                  setOpenMobile(true);
+                } else {
+                  navigate(item.path);
+                }
+              }}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 flex-1 h-full",
                 "transition-colors duration-150 tap-highlight-transparent",

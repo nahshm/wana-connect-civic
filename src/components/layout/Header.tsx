@@ -53,50 +53,49 @@ export const Header = () => {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Logo + Wordmark - explicit dimensions prevent CLS */}
+      {/* Logo + Wordmark - compact on mobile */}
       <Link to="/" className="flex-shrink-0 flex items-center gap-2">
         <img
-
           alt="ama Logo"
-          className="h-8 w-auto"
+          className="h-7 w-auto sm:h-8"
           src="/lovable-uploads/543b08bd-f3bc-4ee3-878d-13419d22452f.png" />
       </Link>
 
-      {/* Centered Search */}
-      <div className="hidden md:flex flex-1 max-w-2xl">
-        <SearchBar placeholder="Search discussions, communities, users..." className="w-full bg-sidebar-background border-sidebar-border focus-within:border-sidebar-ring" onSearch={(query) => {
-          navigate(`/search?q=${encodeURIComponent(query)}`);
-        }} />
+      {/* Centered Search - Now visible on mobile too */}
+      <div className="flex-1 max-w-2xl px-1 sm:px-4">
+        <SearchBar 
+          placeholder="Find anything" 
+          className="w-full"
+          onSearch={(query) => {
+            navigate(`/search?q=${encodeURIComponent(query)}`);
+          }} 
+        />
       </div>
 
-      {/* Mobile Search Button */}
-      <Button variant="ghost" size="icon" className="md:hidden hover:bg-sidebar-accent text-sidebar-foreground" onClick={() => setMobileSearchOpen(true)}>
-        <Search className="w-4 h-4" />
-      </Button>
-
-      {/* Right side actions */}
+      {/* Right side actions - Restored to show on mobile as requested */}
       <div className="flex items-center space-x-0.5 sm:space-x-1">
         {user ? <>
-          <Button variant="ghost" size="sm" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium h-8 sm:h-9">
+          {/* Create Button - Visible on both mobile and desktop like before */}
+          <Button variant="ghost" size="sm" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium h-9 px-2 sm:px-3">
             <Link to="/create" className="flex items-center">
               <Plus className="w-4 h-4 sm:mr-1" />
               <span className="hidden sm:inline">Create</span>
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9">
+          {/* Chat - Visible on both */}
+          <Button variant="ghost" size="icon" asChild className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-9 w-9">
             <Link to="/chat">
               <MessageCircle className="w-4 h-4" />
             </Link>
           </Button>
 
           <NotificationDropdown />
-
           <ThemeToggle />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-8 w-8 sm:h-9 sm:w-9">
+              <Button variant="ghost" size="icon" className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors h-9 w-9">
                 <User className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -106,7 +105,8 @@ export const Header = () => {
               <DropdownMenuItem onClick={() => setWizardOpen(true)}>
                 <Users className="mr-2 h-4 w-4" />
                 Create Community
-              </DropdownMenuItem>                  <DropdownMenuSeparator />
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/dashboard">Dashboard</Link>
               </DropdownMenuItem>
@@ -130,30 +130,13 @@ export const Header = () => {
             size="sm"
             onClick={() => authModal.open('login')}
             className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors font-medium">
-            
             Sign In
           </Button>
         </>}
       </div>
     </div>
 
-    {/* Mobile Search Dialog */}
-    <Dialog open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Search</DialogTitle>
-          <DialogDescription className="sr-only">
-            Search for discussions, communities, and users
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <SearchBar placeholder="Search discussions, communities, users..." className="w-full" onSearch={(query) => {
-            navigate(`/search?q=${encodeURIComponent(query)}`);
-            setMobileSearchOpen(false);
-          }} />
-        </div>
-      </DialogContent>
-    </Dialog>
+    {/* Mobile Search Dialog - REMOVED as search is now in header */}
 
     {/* Create Community Wizard */}
     <CreateCommunityWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />

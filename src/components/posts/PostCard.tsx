@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useRef, useEffect } from 'react';
 import SentimentBar from '@/components/verification/SentimentBar';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
+
 interface PostCardProps {
   post: Post;
   onVote: (postId: string, vote: 'up' | 'down') => void;
@@ -29,6 +30,7 @@ interface PostCardProps {
   isMember?: boolean; // NEW: Is user a member of this post's community?
   onJoinCommunity?: (communityId: string, communityName: string) => void; // NEW: Callback to join community
 }
+
 export const PostCard = ({
   post,
   onVote,
@@ -91,7 +93,7 @@ export const PostCard = ({
 
     // If there's a parent handler passed down, call it too just in case it wants to do anything
     if (onVote) {
-      onVote(post.id, isRemovingVote ? null as any : voteType);
+      onVote(post.id, isRemovingVote ? null : voteType as 'up' | 'down');
     }
 
     try {
@@ -189,8 +191,8 @@ export const PostCard = ({
     if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
       try {
         await navigator.share(shareData);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') {
           console.error('Error sharing:', err);
         }
       }
@@ -234,8 +236,6 @@ export const PostCard = ({
     }
   };
 
-  // Verify author is current user
-
   const isAuthor = user && post.author.id === user.id;
 
   // Helper to get the correct post link based on community context
@@ -245,6 +245,7 @@ export const PostCard = ({
     }
     return `/post/${post.id}`;
   };
+
   const handleDelete = async () => {
     if (!user || !isAuthor) return;
     setIsDeleting(true);
@@ -369,33 +370,16 @@ export const PostCard = ({
   };
 
   // Handle community data that might be under 'community' or 'community_id' alias
-  const communityData = post.community || (post as any).community_id;
+  const communityData = post.community || (post as { community_id?: any }).community_id;
   const getVoteScore = () => localScore;
-  const getRoleColor = (role?: string) => {
-    switch (role) {
-      case 'official':
-        return 'bg-civic-blue/10 text-civic-blue border-civic-blue/20';
-      case 'expert':
-        return 'bg-civic-green/10 text-civic-green border-civic-green/20';
-      case 'journalist':
-        return 'bg-civic-orange/10 text-civic-orange border-civic-orange/20';
-      case 'moderator':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'bot':
-        return 'bg-indigo-50 text-indigo-600 border-indigo-200';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
-  const formatNumber = (num?: number | null) => {
-    if (num == null) return '0';
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
+
+  const formatNumber = (num?: number | string | null) => {
+    if (num === null || num === undefined) return '0';
+    const n = typeof num === 'string' ? parseInt(num, 10) : num;
+    if (isNaN(n)) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toString();
   };
 
   // Helper to render badges for content sensitivity (matching form design)
@@ -646,8 +630,10 @@ export const PostCard = ({
       </div>);
 
   };
+
   if (viewMode === 'compact') {
-    return <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
+    return (
+      <div className="flex hover:bg-sidebar-accent/50 transition-colors border-b border-sidebar-border">
         {/* Vote Column */}
         <div className="flex flex-col items-center p-2 w-12 bg-sidebar-background/50">
           <Button variant="ghost" size="sm" aria-label={`Upvote post: ${post.title}`} aria-pressed={localVote === 'up'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('up'); }} className={`h-6 w-6 p-0 ${localVote === 'up' ? 'text-civic-green bg-civic-green/10' : 'text-sidebar-muted-foreground hover:text-civic-green'}`}>
@@ -732,375 +718,220 @@ export const PostCard = ({
             </DropdownMenu>
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <><article className={cn(
-    "border-b border-border/50 hover:bg-muted/30 transition-colors relative px-2",
-    post.author.officialPosition && "border-l-4 border-l-civic-blue bg-civic-blue/[0.02] shadow-[inset_4px_0_0_0_rgba(0,102,204,0.1)]",
-    post.auto_generated && !post.author.officialPosition && "border-l-4 border-l-indigo-400/40 bg-indigo-50/[0.02]"
-  )}>
-      <div className="flex flex-col">
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 py-[12px] px-[2px]">
+
+  return (
+    <>
+      <article className={cn(
+        "hover:bg-muted/[0.04] transition-all relative px-2 py-0.5 border-b border-border",
+        post.author.officialPosition && "border-l-4 border-l-civic-blue bg-civic-blue/[0.02]",
+        post.auto_generated && !post.author.officialPosition && "border-l-4 border-l-indigo-400/30 bg-indigo-50/[0.01]"
+      )}>
+        <div className="flex flex-col">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 pt-3 pb-2 px-1">
           {/* Clean Compact Header */}
-          <div className="flex items-start gap-2.5 mb-2">
+          <div className="flex items-start gap-2 mb-2">
             {/* Left: Avatar - smaller like Reddit */}
-            <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarImage src={communityData?.avatarUrl || communityData?.avatar_url || communityData?.icon || post.author?.avatar || (post.author as any)?.avatar_url} />
-              <AvatarFallback className="text-xs bg-civic-green/10 text-civic-green font-semibold">
+            <Avatar className="h-7 w-7 flex-shrink-0 shadow-sm border border-border/50">
+              <AvatarImage src={communityData?.avatarUrl || communityData?.avatar_url || communityData?.icon || post.author?.avatar || (post.author as unknown as { avatar_url?: string })?.avatar_url} />
+              <AvatarFallback className="text-xs bg-muted text-muted-foreground font-semibold">
                 {(communityData?.name || post.author.displayName || 'U')[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
             {/* Center: Content */}
-            <div className="flex-1 min-w-0">
-              {/* Community Post Layout */}
+            <div className="flex-1 min-w-0 pt-0.5">
+              {/* Community Post Layout - Double line preserved as requested */}
               {communityData ? <div className="flex flex-col gap-0.5">
-                  {/* Line 1: c/name */}
-                  <Link to={`/c/${communityData.name}`} className="font-semibold text-sm hover:underline text-foreground">
+                  {/* Line 1: c/name - Reddit Meta style */}
+                  <Link to={`/c/${communityData.name}`} className="font-reddit-meta text-[11.5px] hover:underline text-blue-600 dark:text-blue-400 leading-none tracking-tight">
                     c/{communityData.name}
                   </Link>
                   
-                  {/* Line 2: Prefix/username • time • suggestion */}
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="hover:underline font-semibold text-foreground">
+                  {/* Line 2: Prefix/username • time */}
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap leading-none">
+                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="hover:underline font-medium text-muted-foreground/80">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
 
-                    {/* Verified badge or Trusted User badge */}
-                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} />}
-                    {post.author.isVerified && !post.author.officialPosition && <TrustedUserBadge size="xs" label={post.author.role || 'Trusted Member'} />}
-                    
-                    {/* Title icon with hover - if has position */}
-                    {post.author.officialPosition && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate" title={post.author.officialPosition}>
-                        {post.author.officialPosition}
-                      </Badge>
-                    )}
-
-                    {/* Role Tag (for non-officials with roles like expert, journalist, etc) */}
-                    {!post.author.officialPosition && post.author.role && post.author.role !== 'citizen' && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="outline" className={`text-[9px] px-1 py-0 uppercase tracking-wider font-semibold cursor-help ${getRoleColor(post.author.role)}`}>
-                            {post.author.role}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="flex flex-col gap-1 max-w-[220px]">
-                            <p className="font-semibold text-sm capitalize">{post.author.role} Account</p>
-                            <p className="text-xs text-muted-foreground">
-                              {post.author.role === 'expert' ? 'Verified domain expert with specialized knowledge in civic matters.' :
-                               post.author.role === 'journalist' ? 'Verified journalist focusing on public interest stories.' :
-                               post.author.role === 'moderator' ? 'Community moderator responsible for maintaining discourse quality.' :
-                               post.author.role === 'bot' ? 'Automated system account providing official data and civic updates.' :
-                               post.author.role === 'admin' ? 'Platform administrator with global oversight.' :
-                               'Verified contributor to the WanaIQ platform.'}
-                            </p>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* AI Generated Badge */}
-                    {post.auto_generated && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="text-[9px] h-4 gap-0.5 px-1 bg-civic-blue/10 text-civic-blue border-civic-blue/20 cursor-help">
-                            <Bot className="w-2.5 h-2.5" />
-                            AI
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="flex items-center gap-2">
-                            <Bot className="w-4 h-4 text-civic-blue" />
-                            <div>
-                              <p className="font-semibold text-sm">AI Generated Content</p>
-                              <p className="text-xs text-muted-foreground">This post was synthesized by WanaIQ AI from official sources.</p>
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
                     <span>•</span>
-                    <span>{formatPostDate(post.createdAt)} ago</span>
-                    {/* Suggestion reason - example */}
-                    <span className="hidden sm:inline">• Suggested for you</span>
+                    <span>{formatPostDate(post.createdAt)}</span>
+                    
+                    {/* Verified badges */}
+                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
+                    
+                    {/* Popular suggestion */}
+                    <span className="hidden sm:inline opacity-80">• Suggested</span>
                   </div>
-                </div> : (/* User Post Layout (no community) */
-            <div className="flex flex-col gap-0.5">
-                  {/* Line 1: Prefix/username + verification */}
+                </div> : (/* User Post Layout */
+            <div className="flex flex-col gap-0.5 pt-0.5">
                   <div className="flex items-center gap-1.5">
-                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="font-semibold text-sm hover:underline text-foreground">
+                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
-                    
-                    {/* Verified badge or Trusted User badge */}
-                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} />}
-                    {post.author.isVerified && !post.author.officialPosition && <TrustedUserBadge size="xs" label={post.author.role || 'Trusted Member'} />}
-                    
-                    {/* Title icon with hover - if has position */}
-                    {post.author.officialPosition && (
-                      <Badge variant="outline" className="text-xs px-1.5 py-0 border-civic-blue/30 text-civic-blue bg-civic-blue/5 max-w-[150px] truncate" title={post.author.officialPosition}>
-                        {post.author.officialPosition}
-                      </Badge>
-                    )}
-
-                    {/* Role Tag (for non-officials with roles like expert, journalist, etc) */}
-                    {!post.author.officialPosition && post.author.role && post.author.role !== 'citizen' && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 uppercase tracking-wider font-semibold cursor-help ${getRoleColor(post.author.role)}`}>
-                            {post.author.role}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="flex flex-col gap-1 max-w-[220px]">
-                            <p className="font-semibold text-sm capitalize">{post.author.role} Account</p>
-                            <p className="text-xs text-muted-foreground">
-                              {post.author.role === 'expert' ? 'Verified domain expert with specialized knowledge in civic matters.' :
-                               post.author.role === 'journalist' ? 'Verified journalist focusing on public interest stories.' :
-                               post.author.role === 'moderator' ? 'Community moderator responsible for maintaining discourse quality.' :
-                               post.author.role === 'bot' ? 'Automated system account providing official data and civic updates.' :
-                               post.author.role === 'admin' ? 'Platform administrator with global oversight.' :
-                               'Verified contributor to the WanaIQ platform.'}
-                            </p>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* AI Generated Badge */}
-                    {post.auto_generated && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="text-[9px] h-4 gap-0.5 px-1 bg-civic-blue/10 text-civic-blue border-civic-blue/20 cursor-help">
-                            <Bot className="w-2.5 h-2.5" />
-                            AI
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="flex items-center gap-2">
-                            <Bot className="w-4 h-4 text-civic-blue" />
-                            <div>
-                              <p className="font-semibold text-sm">AI Generated Content</p>
-                              <p className="text-xs text-muted-foreground">This post was synthesized by WanaIQ AI from official sources.</p>
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
+                    {post.author.isVerified && <VerifiedBadge size="xs" className="scale-90" />}
                   </div>
-                  
-                  {/* Line 2: time • suggestion */}
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground leading-none">
                     <span>{formatPostDate(post.createdAt)} ago</span>
-                    <span className="hidden sm:inline">• Popular near you</span>
+                    <span className="hidden sm:inline">• Popular</span>
                   </div>
                 </div>)}
             </div>
 
-            {/* Right: Join Button + Three Dots Menu */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Join button - only for community posts and non-members */}
-              {communityData && !isMember && onJoinCommunity && <Button onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onJoinCommunity(post.community!.id, post.community!.name);
-            }} size="sm" className="h-7 px-4 text-xs font-semibold bg-civic-blue hover:bg-civic-blue/90 text-white rounded-full">
+            {/* Right: Join Button + Menu */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {communityData && !isMember && onJoinCommunity && (
+                <Button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onJoinCommunity(post.community!.id, post.community!.name);
+                  }} 
+                  size="sm" 
+                  variant="blue"
+                  className="h-7 px-3 text-[11px] font-bold rounded-full"
+                >
                   Join
-                </Button>}
-
-              {/* Three dots menu */}
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border/50">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem>
-                    <Bell className="mr-2 h-4 w-4" />
-                    Follow post
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <EyeOff className="mr-2 h-4 w-4" />
-                    Show fewer posts like this
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSave}>
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    {isSaved ? 'Unsave' : 'Save'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <X className="mr-2 h-4 w-4" />
-                    Hide
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive">
-                    <Flag className="mr-2 h-4 w-4" />
-                    Report
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </Button>
+              )}
             </div>
           </div>
 
-          {/* Special Badges Row (Flair, Content Warning, etc.) */}
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            {renderSpecialBadges()}
+          {/* Title and Content */}
+          <div className="px-0.5">
+            {isDetailView ? <div>
+                <h1 className="font-reddit-title text-xl mb-3 leading-tight heading-tight">{post.title}</h1>
+                {renderMedia()}
+                {renderLinkPreview()}
+                <SafeContentRenderer content={post.content || ''} className="text-foreground/90 text-[14.5px] leading-relaxed mb-4" />
+              </div> : <div>
+                <Link to={getPostLink()} className="block group">
+                  <h2 className="mb-2 group-hover:text-primary transition-colors font-semibold text-[15px] leading-tight">
+                    {post.title}
+                  </h2>
+                </Link>
+
+                {post.content && <div className="mb-3">
+                    <div className={cn("text-[13.5px] text-muted-foreground/90 leading-normal", !isContentExpanded ? 'line-clamp-3' : '')}>
+                      <SafeContentRenderer content={post.content} />
+                    </div>
+                    {post.content.length > 180 && (
+                      <button 
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsContentExpanded(!isContentExpanded); }}
+                        className="text-[12px] font-bold text-blue-600 dark:text-blue-400 mt-1 hover:underline underline-offset-2"
+                      >
+                        {isContentExpanded ? 'Show less..' : 'Read more..'}
+                      </button>
+                    )}
+                  </div>}
+
+                {renderMedia()}
+                {renderLinkPreview()}
+              </div>}
           </div>
 
-          {/* Title and Content */}
-          {isDetailView ? <div>
-              {/* Detail View: Title -> Media -> Description */}
-              <h1 className="font-bold text-2xl mb-4 leading-tight hover:text-destructive transition-colors">{post.title}</h1>
-
-              {/* Media between title and description */}
-              {renderMedia()}
-              {renderLinkPreview()}
-
-              {/* Description */}
-              <SafeContentRenderer content={post.content || ''} className="text-sidebar-foreground text-sm mb-4" />
-            </div> : <div>
-              {/* Feed View: Title + Content Preview + Expand/Collapse */}
-              <Link to={getPostLink()} className="block group">
-                <h2 className="mb-3 group-hover:text-primary leading-tight font-bold text-base">
-                  {post.title}
-                </h2>
-              </Link>
-
-              {/* Content Preview with Expand/Collapse */}
-              {post.content && <div className="mb-3">
-                  <div className={`text-sm text-sidebar-muted-foreground ${!isContentExpanded ? 'line-clamp-3' : ''}`}>
-                    <SafeContentRenderer content={post.content} />
-                  </div>
-                  {post.content.length > 300 && <button onClick={(e) => {
-              e.preventDefault();
-              setIsContentExpanded(!isContentExpanded);
-            }} className="text-primary hover:underline text-sm font-medium mt-1.5 inline-flex items-center gap-1">
-                      {isContentExpanded ? <>
-                          Show less
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                          </svg>
-                        </> : <>
-                          Read more
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </>}
-                    </button>}
-                </div>}
-
-              {/* Media shown in feed view */}
-              {renderMedia()}
-              {renderLinkPreview()}
-            </div>}
-
-          {/* Flairs - Display with same colors as form */}
-          {post.tags && post.tags.length > 0 && <div className="flex flex-wrap gap-1.5 mb-3">
-              {post.tags.map((tagId) => {
-            const flair = CIVIC_FLAIRS.find((f) => f.id === tagId);
-            if (!flair) return null;
-            return <Badge key={tagId} variant="outline" className={`text-xs ${flair.bgColor} ${flair.color} border-transparent`}>
-                    {flair.label}
-                  </Badge>;
-          })}
-            </div>}
-
-          {/* Sentiment Bar - only show if available */}
-          {(post as any).sentiment && <SentimentBar sentiment={(post as any).sentiment} className="mb-3" />}
-
           {/* Action Bar - Reddit Style Unified Buttons */}
-          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-1 scrollbar-none">
             {/* Upvotes/Downvotes Pill */}
-            <div className="flex items-center bg-muted/40 hover:bg-muted/60 transition-colors rounded-full h-9">
+            <div className="flex items-center bg-muted/30 hover:bg-muted/50 transition-colors rounded-full h-7 border border-border/5">
               <button 
                 aria-label="Upvote" 
-                aria-pressed={localVote === 'up'} 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('up'); }} 
-                className={`flex items-center justify-center h-full px-2.5 rounded-l-full transition-colors ${localVote === 'up' ? 'text-[#D93900] bg-[#D93900]/10' : 'text-muted-foreground hover:bg-muted hover:text-[#D93900]'}`}
+                className={cn(
+                  "flex items-center justify-center h-full px-2 rounded-l-full transition-all",
+                  localVote === 'up' ? "text-[#FF4500] bg-[#FF4500]/10" : "text-muted-foreground hover:text-[#FF4500]"
+                )}
               >
-                <ArrowUp className="w-5 h-5 stroke-[1.5]" />
+                <ArrowUp className={cn("w-4.5 h-4.5", localVote === 'up' ? "stroke-[2.5]" : "stroke-[1.8]")} />
               </button>
               
-              <span className={`text-xs font-bold px-1 min-w-[1.5rem] text-center ${localVote === 'up' ? 'text-[#D93900]' : localVote === 'down' ? 'text-[#6A5CFF]' : 'text-foreground'}`}>
+              <span className={cn(
+                "text-[10px] font-bold px-1 min-w-[1.2rem] text-center",
+                localVote === 'up' ? "text-[#FF4500]" : localVote === 'down' ? "text-[#6A5CFF]" : "text-foreground/80"
+              )}>
                 {formatNumber(getVoteScore())}
               </span>
               
               <button 
                 aria-label="Downvote" 
-                aria-pressed={localVote === 'down'} 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('down'); }} 
-                className={`flex items-center justify-center h-full px-2.5 rounded-r-full transition-colors ${localVote === 'down' ? 'text-[#6A5CFF] bg-[#6A5CFF]/10' : 'text-muted-foreground hover:bg-muted hover:text-[#6A5CFF]'}`}
+                className={cn(
+                  "flex items-center justify-center h-full px-2 rounded-r-full transition-all",
+                  localVote === 'down' ? "text-[#6A5CFF] bg-[#6A5CFF]/10" : "text-muted-foreground hover:text-[#6A5CFF]"
+                )}
               >
-                <ArrowDown className="w-5 h-5 stroke-[1.5]" />
+                <ArrowDown className={cn("w-4.5 h-4.5", localVote === 'down' ? "stroke-[2.5]" : "stroke-[1.8]")} />
               </button>
             </div>
 
             {/* Comments Pill */}
-            <Link to={getPostLink()} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3.5 h-9 text-muted-foreground hover:text-foreground group text-decoration-none">
-              <MessageCircle className="w-5 h-5 stroke-[1.5]" />
-              <span className="text-xs font-bold">{formatNumber(post.commentCount)}</span>
+            <Link to={getPostLink()} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3 h-8 text-muted-foreground hover:text-foreground text-decoration-none border border-border/10">
+              <MessageSquare className="w-4 h-4 stroke-[2]" />
+              <span className="text-[11px] font-bold">{formatNumber(post.commentCount)}</span>
             </Link>
 
             {/* Share Pill */}
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3.5 h-9 text-muted-foreground hover:text-foreground">
-              <Share className="w-5 h-5 stroke-[1.5]" />
-              <span className="text-xs font-bold hidden sm:inline">Share</span>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 bg-muted/30 hover:bg-muted/50 transition-colors rounded-full px-2.5 h-7 text-muted-foreground hover:text-foreground border border-border/5">
+              <Share className="w-3.5 h-3.5 stroke-[1.8]" />
+              <span className="text-[10px] font-bold hidden sm:inline">Share</span>
             </button>
 
             {/* Save Pill */}
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} className={`flex items-center gap-1.5 rounded-full px-3.5 h-9 transition-colors ${isSaved ? 'bg-civic-green/10 text-civic-green' : 'bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground'}`}>
-              <Bookmark className="w-5 h-5 stroke-[1.5]" />
-              <span className="text-xs font-bold hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} className={cn(
+              "flex items-center gap-1.5 rounded-full px-3 h-8 transition-all border border-border/5",
+              isSaved ? "bg-civic-green/10 text-civic-green border-civic-green/20" : "bg-muted/30 hover:bg-muted/50 text-muted-foreground"
+            )}>
+              <Bookmark className={cn("w-4 h-4", isSaved ? "fill-current stroke-[1.8]" : "stroke-[1.8]")} />
+              <span className="text-[11px] font-bold hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
             </button>
 
-            {/* More Options Pill - Using the new UI styling */}
+            {/* More Options Menu - Moved to Reaction Bar */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors ml-auto sm:ml-0" onClick={(e) => e.stopPropagation()}>
-                  <MoreHorizontal className="w-5 h-5 stroke-[1.5]" />
+                <button 
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all border border-border/5"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-lg font-medium text-sm">
-                {isAuthor && <>
-                    <DropdownMenuItem onClick={() => navigate(`/edit-post/${post.id}`)}>
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit post
+              <DropdownMenuContent align="end" className="w-56 border-border/50 shadow-xl bg-card">
+                <DropdownMenuItem>
+                  <Bell className="mr-2 h-4 w-4 text-muted-foreground" />
+                  Follow post
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSave}>
+                  <Bookmark className="mr-2 h-4 w-4 text-muted-foreground" />
+                  {isSaved ? 'Unsave' : 'Save'}
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex sm:hidden" onClick={handleShare}>
+                  <Share className="mr-2 h-4 w-4 text-muted-foreground" />
+                  Share link
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive">
+                  <Flag className="mr-2 h-4 w-4" />
+                  Report
+                </DropdownMenuItem>
+                {isAuthor && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete post
                     </DropdownMenuItem>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete post
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Post</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this post? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            {isDeleting ? "Deleting..." : "Delete"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </>}
-                <DropdownMenuItem>Hide post</DropdownMenuItem>
-                <DropdownMenuItem>Report</DropdownMenuItem>
-                <DropdownMenuItem>Block user</DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
       </div>
     </article>
-    <GlassLightbox src={lightboxSrc} alt="Post image" onClose={() => setLightboxSrc(null)} />
-  </>;
+      <GlassLightbox src={lightboxSrc} alt="Post image" onClose={() => setLightboxSrc(null)} />
+    </>
+  );
 };

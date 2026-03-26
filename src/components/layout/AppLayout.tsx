@@ -16,9 +16,11 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const isCommunityPage = location.pathname.startsWith('/c/');
   const isCivicAssistant = location.pathname === '/civic-assistant';
 
+  const isClipsPage = location.pathname === '/civic-clips';
+
   return (
-    <div className="h-screen flex flex-col w-full bg-background overflow-hidden">
-      <Header />
+    <div className="h-screen flex flex-col w-full bg-background overflow-hidden text-foreground">
+      {!isClipsPage && <Header />}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <AppSidebar />
         <SidebarInset

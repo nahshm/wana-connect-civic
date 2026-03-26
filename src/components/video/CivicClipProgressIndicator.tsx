@@ -1,45 +1,35 @@
+import * as SliderPrimitive from "@radix-ui/react-slider"
 import { cn } from '@/lib/utils'
 
 interface CivicClipProgressIndicatorProps {
     progress: number // 0-100
-    duration?: number
+    onSeek?: (value: number) => void
     className?: string
 }
 
 export const CivicClipProgressIndicator = ({
     progress,
-    duration,
+    onSeek,
     className
 }: CivicClipProgressIndicatorProps) => {
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60)
-        const secs = Math.floor(seconds % 60)
-        return `${mins}:${secs.toString().padStart(2, '0')}`
-    }
-
     return (
-        <div className={cn("w-full", className)}>
-            {/* Progress bar */}
-            <div className="relative h-1 bg-white/20 rounded-full overflow-hidden">
-                <div 
-                    className="absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-100 ease-linear"
-                    style={{ width: `${progress}%` }}
+        <div className={cn("w-full group/seek h-1.5 transition-all hover:h-2 cursor-pointer", className)}>
+            <SliderPrimitive.Root
+                defaultValue={[0]}
+                value={[progress]}
+                max={100}
+                step={0.1}
+                onValueChange={(vals) => onSeek?.(vals[0])}
+                className="relative flex items-center select-none touch-none w-full h-full"
+            >
+                <SliderPrimitive.Track className="bg-white/20 relative grow h-1 transition-all rounded-full overflow-hidden">
+                    <SliderPrimitive.Range className="absolute bg-[#FE2C55] h-full rounded-full shadow-[0_0_8px_rgba(254,44,85,0.5)] transition-all duration-300" />
+                </SliderPrimitive.Track>
+                <SliderPrimitive.Thumb 
+                    className="block w-2.5 h-2.5 bg-white rounded-full shadow-lg opacity-0 group-hover/seek:opacity-100 transition-opacity focus:outline-none" 
+                    aria-label="Progress"
                 />
-                
-                {/* Buffered indicator (optional) */}
-                <div 
-                    className="absolute inset-y-0 left-0 bg-white/30 rounded-full"
-                    style={{ width: `${Math.min(progress + 10, 100)}%` }}
-                />
-            </div>
-
-            {/* Duration label */}
-            {duration && (
-                <div className="flex justify-between mt-1 text-[10px] text-white/60 font-mono">
-                    <span>{formatTime(duration * progress / 100)}</span>
-                    <span>{formatTime(duration)}</span>
-                </div>
-            )}
+            </SliderPrimitive.Root>
         </div>
     )
 }

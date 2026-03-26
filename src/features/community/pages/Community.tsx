@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CommunityProfile } from '@/types/index';
 
@@ -65,8 +65,17 @@ const CommunityErrorState = ({ error, onRetry }: { error: any; onRetry: () => vo
 
 const Community = () => {
   const { communityName } = useParams<{ communityName: string }>();
+  const location = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Resolve community name from URL if missing from params (PrefixRouter context)
+  const resolvedCommunityName = useMemo(() => {
+    if (communityName) return communityName;
+    const parts = location.pathname.split('/');
+    if (parts[1] === 'c' && parts[2]) return parts[2];
+    return null;
+  }, [communityName, location.pathname]);
 
   // State for UI interactions
   const [activeChannelId, setActiveChannelId] = useState<string>('');
@@ -90,7 +99,7 @@ const Community = () => {
     isLoading,
     error,
     refetch,
-  } = useCommunity(communityName);
+  } = useCommunity(resolvedCommunityName || undefined);
 
   const { geoCommunities } = useGeographicCommunities();
   const { joinedCommunities } = useJoinedCommunities(geoCommunities);
@@ -165,7 +174,7 @@ const Community = () => {
     queryClient.removeQueries({ queryKey: ['channelPosts'] });
     queryClient.removeQueries({ queryKey: ['channelProjects'] });
     queryClient.removeQueries({ queryKey: ['channelMembers'] });
-  }, [communityName, queryClient]);
+  }, [resolvedCommunityName, queryClient]);
 
   // Build levels for navigation
   const primaryLevels = useMemo(() => [

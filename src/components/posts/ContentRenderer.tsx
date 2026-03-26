@@ -105,15 +105,17 @@ export const ContentRenderer: React.FC<ContentRendererProps> = React.memo(({
                     components={{
                         // Custom link rendering for internal routes
                         a: ({ node, href, children, ...props }) => {
-                            const isInternal = href?.startsWith('/');
-                            if (isInternal) {
-                                return (
-                                    <a href={href} className="text-primary underline hover:text-primary/80" {...props}>
-                                        {children}
-                                    </a>
-                                );
-                            }
-                            return <a href={href} {...props}>{children}</a>;
+                            return (
+                                <a 
+                                    href={href} 
+                                    className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors" 
+                                    target={!href?.startsWith('/') ? "_blank" : undefined}
+                                    rel={!href?.startsWith('/') ? "noopener noreferrer" : undefined}
+                                    {...props}
+                                >
+                                    {children}
+                                </a>
+                            );
                         }
                     }}
                 >
