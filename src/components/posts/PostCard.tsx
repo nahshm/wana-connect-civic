@@ -455,6 +455,7 @@ export const PostCard = ({
           <img
             src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
             alt=""
+            loading="lazy"
             className="w-full h-full object-cover blur-2xl scale-110"
             aria-hidden="true" /> :
 
@@ -463,6 +464,7 @@ export const PostCard = ({
             src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
             className="w-full h-full object-cover blur-2xl scale-110"
             muted
+            preload="none"
             aria-hidden="true" /> :
 
           null}
