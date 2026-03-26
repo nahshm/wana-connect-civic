@@ -120,8 +120,8 @@ export default defineConfig(({ mode }) => ({
           ],
           'data-vendor': ['@supabase/supabase-js', '@tanstack/react-query'],
           'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-link', '@tiptap/extension-placeholder'],
-          // recharts excluded from manualChunks - naturally code-splits with lazy admin component
-          'motion-vendor': ['framer-motion']
+          // recharts and framer-motion excluded from manualChunks
+          // They naturally code-split with their lazy-loaded consumers
         }
       }
     }
