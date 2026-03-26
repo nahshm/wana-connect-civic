@@ -114,6 +114,7 @@ export function ProjectFeedCard({ project, onClick }: ProjectFeedCardProps) {
                   <img 
                     src={image} 
                     alt="" 
+                    loading="lazy"
                     className="w-full h-full object-cover blur-2xl scale-110"
                     aria-hidden="true"
                   />
@@ -122,6 +123,7 @@ export function ProjectFeedCard({ project, onClick }: ProjectFeedCardProps) {
                     src={video}
                     className="w-full h-full object-cover blur-2xl scale-110"
                     muted
+                    preload="none"
                     aria-hidden="true"
                   />
                 )}
