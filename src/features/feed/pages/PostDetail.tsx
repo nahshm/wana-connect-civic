@@ -135,7 +135,7 @@ const PostDetail = () => {
         .update({ comment_count: (post?.commentCount || 0) + 1 })
         .eq('id', id);
 
-      setPost(prev => prev ? { ...prev, commentCount: prev.commentCount + 1 } : null);
+      refetchPost();
 
       // Invalidate feed cache so it reflects the new count
       queryClient.invalidateQueries({ queryKey: ['unified-feed'] });

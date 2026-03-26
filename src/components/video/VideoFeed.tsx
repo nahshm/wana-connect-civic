@@ -42,6 +42,8 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false, sortBy 
             title,
             content,
             created_at,
+            votes_count,
+            comment_count,
             author:profiles!posts_author_id_fkey(
               id,
               username,

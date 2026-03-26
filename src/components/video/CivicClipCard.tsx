@@ -146,11 +146,11 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
         if (!user || !post) return
         try {
             if (saved) {
-                await (supabase.from('saved_posts') as any).delete().eq('post_id', post.id).eq('user_id', user.id)
+                await (supabase as any).from('saved_posts').delete().eq('post_id', post.id).eq('user_id', user.id)
                 setSaved(false)
                 toast({ title: 'Removed from saved' })
             } else {
-                await (supabase.from('saved_posts') as any).insert({ post_id: post.id, user_id: user.id })
+                await (supabase as any).from('saved_posts').insert({ post_id: post.id, user_id: user.id })
                 setSaved(true)
                 toast({ title: 'Saved to collection' })
             }
