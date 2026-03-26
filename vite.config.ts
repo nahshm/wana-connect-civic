@@ -120,7 +120,7 @@ export default defineConfig(({ mode }) => ({
           ],
           'data-vendor': ['@supabase/supabase-js', '@tanstack/react-query'],
           'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-link', '@tiptap/extension-placeholder'],
-          'chart-vendor': ['recharts'],
+          // recharts excluded from manualChunks - naturally code-splits with lazy admin component
           'motion-vendor': ['framer-motion']
         }
       }
