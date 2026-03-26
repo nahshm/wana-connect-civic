@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: null,
+      injectRegister: false,
       includeAssets: ['favicon.png', 'lovable-uploads/**/*'],
       manifest: {
         name: 'ama - Civic Accountability & Action',
