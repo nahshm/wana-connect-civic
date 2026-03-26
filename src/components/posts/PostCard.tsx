@@ -415,7 +415,7 @@ export const PostCard = ({
           <AlertTriangle className="w-2.5 h-2.5" />
           SENSITIVE
         </Badge>);
-    } else if (post.contentSensitivity === 'public' || post.isPublicDiscussion) {
+    } else if (post.contentSensitivity === 'public' || (post as any).isPublicDiscussion) {
       badges.push(<Badge key="public" variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
           <MessageSquare className="w-2.5 h-2.5" />
           PUBLIC
