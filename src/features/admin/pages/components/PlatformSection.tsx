@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Activity, BarChart3, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import PerformanceMonitoringTab from '../../components/PerformanceMonitoringTab';
+import { lazy, Suspense } from 'react';
+const PerformanceMonitoringTab = lazy(() => import('../../components/PerformanceMonitoringTab'));
 
 export default function PlatformSection() {
   return (
@@ -18,7 +19,7 @@ export default function PlatformSection() {
       </TabsList>
 
       <TabsContent value="flags"><FeatureFlagsSubTab /></TabsContent>
-      <TabsContent value="performance"><PerformanceMonitoringTab /></TabsContent>
+      <TabsContent value="performance"><Suspense fallback={<div className="p-4 text-muted-foreground">Loading...</div>}><PerformanceMonitoringTab /></Suspense></TabsContent>
       <TabsContent value="analytics"><AnalyticsSubTab /></TabsContent>
     </Tabs>
   );
