@@ -33,8 +33,9 @@ interface Post {
     title: string
     content?: string
     created_at?: string
-    votes_count: number
-    comment_count: number
+    upvotes?: number | null
+    downvotes?: number | null
+    comment_count?: number | null
     author?: PostAuthor
     community?: PostCommunity
 }
