@@ -87,9 +87,9 @@ export const MobileBottomNav = () => {
                 "flex flex-col items-center justify-center gap-0.5 flex-1 h-full",
                 "transition-colors duration-150 tap-highlight-transparent",
                 isCreate
-                  ? "text-primary"
+                  ? "text-civic-red"
                   : isActive
-                    ? "text-primary"
+                    ? "text-civic-red"
                     : "text-muted-foreground"
               )}
             >
