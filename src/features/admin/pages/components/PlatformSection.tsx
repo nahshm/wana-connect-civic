@@ -19,7 +19,7 @@ export default function PlatformSection() {
       </TabsList>
 
       <TabsContent value="flags"><FeatureFlagsSubTab /></TabsContent>
-      <TabsContent value="performance"><PerformanceMonitoringTab /></TabsContent>
+      <TabsContent value="performance"><Suspense fallback={<div className="p-4 text-muted-foreground">Loading...</div>}><PerformanceMonitoringTab /></Suspense></TabsContent>
       <TabsContent value="analytics"><AnalyticsSubTab /></TabsContent>
     </Tabs>
   );
