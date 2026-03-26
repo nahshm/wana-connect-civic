@@ -33,8 +33,9 @@ interface Post {
     title: string
     content?: string
     created_at?: string
-    votes_count: number
-    comment_count: number
+    upvotes?: number | null
+    downvotes?: number | null
+    comment_count?: number | null
     author?: PostAuthor
     community?: PostCommunity
 }
@@ -63,7 +64,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
     const videoPlayerRef = useRef<VideoPlayerRef>(null)
     const [voteType, setVoteType] = useState<'upvote' | 'downvote' | null>(null)
     const [saved, setSaved] = useState(false)
-    const [votes, setVotes] = useState(clip.post?.votes_count || 0)
+    const [votes, setVotes] = useState((clip.post?.upvotes || 0) - (clip.post?.downvotes || 0))
     const [progress, setProgress] = useState(0)
     const [isFollowed, setIsFollowed] = useState(false)
     const [showVotePop, setShowVotePop] = useState(false)
@@ -146,11 +147,11 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
         if (!user || !post) return
         try {
             if (saved) {
-                await (supabase.from('saved_posts') as any).delete().eq('post_id', post.id).eq('user_id', user.id)
+                await (supabase as any).from('saved_posts').delete().eq('post_id', post.id).eq('user_id', user.id)
                 setSaved(false)
                 toast({ title: 'Removed from saved' })
             } else {
-                await (supabase.from('saved_posts') as any).insert({ post_id: post.id, user_id: user.id })
+                await (supabase as any).from('saved_posts').insert({ post_id: post.id, user_id: user.id })
                 setSaved(true)
                 toast({ title: 'Saved to collection' })
             }
