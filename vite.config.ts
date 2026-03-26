@@ -118,10 +118,9 @@ export default defineConfig(({ mode }) => ({
             'tailwind-merge',
             'cmdk'
           ],
-          'data-vendor': ['@supabase/supabase-js', '@tanstack/react-query'],
-          'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-link', '@tiptap/extension-placeholder'],
-          'chart-vendor': ['recharts'],
-          'motion-vendor': ['framer-motion']
+          'data-vendor': ['@supabase/supabase-js', '@tanstack/react-query']
+          // recharts, framer-motion, and tiptap excluded from manualChunks
+          // They naturally code-split with their lazy-loaded consumers
         }
       }
     }
