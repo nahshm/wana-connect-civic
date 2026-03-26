@@ -385,30 +385,61 @@ export const PostCard = ({
   // Helper to render badges for content sensitivity (matching form design)
   const renderSpecialBadges = () => {
     const badges = [];
+    
+    // Community-defined flair
+    if (post.flair) {
+      badges.push(
+        <Badge 
+          key="flair" 
+          variant="outline"
+          style={{ 
+            backgroundColor: post.flair.backgroundColor + '15', // Subtle transparency
+            color: post.flair.textColor,
+            borderColor: post.flair.backgroundColor + '30'
+          }}
+          className="text-[10px] font-bold px-2 py-0 h-4.5 uppercase tracking-wider"
+        >
+          {post.flair.name}
+        </Badge>
+      );
+    }
+
     // Map content sensitivity to badges with icons matching the form
     if (post.contentSensitivity === 'crisis') {
-      badges.push(<Badge key="crisis" variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1">
-          <AlertOctagon className="w-3 h-3" />
-          Crisis Report
+      badges.push(<Badge key="crisis" variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
+          <AlertOctagon className="w-2.5 h-2.5" />
+          CRISIS
         </Badge>);
     } else if (post.contentSensitivity === 'sensitive') {
-      badges.push(<Badge key="sensitive" variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 flex items-center gap-1">
-          <AlertTriangle className="w-3 h-3" />
-          Sensitive Topic
+      badges.push(<Badge key="sensitive" variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
+          <AlertTriangle className="w-2.5 h-2.5" />
+          SENSITIVE
         </Badge>);
-    } else if (post.contentSensitivity === 'public') {
-      badges.push(<Badge key="public" variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1">
-          <MessageSquare className="w-3 h-3" />
-          Public Discussion
+    } else if (post.contentSensitivity === 'public' || post.isPublicDiscussion) {
+      badges.push(<Badge key="public" variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
+          <MessageSquare className="w-2.5 h-2.5" />
+          PUBLIC
         </Badge>);
     }
+    
     if (post.isNgoVerified) {
-      badges.push(<Badge key="verified" variant="outline" className="flex items-center gap-1">
-          <BadgeCheck className="w-3 h-3 text-blue-500" />
+      badges.push(<Badge key="verified" variant="outline" className="bg-green-50 text-green-600 border-green-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
+          <BadgeCheck className="w-2.5 h-2.5 text-green-500" />
           NGO VERIFIED
         </Badge>);
     }
-    return badges.length > 0 ? <div className="flex flex-wrap gap-1 mb-2">
+
+    // Official Post Flair
+    if (post.author.officialPosition) {
+      badges.push(
+        <Badge key="official" variant="outline" className="bg-blue-600/10 text-blue-600 border-blue-600/20 flex items-center gap-1 h-4.5 px-1.5 text-[10px] font-bold">
+          <Shield className="w-2.5 h-2.5" />
+          OFFICIAL POST
+        </Badge>
+      );
+    }
+
+    return badges.length > 0 ? <div className="flex flex-wrap gap-1.5 mb-2 mt-0.5">
         {badges}
       </div> : null;
   };
@@ -804,9 +835,9 @@ export const PostCard = ({
           <div className="px-0.5">
             {isDetailView ? <div>
                 <h1 className="font-reddit-title text-xl mb-3 leading-tight heading-tight">{post.title}</h1>
-                {renderMedia()}
                 {renderLinkPreview()}
                 <SafeContentRenderer content={post.content || ''} className="text-foreground/90 text-[14.5px] leading-relaxed mb-4" />
+                {renderSpecialBadges()}
               </div> : <div>
                 <Link to={getPostLink()} className="block group">
                   <h2 className="mb-2 group-hover:text-primary transition-colors font-semibold text-[15px] leading-tight">
@@ -830,6 +861,7 @@ export const PostCard = ({
 
                 {renderMedia()}
                 {renderLinkPreview()}
+                {renderSpecialBadges()}
               </div>}
           </div>
 
