@@ -174,7 +174,7 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
                 <Link
                   key={post.id}
                   to={`/post/${post.id}`}
-                  className="flex items-start gap-2.5 px-4 py-3 hover:bg-muted/30 transition-colors group"
+                  className="flex items-start gap-2.5 px-4 py-3 hover:bg-muted/30 transition-colors group border-b border-neutral-300 dark:border-neutral-700 last:border-0"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-0.5">
@@ -230,7 +230,7 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
             return (
               <div
                 key={comm.id}
-                className="flex items-center justify-between p-2 -mx-1 rounded-lg hover:bg-accent/50 transition-colors"
+                className="flex items-center justify-between p-2 -mx-1 rounded-lg hover:bg-accent/50 transition-colors border-b border-neutral-200 dark:border-neutral-800 last:border-0"
               >
                 <Link to={`/c/${comm.name}`} className="min-w-0 flex-1 flex items-center gap-2.5">
                   <Avatar className="h-8 w-8">

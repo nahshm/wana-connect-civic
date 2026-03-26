@@ -166,7 +166,7 @@ export default function Index() {
 
         {/* Right Sidebar — Phase 9: Flush Alignment */}
         <aside className="hidden xl:block w-[312px] h-fit sticky top-0 z-20 py-4">
-          <ScrollArea className="h-[calc(100vh-64px)] w-full rounded-xl border border-border bg-card shadow-sm">
+          <ScrollArea className="h-[calc(100vh-64px)] w-full rounded-xl border border-border bg-[#F6F8F9] dark:bg-card shadow-sm">
             <div className="p-4 space-y-6">
               <HomeSidebar userId={user?.id} />
             </div>
