@@ -119,7 +119,8 @@ export default defineConfig(({ mode }) => ({
           ],
           'data-vendor': ['@supabase/supabase-js', '@tanstack/react-query'],
           'editor-vendor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-link', '@tiptap/extension-placeholder'],
-          'chart-vendor': ['recharts', 'framer-motion']
+          'chart-vendor': ['recharts'],
+          'motion-vendor': ['framer-motion']
         }
       }
     }
