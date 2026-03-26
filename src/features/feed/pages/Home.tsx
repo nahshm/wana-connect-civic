@@ -137,7 +137,7 @@ export default function Index() {
               ) : feedItems.length === 0 ? (
                 <EmptyFeedState />
               ) : (
-                <div className="divide-y divide-border/50">
+                <div className="flex flex-col">
                   {feedItems.map(item => {
                     const communityId = item.data?.community_id;
                     const isMember = communityId ? memberCommunityIds.has(communityId) : true;

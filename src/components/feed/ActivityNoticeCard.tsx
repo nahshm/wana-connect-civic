@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -177,11 +177,11 @@ export function ActivityNoticeCard({ activity, onClick }: ActivityNoticeCardProp
   const theme = getActivityTheme(activity.activity_type);
 
   return (
-    <Card 
-      className={`border-dashed hover:border-solid transition-all cursor-pointer ${theme}`}
+    <article 
+      className={`border-b border-neutral-300 dark:border-neutral-700 hover:bg-muted/[0.04] transition-all cursor-pointer ${theme}`}
       onClick={onClick}
     >
-      <CardContent className="py-4">
+      <div className="py-4 px-1">
         <div className="flex items-start gap-3">
           {/* User avatar */}
           <Avatar className="h-10 w-10 flex-shrink-0">
@@ -282,8 +282,8 @@ export function ActivityNoticeCard({ activity, onClick }: ActivityNoticeCardProp
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }
 
@@ -301,8 +301,8 @@ export function HighlightedActivityCard({ activity }: ActivityNoticeCardProps) {
   }
 
   return (
-    <Card className="border-2 border-civic-green bg-gradient-to-br from-civic-green/5 to-background">
-      <CardContent className="py-4">
+    <article className="border-b-[2px] border-civic-green/40 bg-gradient-to-br from-civic-green/5 to-background hover:bg-civic-green/[0.08] transition-all">
+      <div className="py-4 px-1">
         <div className="flex items-start gap-3">
           <div className="h-12 w-12 rounded-full bg-civic-green/10 border-2 border-civic-green flex items-center justify-center flex-shrink-0">
             <Shield className="h-6 w-6 text-civic-green" />
@@ -327,7 +327,7 @@ export function HighlightedActivityCard({ activity }: ActivityNoticeCardProps) {
             </p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

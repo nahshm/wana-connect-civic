@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Post, Comment, CommentAward, CommentMedia } from '@/types';
+import { Post, Comment, CommunityFlair, CommentAward, CommentMedia } from '@/types';
+import { getFlairById } from '@/config/flairs';
 
 interface PostMediaRow { id: string; post_id: string; file_path: string; filename: string; file_type: string; file_size: number }
 interface CommentMediaRow { id: string; file_path: string; filename: string; file_type: string; file_size: number; created_at: string }
@@ -23,9 +24,16 @@ export const usePostDetail = (postId: string | null, userId?: string) => {
           .from('posts')
           .select(`
             *,
-            profiles!posts_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
-            communities!posts_community_id_fkey (id, name, display_name, description, member_count, category, type),
-            officials!posts_official_id_fkey (id, name, position),
+            author:profiles!posts_author_id_fkey (
+              id,
+              username,
+              display_name,
+              avatar_url,
+              is_verified,
+              role,
+              official_position
+            ),
+            community:communities!posts_community_id_fkey (*),
             post_media!post_media_post_id_fkey (*)
           `)
           .eq('id', postId)
@@ -47,26 +55,43 @@ export const usePostDetail = (postId: string | null, userId?: string) => {
         userVote = voteData.vote_type as 'up' | 'down';
       }
 
+      const flairs: CommunityFlair[] = (postData.tags || [])
+        .map(t => getFlairById(t))
+        .filter(Boolean)
+        .map(cf => ({
+          id: cf!.id,
+          communityId: postData.community?.id || '',
+          name: cf!.label,
+          textColor: cf!.color,
+          backgroundColor: cf!.bgColor,
+          flairType: 'post' as const,
+          isEnabled: true,
+          createdAt: new Date()
+        }));
+
+      const flair: CommunityFlair | undefined = flairs.length > 0 ? flairs[0] : undefined;
+
       const transformedPost: Post = {
         id: postData.id,
         title: postData.title,
         content: postData.content,
         author: {
-          id: postData.profiles?.id || '',
-          username: postData.profiles?.username || 'anonymous',
-          displayName: postData.profiles?.display_name || postData.profiles?.username || 'Anonymous User',
-          avatar: postData.profiles?.avatar_url,
-          isVerified: postData.profiles?.is_verified,
-          role: postData.profiles?.role as any,
+          id: postData.author?.id || '',
+          username: postData.author?.username || 'anonymous',
+          displayName: postData.author?.display_name || postData.author?.username || 'Anonymous User',
+          avatar: postData.author?.avatar_url,
+          isVerified: postData.author?.is_verified,
+          role: postData.author?.role as any,
+          officialPosition: postData.author?.official_position,
         },
-        community: postData.communities ? {
-          id: postData.communities.id,
-          name: postData.communities.name,
-          displayName: postData.communities.display_name,
-          description: postData.communities.description || '',
-          memberCount: postData.communities.member_count || 0,
-          category: postData.communities.category as any,
-          type: postData.communities.type as any,
+        community: postData.community ? {
+          id: postData.community.id,
+          name: postData.community.name,
+          displayName: postData.community.display_name || postData.community.name,
+          description: postData.community.description || '',
+          memberCount: postData.community.member_count || 0,
+          category: postData.community.category as any,
+          type: postData.community.type as any,
         } : undefined,
         upvotes: postData.upvotes || 0,
         downvotes: postData.downvotes || 0,
@@ -74,12 +99,14 @@ export const usePostDetail = (postId: string | null, userId?: string) => {
         tags: postData.tags || [],
         createdAt: new Date(postData.created_at),
         userVote,
+        flair,
+        flairs,
         contentSensitivity: (postData.content_sensitivity as any) || 'public',
         isNgoVerified: postData.is_ngo_verified || false,
-        link_url: postData.link_url || null,
-        link_title: postData.link_title || null,
-        link_description: postData.link_description || null,
-        link_image: postData.link_image || null,
+        link_url: postData.link_url,
+        link_title: postData.link_title,
+        link_description: postData.link_description,
+        link_image: postData.link_image,
         media: postData.post_media?.map((m: PostMediaRow) => ({
           id: m.id.toString(),
           post_id: m.post_id,

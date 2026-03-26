@@ -9,6 +9,8 @@ import { ProjectFeedCard } from '@/components/feed/ProjectFeedCard';
 import { PromiseFeedCard } from '@/components/feed/PromiseFeedCard';
 import { ClipPreviewCard } from '@/components/feed/ClipPreviewCard';
 import { ActivityNoticeCard } from '@/components/feed/ActivityNoticeCard';
+import { getFlairById } from '@/config/flairs';
+import { CommunityFlair } from '@/types';
 
 // ============================================================================
 // TYPES
@@ -67,8 +69,8 @@ export function UnifiedFeedItem({ item, onInteraction, isMember, onJoinCommunity
         username: item.username,
         displayName: item.username,
         avatar: item.avatar_url,
-        isVerified: false,
-        officialPosition: null
+        isVerified: item.data.author_is_verified || false,
+        officialPosition: item.data.author_official_position || null
       },
       community: item.data.community_id ? {
         id: item.data.community_id,
@@ -84,10 +86,27 @@ export function UnifiedFeedItem({ item, onInteraction, isMember, onJoinCommunity
       userVote: item.data.user_vote || null,
       tags: item.data.tags || [],
       media: item.data.media || [],
+      flairs: (item.data.tags || [])
+        .map(t => getFlairById(t))
+        .filter(Boolean)
+        .map(civicFlair => ({
+          id: civicFlair!.id,
+          communityId: item.data.community_id || '',
+          name: civicFlair!.label,
+          textColor: civicFlair!.color,
+          backgroundColor: civicFlair!.bgColor,
+          flairType: 'post' as const,
+          isEnabled: true,
+          createdAt: new Date()
+        })),
+      contentSensitivity: item.data.content_sensitivity || item.data.contentSensitivity || 'public',
+      isNgoVerified: item.data.is_ngo_verified || item.data.isNgoVerified || false,
+      isPublicDiscussion: item.data.is_public_discussion || item.data.isPublicDiscussion || false,
       link_url: item.data.link_url || null,
       link_title: item.data.link_title || null,
       link_description: item.data.link_description || null,
       link_image: item.data.link_image || null,
+      auto_generated: item.data.auto_generated || false
     };
 
     return (

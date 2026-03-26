@@ -12,78 +12,78 @@ export const CIVIC_FLAIRS: Flair[] = [
     {
         id: 'corruption',
         label: 'Corruption',
-        color: 'text-red-700',
-        bgColor: 'bg-red-100 hover:bg-red-200',
+        color: 'text-red-600',
+        bgColor: 'bg-red-500/10 border-red-500/20 hover:bg-red-500/20',
         description: 'Report corruption or misuse of public resources'
     },
     {
         id: 'project-update',
         label: 'Project Update',
-        color: 'text-blue-700',
-        bgColor: 'bg-blue-100 hover:bg-blue-200',
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20',
         description: 'Updates on government or community projects'
     },
     {
         id: 'discussion',
         label: 'Discussion',
-        color: 'text-green-700',
-        bgColor: 'bg-green-100 hover:bg-green-200',
+        color: 'text-green-600',
+        bgColor: 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20',
         description: 'General civic discussion or debate'
     },
     {
         id: 'question',
         label: 'Question',
-        color: 'text-yellow-700',
-        bgColor: 'bg-yellow-100 hover:bg-yellow-200',
+        color: 'text-yellow-600',
+        bgColor: 'bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20',
         description: 'Ask questions about civic matters'
     },
     {
         id: 'fact-check',
         label: 'Fact-Check',
-        color: 'text-purple-700',
-        bgColor: 'bg-purple-100 hover:bg-purple-200',
+        color: 'text-purple-600',
+        bgColor: 'bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20',
         description: 'Verify claims or provide fact-checking'
     },
     {
         id: 'promise-tracker',
         label: 'Promise Tracker',
-        color: 'text-orange-700',
-        bgColor: 'bg-orange-100 hover:bg-orange-200',
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20',
         description: 'Track campaign promises and commitments'
     },
     {
         id: 'official-response',
         label: 'Official Response',
-        color: 'text-indigo-700',
-        bgColor: 'bg-indigo-100 hover:bg-indigo-200',
+        color: 'text-indigo-600',
+        bgColor: 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20',
         description: 'Responses from government officials or authorities'
     },
     {
         id: 'critique',
         label: 'Critique',
-        color: 'text-pink-700',
-        bgColor: 'bg-pink-100 hover:bg-pink-200',
+        color: 'text-pink-600',
+        bgColor: 'bg-pink-500/10 border-pink-500/20 hover:bg-pink-500/20',
         description: 'Constructive criticism of policies or actions'
     },
     {
         id: 'evidence',
         label: 'Evidence',
-        color: 'text-teal-700',
-        bgColor: 'bg-teal-100 hover:bg-teal-200',
+        color: 'text-teal-600',
+        bgColor: 'bg-teal-500/10 border-teal-500/20 hover:bg-teal-500/20',
         description: 'Share documented evidence or proof'
     },
     {
         id: 'clarification',
         label: 'Clarification',
-        color: 'text-cyan-700',
-        bgColor: 'bg-cyan-100 hover:bg-cyan-200',
+        color: 'text-cyan-600',
+        bgColor: 'bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20',
         description: 'Provide clarification or context'
     },
     {
         id: 'support',
         label: 'Support',
-        color: 'text-emerald-700',
-        bgColor: 'bg-emerald-100 hover:bg-emerald-200',
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20',
         description: 'Show support for an initiative or cause'
     }
 ]

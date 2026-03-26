@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield, ChevronDown, ChevronUp, Smile, Eye, ThumbsUp, ThumbsDown, Play, Pause, Volume2, VolumeX, Maximize2, Image as ImageIcon, Film, FileText, ExternalLink, Bell, EyeOff, X, Flag, Bot } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edit, Trash2, MessageSquare, AlertTriangle, AlertOctagon, BadgeCheck, Shield, ChevronDown, ChevronUp, Smile, Eye, ThumbsUp, ThumbsDown, Play, Pause, Volume2, VolumeX, Maximize2, Image as ImageIcon, Film, FileText, ExternalLink, Bell, EyeOff, X, Flag, Bot, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { VerifiedBadge, OfficialPositionBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
 import { CIVIC_FLAIRS } from '@/config/flairs';
 import { SafeContentRenderer } from './SafeContentRenderer';
@@ -386,55 +386,77 @@ export const PostCard = ({
   const renderSpecialBadges = () => {
     const badges = [];
     
-    // Community-defined flair
-    if (post.flair) {
-      badges.push(
-        <Badge 
-          key="flair" 
-          variant="outline"
-          style={{ 
-            backgroundColor: post.flair.backgroundColor + '15', // Subtle transparency
-            color: post.flair.textColor,
-            borderColor: post.flair.backgroundColor + '30'
-          }}
-          className="text-[10px] font-bold px-2 py-0 h-4.5 uppercase tracking-wider"
-        >
-          {post.flair.name}
-        </Badge>
-      );
+    // Multiple flairs support
+    const allFlairs = [...(post.flairs || [])];
+    if (post.flair && !allFlairs.some(f => f.id === post.flair?.id)) {
+      allFlairs.push(post.flair);
+    }
+
+    if (allFlairs.length > 0) {
+      allFlairs.forEach((flair, idx) => {
+        const isHex = flair.backgroundColor?.startsWith('#');
+        badges.push(
+          <Badge 
+            key={`flair-${flair.id}-${idx}`} 
+            variant="outline"
+            style={isHex ? { 
+              backgroundColor: flair.backgroundColor + '15', // Subtle transparency
+              color: flair.textColor,
+              borderColor: flair.backgroundColor + '30'
+            } : undefined}
+            className={cn(
+              "text-[9px] font-medium px-2 py-0 h-4 rounded-full capitalize leading-none",
+              !isHex && flair.backgroundColor,
+              !isHex && flair.textColor
+            )}
+          >
+            {flair.name}
+          </Badge>
+        );
+      });
     }
 
     // Map content sensitivity to badges with icons matching the form
     if (post.contentSensitivity === 'crisis') {
-      badges.push(<Badge key="crisis" variant="outline" className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
+      badges.push(<Badge key="crisis" variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 flex items-center gap-1 h-4 rounded-full px-2 text-[9px] font-medium capitalize leading-none">
           <AlertOctagon className="w-2.5 h-2.5" />
-          CRISIS
+          Crisis
         </Badge>);
     } else if (post.contentSensitivity === 'sensitive') {
-      badges.push(<Badge key="sensitive" variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
+      badges.push(<Badge key="sensitive" variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 flex items-center gap-1 h-4 rounded-full px-2 text-[9px] font-medium capitalize leading-none">
           <AlertTriangle className="w-2.5 h-2.5" />
-          SENSITIVE
+          Sensitive
         </Badge>);
     } else if (post.contentSensitivity === 'public' || (post as any).isPublicDiscussion) {
-      badges.push(<Badge key="public" variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
+      badges.push(<Badge key="public" variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 flex items-center gap-1 h-4 rounded-full px-2 text-[9px] font-medium capitalize leading-none">
           <MessageSquare className="w-2.5 h-2.5" />
-          PUBLIC
+          Public
         </Badge>);
     }
     
+
     if (post.isNgoVerified) {
-      badges.push(<Badge key="verified" variant="outline" className="bg-green-50 text-green-600 border-green-200 flex items-center gap-1 h-4.5 px-1.5 text-[10px]">
-          <BadgeCheck className="w-2.5 h-2.5 text-green-500" />
-          NGO VERIFIED
-        </Badge>);
+      badges.push(
+        <Badge 
+          key="ngo" 
+          variant="outline"
+          className="bg-blue-500/10 text-blue-600 border-blue-500/20 flex items-center gap-1 h-4 rounded-full px-2 text-[9px] font-medium capitalize leading-none"
+        >
+          <CheckCircle2 className="w-2.5 h-2.5" />
+          NGO Verified
+        </Badge>
+      );
     }
 
-    // Official Post Flair
-    if (post.author.officialPosition) {
+    if (post.author?.isVerified && post.author?.officialPosition) {
       badges.push(
-        <Badge key="official" variant="outline" className="bg-blue-600/10 text-blue-600 border-blue-600/20 flex items-center gap-1 h-4.5 px-1.5 text-[10px] font-bold">
-          <Shield className="w-2.5 h-2.5" />
-          OFFICIAL POST
+        <Badge 
+          key="official" 
+          variant="outline"
+          className="bg-orange-500/10 text-orange-600 border-orange-500/20 flex items-center gap-1 h-4 rounded-full px-2 text-[9px] font-medium capitalize leading-none"
+        >
+          <ShieldCheck className="w-2.5 h-2.5" />
+          Official Post
         </Badge>
       );
     }
@@ -758,7 +780,7 @@ export const PostCard = ({
   return (
     <>
       <article className={cn(
-        "hover:bg-muted/[0.04] transition-all relative px-2 py-0.5 border-b border-border",
+        "hover:bg-muted/[0.04] transition-all relative px-2 py-0.5 border-b border-neutral-300 dark:border-neutral-700",
         post.author.officialPosition && "border-l-4 border-l-civic-blue bg-civic-blue/[0.02]",
         post.auto_generated && !post.author.officialPosition && "border-l-4 border-l-indigo-400/30 bg-indigo-50/[0.01]"
       )}>

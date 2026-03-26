@@ -29,7 +29,7 @@ export const FlairSelector = ({ selectedFlairIds = [], onSelectFlairs, disabled 
                     key={`selected-${flair.id}`}
                     variant="secondary"
                     className={cn(
-                        "rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider",
+                        "rounded-full px-2 py-0.5 text-[9px] font-medium capitalize tracking-normal",
                         flair.color,
                         flair.bgColor,
                         "hover:opacity-80 transition-opacity"
@@ -82,7 +82,7 @@ export const FlairSelector = ({ selectedFlairIds = [], onSelectFlairs, disabled 
                                         key={flair.id}
                                         variant={isSelected ? 'default' : 'outline'}
                                         className={cn(
-                                            "cursor-pointer transition-all",
+                                            "cursor-pointer transition-all rounded-full px-2 py-0.5 text-[9px] font-medium capitalize tracking-normal",
                                             isSelected
                                                 ? "ring-2 ring-primary ring-offset-1"
                                                 : cn(flair.bgColor, "border-transparent hover:scale-105")

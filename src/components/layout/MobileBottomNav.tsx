@@ -83,13 +83,13 @@ export const MobileBottomNav = () => {
                   navigate(item.path);
                 }
               }}
-              className={cn(
+               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 flex-1 h-full",
                 "transition-colors duration-150 tap-highlight-transparent",
                 isCreate
-                  ? "text-civic-red"
+                  ? "text-[#FF0000]"
                   : isActive
-                    ? "text-civic-red"
+                    ? "text-[#FF0000]"
                     : "text-muted-foreground"
               )}
             >

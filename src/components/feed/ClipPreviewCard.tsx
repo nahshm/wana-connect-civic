@@ -44,11 +44,11 @@ function formatDuration(seconds?: number): string {
 
 export function ClipPreviewCard({ clip, onClick }: ClipPreviewCardProps) {
   return (
-    <Card 
-      className="overflow-hidden hover:border-purple-500/50 transition-all cursor-pointer group"
+    <article 
+      className="overflow-hidden hover:bg-muted/[0.04] transition-all relative border-b border-neutral-300 dark:border-neutral-700 cursor-pointer group"
       onClick={onClick}
     >
-      <CardContent className="p-0">
+      <div className="p-0">
         {/* Video Thumbnail */}
         <div className="relative aspect-video bg-muted">
           {clip.thumbnail_url ? (
@@ -114,8 +114,8 @@ export function ClipPreviewCard({ clip, onClick }: ClipPreviewCardProps) {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }
 
@@ -171,11 +171,11 @@ export function AchievementCard({ achievement, onClick }: AchievementCardProps) 
   const tierIcon = getTierIcon(achievement.tier);
 
   return (
-    <Card 
-      className={`overflow-hidden border-2 hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br ${tierGradient} bg-opacity-5`}
+    <article 
+      className={`overflow-hidden border-b border-neutral-300 dark:border-neutral-700 hover:bg-muted/[0.04] transition-all cursor-pointer bg-gradient-to-br ${tierGradient} bg-opacity-5`}
       onClick={onClick}
     >
-      <CardContent className="p-4">
+      <div className="p-4">
         <div className="flex items-start gap-4">
           {/* Achievement icon */}
           <div className={`h-16 w-16 rounded-full bg-gradient-to-br ${tierGradient} flex items-center justify-center flex-shrink-0 shadow-lg`}>
@@ -222,8 +222,8 @@ export function AchievementCard({ achievement, onClick }: AchievementCardProps) 
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }
 

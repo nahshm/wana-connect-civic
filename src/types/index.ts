@@ -80,6 +80,7 @@ export interface Post {
   tags: string[];
   media?: PostMedia[];
   flair?: CommunityFlair;
+  flairs?: CommunityFlair[];
   contentSensitivity: 'public' | 'sensitive' | 'crisis';
   isNgoVerified?: boolean;
   link_url?: string | null;

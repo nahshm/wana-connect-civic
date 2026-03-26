@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Building2, MapPin, TrendingUp, Clock } from 'lucide-react';
@@ -56,11 +56,11 @@ export function ProjectFeedCard({ project, onClick }: ProjectFeedCardProps) {
   const statusColor = statusColors[project.status] || statusColors.pending;
 
   return (
-    <Card 
-      className="hover:border-civic-green/50 transition-all cursor-pointer group"
+    <article 
+      className="hover:bg-muted/[0.04] transition-all relative px-3 py-4 border-b border-neutral-300 dark:border-neutral-700 cursor-pointer group"
       onClick={onClick}
     >
-      <CardHeader className="pb-3">
+      <div className="pb-3 px-1">
         {/* Badge and timestamp */}
         <div className="flex items-center justify-between mb-2">
           <Badge 
@@ -77,14 +77,14 @@ export function ProjectFeedCard({ project, onClick }: ProjectFeedCardProps) {
         </div>
 
         {/* Project title */}
-        <CardTitle className="text-lg group-hover:text-civic-green transition-colors">
+        <h3 className="text-lg font-bold group-hover:text-civic-green transition-colors mb-1">
           <Link to={`/p/${project.id}`} className="hover:underline">
             {project.name}
           </Link>
-        </CardTitle>
-      </CardHeader>
+        </h3>
+      </div>
 
-      <CardContent className="space-y-3">
+      <div className="space-y-3 px-1">
         {/* Description */}
         <p className="text-sm text-muted-foreground line-clamp-2">
           {project.description}
@@ -193,8 +193,8 @@ export function ProjectFeedCard({ project, onClick }: ProjectFeedCardProps) {
             </Link>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }
 
