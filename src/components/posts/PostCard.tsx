@@ -780,9 +780,7 @@ export const PostCard = ({
   return (
     <>
       <article className={cn(
-        "hover:bg-muted/[0.04] transition-all relative px-2 py-0.5 border-b border-neutral-300 dark:border-neutral-700",
-        post.author.officialPosition && "border-l-4 border-l-civic-blue bg-civic-blue/[0.02]",
-        post.auto_generated && !post.author.officialPosition && "border-l-4 border-l-indigo-400/30 bg-indigo-50/[0.01]"
+        "hover:bg-muted/[0.04] transition-all relative px-2 py-0.5 border-b border-neutral-300 dark:border-neutral-700"
       )}>
         <div className="flex flex-col">
           {/* Main Content */}
