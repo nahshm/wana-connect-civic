@@ -890,7 +890,7 @@ export const PostCard = ({
           {/* Action Bar - Reddit Style Unified Buttons */}
           <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-1 scrollbar-none">
             {/* Upvotes/Downvotes Pill */}
-            <div className="flex items-center bg-muted/30 hover:bg-muted/50 transition-colors rounded-full h-7 border border-border/5">
+            <div className="flex items-center transition-colors rounded-full h-7 border border-border/5 bg-gray-100">
               <button 
                 aria-label="Upvote" 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('up'); }} 
@@ -922,21 +922,21 @@ export const PostCard = ({
             </div>
 
             {/* Comments Pill */}
-            <Link to={getPostLink()} className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-full px-3 h-8 text-muted-foreground hover:text-foreground text-decoration-none border border-border/10">
+            <Link to={getPostLink()} className="flex items-center gap-1.5 transition-colors rounded-full px-3 h-8 text-muted-foreground hover:text-foreground text-decoration-none border border-border/10 bg-gray-100">
               <MessageSquare className="w-4 h-4 stroke-[2]" />
               <span className="text-[11px] font-bold">{formatNumber(post.commentCount)}</span>
             </Link>
 
             {/* Share Pill */}
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 bg-muted/30 hover:bg-muted/50 transition-colors rounded-full px-2.5 h-7 text-muted-foreground hover:text-foreground border border-border/5">
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 transition-colors rounded-full px-2.5 h-7 text-muted-foreground hover:text-foreground border border-border/5 bg-gray-100">
               <Share className="w-3.5 h-3.5 stroke-[1.8]" />
               <span className="text-[10px] font-bold hidden sm:inline">Share</span>
             </button>
 
             {/* Save Pill */}
             <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 h-8 transition-all border border-border/5",
-              isSaved ? "bg-civic-green/10 text-civic-green border-civic-green/20" : "bg-muted/30 hover:bg-muted/50 text-muted-foreground"
+              "flex items-center gap-1.5 rounded-full px-3 h-8 transition-all border border-border/5 bg-gray-100",
+              isSaved ? "bg-civic-green/10 text-civic-green border-civic-green/20" : "text-muted-foreground"
             )}>
               <Bookmark className={cn("w-4 h-4", isSaved ? "fill-current stroke-[1.8]" : "stroke-[1.8]")} />
               <span className="text-[11px] font-bold hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
@@ -947,7 +947,7 @@ export const PostCard = ({
               <DropdownMenuTrigger asChild>
                 <button 
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center w-8 h-8 rounded-full bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all border border-border/5"
+                  className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground transition-all border border-border/5 bg-gray-100"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
