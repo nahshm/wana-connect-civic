@@ -922,13 +922,13 @@ export const PostCard = ({
             </div>
 
             {/* Comments Pill */}
-            <Link to={getPostLink()} className="flex items-center gap-1.5 transition-colors rounded-full px-3 h-8 text-muted-foreground hover:text-foreground text-decoration-none border border-border/10 bg-gray-100">
+            <Link to={getPostLink()} className="flex items-center gap-1.5 transition-colors rounded-full px-3 h-8 text-muted-foreground hover:text-foreground text-decoration-none border border-border/10 bg-gray-100 dark:bg-white/10">
               <MessageSquare className="w-4 h-4 stroke-[2]" />
               <span className="text-[11px] font-bold">{formatNumber(post.commentCount)}</span>
             </Link>
 
             {/* Share Pill */}
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 transition-colors rounded-full px-2.5 h-7 text-muted-foreground hover:text-foreground border border-border/5 bg-gray-100">
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 transition-colors rounded-full px-2.5 h-7 text-muted-foreground hover:text-foreground border border-border/5 bg-gray-100 dark:bg-white/10">
               <Share className="w-3.5 h-3.5 stroke-[1.8]" />
               <span className="text-[10px] font-bold hidden sm:inline">Share</span>
             </button>
@@ -947,7 +947,7 @@ export const PostCard = ({
               <DropdownMenuTrigger asChild>
                 <button 
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground transition-all border border-border/5 bg-gray-100"
+                  className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground transition-all border border-border/5 bg-gray-100 dark:bg-white/10"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
