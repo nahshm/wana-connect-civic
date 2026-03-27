@@ -890,7 +890,7 @@ export const PostCard = ({
           {/* Action Bar - Reddit Style Unified Buttons */}
           <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-1 scrollbar-none">
             {/* Upvotes/Downvotes Pill */}
-            <div className="flex items-center transition-colors rounded-full h-7 border border-border/5 bg-gray-100">
+            <div className="flex items-center transition-colors rounded-full h-7 border border-border/5 bg-gray-100 dark:bg-white/10">
               <button 
                 aria-label="Upvote" 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVoteAction('up'); }} 
@@ -935,7 +935,7 @@ export const PostCard = ({
 
             {/* Save Pill */}
             <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 h-8 transition-all border border-border/5 bg-gray-100",
+              "flex items-center gap-1.5 rounded-full px-3 h-8 transition-all border border-border/5 bg-gray-100 dark:bg-white/10",
               isSaved ? "bg-civic-green/10 text-civic-green border-civic-green/20" : "text-muted-foreground"
             )}>
               <Bookmark className={cn("w-4 h-4", isSaved ? "fill-current stroke-[1.8]" : "stroke-[1.8]")} />
