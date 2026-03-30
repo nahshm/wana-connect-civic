@@ -15,6 +15,8 @@ import { SafeContentRenderer } from './SafeContentRenderer';
 import DeletedComment from './DeletedComment';
 import { supabase } from '@/integrations/supabase/client';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
+import { getMediaUrl } from '@/lib/secureMedia';
+import { SecureImage } from '@/components/security/SecureImage';
 import type { Comment, CommentMedia } from '@/types';
 import { VerifiedBadge, OfficialPositionBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
 
@@ -57,10 +59,7 @@ function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
   const images = media.filter(m => m.fileType.startsWith('image/'));
   const otherFiles = media.filter(m => !m.fileType.startsWith('image/'));
 
-  const imageUrls = images.map(m => {
-    const { data } = supabase.storage.from('comment-media').getPublicUrl(m.filePath);
-    return data.publicUrl;
-  });
+  const imageUrls = images.map(m => getMediaUrl('comment-media', m.filePath));
 
   return (
     <div className="mt-1.5 mb-1">
@@ -72,11 +71,10 @@ function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
               onClick={() => setLightboxSrc(imageUrls[i])}
               className="rounded-lg overflow-hidden border border-border hover:opacity-90 transition-opacity"
             >
-              <img
+              <SecureImage
                 src={imageUrls[i]}
                 alt={img.filename}
                 className="w-full h-auto max-h-48 object-cover"
-                loading="lazy"
               />
             </button>
           ))}
@@ -86,11 +84,11 @@ function CommentMediaDisplay({ media }: { media: CommentMedia[] }) {
       {otherFiles.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-1">
           {otherFiles.map(file => {
-            const { data } = supabase.storage.from('comment-media').getPublicUrl(file.filePath);
+            const workerUrl = getMediaUrl('comment-media', file.filePath);
             return (
               <a
                 key={file.id}
-                href={data.publicUrl}
+                href={workerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition-colors border border-border/50"

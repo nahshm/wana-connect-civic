@@ -3,6 +3,16 @@ import App from './App.tsx'
 import './index.css'
 import { initWebVitals } from './lib/vitals'
 import { initGlobalErrorHandling } from './lib/error-tracking'
+import { detectBot } from './lib/botDetection'
+
+// Run bot detection at startup
+const _botResult = detectBot();
+if (_botResult.isBot && import.meta.env.PROD) {
+  if (_botResult.confidence === 'high') {
+    document.body.innerHTML = '<div></div>';
+    throw new Error('Access denied');
+  }
+}
 
 // Initialize performance monitoring
 initWebVitals();

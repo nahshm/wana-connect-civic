@@ -1,6 +1,8 @@
 import React, { useEffect, useCallback } from 'react';
 import { X, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFetchBlobUrl } from '@/lib/secureMedia';
+import { SecureDownload } from '@/components/security/SecureDownload';
 
 interface GlassLightboxProps {
   src: string | null;
@@ -10,6 +12,7 @@ interface GlassLightboxProps {
 
 export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProps) {
   const [zoom, setZoom] = React.useState(1);
+  const finalSrc = useFetchBlobUrl(src || '');
 
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -99,17 +102,14 @@ export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProp
                 <div className="w-px h-4 bg-white/10 mx-1" />
 
                 {/* Download */}
-                <a
-                  href={src}
-                  download
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                  title="Download"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <Download className="w-4 h-4" />
-                </a>
+                {src && (
+                  <SecureDownload
+                    url={src}
+                    className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                  </SecureDownload>
+                )}
 
                 <div className="w-px h-4 bg-white/10 mx-1" />
 
@@ -129,7 +129,7 @@ export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProp
               style={{ maxHeight: 'calc(90vh - 52px)', maxWidth: '92vw' }}
             >
               <motion.img
-                src={src}
+                src={finalSrc || (src || '')}
                 alt={alt}
                 animate={{ scale: zoom }}
                 transition={{ type: 'spring', stiffness: 260, damping: 22 }}

@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { SecureImage } from '@/components/security/SecureImage';
+import { SecureVideo } from '@/components/security/SecureVideo';
 
 interface MediaCarouselProps {
     media: string[];
@@ -33,6 +35,11 @@ export function MediaCarousel({
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+
+    // Reset playing state when media changes - Move hook BEFORE early return
+    useEffect(() => {
+        setIsPlaying(false);
+    }, [currentIndex]);
 
     // Return placeholder if no media
     if (!media || media.length === 0) {
@@ -68,11 +75,6 @@ export function MediaCarousel({
     const currentMedia = media[currentIndex];
     const isCurrentVideo = isVideo(currentMedia);
 
-    // Reset playing state when media changes
-    useEffect(() => {
-        setIsPlaying(false);
-    }, [currentIndex]);
-
     return (
         <div className="relative group">
             <div
@@ -84,22 +86,20 @@ export function MediaCarousel({
                 onClick={() => !isCurrentVideo && onImageClick?.(currentIndex)}
             >
                 {isCurrentVideo ? (
-                    <video
+                    <SecureVideo
                         ref={videoRef}
                         src={currentMedia}
                         controls
                         className="w-full h-full object-contain"
-                        poster={currentMedia.replace(/\.(mp4|webm|ogg|mov)$/i, '.jpg')}
                         onPlay={() => setIsPlaying(true)}
                         onPause={() => setIsPlaying(false)}
                         onEnded={() => setIsPlaying(false)}
                     />
                 ) : (
-                    <img
+                    <SecureImage
                         src={currentMedia}
                         alt={`${alt} ${currentIndex + 1}`}
                         className="w-full h-full object-cover transition-opacity duration-300"
-                        loading="lazy"
                     />
                 )}
 

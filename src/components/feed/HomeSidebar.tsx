@@ -7,6 +7,8 @@ import { ArrowUp, MessageSquare, Users } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthModal } from '@/contexts/AuthModalContext';
+import { getMediaUrl } from '@/lib/secureMedia';
+import { SecureImage } from '@/components/security/SecureImage';
 
 interface RecentPost {
   id: string;
@@ -145,8 +147,8 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
   const thumbUrl = (post: RecentPost) => {
     if (post.thumbnail) {
       if (post.thumbnail.startsWith('http')) return post.thumbnail;
-      const { data } = supabase.storage.from('media').getPublicUrl(post.thumbnail);
-      return data?.publicUrl || null;
+      // Use proxy for private bucket media
+      return getMediaUrl('media', post.thumbnail);
     }
     return post.link_image || null;
   };
@@ -203,11 +205,10 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
                   </div>
                   {img && (
                     <div className="w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 border border-border/10 bg-muted/20 mt-1">
-                      <img
+                      <SecureImage
                         src={img}
                         alt=""
                         className="w-full h-full object-cover"
-                        loading="lazy"
                       />
                     </div>
                   )}

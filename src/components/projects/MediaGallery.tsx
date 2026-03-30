@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight, Download, ZoomIn, Play, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
+import { SecureImage } from '@/components/security/SecureImage';
+import { SecureVideo } from '@/components/security/SecureVideo';
+import { SecureDownload } from '@/components/security/SecureDownload';
 
 interface MediaGalleryProps {
     media: string[];
@@ -62,10 +65,9 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                         >
                             {itemIsVideo ? (
                                 <>
-                                    <video
+                                    <SecureVideo
                                         src={url}
                                         className="w-full h-full object-cover"
-                                        poster={url.replace(/\.(mp4|webm|ogg|mov)$/i, '.jpg')}
                                     />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity group-hover:bg-black/50">
                                         <div className="bg-white/90 rounded-full p-3 backdrop-blur-sm">
@@ -79,11 +81,10 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                                 </>
                             ) : (
                                 <>
-                                    <img
+                                    <SecureImage
                                         src={url}
                                         alt={`${title} ${index + 1}`}
                                         className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                                        loading="lazy"
                                     />
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                                         <ZoomIn className="w-8 h-8 text-white" />
@@ -114,14 +115,12 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                                 </DialogTitle>
                                 <div className="flex items-center gap-2">
                                     {showDownload && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-white hover:bg-white/20"
-                                            onClick={() => window.open(currentMedia, '_blank')}
+                                        <SecureDownload
+                                            url={currentMedia}
+                                            className="text-white hover:bg-white/20 p-2 rounded-md transition-colors"
                                         >
-                                            <Download className="w-5 h-5" />
-                                        </Button>
+                                            <Download className="w-5 h-5 text-white" />
+                                        </SecureDownload>
                                     )}
                                     <Button
                                         variant="ghost"
@@ -136,13 +135,12 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                         </div>
 
                         <div className="flex-1 flex items-center justify-center p-4 pt-20">
-                            <video
+                            <SecureVideo
                                 key={currentMedia}
                                 src={currentMedia}
                                 controls
                                 autoPlay
                                 className="max-w-full max-h-full object-contain"
-                                poster={currentMedia.replace(/\.(mp4|webm|ogg|mov)$/i, '.jpg')}
                             />
                         </div>
 
@@ -183,14 +181,9 @@ export function MediaGallery({ media, title = 'Project Media', showDownload = tr
                                             )}
                                         >
                                             {thumbIsVideo ? (
-                                                <>
-                                                    <video src={url} className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                                        <Play className="w-4 h-4 text-white fill-white" />
-                                                    </div>
-                                                </>
+                                                <SecureVideo src={url} className="w-full h-full object-cover" controls={false} />
                                             ) : (
-                                                <img src={url} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                                                <SecureImage src={url} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
                                             )}
                                         </button>
                                     );

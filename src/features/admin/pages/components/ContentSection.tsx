@@ -18,6 +18,8 @@ import {
   Search, Filter, Upload, Link2, Globe, Target, X, Paperclip
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getMediaUrl } from '@/lib/secureMedia';
+import { SecureImage } from '@/components/security/SecureImage';
 
 export default function ContentSection() {
   return (
@@ -300,7 +302,7 @@ function IncidentsSubTab() {
                                 {(inc.media_urls as string[]).map((url, i) => (
                                   <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                                     className="w-16 h-16 rounded-lg border overflow-hidden hover:ring-2 ring-primary transition-all">
-                                    <img src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                                    <SecureImage src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
                                   </a>
                                 ))}
                               </div>
@@ -784,8 +786,8 @@ function CrisisSubTab() {
           toast.error(`Failed to upload ${file.name}`);
           continue;
         }
-        const { data: urlData } = supabase.storage.from('crisis-media').getPublicUrl(path);
-        uploaded.push({ name: file.name, url: urlData.publicUrl });
+        const url = getMediaUrl('crisis-media', path);
+        uploaded.push({ name: file.name, url });
       }
       if (uploaded.length > 0) {
         setMediaFiles(prev => [...prev, ...uploaded]);

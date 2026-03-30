@@ -21,6 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useRef, useEffect } from 'react';
 import SentimentBar from '@/components/verification/SentimentBar';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
+import { SecureImage } from '@/components/security/SecureImage';
+import { SecureVideo } from '@/components/security/SecureVideo';
 
 interface PostCardProps {
   post: Post;
@@ -495,20 +497,21 @@ export const PostCard = ({
             {/* Foreground Content - Flex centered, dictates container height via max-height */}
             <div className="relative z-10 w-full flex justify-center">
               {post.media[0].file_type?.startsWith('image/') ?
-          <img
+          <SecureImage
             src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
             alt="Post media"
-            loading="lazy"
-            onClick={(e) => { e.stopPropagation(); setLightboxSrc(supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl); }}
-            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md rounded-xl transition-transform duration-500 group-hover:scale-[1.01] cursor-zoom-in" /> :
+            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md rounded-xl transition-transform duration-500 group-hover:scale-[1.01] cursor-zoom-in"
+            style={{ display: 'block' }}
+          /> :
 
           post.media[0].file_type?.startsWith('video/') ?
           <div className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
-                  <video
+                  <SecureVideo
               ref={videoRef}
               src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
               className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl"
-              playsInline />
+              muted
+            />
 
                   {!isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20 m-auto pointer-events-none">
                       <div className="bg-white/90 rounded-full p-4 shadow-lg backdrop-blur-sm">
@@ -522,13 +525,12 @@ export const PostCard = ({
             </div>
           </div> : <div className="grid grid-cols-2 gap-2">
             {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-xl overflow-hidden border border-sidebar-border relative">
-                {media.file_type?.startsWith('image/') ? <img
+                {media.file_type?.startsWith('image/') ? <SecureImage
                   src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
                   alt={`Post media ${index + 1}`}
-                  loading="lazy"
-                  onClick={(e) => { e.stopPropagation(); setLightboxSrc(supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl); }}
-                  className="w-full h-32 object-cover rounded-xl cursor-zoom-in" /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer h-full" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
-                    <video ref={index === 0 ? secondVideoRef : undefined} src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} className="w-full h-32 object-cover rounded-xl" playsInline />
+                  className="w-full h-32 object-cover rounded-xl"
+                /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer h-full" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
+                    <SecureVideo ref={index === 0 ? secondVideoRef : undefined} src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} className="w-full h-32 object-cover rounded-xl" muted />
                     {index === 0 && !isSecondPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="bg-white/90 rounded-full p-2">
                           <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">

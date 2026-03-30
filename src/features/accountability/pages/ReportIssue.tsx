@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { supabase } from '@/integrations/supabase/client';
 import { aiClient, RoutingResult } from '@/services/aiClient';
+import { getMediaUrl } from '@/lib/secureMedia';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -133,8 +134,8 @@ const ReportIssue = () => {
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage.from('issue-media').upload(path, p.file);
       if (error) throw new Error(`Upload failed: ${error.message}`);
-      const { data: { publicUrl } } = supabase.storage.from('issue-media').getPublicUrl(path);
-      urls.push(publicUrl);
+      const url = getMediaUrl('issue-media', path);
+      urls.push(url);
     }
     return urls;
   };

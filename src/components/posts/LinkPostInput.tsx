@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { ExternalLink, Loader2, Globe, Image as ImageIcon } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
+import { cachedEdgeFunction } from '@/lib/edgeFunctionCache'
 
 export interface LinkPreviewData {
     title: string | null
@@ -43,27 +43,17 @@ export const LinkPostInput = ({ url, onUrlChange, onPreviewChange, disabled }: L
         setError(null)
 
         try {
-            const { data: { session } } = await supabase.auth.getSession()
-            
-            const SUPABASE_URL = 'https://zcnjpczplkbdmmovlrtv.supabase.co'
-            
-            const response = await fetch(
-                `${SUPABASE_URL}/functions/v1/fetch-link-preview`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
-                    },
-                    body: JSON.stringify({ url: fetchUrl }),
-                }
+            const data = await cachedEdgeFunction<LinkPreviewData>(
+                'fetch-link-preview',
+                { url: fetchUrl },
+                'link_preview_cache',
+                3600 * 24 * 7 // Cache for 7 days
             )
 
-            if (!response.ok) {
+            if (!data) {
                 throw new Error('Failed to fetch preview')
             }
 
-            const data: LinkPreviewData = await response.json()
             setPreview(data)
             onPreviewChange?.(data)
         } catch (err) {

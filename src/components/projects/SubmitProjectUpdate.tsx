@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { getMediaUrl } from '@/lib/secureMedia';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { Loader2, Upload, X, ImageIcon } from 'lucide-react';
@@ -62,8 +63,8 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
                 .upload(filePath, file);
 
             if (!error) {
-                const { data } = supabase.storage.from('project-media').getPublicUrl(filePath);
-                urls.push(data.publicUrl);
+                const url = getMediaUrl('project-media', filePath);
+                urls.push(url);
             }
         }
 
@@ -92,7 +93,7 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
                     description,
                     media_urls: photoUrls,
                     update_type: updateType
-                } as any);
+                } as Parameters<ReturnType<typeof supabase.from<'project_updates'>>['insert']>[0]);
 
             if (error) throw error;
 
@@ -111,10 +112,11 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
             onOpenChange(false);
             onSuccess?.();
 
-        } catch (error: any) {
+        } catch (error: Error | unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred while submitting the update.';
             toast({
                 title: 'Submission Failed',
-                description: error.message,
+                description: errorMessage,
                 variant: 'destructive'
             });
         } finally {
@@ -136,7 +138,7 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
                     {/* Update Type */}
                     <div className="space-y-2">
                         <Label htmlFor="updateType">Update Type *</Label>
-                        <Select value={updateType} onValueChange={(val: any) => setUpdateType(val)}>
+                        <Select value={updateType} onValueChange={(val: 'progress' | 'issue' | 'delay') => setUpdateType(val)}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>

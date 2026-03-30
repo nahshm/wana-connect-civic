@@ -391,10 +391,17 @@ export function parseGroqJson<T>(rawContent: string): T | null {
  * Build a standard CORS response header set.
  * Consistent across all agent Edge Functions.
  */
+/**
+ * Security headers applied to all agent responses.
+ * Extends CORS headers with clickjacking/MIME protection.
+ */
 export const agentCorsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-internal-trigger",
+  "X-Frame-Options": "SAMEORIGIN",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
 } as const;
 
 /**

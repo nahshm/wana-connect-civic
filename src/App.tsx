@@ -82,6 +82,7 @@ const DiscoveryDashboard = lazy(() => import("./pages/DiscoveryDashboard"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 import { OnboardingGuard } from "@/components/routing/OnboardingGuard";
+import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -118,16 +119,16 @@ const App = () => (
                           <Routes>
                             <Route path="/civic-clips" element={<CivicClipsPage />} />
                             <Route path="/" element={<Index />} />
-                            <Route path="/dashboard" element={<CivicDashboard />} />
-                            <Route path="/dashboard/report" element={<ReportIssue />} />
-                            <Route path="/report-an-issue" element={<ReportIssue />} />
-                            <Route path="/report-incident" element={<ReportIncident />} />
+                            <Route path="/dashboard" element={<ProtectedRoute><CivicDashboard /></ProtectedRoute>} />
+                            <Route path="/dashboard/report" element={<ProtectedRoute><ReportIssue /></ProtectedRoute>} />
+                            <Route path="/report-an-issue" element={<ProtectedRoute><ReportIssue /></ProtectedRoute>} />
+                            <Route path="/report-incident" element={<ProtectedRoute><ReportIncident /></ProtectedRoute>} />
                             <Route path="/dashboard/actions/:id" element={<ActionDetail />} />
                             <Route path="/dashboard/analytics" element={<Analytics />} />
-                            <Route path="/create" element={<CreatePost />} />
-                            <Route path="/create-post" element={<CreatePost />} />
-                            <Route path="/submit" element={<CreatePost />} />
-                            <Route path="/post/:id" element={<PostDetail />} />
+                            <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+                            <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+                            <Route path="/submit" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+                            <Route path="/post/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
                             <Route path="/edit-post/:id" element={<EditPost />} />
                             <Route path="/communities" element={<Communities />} />
                             <Route path="/my-communities" element={<MyCommunitiesPage />} />
@@ -137,8 +138,8 @@ const App = () => (
                             <Route path="/projects/submit" element={<SubmitProject />} />
                             <Route path="/claim-position" element={<ClaimPositionPage />} />
                             <Route path="/governance/build" element={<BuildGovernancePage />} />
-                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
-                             <Route path="/promises/:promiseId" element={<PromiseDetail />} />
+                             <Route path="/projects/:projectId" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+                             <Route path="/promises/:promiseId" element={<ProtectedRoute><PromiseDetail /></ProtectedRoute>} />
                              <Route path="/discover" element={<DiscoveryDashboard />} />
                              <Route path="/explore" element={<ExplorePlatform />} />
                              <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -164,11 +165,11 @@ const App = () => (
                              <Route path="/quests" element={<Quests />} />
                              <Route path="/leaderboards" element={<Leaderboards />} />
                              <Route path="/search" element={<SearchResults />} />
-                             <Route path="/chat" element={<Chat />} />
+                             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                              <Route path="/civic-assistant" element={<CivicChat />} />
                              <Route path="/profile/setup" element={<ProfileSetup />} />
                              <Route path="/install" element={<Install />} />
-                             <Route path="/settings" element={<SettingsPage />} />
+                             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
  
                              {/* Functional dynamic prefix routes - consolidated to PrefixRouter */}
                              <Route path="/u/*" element={<PrefixRouter />} />

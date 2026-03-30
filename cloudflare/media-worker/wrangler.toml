@@ -1,0 +1,16 @@
+name = "civic-media-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets — set via: wrangler secret put SECRET_NAME
+# SUPABASE_JWT_SECRET       — from Supabase → Settings → API → JWT Secret
+# SUPABASE_SERVICE_ROLE_KEY — from Supabase → Settings → API
+
+[vars]
+SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co"
+ALLOWED_ORIGIN = "https://yourdomain.com"
+
+# PRIVATE buckets only — user-profiles and community-assets stay public on Supabase
+# [[unsafe.bindings]]
+# R2 buckets will be added here in future migration — placeholder for now

@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { logProjectSubmitted } from '@/lib/activityLogger';
 import { ReceiptToast } from '@/components/ui/ReceiptToast';
+import { getMediaUrl } from '@/lib/secureMedia';
 import { ArrowLeft, Upload, X, FileText, Image as ImageIcon, Film, AlertCircle, Loader2, Plus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PROJECT_CATEGORIES_2026, PROJECT_LEVELS, PROJECT_STATUSES, PROJECT_PRIORITIES } from '@/constants/projectConstants';
@@ -314,8 +315,8 @@ const SubmitProject = () => {
                 continue;
             }
 
-            const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-            urls.push(data.publicUrl);
+            const url = getMediaUrl(bucket, filePath);
+            urls.push(url);
         }
         return urls;
     };

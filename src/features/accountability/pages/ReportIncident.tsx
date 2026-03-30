@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getMediaUrl } from '@/lib/secureMedia';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -196,8 +197,8 @@ const ReportIncident = () => {
       const path = `${isAnon ? 'anon' : (user?.id ?? 'unknown')}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage.from('incident-media').upload(path, p.file);
       if (error) throw new Error(`Upload failed: ${error.message}`);
-      const { data: { publicUrl } } = supabase.storage.from('incident-media').getPublicUrl(path);
-      urls.push(publicUrl);
+      const url = getMediaUrl('incident-media', path);
+      urls.push(url);
     }
     return urls;
   };

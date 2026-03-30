@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { SECURITY_HEADERS, withSecurityHeaders, withErrorResponse } from "../_shared/securityHeaders.ts";
 
 function isValidUUID(uuid: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -40,26 +36,20 @@ function validateInput(data: unknown): { valid: true; postId?: string; generateA
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: SECURITY_HEADERS });
   }
 
   // Validate Content-Type
   const contentType = req.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
-    return new Response(
-      JSON.stringify({ error: 'Content-Type must be application/json' }),
-      { status: 415, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return withErrorResponse('Content-Type must be application/json', 415);
   }
 
   try {
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse('Missing or invalid authorization header', 401);
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -75,10 +65,7 @@ serve(async (req) => {
     
     if (claimsError || !claimsData?.user) {
       console.error('Auth error:', claimsError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse('Unauthorized - invalid token', 401);
     }
 
     const userId = claimsData.user.id;
@@ -88,18 +75,12 @@ serve(async (req) => {
     try {
       rawInput = await req.json();
     } catch {
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse('Invalid JSON body', 400);
     }
 
     const validation = validateInput(rawInput);
     if (!validation.valid) {
-      return new Response(
-        JSON.stringify({ error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse(validation.error, 400);
     }
 
     const { postId, generateAll } = validation;
@@ -123,10 +104,7 @@ serve(async (req) => {
         .maybeSingle();
       
       if (!userRole) {
-        return new Response(
-          JSON.stringify({ error: 'Admin access required for batch thumbnail generation' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return withErrorResponse('Admin access required for batch thumbnail generation', 403);
       }
     }
 
@@ -183,10 +161,7 @@ serve(async (req) => {
           .maybeSingle();
         
         if (!userRole) {
-          return new Response(
-            JSON.stringify({ error: 'You can only generate thumbnails for your own posts' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return withErrorResponse('You can only generate thumbnails for your own posts', 403);
         }
       }
       
@@ -194,10 +169,7 @@ serve(async (req) => {
     }
 
     if (postsToProcess.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No posts need thumbnail generation', processed: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withSecurityHeaders({ message: 'No posts need thumbnail generation', processed: 0 });
     }
 
     const results: { postId: string; thumbnailUrl?: string; error?: string; success?: boolean; status?: number }[] = [];
@@ -305,20 +277,14 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({ 
-        message: `Processed ${results.length} posts`, 
-        processed: results.filter(r => r.success).length,
-        results 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return withSecurityHeaders({ 
+      message: `Processed ${results.length} posts`, 
+      processed: results.filter(r => r.success).length,
+      results 
+    });
 
   } catch (error) {
     console.error('Generate thumbnail error:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return withErrorResponse(error instanceof Error ? error.message : 'Unknown error', 500);
   }
 });

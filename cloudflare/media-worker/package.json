@@ -1,0 +1,14 @@
+{
+  "name": "civic-media-worker",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240909.0",
+    "wrangler": "^3.80.0"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types"
+  }
+}

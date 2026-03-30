@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getTimelineTheme } from '@/constants/timelineThemes';
+import { SecureImage } from '@/components/security/SecureImage';
 
 interface TimelineUpdate {
     id: string;
@@ -405,7 +406,7 @@ export function ProjectTimeline({
                                                             className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted hover:ring-2 transition-all group"
                                                             style={{ outlineColor: theme.colors.primary }}
                                                         >
-                                                            <img
+                                                            <SecureImage
                                                                 src={url}
                                                                 alt={`Update media ${idx + 1}`}
                                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform"

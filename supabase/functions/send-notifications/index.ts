@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { SECURITY_HEADERS, withSecurityHeaders, withErrorResponse } from "../_shared/securityHeaders.ts";
 
 interface NotificationRequest {
   type: 'post_comment' | 'post_vote' | 'promise_update' | 'community_invite';
@@ -83,26 +79,20 @@ function validateInput(data: unknown): { valid: true; data: NotificationRequest 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: SECURITY_HEADERS });
   }
 
   // Validate Content-Type
   const contentType = req.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
-    return new Response(
-      JSON.stringify({ error: 'Content-Type must be application/json' }),
-      { status: 415, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return withErrorResponse('Content-Type must be application/json', 415);
   }
 
   try {
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse('Missing or invalid authorization header', 401);
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -118,10 +108,7 @@ serve(async (req) => {
     
     if (claimsError || !claimsData?.user) {
       console.error('Auth error:', claimsError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse('Unauthorized - invalid token', 401);
     }
 
     const userId = claimsData.user.id;
@@ -131,18 +118,12 @@ serve(async (req) => {
     try {
       rawInput = await req.json();
     } catch {
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse('Invalid JSON body', 400);
     }
 
     const validation = validateInput(rawInput);
     if (!validation.valid) {
-      return new Response(
-        JSON.stringify({ error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return withErrorResponse(validation.error, 400);
     }
 
     const notification = validation.data;
@@ -163,10 +144,7 @@ serve(async (req) => {
         .maybeSingle();
       
       if (!userRole) {
-        return new Response(
-          JSON.stringify({ error: 'sender_id must match authenticated user' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return withErrorResponse('sender_id must match authenticated user', 403);
       }
     }
 
@@ -205,19 +183,11 @@ serve(async (req) => {
       await sendEmailNotification(supabaseService, notification);
     }
 
-    return new Response(JSON.stringify({ success: true, notification: data }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return withSecurityHeaders({ success: true, notification: data });
 
   } catch (error) {
     console.error('Error sending notification:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to send notification' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return withErrorResponse('Failed to send notification', 500);
   }
 });
 

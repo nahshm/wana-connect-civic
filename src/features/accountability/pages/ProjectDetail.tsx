@@ -22,6 +22,7 @@ import { MediaGallery } from '@/components/projects/MediaGallery';
 import { EntityList } from '@/components/projects/EntityBadge';
 import { EngagementBar } from '@/components/projects/EngagementBar';
 import { ProjectTimeline } from '@/components/projects/ProjectTimeline';
+import { SecureDownload } from '@/components/security/SecureDownload';
 import { PROJECT_CATEGORIES_2026 } from '@/constants/projectConstants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -146,7 +147,8 @@ const ProjectDetail = () => {
         setSubmitting(true);
         try {
             // Add verification entry
-            const { error: verificationError } = await (supabase.from as any)('project_verifications')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error: verificationError } = await (supabase as any).from('project_verifications')
                 .insert({
                     project_id: projectId,
                     user_id: user.id,
@@ -418,19 +420,17 @@ const ProjectDetail = () => {
                                 <CardContent>
                                     <div className="space-y-2">
                                         {project.documents_urls.map((url, idx) => (
-                                            <a
+                                            <SecureDownload
                                                 key={idx}
-                                                href={url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted transition-colors"
+                                                url={url}
+                                                className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted transition-colors w-full text-left"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <FileText className="w-5 h-5 text-muted-foreground" />
                                                     <span className="font-medium">Document {idx + 1}</span>
                                                 </div>
                                                 <Download className="w-4 h-4 text-muted-foreground" />
-                                            </a>
+                                            </SecureDownload>
                                         ))}
                                     </div>
                                 </CardContent>

@@ -5,6 +5,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import rehypeExternalLinks from 'rehype-external-links';
 import DOMPurify from 'dompurify';
 import { AlertTriangle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ContentRendererProps {
     content: string;
@@ -40,6 +41,20 @@ export const ContentRenderer: React.FC<ContentRendererProps> = React.memo(({
     truncate = false,
     maxLength = 300
 }) => {
+    const { toast } = useToast();
+
+    const handleCopy = (e: React.ClipboardEvent) => {
+      const selection = window.getSelection()?.toString() ?? '';
+      if (selection.length > 200) {
+        e.preventDefault();
+        toast({
+          title: 'Please share the link instead',
+          description: 'Copying large sections of content is not permitted.',
+          variant: 'default',
+        });
+      }
+      // Selections under 200 chars (quotes, references) are allowed
+    };
     const processedContent = useMemo(() => {
         try {
             if (!content) return null;
@@ -70,7 +85,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = React.memo(({
     // Error fallback UI
     if (!processedContent?.content) {
         return (
-            <div className={`text-muted-foreground text-sm italic ${className}`}>
+            <div onCopy={handleCopy} style={{ userSelect: 'text' }} className={`text-muted-foreground text-sm italic ${className}`}>
                 <AlertTriangle className="inline w-4 h-4 mr-1" />
                 Content unavailable
             </div>
@@ -87,6 +102,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = React.memo(({
 
         return (
             <div
+                onCopy={handleCopy}
+                style={{ userSelect: 'text' }}
                 className={`prose prose-sm max-w-none dark:prose-invert ${className}`}
                 dangerouslySetInnerHTML={{ __html: sanitized }}
             />
@@ -95,7 +112,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = React.memo(({
 
     if (processedContent.type === 'markdown' || processedContent.type === 'text') {
         return (
-            <div className={`prose prose-sm max-w-none dark:prose-invert ${className}`}>
+            <div onCopy={handleCopy} style={{ userSelect: 'text' }} className={`prose prose-sm max-w-none dark:prose-invert ${className}`}>
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[

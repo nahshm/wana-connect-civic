@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { SecureFeed } from '@/components/security/SecureFeed';
 import { FeedSortBar } from '@/components/feed/FeedSortBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
@@ -15,7 +16,6 @@ export default function Index() {
   const { user } = useAuth();
   const authModal = useAuthModal();
   const { toast } = useToast();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('hot');
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
@@ -78,19 +78,7 @@ export default function Index() {
     }
   }, [isError, error, toast]);
 
-  // Infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  // Infinite scroll handled by SecureFeed wrapper (bot-resistant)
 
   const handleJoinCommunity = useCallback(async (communityId: string, communityName: string) => {
     if (!user) {
@@ -137,20 +125,24 @@ export default function Index() {
               ) : feedItems.length === 0 ? (
                 <EmptyFeedState />
               ) : (
-                <div className="flex flex-col">
-                  {feedItems.map(item => {
-                    const communityId = item.data?.community_id;
-                    const isMember = communityId ? memberCommunityIds.has(communityId) : true;
-                    return (
-                      <UnifiedFeedItem
-                        key={item.id}
-                        item={item}
-                        isMember={isMember}
-                        onJoinCommunity={handleJoinCommunity}
-                      />
-                    );
-                  })}
-                  <div ref={loadMoreRef}>
+                <SecureFeed
+                  onLoadMore={fetchNextPage}
+                  hasMore={!!hasNextPage}
+                  isLoading={isFetchingNextPage}
+                >
+                  <div className="flex flex-col">
+                    {feedItems.map(item => {
+                      const communityId = item.data?.community_id;
+                      const isMember = communityId ? memberCommunityIds.has(communityId) : true;
+                      return (
+                        <UnifiedFeedItem
+                          key={item.id}
+                          item={item}
+                          isMember={isMember}
+                          onJoinCommunity={handleJoinCommunity}
+                        />
+                      );
+                    })}
                     {isFetchingNextPage && <UnifiedFeedItemSkeleton />}
                     {!hasNextPage && feedItems.length > 0 && (
                       <p className="text-center text-muted-foreground text-sm py-8">
@@ -158,7 +150,7 @@ export default function Index() {
                       </p>
                     )}
                   </div>
-                </div>
+                </SecureFeed>
               )}
             </FeedErrorBoundary>
           </div>
