@@ -49,6 +49,7 @@ export const LockedPostOverlay = ({
         <Button
           onClick={onJoinClick}
           disabled={isJoining}
+          variant="join"
           size="lg"
           className="w-full shadow-lg hover:shadow-xl transition-all"
         >

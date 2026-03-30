@@ -42,7 +42,7 @@ export const CommunityListItem = ({ community, onToggleFollow, onToggleFavorite 
                 </Button>
 
                 <Button
-                    variant={community.isFollowing ? "outline" : "default"}
+                    variant={community.isFollowing ? "outline" : "join"}
                     size="sm"
                     onClick={() => onToggleFollow(community.id)}
                     className="min-w-[80px] rounded-full"
