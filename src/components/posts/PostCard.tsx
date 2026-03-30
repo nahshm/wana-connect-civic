@@ -844,8 +844,7 @@ export const PostCard = ({
                     onJoinCommunity(post.community!.id, post.community!.name);
                   }} 
                   size="sm" 
-                  variant="blue"
-                  className="h-7 px-3 text-[11px] font-bold rounded-full"
+                  className="h-7 px-3 text-[11px] font-bold rounded-full bg-blue-950 text-white"
                 >
                   Join
                 </Button>
