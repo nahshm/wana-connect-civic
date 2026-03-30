@@ -73,7 +73,7 @@ export const ExploreCommunityCard = ({ community, onToggleFollow }: ExploreCommu
             </Button>
           ) : (
             <Button
-              variant="default"
+              variant="join"
               size="sm"
               className="shrink-0 rounded-full text-xs font-semibold h-8 px-4"
               onClick={() => onToggleFollow(community.id)}

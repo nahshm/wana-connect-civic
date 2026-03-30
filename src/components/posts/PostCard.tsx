@@ -843,8 +843,9 @@ export const PostCard = ({
                     e.stopPropagation();
                     onJoinCommunity(post.community!.id, post.community!.name);
                   }} 
+                  variant="join"
                   size="sm" 
-                  className="h-7 px-3 text-[11px] font-bold rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-7 px-3 text-[11px] font-bold rounded-full"
                 >
                   Join
                 </Button>

@@ -90,7 +90,7 @@ export function CommunityInfoCard({ community }: CommunityInfoCardProps) {
         </CardTitle>
         <Link
           to={`/c/${community.name}`}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-semibold inline-block mt-1"
+          className="text-sm text-foreground hover:underline font-semibold inline-block mt-1"
         >
           c/{community.displayName || community.name}
         </Link>
