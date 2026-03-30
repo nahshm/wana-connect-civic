@@ -93,7 +93,7 @@ export function AppSidebar() {
     }
   };
   return <Sidebar collapsible="icon" variant="sidebar">
-    <SidebarContent className="gap-0 py-2 bg-popover px-0">
+    <SidebarContent className="gap-0 py-2 bg-popover px-0 font-medium">
       {/* Platform Identity - Only on /civic-clips */}
       {isClipsPage && (
         <SidebarGroup className="px-5 py-4 mb-2 animate-in slide-in-from-top duration-500 overflow-hidden">
