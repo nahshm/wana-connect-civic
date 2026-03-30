@@ -50,7 +50,7 @@ export const LockedPostOverlay = ({
           onClick={onJoinClick}
           disabled={isJoining}
           size="lg"
-          className="w-full bg-civic-green hover:bg-civic-green/90 text-white shadow-lg hover:shadow-xl transition-all"
+          className="w-full shadow-lg hover:shadow-xl transition-all"
         >
           {isJoining ? 'Joining...' : `Join Community →`}
         </Button>

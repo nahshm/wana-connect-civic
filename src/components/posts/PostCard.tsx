@@ -800,7 +800,7 @@ export const PostCard = ({
               {/* Community Post Layout - Double line preserved as requested */}
               {communityData ? <div className="flex flex-col gap-0.5">
                   {/* Line 1: c/name - Reddit Meta style */}
-                  <Link to={`/c/${communityData.name}`} className="font-reddit-meta text-[11.5px] hover:underline leading-none tracking-tight text-muted">
+                  <Link to={`/c/${communityData.name}`} className="font-reddit-meta text-[11.5px] hover:underline leading-none tracking-tight text-muted-foreground">
                     c/{communityData.name}
                   </Link>
                   
@@ -844,7 +844,7 @@ export const PostCard = ({
                     onJoinCommunity(post.community!.id, post.community!.name);
                   }} 
                   size="sm" 
-                  className="h-7 px-3 text-[11px] font-bold rounded-full text-white bg-blue-900"
+                  className="h-7 px-3 text-[11px] font-bold rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   Join
                 </Button>

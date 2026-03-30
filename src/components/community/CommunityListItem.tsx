@@ -42,16 +42,12 @@ export const CommunityListItem = ({ community, onToggleFollow, onToggleFavorite 
                 </Button>
 
                 <Button
-                    variant={community.isFollowing ? "outline" : "blue"}
+                    variant={community.isFollowing ? "outline" : "default"}
                     size="sm"
                     onClick={() => onToggleFollow(community.id)}
                     className="min-w-[80px] rounded-full"
                 >
-                    {community.isFollowing ? (
-                        "Joined"
-                    ) : (
-                        "Join"
-                    )}
+                    {community.isFollowing ? "Joined" : "Join"}
                 </Button>
             </div>
         </div>
