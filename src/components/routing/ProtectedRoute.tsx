@@ -18,10 +18,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Always call hooks before any conditional returns (React rules)
   useEffect(() => {
-    if (!isLoading && !user && !isLikelyBot()) {
+    if (!loading && !user && !isLikelyBot()) {
       authModal.open('login');
     }
-  }, [isLoading, user, authModal]);
+  }, [loading, user, authModal]);
 
   // Hard block for bots — show nothing, not even a loading state
   if (isLikelyBot()) {
