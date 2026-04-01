@@ -298,7 +298,7 @@ const SubmitProject = () => {
         setDocumentFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const uploadFiles = async (files: File[], bucket: 'project-media' | 'project-documents') => {
+    const uploadFiles = async (files: File[], bucket: 'project-media') => {
         const urls: string[] = [];
 
         for (const file of files) {
@@ -331,7 +331,7 @@ const SubmitProject = () => {
         setLoading(true);
         try {
             const mediaUrls = await uploadFiles(mediaFiles, 'project-media');
-            const docUrls = await uploadFiles(documentFiles, 'project-documents');
+            const docUrls = await uploadFiles(documentFiles, 'project-media');
 
             // Insert main project
             const { data: project, error: projectError } = await supabase

@@ -161,7 +161,7 @@ async function batchScan(
         await createProposal(client, AGENT_NAME, {
           proposal_type: 'ban_user',
           subject_type: 'user',
-          subject_id: row[userColumn],
+          subject_id: (row as any)[userColumn],
           reasoning: `Repeated serious violation. Latest: ${result.reason}`,
           confidence: result.confidence,
           evidence: { flags: result.flags, trigger_content_id: row.id },

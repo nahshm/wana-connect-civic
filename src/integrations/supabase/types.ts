@@ -4780,6 +4780,39 @@ export type Database = {
           },
         ]
       }
+      link_preview_cache: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          favicon: string | null
+          image: string | null
+          site_name: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          favicon?: string | null
+          image?: string | null
+          site_name?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          favicon?: string | null
+          image?: string | null
+          site_name?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string | null

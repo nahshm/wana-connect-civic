@@ -324,8 +324,7 @@ async function scrapeSource(
         last_scraped: new Date().toISOString(),
         last_scraped_status: "failed",
       })
-      .eq("id", source.id)
-      .catch(() => {});
+      .eq("id", source.id);
   }
 
   return { stored, itemsFound, error: scrapeError };
