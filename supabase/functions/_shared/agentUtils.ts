@@ -29,7 +29,7 @@ export interface AgentRunStats {
 
 export interface ProposalOptions {
   proposal_type: string;
-  subject_type?: "user" | "post" | "comment" | "project" | "promise" | "official";
+  subject_type?: "user" | "post" | "comment" | "project" | "promise" | "official" | "message";
   subject_id?: string;
   reasoning: string;
   confidence: number;
