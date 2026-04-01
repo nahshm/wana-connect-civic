@@ -28,7 +28,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <div aria-hidden="true" />;
   }
 
-  if (isLoading) {
+  if (loading) {
     return <AuthLoadingSkeleton />;
   }
 

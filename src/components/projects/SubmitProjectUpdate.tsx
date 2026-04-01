@@ -88,12 +88,13 @@ export const SubmitProjectUpdate: React.FC<SubmitProjectUpdateProps> = ({
             const { error } = await supabase
                 .from('project_updates')
                 .insert({
+                    project_id: projectId,
                     created_by: user.id,
                     title,
                     description,
                     media_urls: photoUrls,
                     update_type: updateType
-                } as Parameters<ReturnType<typeof supabase.from<'project_updates'>>['insert']>[0]);
+                });
 
             if (error) throw error;
 

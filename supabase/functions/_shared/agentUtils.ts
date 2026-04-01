@@ -46,7 +46,16 @@ export type EventType =
   | "proposal_approved"
   | "proposal_rejected"
   | "draft_ready"
-  | "agent_error";
+  | "agent_error"
+  | "thinking"
+  | "tool_call"
+  | "tool_result"
+  | "routing_decision"
+  | "moderation_flag"
+  | "ingest_complete"
+  | "fact_check"
+  | "issue_cluster"
+  | "answer";
 
 // ─── Core Utilities ───────────────────────────────────────────────────────────
 

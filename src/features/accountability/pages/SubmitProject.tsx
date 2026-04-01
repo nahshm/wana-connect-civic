@@ -331,7 +331,7 @@ const SubmitProject = () => {
         setLoading(true);
         try {
             const mediaUrls = await uploadFiles(mediaFiles, 'project-media');
-            const docUrls = await uploadFiles(documentFiles, 'project-documents');
+            const docUrls = await uploadFiles(documentFiles, 'project-media');
 
             // Insert main project
             const { data: project, error: projectError } = await supabase
