@@ -60,7 +60,13 @@ const POST_SELECT_QUERY = `
 /**
  * Transform raw Supabase post data to our Post interface
  */
-function transformPost(post: RawPostData, userVote: 'up' | 'down' | null = null): Post {
+function transformPost(
+    post: RawPostData, 
+    userVote: 'up' | 'down' | null = null,
+    isSaved: boolean = false,
+    isFollowed: boolean = false,
+    isHidden: boolean = false
+): Post {
     return {
         id: post.id,
         title: post.title,
@@ -98,7 +104,10 @@ function transformPost(post: RawPostData, userVote: 'up' | 'down' | null = null)
             url: m.url,
             type: m.type as 'image' | 'video' | 'document',
             caption: m.caption || undefined,
-        })) as any,
+        })) as PostMedia[],
+        isSaved,
+        isFollowed,
+        isHidden,
     };
 }
 
@@ -124,27 +133,50 @@ export function usePosts(sortBy: string = 'new', filterBy: string = 'all') {
             if (postsError) throw postsError;
             if (!postsData) return { posts: [], nextPage: undefined };
 
-            // Fetch user votes if authenticated
+            // Fetch user interaction states if authenticated
             const userVotes: { [postId: string]: 'up' | 'down' } = {};
+            const userSaves: { [postId: string]: boolean } = {};
+            const userFollows: { [postId: string]: boolean } = {};
+            const userHidden: { [postId: string]: boolean } = {};
+
             if (user && postsData.length > 0) {
                 const postIds = postsData.map(post => post.id);
-                const { data: votesData } = await supabase
-                    .from('votes')
-                    .select('post_id, vote_type')
-                    .eq('user_id', user.id)
-                    .in('post_id', postIds);
+                
+                const [votesResult, savesResult, followsResult, hiddenResult] = await Promise.all([
+                    supabase.from('votes').select('post_id, vote_type').eq('user_id', user.id).in('post_id', postIds),
+                    supabase.from('saved_items').select('item_id').eq('user_id', user.id).eq('item_type', 'post').in('item_id', postIds),
+                    supabase.from('post_follows').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+                    supabase.from('hidden_items').select('item_id').eq('user_id', user.id).eq('item_type', 'post').in('item_id', postIds)
+                ]);
 
-                if (votesData) {
-                    votesData.forEach(vote => {
+                if (votesResult.data) {
+                    votesResult.data.forEach(vote => {
                         userVotes[vote.post_id] = vote.vote_type as 'up' | 'down';
                     });
                 }
+                if (savesResult.data) {
+                    savesResult.data.forEach(save => { userSaves[save.item_id] = true; });
+                }
+                if (followsResult.data) {
+                    followsResult.data.forEach(follow => { userFollows[follow.post_id] = true; });
+                }
+                if (hiddenResult.data) {
+                    hiddenResult.data.forEach(hidden => { userHidden[hidden.item_id] = true; });
+                }
             }
 
-            // Transform posts
-            const posts = postsData.map(post =>
-                transformPost(post as unknown as RawPostData, userVotes[post.id] || null)
-            );
+            // Transform posts and filter out hidden items
+            const posts = postsData
+                .filter(post => !userHidden[post.id])
+                .map(post =>
+                    transformPost(
+                        post as unknown as RawPostData, 
+                        userVotes[post.id] || null,
+                        userSaves[post.id] || false,
+                        userFollows[post.id] || false,
+                        userHidden[post.id] || false
+                    )
+                );
 
             return {
                 posts,
@@ -173,7 +205,7 @@ export function useTrendingPosts() {
 
             if (error) throw error;
             return (data || []).map(post =>
-                transformPost(post as unknown as RawPostData, null)
+                transformPost(post as unknown as RawPostData, null, false, false, false)
             );
         },
         staleTime: FEED_CONFIG.STALE_TIME,

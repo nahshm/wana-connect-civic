@@ -72,74 +72,70 @@ export function useCreatePost() {
         const videoFiles = postData.evidenceFiles.filter((file: File) => file.type.startsWith('video/'));
 
         for (const videoFile of videoFiles) {
-          try {
-            const fileExt = videoFile.name.split('.').pop();
-            const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const fileExt = videoFile.name.split('.').pop();
+          const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-             await supabase.storage.from('media').upload(fileName, videoFile);
-             const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(fileName);
+          const { error: uploadError } = await supabase.storage.from('media').upload(fileName, videoFile);
+          if (uploadError) throw new Error(`Video upload failed: ${uploadError.message}`);
 
-            // Extract video metadata
-            const videoElement = document.createElement('video');
-            videoElement.src = URL.createObjectURL(videoFile);
+          // Extract video metadata from a local object URL (never stored)
+          const objectUrl = URL.createObjectURL(videoFile);
+          const videoElement = document.createElement('video');
+          videoElement.src = objectUrl;
 
-            await new Promise((resolve) => {
-              videoElement.onloadedmetadata = resolve;
-            });
+          await new Promise<void>((resolve) => {
+            videoElement.onloadedmetadata = () => resolve();
+            videoElement.onerror = () => resolve(); // don't block on metadata failure
+          });
 
-            const duration = Math.floor(videoElement.duration);
-            const width = videoElement.videoWidth;
-            const height = videoElement.videoHeight;
-            const aspectRatio = width > height ? '16:9' : '9:16';
+          const duration = Math.floor(videoElement.duration) || 0;
+          const width = videoElement.videoWidth || 0;
+          const height = videoElement.videoHeight || 0;
+          const aspectRatio = width >= height ? '16:9' : '9:16';
+          URL.revokeObjectURL(objectUrl);
 
-            await supabase.from('civic_clips').insert({
-              post_id: postId,
-              video_url: publicUrl,
-              duration,
-              width,
-              height,
-              aspect_ratio: aspectRatio,
-              file_size: videoFile.size,
-              category: postData.tags?.[0] || null,
-              hashtags: postData.tags || [],
-              processing_status: 'ready'
-            });
-
-            URL.revokeObjectURL(videoElement.src);
-          } catch (videoError) {
-            console.error('Video processing error:', videoError);
-            throw new Error('Video upload failed');
-          }
+          // Store the storage path — resolved to a secure URL at read time via proxy
+          await supabase.from('civic_clips').insert({
+            post_id: postId,
+            video_url: fileName, // path, not public URL
+            duration,
+            width,
+            height,
+            aspect_ratio: aspectRatio,
+            file_size: videoFile.size,
+            category: postData.tags?.[0] || null,
+            hashtags: postData.tags || [],
+            processing_status: 'ready',
+          });
         }
       }
 
-      // 4. Handle Image/Doc Uploads (post_media)
+      // 4. Handle Image/Doc uploads (post_media) — only non-video files
+      // Note: hasVideo uploads are handled above for civic_clips;
+      // images and docs are ALWAYS stored in post_media for display in PostCard.
       if (postData.evidenceFiles && postData.evidenceFiles.length > 0) {
-        const uploadPromises = postData.evidenceFiles.map(async (file: File, index: number) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${postId}/evidence_${index + 1}.${fileExt}`;
+        const mediaFiles = hasVideo
+          ? postData.evidenceFiles.filter((f: File) => !f.type.startsWith('video/'))
+          : postData.evidenceFiles;
 
-          const { error: uploadError } = await supabase.storage.from('media').upload(fileName, file);
-          if (uploadError) throw new Error(`Failed to upload ${file.name}`);
+        if (mediaFiles.length > 0) {
+          const uploadPromises = mediaFiles.map(async (file: File, index: number) => {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${postId}/evidence_${index + 1}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage.from('media').upload(fileName, file);
+            if (uploadError) throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+            return {
+              post_id: postId,
+              file_path: fileName,  // store path, resolved via proxy at display time
+              filename: file.name,
+              file_type: file.type,
+              file_size: file.size,
+            };
+          });
 
-          return {
-            post_id: postId,
-            file_path: fileName,
-            filename: fileName.split('/').pop() || '',
-            file_type: file.type,
-            file_size: file.size,
-          };
-        });
-
-        const evidenceRecords = await Promise.all(uploadPromises);
-        
-        const { error: evidenceError } = await supabase
-          .from('post_media')
-          .insert(evidenceRecords);
-
-        if (evidenceError) {
-          console.error('Error saving evidence records:', evidenceError);
-          throw new Error('File metadata save failed');
+          const mediaRecords = await Promise.all(uploadPromises);
+          const { error: mediaError } = await supabase.from('post_media').insert(mediaRecords);
+          if (mediaError) throw new Error(`File metadata save failed: ${mediaError.message}`);
         }
       }
 

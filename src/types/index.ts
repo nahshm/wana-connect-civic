@@ -88,6 +88,11 @@ export interface Post {
   link_description?: string | null;
   link_image?: string | null;
   auto_generated?: boolean;
+  
+  // Per-user interaction states (fetched per feed)
+  isSaved?: boolean;
+  isFollowed?: boolean;
+  isHidden?: boolean;
 }
 
 export interface PostMedia {

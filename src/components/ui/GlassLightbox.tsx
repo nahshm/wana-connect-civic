@@ -37,7 +37,7 @@ export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProp
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[999] flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8"
           onClick={onClose}
           style={{
             background: 'rgba(0, 0, 0, 0.75)',
@@ -52,7 +52,7 @@ export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProp
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.88, opacity: 0, y: 24 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            className="relative max-w-[92vw] max-h-[90vh] flex flex-col items-center"
+            className="relative flex flex-col items-center justify-center w-full h-full"
             onClick={e => e.stopPropagation()}
           >
             {/* Glass frame */}

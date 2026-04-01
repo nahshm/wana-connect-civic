@@ -32,11 +32,13 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
         p_sort_by: SORT_MAP[sortBy] || 'newest',
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.rpc as any)('get_unified_feed', rpcParams);
 
       if (error) throw error;
 
       // Transform data to FeedItem type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let items: FeedItem[] = ((data as any[]) || []).map((item: any) => ({
         id: item.id,
         type: item.type,
@@ -47,35 +49,43 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
         data: item.data
       }));
 
-      // Attach user votes for post items
+      // Attach user interaction states for post items
       if (userId && items.length > 0) {
         const postIds = items.filter(item => item.type === 'post').map(item => item.id);
         if (postIds.length > 0) {
-          const { data: votes } = await supabase
-            .from('votes')
-            .select('post_id, vote_type')
-            .eq('user_id', userId)
-            .in('post_id', postIds);
+          const [votesResult, savesResult, followsResult, hiddenResult] = await Promise.all([
+            supabase.from('votes').select('post_id, vote_type').eq('user_id', userId).in('post_id', postIds),
+            supabase.from('saved_items').select('item_id').eq('user_id', userId).eq('item_type', 'post').in('item_id', postIds),
+            supabase.from('post_follows').select('post_id').eq('user_id', userId).in('post_id', postIds),
+            supabase.from('hidden_items').select('item_id').eq('user_id', userId).eq('item_type', 'post').in('item_id', postIds)
+          ]);
 
-          if (votes) {
-            const voteMap = votes.reduce((acc, vote) => {
-              acc[vote.post_id] = vote.vote_type;
-              return acc;
-            }, {} as Record<string, string>);
+          const voteMap = (votesResult.data || []).reduce((acc, vote) => {
+            acc[vote.post_id] = vote.vote_type;
+            return acc;
+          }, {} as Record<string, string>);
 
-            items = items.map(item => {
-              if (item.type === 'post' && voteMap[item.id]) {
+          const saveMap = new Set((savesResult.data || []).map(s => s.item_id));
+          const followMap = new Set((followsResult.data || []).map(f => f.post_id));
+          const hiddenMap = new Set((hiddenResult.data || []).map(h => h.item_id));
+
+          // Filter out hidden items and map state
+          items = items
+            .filter(item => item.type !== 'post' || !hiddenMap.has(item.id))
+            .map(item => {
+              if (item.type === 'post') {
                 return {
                   ...item,
                   data: {
                     ...item.data,
-                    user_vote: voteMap[item.id]
+                    user_vote: voteMap[item.id] || null,
+                    is_saved: saveMap.has(item.id),
+                    is_followed: followMap.has(item.id)
                   }
                 };
               }
               return item;
             });
-          }
         }
       }
 

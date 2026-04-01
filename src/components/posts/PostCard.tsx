@@ -23,6 +23,8 @@ import SentimentBar from '@/components/verification/SentimentBar';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
 import { SecureImage } from '@/components/security/SecureImage';
 import { SecureVideo } from '@/components/security/SecureVideo';
+import { useQueryClient } from '@tanstack/react-query';
+import { FEED_QUERY_KEYS } from '@/constants/feed';
 
 interface PostCardProps {
   post: Post;
@@ -59,8 +61,16 @@ export const PostCard = ({
   const secondVideoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSecondPlaying, setIsSecondPlaying] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(post.isSaved || false);
+  const [isFollowed, setIsFollowed] = useState(post.isFollowed || false);
   const [showSavedTooltip, setShowSavedTooltip] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Sync state if post props update
+  useEffect(() => {
+    setIsSaved(post.isSaved || false);
+    setIsFollowed(post.isFollowed || false);
+  }, [post.isSaved, post.isFollowed]);
 
   // Local optimistic state for voting
   const [localVote, setLocalVote] = useState<typeof post.userVote>(post.userVote);
@@ -179,6 +189,94 @@ export const PostCard = ({
         description: 'Could not update saved status.',
         variant: 'destructive'
       });
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!user) {
+      authModal.open('login');
+      return;
+    }
+    
+    const newFollowed = !isFollowed;
+    setIsFollowed(newFollowed);
+    toast({ 
+      title: newFollowed ? 'Post followed' : 'Post unfollowed', 
+      description: newFollowed ? 'You will be notified of new activity.' : 'You will no longer receive notifications.' 
+    });
+    
+    try {
+      if (newFollowed) {
+        await supabase.from('post_follows').insert({ user_id: user.id, post_id: post.id });
+      } else {
+        await supabase.from('post_follows').delete().eq('user_id', user.id).eq('post_id', post.id);
+      }
+    } catch (error) {
+      setIsFollowed(!newFollowed);
+      toast({ title: 'Error', description: 'Could not update follow status.', variant: 'destructive' });
+    }
+  };
+
+  const handleHide = async () => {
+    if (!user) {
+      authModal.open('login');
+      return;
+    }
+    
+    // Optimistic cache update: remove from all feed queries
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryClient.setQueriesData({ predicate: (query: any) => query.queryKey[0] === 'posts' || query.queryKey[0] === 'unified-feed' }, (oldData: any) => {
+      if (!oldData) return oldData;
+      if (oldData.pages) {
+        // Handle both usePosts structure (pages.posts) and useUnifiedFeed structure (pages as arrays)
+        return {
+          ...oldData,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          pages: oldData.pages.map((page: any) => {
+            if (Array.isArray(page)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              return page.filter((p: any) => p.id !== post.id);
+            } else if (page.posts) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              return { ...page, posts: page.posts.filter((p: any) => p.id !== post.id) };
+            }
+            return page;
+          }),
+        };
+      }
+      return oldData;
+    });
+
+    toast({ title: 'Post hidden', description: 'This post will no longer appear in your feed.' });
+    
+    try {
+      await supabase.from('hidden_items').insert({
+        user_id: user.id,
+        item_type: 'post',
+        item_id: post.id
+      });
+    } catch (error) {
+      console.error('Error hiding post:', error);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user) {
+      authModal.open('login');
+      return;
+    }
+    
+    // In a real implementation this would open a dialog to select reason
+    // For Phase 1 we implement the structural insert
+    toast({ title: 'Report submitted', description: 'Thank you for keeping WanaIQ safe.' });
+    try {
+      await supabase.from('post_reports').insert({
+        reporter_id: user.id,
+        post_id: post.id,
+        reason: 'User report from feed'
+      });
+    } catch (error) {
+      console.error('Failed to report:', error);
     }
   };
 
@@ -372,7 +470,7 @@ export const PostCard = ({
   };
 
   // Handle community data that might be under 'community' or 'community_id' alias
-  const communityData = post.community || (post as { community_id?: any }).community_id;
+  const communityData = post.community || (post as unknown as { community_id?: string }).community_id;
   const getVoteScore = () => localScore;
 
   const formatNumber = (num?: number | string | null) => {
@@ -429,7 +527,7 @@ export const PostCard = ({
           <AlertTriangle className="w-2.5 h-2.5" />
           Sensitive
         </Badge>);
-    } else if (post.contentSensitivity === 'public' || (post as any).isPublicDiscussion) {
+    } else if (post.contentSensitivity === 'public' || (post as unknown as { isPublicDiscussion?: boolean }).isPublicDiscussion) {
       badges.push(<Badge key="public" variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 flex items-center gap-1 h-4 rounded-full px-2 text-[9px] font-medium capitalize leading-none">
           <MessageSquare className="w-2.5 h-2.5" />
           Public
@@ -471,78 +569,111 @@ export const PostCard = ({
   // Helper to render media (used in both views)
   const renderMedia = () => {
     if (!post.media || post.media.length === 0) return null;
-    return <div className="mb-3">
-        {post.media.length === 1 ? <div className="relative w-full flex justify-center overflow-hidden border border-sidebar-border bg-black/5 rounded-xl group">
-            {/* Blurred Background Layer - Absolute to fill the container defined by foreground */}
-            <div className="absolute inset-0 z-0 opacity-60">
-                {post.media[0].file_type?.startsWith('image/') ?
-          <img
-            src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover blur-2xl scale-110"
-            aria-hidden="true" /> :
 
-          post.media[0].file_type?.startsWith('video/') ?
-          <video
-            src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-            className="w-full h-full object-cover blur-2xl scale-110"
-            muted
-            preload="none"
-            aria-hidden="true" /> :
-
-          null}
+    return (
+      <div className="mb-3">
+        {post.media.length === 1 ? (
+          <div className="relative w-full flex justify-center overflow-hidden border border-sidebar-border bg-black/5 rounded-xl group">
+            {/* Blurred background — decorative, uses same secure proxy */}
+            <div className="absolute inset-0 z-0 opacity-60 pointer-events-none" aria-hidden="true">
+              {post.media[0].file_type?.startsWith('image/') ? (
+                <SecureImage
+                  bucket="media"
+                  path={post.media[0].file_path}
+                  alt=""
+                  className="w-full h-full object-cover blur-2xl scale-110"
+                />
+              ) : post.media[0].file_type?.startsWith('video/') ? (
+                <SecureVideo
+                  bucket="media"
+                  path={post.media[0].file_path}
+                  className="w-full h-full object-cover blur-2xl scale-110"
+                  muted
+                  controls={false}
+                />
+              ) : null}
             </div>
 
-            {/* Foreground Content - Flex centered, dictates container height via max-height */}
+            {/* Foreground content */}
             <div className="relative z-10 w-full flex justify-center">
-              {post.media[0].file_type?.startsWith('image/') ?
-          <SecureImage
-            src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-            alt="Post media"
-            className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md rounded-xl transition-transform duration-500 group-hover:scale-[1.01] cursor-zoom-in"
-            style={{ display: 'block' }}
-          /> :
-
-          post.media[0].file_type?.startsWith('video/') ?
-          <div className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center" onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}>
+              {post.media[0].file_type?.startsWith('image/') ? (
+                <SecureImage
+                  bucket="media"
+                  path={post.media[0].file_path}
+                  alt="Post media"
+                  className="block w-auto h-auto max-w-full max-h-[500px] object-contain drop-shadow-md rounded-xl transition-transform duration-500 group-hover:scale-[1.01]"
+                  onClick={(src) => setLightboxSrc(src)}
+                />
+              ) : post.media[0].file_type?.startsWith('video/') ? (
+                <div
+                  className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center"
+                  onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}
+                >
                   <SecureVideo
-              ref={videoRef}
-              src={supabase.storage.from('media').getPublicUrl(post.media[0].file_path).data.publicUrl}
-              className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl"
-              muted
-            />
-
-                  {!isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20 m-auto pointer-events-none">
+                    ref={videoRef}
+                    bucket="media"
+                    path={post.media[0].file_path}
+                    className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl"
+                    muted
+                    controls={false}
+                  />
+                  {!isPlaying && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
                       <div className="bg-white/90 rounded-full p-4 shadow-lg backdrop-blur-sm">
                         <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
                       </div>
-                    </div>}
-              </div> :
-          null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
-          </div> : <div className="grid grid-cols-2 gap-2">
-            {post.media.slice(0, 4).map((media, index) => <div key={media.id} className="rounded-xl overflow-hidden border border-sidebar-border relative">
-                {media.file_type?.startsWith('image/') ? <SecureImage
-                  src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl}
-                  alt={`Post media ${index + 1}`}
-                  className="w-full h-32 object-cover rounded-xl"
-                /> : media.file_type?.startsWith('video/') ? <div className="relative cursor-pointer h-full" onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}>
-                    <SecureVideo ref={index === 0 ? secondVideoRef : undefined} src={supabase.storage.from('media').getPublicUrl(media.file_path).data.publicUrl} className="w-full h-32 object-cover rounded-xl" muted />
-                    {index === 0 && !isSecondPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {post.media.slice(0, 4).map((media, index) => (
+              <div key={media.id} className="rounded-xl overflow-hidden border border-sidebar-border relative">
+                {media.file_type?.startsWith('image/') ? (
+                  <SecureImage
+                    bucket="media"
+                    path={media.file_path}
+                    alt={`Post media ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-xl"
+                    onClick={(src) => setLightboxSrc(src)}
+                  />
+                ) : media.file_type?.startsWith('video/') ? (
+                  <div
+                    className="relative cursor-pointer h-32"
+                    onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}
+                  >
+                    <SecureVideo
+                      ref={index === 0 ? secondVideoRef : undefined}
+                      bucket="media"
+                      path={media.file_path}
+                      className="w-full h-32 object-cover rounded-xl"
+                      muted
+                      controls={false}
+                    />
+                    {index === 0 && !isSecondPlaying && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="bg-white/90 rounded-full p-2">
                           <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
                           </svg>
                         </div>
-                      </div>}
-                  </div> : null}
-              </div>)}
-          </div>}
-      </div>;
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
+
 
   // Helper to render link preview (for link-type posts)
   const renderLinkPreview = () => {
@@ -955,20 +1086,24 @@ export const PostCard = ({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 border-border/50 shadow-xl bg-card">
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleFollow(); }}>
                   <Bell className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Follow post
+                  {isFollowed ? 'Unfollow post' : 'Follow post'}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSave}>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSave(); }}>
                   <Bookmark className="mr-2 h-4 w-4 text-muted-foreground" />
                   {isSaved ? 'Unsave' : 'Save'}
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex sm:hidden" onClick={handleShare}>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleHide(); }}>
+                  <EyeOff className="mr-2 h-4 w-4 text-muted-foreground" />
+                  Hide post
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex sm:hidden" onClick={(e) => { e.stopPropagation(); handleShare(); }}>
                   <Share className="mr-2 h-4 w-4 text-muted-foreground" />
                   Share link
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleReport(); }}>
                   <Flag className="mr-2 h-4 w-4" />
                   Report
                 </DropdownMenuItem>

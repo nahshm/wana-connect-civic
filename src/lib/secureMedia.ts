@@ -25,8 +25,10 @@ export const PRIVATE_BUCKETS = [
   'issue-media',
   'incident-media',
   'comment-media',
+  'chat-media',
   'crisis-media',
   'project-media',
+  'project-documents',
 ] as const;
 
 export type PrivateBucket = typeof PRIVATE_BUCKETS[number];

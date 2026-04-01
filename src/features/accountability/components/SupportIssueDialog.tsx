@@ -62,20 +62,24 @@ export const SupportIssueDialog: React.FC<SupportIssueDialogProps> = ({
   const uploadPhotos = async (): Promise<string[]> => {
     if (!user || previewFiles.length === 0) return [];
     setUploading(true);
-    const urls: string[] = [];
+    const paths: string[] = [];
 
-    for (const { file } of previewFiles) {
-      const ext = file.name.split('.').pop() || 'jpg';
-      const path = `${user.id}/comments/${actionId}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from('issue-media').upload(path, file, { upsert: false });
-      if (error) throw new Error(`Upload failed: ${error.message}`);
-      const { data: { publicUrl } } = supabase.storage.from('issue-media').getPublicUrl(path);
-      urls.push(publicUrl);
+    try {
+      for (const { file } of previewFiles) {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const path = `${user.id}/comments/${actionId}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from('issue-media').upload(path, file, { upsert: false });
+        if (error) throw new Error(`Upload failed: ${error.message}`);
+        // Store the path, not the public URL — rendered via SecureImage at read time
+        paths.push(path);
+      }
+    } finally {
+      setUploading(false);
     }
 
-    setUploading(false);
-    return urls;
+    return paths;
   };
+
 
   const handleJustSupport = async () => {
     if (!user) return;
@@ -100,7 +104,7 @@ export const SupportIssueDialog: React.FC<SupportIssueDialogProps> = ({
     if (!user || !comment.trim()) return;
     setSubmitting(true);
     try {
-      const mediaUrls = await uploadPhotos();
+      const mediaPaths = await uploadPhotos();
 
       // Insert supporter row (ignore duplicate)
       await supabase
@@ -108,10 +112,11 @@ export const SupportIssueDialog: React.FC<SupportIssueDialogProps> = ({
         .insert({ action_id: actionId, user_id: user.id })
         .throwOnError();
 
-      // Insert comment
+      // Insert comment — civic_issue_comments is not in generated schema yet
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: commentError } = await (supabase as any)
         .from('civic_issue_comments')
-        .insert({ action_id: actionId, user_id: user.id, comment: comment.trim(), media_urls: mediaUrls });
+        .insert({ action_id: actionId, user_id: user.id, comment: comment.trim(), media_urls: mediaPaths });
       if (commentError) throw commentError;
 
       onSupported();

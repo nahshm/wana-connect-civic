@@ -322,3 +322,33 @@
 .animate-heart-pop {
     animation: heart-pop 0.8s ease-out forwards;
 }
+
+/* ─── View Transitions (Page navigation animations) ─────────────────────── */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+    animation-duration: 0.25s;
+    animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* ─── Secure Media Skeleton ─────────────────────────────────────────────── */
+/* Used by SecureImage / SecureVideo while blob URL is being fetched */
+.media-loading {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+}
+
+.media-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+}
