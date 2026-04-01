@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/AppSidebar';
@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { InstallPromptBanner } from '@/components/pwa/InstallPromptBanner';
 import { cn } from '@/lib/utils';
+import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -15,8 +16,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const location = useLocation();
   const isCommunityPage = location.pathname.startsWith('/c/');
   const isCivicAssistant = location.pathname === '/civic-assistant';
-
   const isClipsPage = location.pathname === '/civic-clips';
+
+  // Restore scroll position across navigations
+  useScrollRestoration('[data-scroll-container]');
 
   return (
     <div className="h-screen flex flex-col w-full bg-background overflow-hidden text-foreground">

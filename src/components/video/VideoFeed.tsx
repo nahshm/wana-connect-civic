@@ -187,10 +187,8 @@ export const VideoFeed = ({ category, hashtag, userId, trending = false, sortBy 
                                 showAccountability={true}
                             />
                         ) : (
-                            // Placeholder for non-rendered videos
-                            <div className="h-full w-full bg-black flex items-center justify-center">
-                                <Loader2 className="h-8 w-8 animate-spin text-white/20" />
-                            </div>
+                            // Placeholder for non-rendered videos - Use shimmer instead of spinner
+                            <div className="h-full w-full bg-zinc-900 media-loading" />
                         )}
                     </div>
                 )

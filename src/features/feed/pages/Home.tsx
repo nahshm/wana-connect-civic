@@ -36,7 +36,7 @@ export default function Index() {
   });
 
   const feedItems = useMemo(() => {
-    return data?.pages.flatMap(page => page) || [];
+    return data?.pages.flatMap(page => page.items) || [];
   }, [data]);
 
   // Batch membership check
@@ -104,9 +104,9 @@ export default function Index() {
 
   return (
     <div className="w-full min-h-screen bg-transparent px-0 sm:px-4">
-      <div className="max-w-[1000px] mx-auto grid grid-cols-1 xl:grid-cols-[640px_312px] gap-6 relative overflow-visible">
+      <div className="max-w-[1080px] mx-auto grid grid-cols-1 xl:grid-cols-[680px_350px] gap-6 relative overflow-visible">
         {/* Feed Column */}
-        <div className="min-w-0 py-4">
+        <div className="min-w-0 pt-1 pb-4">
           <div className="w-full">
             <FeedSortBar
               sortBy={sortBy}
@@ -114,6 +114,8 @@ export default function Index() {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
             />
+
+            <div className="h-px w-full bg-border/50 mt-0 mb-3" />
 
             <FeedErrorBoundary>
               {isLoading ? (
@@ -157,7 +159,7 @@ export default function Index() {
         </div>
 
         {/* Right Sidebar — Phase 9: Flush Alignment */}
-        <aside className="hidden xl:block w-[312px] h-fit sticky top-0 z-20 py-4">
+        <aside className="hidden xl:block w-[350px] h-fit sticky top-0 z-20 py-4">
           <ScrollArea className="h-[calc(100vh-64px)] w-full rounded-xl border border-border bg-[#F6F8F9] dark:bg-card shadow-sm">
             <div className="p-4 space-y-6">
               <HomeSidebar userId={user?.id} />

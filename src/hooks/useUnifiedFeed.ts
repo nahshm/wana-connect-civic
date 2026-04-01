@@ -18,8 +18,13 @@ const SORT_MAP: Record<string, string> = {
   rising: 'rising',
 };
 
+export interface UnifiedFeedPage {
+  items: FeedItem[];
+  hasMore: boolean;
+}
+
 export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot' }: UseUnifiedFeedOptions = {}) => {
-  return useInfiniteQuery({
+  return useInfiniteQuery<UnifiedFeedPage>({
     queryKey: ['unified-feed', { userId, communityId, sortBy }],
     queryFn: async ({ pageParam = 0 }) => {
       const offset = pageParam * limit;
@@ -30,6 +35,7 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
         p_limit_count: limit,
         p_offset_count: offset,
         p_sort_by: SORT_MAP[sortBy] || 'newest',
+        p_verified_only: false,
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,11 +95,14 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
         }
       }
 
-      return items;
+      // Determine if there are more items based on the raw response length BEFORE client-side filtering
+      const hasMore = ((data as any[]) || []).length === limit;
+
+      return { items, hasMore };
     },
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < limit) return undefined;
+    getNextPageParam: (lastPage: UnifiedFeedPage, allPages) => {
+      if (!lastPage.hasMore) return undefined;
       return allPages.length;
     },
     staleTime: 1000 * 60 * 5,

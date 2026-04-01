@@ -6,10 +6,30 @@
 //   1. Preferred: <SecureVideo bucket="media" path="user/video.mp4" />
 //   2. Legacy / external: <SecureVideo src="https://..." />
 
-import { forwardRef, useCallback } from 'react';
+import { forwardRef, useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useMediaUrl } from '@/lib/secureMedia';
 import type { PrivateBucket } from '@/lib/secureMedia';
+
+// ─── Global Playback Mutex ────────────────────────────────────────────────────
+// Ensures only one video plays at a time across the entire application interface
+const activeVideoElements = new Set<HTMLVideoElement>();
+
+function registerVideo(video: HTMLVideoElement) {
+  activeVideoElements.add(video);
+}
+
+function unregisterVideo(video: HTMLVideoElement) {
+  activeVideoElements.delete(video);
+}
+
+function pauseOtherVideos(currentVideo: HTMLVideoElement) {
+  activeVideoElements.forEach((video) => {
+    if (video !== currentVideo && !video.paused) {
+      video.pause();
+    }
+  });
+}
 
 // ─── Public props (discriminated union) ──────────────────────────────────────
 
@@ -65,8 +85,24 @@ const VideoElement = forwardRef<HTMLVideoElement, InternalVideoProps>(
       onPause,
       onEnded,
     },
-    ref
+    forwardedRef
   ) {
+    const localRef = useRef<HTMLVideoElement | null>(null);
+    const wasPlayingScroll = useRef<boolean>(false);
+    const wasPlayingTab = useRef<boolean>(false);
+
+    const setRefs = useCallback(
+      (node: HTMLVideoElement | null) => {
+        localRef.current = node;
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(node);
+        } else if (forwardedRef) {
+          forwardedRef.current = node;
+        }
+      },
+      [forwardedRef]
+    );
+
     // Block Ctrl+S / Cmd+S only when the user is interacting with the video element
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && ['s', 'u'].includes(e.key.toLowerCase())) {
@@ -74,11 +110,71 @@ const VideoElement = forwardRef<HTMLVideoElement, InternalVideoProps>(
       }
     }, []);
 
+    // Pause video when it scrolls out of view or tab loses focus
+    useEffect(() => {
+      const videoElement = localRef.current;
+      if (!videoElement || !resolvedSrc) return;
+
+      // 1. Mutex registration
+      registerVideo(videoElement);
+      const handlePlay = () => {
+        pauseOtherVideos(videoElement);
+      };
+      videoElement.addEventListener('play', handlePlay);
+
+      // 2. Observer for Scroll Auto-Resume
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+              if (!videoElement.paused) {
+                wasPlayingScroll.current = true;
+                videoElement.pause();
+              }
+            } else if (entry.isIntersecting) {
+              if (wasPlayingScroll.current) {
+                wasPlayingScroll.current = false;
+                videoElement.play().catch(console.error);
+              }
+            }
+          });
+        },
+        { threshold: 0.1 } // Trigger when less than 10% is visible
+      );
+
+      observer.observe(videoElement);
+
+      // 3. Tab Visibility Auto-Resume
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          if (!videoElement.paused) {
+            wasPlayingTab.current = true;
+            videoElement.pause();
+          }
+        } else {
+          if (wasPlayingTab.current) {
+            wasPlayingTab.current = false;
+            videoElement.play().catch(console.error);
+          }
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        videoElement.removeEventListener('play', handlePlay);
+        unregisterVideo(videoElement);
+        observer.unobserve(videoElement);
+        observer.disconnect();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }, [resolvedSrc]);
+
     return (
       <div className={cn('relative', isLoading && 'media-loading', className)}>
         {resolvedSrc && (
           <video
-            ref={ref}
+            ref={setRefs}
             src={resolvedSrc}
             poster={poster}
             className="block w-full h-full"
@@ -90,6 +186,7 @@ const VideoElement = forwardRef<HTMLVideoElement, InternalVideoProps>(
             onPlay={onPlay}
             onPause={onPause}
             onEnded={onEnded}
+            preload="metadata" // Save bandwidth by only prefetching metadata layer initially
             controlsList="nodownload"
             disablePictureInPicture
             onContextMenu={(e) => e.preventDefault()}

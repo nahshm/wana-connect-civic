@@ -12,6 +12,7 @@ interface GlassLightboxProps {
 
 export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProps) {
   const [zoom, setZoom] = React.useState(1);
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const finalSrc = useFetchBlobUrl(src || '');
 
   const handleKey = useCallback((e: KeyboardEvent) => {
@@ -37,42 +38,24 @@ export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProp
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-xl"
           onClick={onClose}
-          style={{
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-          }}
         >
-          {/* Glass container */}
+          {/* Controls overlay */}
+          <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/60 to-transparent z-20 pointer-events-none" />
+
+          {/* Glass container - Full Screen */}
           <motion.div
             key="lightbox-panel"
-            initial={{ scale: 0.88, opacity: 0, y: 24 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.88, opacity: 0, y: 24 }}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            className="relative flex flex-col items-center justify-center w-full h-full"
+            className="absolute inset-0 flex flex-col w-full h-full overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            {/* Glass frame */}
-            <div
-              className="absolute inset-0 rounded-2xl pointer-events-none"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)',
-              }}
-            />
-
             {/* Top control bar */}
-            <div
-              className="relative flex items-center justify-between w-full px-4 py-3 rounded-t-2xl gap-4"
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-              }}
-            >
+            <div className="relative z-30 flex items-center justify-between w-full px-4 sm:px-6 py-4 gap-4">
               <span className="text-xs text-white/50 truncate max-w-[200px]">{alt}</span>
 
               <div className="flex items-center gap-1 ml-auto">
@@ -124,22 +107,26 @@ export function GlassLightbox({ src, alt = 'Image', onClose }: GlassLightboxProp
               </div>
             </div>
 
-            {/* Image area */}
-            <div className="relative overflow-auto rounded-b-2xl"
-              style={{ maxHeight: 'calc(90vh - 52px)', maxWidth: '92vw' }}
+            {/* Image panning area */}
+            <div 
+              ref={containerRef}
+              className="relative flex-1 w-full h-full flex items-center justify-center overflow-hidden"
             >
               <motion.img
                 src={finalSrc || (src || '')}
                 alt={alt}
                 animate={{ scale: zoom }}
                 transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-                className="block rounded-b-2xl select-none"
+                drag={zoom > 1}
+                dragConstraints={containerRef}
+                dragElastic={0.1}
+                whileDrag={{ cursor: 'grabbing' }}
+                className="w-full h-full select-none"
                 style={{
-                  maxWidth: '88vw',
-                  maxHeight: 'calc(88vh - 52px)',
                   objectFit: 'contain',
-                  transformOrigin: 'center center',
-                  cursor: zoom > 1 ? 'zoom-out' : 'zoom-in',
+                  cursor: zoom > 1 ? 'grab' : 'zoom-in',
+                  // Ensure framer-motion recalculates layout to allow dragging
+                  touchAction: zoom > 1 ? 'none' : 'auto', 
                 }}
                 onClick={() => setZoom(z => z > 1 ? 1 : 2)}
                 draggable={false}

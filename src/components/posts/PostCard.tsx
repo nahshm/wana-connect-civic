@@ -21,9 +21,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useRef, useEffect } from 'react';
 import SentimentBar from '@/components/verification/SentimentBar';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
+import { ReportPostDialog } from './ReportPostDialog';
 import { SecureImage } from '@/components/security/SecureImage';
 import { SecureVideo } from '@/components/security/SecureVideo';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { FEED_QUERY_KEYS } from '@/constants/feed';
 
 interface PostCardProps {
@@ -64,6 +65,7 @@ export const PostCard = ({
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [isFollowed, setIsFollowed] = useState(post.isFollowed || false);
   const [showSavedTooltip, setShowSavedTooltip] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Sync state if post props update
@@ -260,24 +262,13 @@ export const PostCard = ({
     }
   };
 
-  const handleReport = async () => {
+  const handleReport = () => {
     if (!user) {
       authModal.open('login');
       return;
     }
     
-    // In a real implementation this would open a dialog to select reason
-    // For Phase 1 we implement the structural insert
-    toast({ title: 'Report submitted', description: 'Thank you for keeping WanaIQ safe.' });
-    try {
-      await supabase.from('post_reports').insert({
-        reporter_id: user.id,
-        post_id: post.id,
-        reason: 'User report from feed'
-      });
-    } catch (error) {
-      console.error('Failed to report:', error);
-    }
+    setIsReportDialogOpen(true);
   };
 
   const handleShare = async () => {
@@ -346,53 +337,89 @@ export const PostCard = ({
     return `/post/${post.id}`;
   };
 
-  const handleDelete = async () => {
-    if (!user || !isAuthor) return;
-    setIsDeleting(true);
-    try {
-      // Delete associated media first
-      if (post.media && post.media.length > 0) {
-        const {
-          error: mediaError
-        } = await supabase.from('post_media').delete().eq('post_id', post.id);
-        if (mediaError) {
-          console.error('Error deleting media:', mediaError);
-        }
+  // Delete mutation for optimistic UI
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !isAuthor) return;
 
-        // Delete files from storage
+      // 1. Delete associated media
+      if (post.media && post.media.length > 0) {
+        const { error: mediaError } = await supabase
+          .from('post_media')
+          .delete()
+          .eq('post_id', post.id);
+        
+        if (mediaError) console.error('Error deleting media metadata:', mediaError);
+
+        // Files from storage (best effort, no rollback for these)
         for (const media of post.media) {
           await supabase.storage.from('media').remove([media.file_path]);
         }
       }
 
-      // Delete the post
-      const {
-        error
-      } = await supabase.from('posts').delete().eq('id', post.id).eq('author_id', user.id); // Extra safety check
+      // 2. Delete the post
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('author_id', user.id);
 
       if (error) throw error;
-      toast({
-        title: "Post deleted",
-        description: "Your post has been successfully deleted."
+      return true;
+    },
+    onMutate: async () => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['unified-feed'] });
+
+      // Snapshot the previous value
+      const previousFeeds = queryClient.getQueryData(['unified-feed']);
+
+      // Optimistically update to the new value
+      queryClient.setQueriesData({ queryKey: ['unified-feed'] }, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            items: page.items.filter((item: any) => item.id !== post.id)
+          }))
+        };
       });
 
-      // Navigate away if on post detail page
-      if (isDetailView) {
-        navigate('/');
-      } else {
-        // Trigger a refresh of the parent component
-        window.location.reload();
+      return { previousFeeds };
+    },
+    onError: (err, variables, context: any) => {
+      // Rollback if failed
+      if (context?.previousFeeds) {
+        queryClient.setQueriesData({ queryKey: ['unified-feed'] }, context.previousFeeds);
       }
-    } catch (error) {
-      console.error('Error deleting post:', error);
+      
+      console.error('Error deleting post:', err);
       toast({
         title: "Error",
         description: "Failed to delete post. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsDeleting(false);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully deleted."
+      });
+      
+      if (isDetailView) {
+        navigate('/');
+      }
+    },
+    onSettled: () => {
+      // Always refetch in the background to ensure sync
+      queryClient.invalidateQueries({ queryKey: ['unified-feed'] });
     }
+  });
+
+  const handleDelete = () => {
+    if (!user || !isAuthor) return;
+    deleteMutation.mutate();
   };
 
   // Auto-pause videos when scrolled out of view OR tab is hidden
@@ -606,26 +633,15 @@ export const PostCard = ({
                 />
               ) : post.media[0].file_type?.startsWith('video/') ? (
                 <div
-                  className="relative w-auto h-auto max-w-full max-h-[500px] flex items-center justify-center"
-                  onClick={() => toggleVideoPlay(videoRef.current, setIsPlaying)}
+                  className="relative w-full max-h-[500px] flex items-center justify-center rounded-xl overflow-hidden"
                 >
                   <SecureVideo
-                    ref={videoRef}
                     bucket="media"
                     path={post.media[0].file_path}
-                    className="block w-auto h-auto max-w-full max-h-[500px] object-contain rounded-xl"
+                    className="w-full flex justify-center [&>video]:w-auto [&>video]:max-w-full [&>video]:max-h-[500px] [&>video]:object-contain bg-black/5"
                     muted
-                    controls={false}
+                    controls={true}
                   />
-                  {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-                      <div className="bg-white/90 rounded-full p-4 shadow-lg backdrop-blur-sm">
-                        <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : null}
             </div>
@@ -643,27 +659,14 @@ export const PostCard = ({
                     onClick={(src) => setLightboxSrc(src)}
                   />
                 ) : media.file_type?.startsWith('video/') ? (
-                  <div
-                    className="relative cursor-pointer h-32"
-                    onClick={() => toggleVideoPlay(secondVideoRef.current, setIsSecondPlaying)}
-                  >
+                  <div className="relative h-32">
                     <SecureVideo
-                      ref={index === 0 ? secondVideoRef : undefined}
                       bucket="media"
                       path={media.file_path}
-                      className="w-full h-32 object-cover rounded-xl"
+                      className="w-full h-32 rounded-xl overflow-hidden [&>video]:w-full [&>video]:h-full [&>video]:object-cover"
                       muted
-                      controls={false}
+                      controls={true}
                     />
-                    {index === 0 && !isSecondPlaying && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                        <div className="bg-white/90 rounded-full p-2">
-                          <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ) : null}
               </div>
@@ -844,8 +847,11 @@ export const PostCard = ({
             <span>•</span>
             <span>by</span>
             <Link to={buildProfileLink({ username: post.author.username || post.author.displayName || 'anonymous', is_verified: post.author.isVerified, official_position: post.author.officialPosition })} className="hover:underline">
-              u/{post.author.displayName || post.author.username || 'Anonymous'}
+              {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
+            {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90 ml-0.5" />}
+            {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90 ml-0.5" />}
+            {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90 ml-0.5" />}
             <span>•</span>
             <span>{formatPostDate(post.createdAt)} ago</span>
           </div>
@@ -913,11 +919,11 @@ export const PostCard = ({
   return (
     <>
       <article className={cn(
-        "hover:bg-muted/[0.04] transition-all relative px-2 py-0.5 border-b border-neutral-300 dark:border-neutral-700"
+        "hover:bg-[#F6F8F9] dark:hover:bg-muted/10 transition-colors relative px-2 pt-1 pb-0.5 border-b border-neutral-300 dark:border-neutral-700 rounded-lg group/article"
       )}>
         <div className="flex flex-col">
           {/* Main Content */}
-          <div className="flex-1 min-w-0 pt-3 pb-2 px-1">
+          <div className="flex-1 min-w-0 pt-2 pb-1 px-1">
           {/* Clean Compact Header */}
           <div className="flex items-start gap-2 mb-2">
             {/* Left: Avatar - smaller like Reddit */}
@@ -948,17 +954,21 @@ export const PostCard = ({
                     
                     {/* Verified badges */}
                     {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90" />}
                     
                     {/* Popular suggestion */}
                     <span className="hidden sm:inline opacity-80">• Suggested</span>
                   </div>
                 </div> : (/* User Post Layout */
             <div className="flex flex-col gap-0.5 pt-0.5">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 pt-0.5">
                     <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
-                    {post.author.isVerified && <VerifiedBadge size="xs" className="scale-90" />}
+                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90" />}
                   </div>
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground leading-none">
                     <span>{formatPostDate(post.createdAt)} ago</span>
@@ -1123,6 +1133,11 @@ export const PostCard = ({
       </div>
     </article>
       <GlassLightbox src={lightboxSrc} alt="Post image" onClose={() => setLightboxSrc(null)} />
+      <ReportPostDialog 
+        postId={post.id}
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+      />
     </>
   );
 };

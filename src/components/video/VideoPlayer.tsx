@@ -325,10 +325,23 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
                 />
             )}
 
-            {/* Loading spinner */}
+            {/* Loading spinner - More subtle, especially if thumbnail is present */}
             {(!isLoaded || isBuffering) && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
-                    <Loader2 className="h-10 w-10 text-white animate-spin" />
+                <div className={cn(
+                    "absolute inset-0 flex items-center justify-center z-20 transition-all duration-300",
+                    isBuffering && hasStarted ? "bg-black/20" : "bg-black/40"
+                )}>
+                    {(!thumbnailUrl || isBuffering) && (
+                        <div className="flex flex-col items-center gap-2">
+                            <Loader2 className={cn(
+                                "text-white animate-spin opacity-80",
+                                isBuffering && hasStarted ? "h-6 w-6" : "h-10 w-10"
+                            )} />
+                            {isBuffering && !hasStarted && (
+                                <span className="text-white/60 text-[10px] font-medium uppercase tracking-widest">Buffering</span>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -346,103 +359,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
                 loop={loop}
                 playsInline
                 preload={isLoaded ? getPreloadStrategy() : 'none'}
-                onClick={togglePlay}
+                controls={true}
                 crossOrigin="anonymous"
             />
-
-            {/* Play/Pause Overlay */}
-            {!playing && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity">
-                    <Button
-                        size="lg"
-                        variant="ghost"
-                        className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30"
-                        onClick={togglePlay}
-                    >
-                        <Play className="h-8 w-8 text-white fill-white" />
-                    </Button>
-                </div>
-            )}
-
-            {/* Controls */}
-            {showInternalControls && (
-                <div
-                    className={cn(
-                        'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 transition-opacity',
-                        showControls || !playing ? 'opacity-100' : 'opacity-0'
-                    )}
-                >
-                {/* Progress Bar */}
-                <Slider
-                    value={[currentTime]}
-                    max={duration}
-                    step={0.1}
-                    onValueChange={handleSeek}
-                    className="mb-3 cursor-pointer"
-                />
-
-                <div className="flex items-center justify-between text-white text-sm">
-                    <div className="flex items-center gap-2">
-                        {/* Play/Pause */}
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 hover:bg-white/20"
-                            onClick={togglePlay}
-                        >
-                            {playing ? (
-                                <Pause className="h-4 w-4" />
-                            ) : (
-                                <Play className="h-4 w-4" />
-                            )}
-                        </Button>
-
-                        {/* Volume */}
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 hover:bg-white/20"
-                                onClick={toggleMute}
-                            >
-                                {isMuted || volume === 0 ? (
-                                    <VolumeX className="h-4 w-4" />
-                                ) : (
-                                    <Volume2 className="h-4 w-4" />
-                                )}
-                            </Button>
-
-                            <Slider
-                                value={[volume]}
-                                max={1}
-                                step={0.1}
-                                onValueChange={handleVolumeChange}
-                                className="w-20 hidden sm:block"
-                            />
-                        </div>
-
-                        {/* Time */}
-                        <span className="text-xs font-mono">
-                            {formatTime(currentTime)} / {formatTime(duration)}
-                        </span>
-                    </div>
-
-                    {/* Fullscreen */}
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 hover:bg-white/20"
-                        onClick={toggleFullscreen}
-                    >
-                        {isFullscreen ? (
-                            <Minimize className="h-4 w-4" />
-                        ) : (
-                            <Maximize className="h-4 w-4" />
-                        )}
-                    </Button>
-                </div>
-            </div>
-            )}
         </div>
     )
 })

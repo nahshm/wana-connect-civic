@@ -38,6 +38,32 @@ export type PrivateBucket = typeof PRIVATE_BUCKETS[number];
  * Does NOT embed the JWT — the consumer must add the Authorization header.
  */
 export function getMediaUrl(bucket: PrivateBucket, path: string): string {
+  if (!path) return '';
+
+  // If the path is a full Supabase URL, extract the relative path and bucket info
+  // to ensure it still goes through our proxy/fallback logic correctly.
+  if (path.includes('.supabase.co/storage/v1/object/')) {
+    const prefixes = [
+      `/storage/v1/object/public/${bucket}/`,
+      `/storage/v1/object/authenticated/${bucket}/`,
+      `/storage/v1/object/sign/${bucket}/`,
+    ];
+
+    for (const prefix of prefixes) {
+      if (path.includes(prefix)) {
+        const parts = path.split(prefix);
+        if (parts.length > 1) {
+          // Extract the path after the bucket prefix and remove any query parameters
+          path = parts[1].split('?')[0];
+          break;
+        }
+      }
+    }
+  } else if (path.startsWith('http')) {
+    // For non-Supabase external URLs, return as-is
+    return path;
+  }
+
   if (!WORKER_BASE) {
     // Fallback during local dev when worker isn't running
     return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;

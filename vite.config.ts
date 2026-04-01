@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: false,
+      injectRegister: 'auto',
       includeAssets: ['favicon.png', 'lovable-uploads/**/*'],
       manifest: {
         name: 'ama - Voices United, Actions Amplified',
@@ -41,16 +41,22 @@ export default defineConfig(({ mode }) => ({
           },
         ],
       },
+      devOptions: {
+        enabled: true,
+        type: 'module',
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/~oauth/, /^\/api/],
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/rest\/v1\/.*/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-api',
+              cacheName: 'supabase-api-v2',
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 300,
@@ -58,15 +64,21 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: /^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/storage\/.*/i,
+            // Cache images from Supabase storage
+            urlPattern: /^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/storage\/v1\/object\/public\/.*\.(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'supabase-storage',
+              cacheName: 'supabase-storage-images-v2',
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 7,
               },
             },
+          },
+          {
+            // Do NOT cache videos from Supabase storage to support range requests and avoid stale 400s
+            urlPattern: /^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/storage\/v1\/object\/public\/.*\.(mp4|webm|ogg|mov|m4v)$/i,
+            handler: 'NetworkOnly',
           },
         ],
       },

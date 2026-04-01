@@ -190,7 +190,7 @@ export const HomeSidebar = ({ userId }: HomeSidebarProps) => {
                       <span className="text-muted-foreground/40">•</span>
                       <span>{formatDistanceToNowStrict(new Date(post.created_at), { addSuffix: false })} ago</span>
                     </div>
-                    <p className="text-[13.5px] font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-civic-blue transition-colors">
+                    <p className="text-[13.5px] font-semibold text-muted-foreground line-clamp-2 leading-tight group-hover:text-civic-blue transition-colors">
                       {post.title}
                     </p>
                     <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground font-medium">

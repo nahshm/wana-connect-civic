@@ -65,7 +65,7 @@ const CommunityUnifiedFeed: React.FC<{ communityId: string; communityName?: stri
         },
     });
 
-    const feedItems = data?.pages.flat() ?? [];
+    const feedItems = data?.pages.flatMap(page => page.items) ?? [];
 
     return (
         <div className="p-4 md:p-6">

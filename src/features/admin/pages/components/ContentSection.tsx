@@ -26,12 +26,16 @@ export default function ContentSection() {
     <Tabs defaultValue="moderation" className="space-y-6">
       <TabsList>
         <TabsTrigger value="moderation" className="gap-2"><Flag className="w-4 h-4" />Moderation Queue</TabsTrigger>
+        <TabsTrigger value="social-reports" className="gap-2"><MessageSquare className="w-4 h-4" />User Reports</TabsTrigger>
+        <TabsTrigger value="manage-posts" className="gap-2"><Search className="w-4 h-4" />Manage Posts</TabsTrigger>
         <TabsTrigger value="incidents" className="gap-2"><Flame className="w-4 h-4" />Incidents</TabsTrigger>
         <TabsTrigger value="reports" className="gap-2"><ShieldAlert className="w-4 h-4" />Anonymous Reports</TabsTrigger>
         <TabsTrigger value="crisis" className="gap-2"><AlertTriangle className="w-4 h-4" />Crisis</TabsTrigger>
       </TabsList>
 
       <TabsContent value="moderation"><ModerationQueueSubTab /></TabsContent>
+      <TabsContent value="social-reports"><UserReportsSubTab /></TabsContent>
+      <TabsContent value="manage-posts"><ManagePostsSubTab /></TabsContent>
       <TabsContent value="incidents"><IncidentsSubTab /></TabsContent>
       <TabsContent value="reports"><AnonymousReportsSubTab /></TabsContent>
       <TabsContent value="crisis"><CrisisSubTab /></TabsContent>
@@ -438,13 +442,39 @@ function ModerationQueueSubTab() {
 
   const handleAction = async (flagId: string, action: 'approved' | 'removed' | 'escalated') => {
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
+    const flag = flags?.find(f => f.id === flagId);
+    if (!flag) return;
+
+    // Update flag status
+    const { error: flagError } = await supabase
       .from('content_flags')
       .update({ status: action, reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
       .eq('id', flagId);
 
-    if (error) toast.error('Action failed');
-    else { toast.success(`Flag marked as ${action}`); refetch(); }
+    if (flagError) {
+      toast.error('Action failed');
+      return;
+    }
+
+    // If removed, globally hide the content
+    if (action === 'removed') {
+      if (flag.post_id) {
+        const { error: postError } = await supabase.from('posts').update({ 
+          is_hidden: true, 
+          hidden_reason: `Moderation verdict: ${flag.verdict || 'Community standard violation'}` 
+        } as any).eq('id', flag.post_id);
+        if (postError) toast.error('Failed to hide post globally');
+      } else if (flag.comment_id) {
+        const { error: commentError } = await supabase.from('comments').update({ 
+          is_hidden: true, 
+          hidden_reason: `Moderation verdict: ${flag.verdict || 'Community standard violation'}` 
+        } as any).eq('id', flag.comment_id);
+        if (commentError) toast.error('Failed to hide comment globally');
+      }
+    }
+
+    toast.success(`Flag marked as ${action}${action === 'removed' ? ' and content hidden globally' : ''}`);
+    refetch();
   };
 
   return (
@@ -1200,6 +1230,263 @@ function CrisisSubTab() {
               </Card>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── User Reports ──────────────────────────────────────────────────────────────
+function UserReportsSubTab() {
+  const [filter, setFilter] = useState<'pending' | 'resolved' | 'all'>('pending');
+  const queryClient = useQueryClient();
+
+  const { data: reports, isLoading, refetch } = useQuery({
+    queryKey: ['admin-post-reports', filter],
+    queryFn: async () => {
+      let q = supabase
+        .from('post_reports')
+        .select(`
+          *,
+          reporter:profiles!post_reports_reporter_id_fkey(display_name, username),
+          post:posts(id, title, content, author:profiles(display_name, username))
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (filter === 'pending') q = q.eq('status', 'pending');
+      else if (filter === 'resolved') q = q.neq('status', 'pending');
+
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const handleAction = async (reportId: string, action: 'resolved' | 'dismissed', hidePost = false) => {
+    const report = reports?.find(r => r.id === reportId);
+    if (!report) return;
+
+    const { error: reportError } = await supabase
+      .from('post_reports')
+      .update({ status: action } as any)
+      .eq('id', reportId);
+
+    if (reportError) {
+      toast.error('Failed to update report');
+      return;
+    }
+
+    if (hidePost && report.post_id) {
+      const { error: postError } = await supabase
+        .from('posts')
+        .update({ is_hidden: true, hidden_reason: `User report: ${report.reason}` } as any)
+        .eq('id', report.post_id);
+      
+      if (postError) toast.error('Failed to hide post');
+      else toast.success('Report resolved and post hidden');
+    } else {
+      toast.success(`Report marked as ${action}`);
+    }
+
+    refetch();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">User-Reported Content</h3>
+        <div className="flex gap-2">
+          {(['pending', 'resolved', 'all'] as const).map(f => (
+            <Button key={f} size="sm" variant={filter === f ? 'default' : 'outline'} onClick={() => setFilter(f)} className="capitalize">{f}</Button>
+          ))}
+          <Button size="sm" variant="ghost" onClick={() => refetch()}><RefreshCw className="w-4 h-4" /></Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+      ) : !reports?.length ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500" />
+            No reports in queue.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {reports.map((report: any) => (
+            <Card key={report.id}>
+              <CardContent className="p-4">
+                <div className="flex justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="destructive" className="text-xs">{report.reason}</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Reported by {report.reporter?.display_name || report.reporter?.username || 'Unknown'} · {new Date(report.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="p-3 border rounded bg-muted/20 text-sm">
+                      <div className="font-semibold mb-1">{report.post?.title}</div>
+                      <p className="line-clamp-2 text-muted-foreground">{report.post?.content}</p>
+                      <div className="text-xs mt-2 text-primary">By {report.post?.author?.display_name || report.post?.author?.username}</div>
+                    </div>
+                    {report.details && (
+                      <div className="text-xs italic text-muted-foreground">"{report.details}"</div>
+                    )}
+                  </div>
+                  {report.status === 'pending' && (
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <Button size="sm" variant="destructive" onClick={() => handleAction(report.id, 'resolved', true)}>
+                        <XCircle className="w-3 h-3 mr-1" />Hide & Resolve
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleAction(report.id, 'resolved')}>
+                        <CheckCircle className="w-3 h-3 mr-1" />Mark Resolved
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Manage Posts ──────────────────────────────────────────────────────────────
+function ManagePostsSubTab() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'visible' | 'hidden'>('all');
+  const queryClient = useQueryClient();
+
+  const { data: posts, isLoading, refetch } = useQuery({
+    queryKey: ['admin-manage-posts', searchTerm, statusFilter],
+    queryFn: async () => {
+      let q = supabase
+        .from('posts')
+        .select(`
+          id, title, content, created_at, is_hidden, hidden_reason,
+          author:profiles(display_name, username)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (searchTerm) q = q.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+      if (statusFilter === 'visible') q = q.eq('is_hidden', false);
+      if (statusFilter === 'hidden') q = q.eq('is_hidden', true);
+
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const toggleHide = async (postId: string, currentHidden: boolean) => {
+    let reason = '';
+    if (!currentHidden) {
+      reason = window.prompt('Enter reason for hiding this post:', 'Administrative action') || 'Administrative action';
+    }
+
+    const { error } = await supabase
+      .from('posts')
+      .update({ is_hidden: !currentHidden, hidden_reason: !currentHidden ? reason : null } as any)
+      .eq('id', postId);
+
+    if (error) toast.error('Failed to update post visibility');
+    else {
+      toast.success(currentHidden ? 'Post restored' : 'Post hidden globally');
+      refetch();
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h3 className="text-lg font-semibold">Post Management</h3>
+        <div className="flex items-center gap-2 flex-1 max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by title or content..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="visible">Visible Only</SelectItem>
+              <SelectItem value="hidden">Hidden Only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+      ) : !posts?.length ? (
+        <p className="text-center py-12 text-muted-foreground">No posts found.</p>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted text-muted-foreground font-medium border-b">
+              <tr>
+                <th className="p-3">Title</th>
+                <th className="p-3">Author</th>
+                <th className="p-3">Date</th>
+                <th className="p-3">Status</th>
+                <th className="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {posts.map((post: any) => (
+                <tr key={post.id} className={post.is_hidden ? 'bg-muted/30' : ''}>
+                  <td className="p-3 align-top">
+                    <div className="font-medium">{post.title || 'Untitled'}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-1">{post.id}</div>
+                  </td>
+                  <td className="p-3 align-top">
+                    {post.author?.display_name || post.author?.username || 'Unknown'}
+                  </td>
+                  <td className="p-3 align-top">
+                    {new Date(post.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="p-3 align-top">
+                    {post.is_hidden ? (
+                      <div className="space-y-1">
+                        <Badge variant="destructive" className="text-[10px]">Hidden</Badge>
+                        {post.hidden_reason && <div className="text-[10px] text-muted-foreground italic">"{post.hidden_reason}"</div>}
+                      </div>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 hover:bg-green-100">Live</Badge>
+                    )}
+                  </td>
+                  <td className="p-3 text-right align-top">
+                    <div className="flex flex-col gap-1">
+                      <Button 
+                        size="sm" 
+                        variant={post.is_hidden ? 'outline' : 'destructive'}
+                        onClick={() => toggleHide(post.id, post.is_hidden)}
+                        className="h-7 text-xs"
+                      >
+                        {post.is_hidden ? (
+                          <><CheckCircle className="w-3 h-3 mr-1" />Restore</>
+                        ) : (
+                          <><Eye className="w-3 h-3 mr-1" />Hide</>
+                        )}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

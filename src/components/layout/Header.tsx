@@ -60,7 +60,6 @@ export const Header = () => {
           className="h-7 w-auto sm:h-8"
           width={150}
           height={49}
-          fetchPriority="high"
           src="/lovable-uploads/543b08bd-f3bc-4ee3-878d-13419d22452f.png" />
       </Link>
 

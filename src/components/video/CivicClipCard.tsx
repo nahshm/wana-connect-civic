@@ -14,6 +14,7 @@ import { CivicClipAccountabilityBadge } from './CivicClipAccountabilityBadge'
 import { CivicClipProgressIndicator } from './CivicClipProgressIndicator'
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
 import { buildProfileLink } from '@/lib/profile-links'
+import { useMediaUrl } from '@/lib/secureMedia'
 import { cn } from '@/lib/utils'
 
 interface PostAuthor {
@@ -70,6 +71,8 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
     const [showVotePop, setShowVotePop] = useState(false)
     const [tapCount, setTapCount] = useState(0)
     const tapTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+    const resolvedVideoUrl = useMediaUrl('media', clip.video_url)
 
     const post = clip.post
     const author = post?.author
@@ -234,7 +237,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                     <div className="absolute inset-0 z-0 bg-zinc-900">
                         <VideoPlayer
                             ref={videoPlayerRef}
-                            videoUrl={clip.video_url}
+                            videoUrl={resolvedVideoUrl || ''}
                             thumbnailUrl={clip.thumbnail_url}
                             autoPlay={isActive}
                             isActive={isActive}

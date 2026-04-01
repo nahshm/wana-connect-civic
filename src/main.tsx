@@ -20,12 +20,6 @@ initGlobalErrorHandling();
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Register service worker after page load (non-blocking)
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' });
-  });
-}
 
 // Load Google Fonts after page load (non-blocking)
 window.addEventListener('load', () => {
