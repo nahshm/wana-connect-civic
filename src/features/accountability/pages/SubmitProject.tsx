@@ -298,7 +298,7 @@ const SubmitProject = () => {
         setDocumentFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const uploadFiles = async (files: File[], bucket: 'project-media' | 'project-documents') => {
+    const uploadFiles = async (files: File[], bucket: 'project-media') => {
         const urls: string[] = [];
 
         for (const file of files) {
