@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { getMediaUrl } from '@/lib/secureMedia';
 import {
   Popover,
   PopoverContent,
@@ -89,9 +90,7 @@ export function CommentInput({
         continue;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('comment-media')
-        .getPublicUrl(path);
+      const url = getMediaUrl('comment-media', path);
 
       uploaded.push({
         id: crypto.randomUUID(),
@@ -99,7 +98,7 @@ export function CommentInput({
         filename: file.name,
         fileType: file.type,
         fileSize: file.size,
-        url: urlData.publicUrl,
+        url: url,
       });
     }
     return uploaded;
