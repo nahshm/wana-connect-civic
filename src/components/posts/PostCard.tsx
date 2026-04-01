@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useRef, useEffect } from 'react';
 import SentimentBar from '@/components/verification/SentimentBar';
 import { GlassLightbox } from '@/components/ui/GlassLightbox';
+import { ReportPostDialog } from './ReportPostDialog';
 import { SecureImage } from '@/components/security/SecureImage';
 import { SecureVideo } from '@/components/security/SecureVideo';
 import { useQueryClient } from '@tanstack/react-query';
@@ -64,6 +65,7 @@ export const PostCard = ({
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [isFollowed, setIsFollowed] = useState(post.isFollowed || false);
   const [showSavedTooltip, setShowSavedTooltip] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Sync state if post props update
@@ -260,24 +262,13 @@ export const PostCard = ({
     }
   };
 
-  const handleReport = async () => {
+  const handleReport = () => {
     if (!user) {
       authModal.open('login');
       return;
     }
     
-    // In a real implementation this would open a dialog to select reason
-    // For Phase 1 we implement the structural insert
-    toast({ title: 'Report submitted', description: 'Thank you for keeping WanaIQ safe.' });
-    try {
-      await supabase.from('post_reports').insert({
-        reporter_id: user.id,
-        post_id: post.id,
-        reason: 'User report from feed'
-      });
-    } catch (error) {
-      console.error('Failed to report:', error);
-    }
+    setIsReportDialogOpen(true);
   };
 
   const handleShare = async () => {
@@ -844,8 +835,11 @@ export const PostCard = ({
             <span>•</span>
             <span>by</span>
             <Link to={buildProfileLink({ username: post.author.username || post.author.displayName || 'anonymous', is_verified: post.author.isVerified, official_position: post.author.officialPosition })} className="hover:underline">
-              u/{post.author.displayName || post.author.username || 'Anonymous'}
+              {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
             </Link>
+            {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90 ml-0.5" />}
+            {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90 ml-0.5" />}
+            {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90 ml-0.5" />}
             <span>•</span>
             <span>{formatPostDate(post.createdAt)} ago</span>
           </div>
@@ -948,17 +942,21 @@ export const PostCard = ({
                     
                     {/* Verified badges */}
                     {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90" />}
                     
                     {/* Popular suggestion */}
                     <span className="hidden sm:inline opacity-80">• Suggested</span>
                   </div>
                 </div> : (/* User Post Layout */
             <div className="flex flex-col gap-0.5 pt-0.5">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 pt-0.5">
                     <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
-                    {post.author.isVerified && <VerifiedBadge size="xs" className="scale-90" />}
+                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90" />}
+                    {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90" />}
                   </div>
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground leading-none">
                     <span>{formatPostDate(post.createdAt)} ago</span>
@@ -1123,6 +1121,11 @@ export const PostCard = ({
       </div>
     </article>
       <GlassLightbox src={lightboxSrc} alt="Post image" onClose={() => setLightboxSrc(null)} />
+      <ReportPostDialog 
+        postId={post.id}
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+      />
     </>
   );
 };

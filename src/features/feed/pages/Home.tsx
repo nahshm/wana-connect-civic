@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SecureFeed } from '@/components/security/SecureFeed';
-import { FeedSortBar } from '@/components/feed/FeedSortBar';
+import { FeedHeader, FeedFilter } from '@/components/feed/FeedHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,8 @@ export default function Index() {
 
   const [sortBy, setSortBy] = useState<'hot' | 'new' | 'top' | 'rising'>('hot');
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
+  const [filterBy, setFilterBy] = useState<FeedFilter>('all');
+  const [isVerifiedOnly, setIsVerifiedOnly] = useState(false);
   const [memberCommunityIds, setMemberCommunityIds] = useState<Set<string>>(new Set());
 
   const {
@@ -32,7 +34,8 @@ export default function Index() {
   } = useUnifiedFeed({
     userId: user?.id ?? undefined,
     limit: 10,
-    sortBy
+    sortBy,
+    verifiedOnly: isVerifiedOnly
   });
 
   const feedItems = useMemo(() => {
@@ -108,11 +111,15 @@ export default function Index() {
         {/* Feed Column */}
         <div className="min-w-0 py-4">
           <div className="w-full">
-            <FeedSortBar
+            <FeedHeader
               sortBy={sortBy}
               onSortChange={setSortBy}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              filterBy={filterBy}
+              onFilterChange={setFilterBy}
+              isVerifiedOnly={isVerifiedOnly}
+              onVerifiedOnlyChange={setIsVerifiedOnly}
             />
 
             <FeedErrorBoundary>

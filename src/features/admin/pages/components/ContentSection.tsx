@@ -26,12 +26,14 @@ export default function ContentSection() {
     <Tabs defaultValue="moderation" className="space-y-6">
       <TabsList>
         <TabsTrigger value="moderation" className="gap-2"><Flag className="w-4 h-4" />Moderation Queue</TabsTrigger>
+        <TabsTrigger value="social-reports" className="gap-2"><MessageSquare className="w-4 h-4" />User Reports</TabsTrigger>
         <TabsTrigger value="incidents" className="gap-2"><Flame className="w-4 h-4" />Incidents</TabsTrigger>
         <TabsTrigger value="reports" className="gap-2"><ShieldAlert className="w-4 h-4" />Anonymous Reports</TabsTrigger>
         <TabsTrigger value="crisis" className="gap-2"><AlertTriangle className="w-4 h-4" />Crisis</TabsTrigger>
       </TabsList>
 
       <TabsContent value="moderation"><ModerationQueueSubTab /></TabsContent>
+      <TabsContent value="social-reports"><UserReportsSubTab /></TabsContent>
       <TabsContent value="incidents"><IncidentsSubTab /></TabsContent>
       <TabsContent value="reports"><AnonymousReportsSubTab /></TabsContent>
       <TabsContent value="crisis"><CrisisSubTab /></TabsContent>

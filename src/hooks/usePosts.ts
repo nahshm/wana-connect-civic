@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FEED_CONFIG, FEED_QUERY_KEYS } from '@/constants/feed';
 import type { Post } from '@/types';
 
-interface RawPostData {
+export interface RawPostData {
     id: string;
     title: string;
     content: string | null;
@@ -49,7 +49,7 @@ interface RawPostData {
     }>;
 }
 
-const POST_SELECT_QUERY = `
+export const POST_SELECT_QUERY = `
   *,
   profiles!posts_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
   communities!posts_community_id_fkey (id, name, display_name, description, member_count, category),
@@ -60,7 +60,7 @@ const POST_SELECT_QUERY = `
 /**
  * Transform raw Supabase post data to our Post interface
  */
-function transformPost(
+export function transformPost(
     post: RawPostData, 
     userVote: 'up' | 'down' | null = null,
     isSaved: boolean = false,
@@ -77,6 +77,7 @@ function transformPost(
             displayName: post.profiles?.display_name || 'Anonymous User',
             avatar: post.profiles?.avatar_url || '/placeholder.svg',
             isVerified: post.profiles?.is_verified || false,
+            officialPosition: post.officials?.position || undefined,
             role: (post.profiles?.role || 'citizen') as 'citizen' | 'official' | 'expert' | 'journalist',
         },
         community: post.communities ? {

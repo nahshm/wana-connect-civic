@@ -15,6 +15,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Link } from 'react-router-dom';
+import { Bookmark, Bell, EyeOff } from 'lucide-react';
+import { PostCard } from '@/components/posts/PostCard';
+import { useSavedPosts, useFollowedPosts } from '@/hooks/useUserInteractions';
 
 interface ActionCenterProps {
     className?: string;
@@ -177,27 +180,6 @@ const ActionCenterContent: React.FC<ActionCenterProps> = ({ className }) => {
         return true;
     }) || [];
 
-    if (isLoading) {
-        return <ActionCenterSkeleton />;
-    }
-
-    if (isError) {
-        return (
-            <Card className={cn('border-destructive/50', className)}>
-                <CardContent className="py-8 text-center">
-                    <AlertTriangle className="w-10 h-10 text-destructive mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-4">
-                        Failed to load your actions
-                    </p>
-                    <Button variant="outline" size="sm" onClick={() => refetch()}>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Retry
-                    </Button>
-                </CardContent>
-            </Card>
-        );
-    }
-
     return (
         <Card className={cn('overflow-hidden', className)}>
             <CardHeader className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
@@ -243,47 +225,40 @@ const ActionCenterContent: React.FC<ActionCenterProps> = ({ className }) => {
                     />
                 </div>
 
-                {/* Quick Actions */}
-                <div>
-                    <h4 className="text-sm font-medium mb-3">Quick Actions</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {QUICK_ACTIONS.map(action => (
-                            <Button
-                                key={action.id}
-                                variant="outline"
-                                size="sm"
-                                asChild
-                            >
-                                <Link to={action.href}>
-                                    {action.icon}
-                                    <span className="ml-1">{action.label}</span>
-                                </Link>
-                            </Button>
-                        ))}
-                    </div>
-                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent mb-4 overflow-x-auto">
+                        <TabsTrigger 
+                            value="active" 
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 text-xs"
+                        >
+                            Active Actions
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="saved" 
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 text-xs"
+                        >
+                            Saved Posts
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="following" 
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 text-xs"
+                        >
+                            Following
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="resolved" 
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 text-xs"
+                        >
+                            Resolved
+                        </TabsTrigger>
+                    </TabsList>
 
-                {/* Actions List */}
-                <div>
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="mb-3">
-                            <TabsTrigger value="active" className="text-xs">
-                                Active ({stats.active})
-                            </TabsTrigger>
-                            <TabsTrigger value="resolved" className="text-xs">
-                                Resolved ({stats.resolved})
-                            </TabsTrigger>
-                            <TabsTrigger value="all" className="text-xs">
-                                All ({stats.total})
-                            </TabsTrigger>
-                        </TabsList>
-
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <TabsContent value="active" className="space-y-4">
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                             {filteredActions.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">
+                                <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
                                     <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                    <p className="text-sm">No actions yet</p>
-                                    <p className="text-xs">Start by reporting an issue!</p>
+                                    <p className="text-sm">No active actions yet</p>
                                 </div>
                             ) : (
                                 filteredActions.map(action => (
@@ -291,10 +266,99 @@ const ActionCenterContent: React.FC<ActionCenterProps> = ({ className }) => {
                                 ))
                             )}
                         </div>
-                    </Tabs>
-                </div>
+                    </TabsContent>
+
+                    <TabsContent value="saved">
+                        <SavedPostsTab />
+                    </TabsContent>
+
+                    <TabsContent value="following">
+                        <FollowedPostsTab />
+                    </TabsContent>
+
+                    <TabsContent value="resolved" className="space-y-4">
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                            {filteredActions.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+                                    <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">No resolved actions yet</p>
+                                </div>
+                            ) : (
+                                filteredActions.map(action => (
+                                    <ActionItem key={action.id} action={action} />
+                                ))
+                            )}
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
+    );
+};
+
+// ── Sub-components for Posts ──────────────────────────────────────────────
+
+const SavedPostsTab: React.FC = () => {
+    const { data: savedPosts, isLoading } = useSavedPosts();
+
+    if (isLoading) return <div className="space-y-3 pt-2"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
+
+    if (!savedPosts || savedPosts.length === 0) {
+        return (
+            <div className="text-center py-12 text-muted-foreground bg-muted/10 rounded-xl border border-dashed border-muted-foreground/30">
+                <Bookmark className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                <p className="font-medium">No saved posts</p>
+                <p className="text-xs mb-4">Posts you save will appear here for quick access</p>
+                <Button variant="outline" size="sm" asChild>
+                    <Link to="/">Browse Feed</Link>
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            {savedPosts.map(post => (
+                <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onVote={() => {}} 
+                    viewMode="compact"
+                />
+            ))}
+        </div>
+    );
+};
+
+const FollowedPostsTab: React.FC = () => {
+    const { data: followedPosts, isLoading } = useFollowedPosts();
+
+    if (isLoading) return <div className="space-y-3 pt-2"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
+
+    if (!followedPosts || followedPosts.length === 0) {
+        return (
+            <div className="text-center py-12 text-muted-foreground bg-muted/10 rounded-xl border border-dashed border-muted-foreground/30">
+                <Bell className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                <p className="font-medium">No followed posts</p>
+                <p className="text-xs mb-4">Follow posts to get notified about new discussions</p>
+                <Button variant="outline" size="sm" asChild>
+                    <Link to="/">Browse Feed</Link>
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            {followedPosts.map(post => (
+                <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onVote={() => {}} 
+                    viewMode="compact"
+                />
+            ))}
+        </div>
     );
 };
 

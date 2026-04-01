@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -22,7 +23,8 @@ import {
   MoreHorizontal,
   List,
   SquareIcon,
-  Check
+  Check,
+  ShieldCheck
 } from 'lucide-react';
 
 export type FeedFilter = 'all' | 'following' | 'governance' | 'accountability' | 'civic-education' | 'discussion';
@@ -34,6 +36,8 @@ interface FeedHeaderProps {
   onViewModeChange: (mode: 'card' | 'compact') => void;
   filterBy?: FeedFilter;
   onFilterChange?: (filter: FeedFilter) => void;
+  isVerifiedOnly?: boolean;
+  onVerifiedOnlyChange?: (value: boolean) => void;
   className?: string;
 }
 
@@ -53,6 +57,8 @@ export const FeedHeader = ({
   onViewModeChange,
   filterBy = 'all',
   onFilterChange,
+  isVerifiedOnly = false,
+  onVerifiedOnlyChange,
   className
 }: FeedHeaderProps) => {
 
@@ -142,6 +148,22 @@ export const FeedHeader = ({
                 }`}
             >
               <List className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-1 bg-background rounded-lg p-1">
+            <Button
+              variant={isVerifiedOnly ? "default" : "ghost"}
+              size="sm"
+              onClick={() => onVerifiedOnlyChange?.(!isVerifiedOnly)}
+              className={`h-8 px-3 gap-1.5 transition-all ${isVerifiedOnly
+                ? 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-200'
+                : 'text-sidebar-muted-foreground hover:text-sidebar-foreground'
+                }`}
+              title="Show official posts only"
+            >
+              <ShieldCheck className={cn("w-4 h-4", isVerifiedOnly && "text-blue-500")} />
+              <span className="text-xs font-medium">Official</span>
             </Button>
           </div>
 
