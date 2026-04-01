@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const authModal = useAuthModal();
 
   // Always call hooks before any conditional returns (React rules)
