@@ -209,9 +209,9 @@ export const PostCard = ({
     
     try {
       if (newFollowed) {
-        await supabase.from('post_follows').insert({ user_id: user.id, post_id: post.id });
+        await (supabase as any).from('post_follows').insert({ user_id: user.id, post_id: post.id });
       } else {
-        await supabase.from('post_follows').delete().eq('user_id', user.id).eq('post_id', post.id);
+        await (supabase as any).from('post_follows').delete().eq('user_id', user.id).eq('post_id', post.id);
       }
     } catch (error) {
       setIsFollowed(!newFollowed);
