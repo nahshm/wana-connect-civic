@@ -204,11 +204,13 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
     if (channel?.type === 'text' || channel?.type === 'announcement' || channel?.type === 'voice' || channel?.type === 'chat') {
         const isReadOnly = channel.type === 'announcement' && !isAdmin;
         return (
-            <ChannelChatWindow
-                channelId={channel.id}
-                channelName={channel.name}
-                isReadOnly={isReadOnly}
-            />
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <ChannelChatWindow
+                    channelId={channel.id}
+                    channelName={channel.name}
+                    isReadOnly={isReadOnly}
+                />
+            </div>
         );
     }
 
