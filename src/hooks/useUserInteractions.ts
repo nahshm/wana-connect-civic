@@ -55,7 +55,7 @@ export function useSavedPosts() {
                 .map(item => postMap.get(item.item_id))
                 .filter(Boolean)
                 .map(post => transformPost(
-                    post as RawPostData, 
+                    post as unknown as RawPostData, 
                     userVotes[post!.id], 
                     true, // isSaved is true by definition
                     !!userFollows[post!.id]
