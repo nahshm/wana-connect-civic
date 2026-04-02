@@ -18,8 +18,11 @@ export function detectBot(): BotDetectionResult {
   // Signal 2: Headless Chrome has this in UA
   if (/HeadlessChrome/.test(navigator.userAgent)) signals.push('headless-chrome');
 
-  // Signal 3: Real browsers always have plugins; headless browsers have none
-  if (navigator.plugins.length === 0) signals.push('no-plugins');
+  // Signal 3: Missing plugins — only meaningful on desktop Chrome where they're expected
+  const isDesktopChrome = /Chrome/.test(navigator.userAgent)
+    && !/Mobile/.test(navigator.userAgent)
+    && typeof (window as unknown as { chrome?: unknown }).chrome !== 'undefined';
+  if (isDesktopChrome && navigator.plugins.length === 0) signals.push('no-plugins');
 
   // Signal 4: Real browsers have language set
   if (!navigator.language) signals.push('no-language');
