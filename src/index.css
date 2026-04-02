@@ -196,18 +196,18 @@
 
 .heading-tight {
     letter-spacing: -0.035em;
-    line-height: 1.15;
+    line-height: 1.1;
 }
 
 .font-reddit-title {
     font-weight: 700;
     letter-spacing: -0.025em;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 .font-reddit-meta {
     font-weight: 600;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
 }
 
 /* Skeleton loading shimmer animation */

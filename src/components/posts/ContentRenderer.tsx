@@ -104,7 +104,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = React.memo(({
             <div
                 onCopy={handleCopy}
                 style={{ userSelect: 'text' }}
-                className={`prose prose-sm max-w-none dark:prose-invert ${className}`}
+                className={`prose prose-sm leading-snug max-w-none dark:prose-invert ${className}`}
                 dangerouslySetInnerHTML={{ __html: sanitized }}
             />
         );
@@ -112,7 +112,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = React.memo(({
 
     if (processedContent.type === 'markdown' || processedContent.type === 'text') {
         return (
-            <div onCopy={handleCopy} style={{ userSelect: 'text' }} className={`prose prose-sm max-w-none dark:prose-invert ${className}`}>
+            <div onCopy={handleCopy} style={{ userSelect: 'text' }} className={`prose prose-sm leading-snug max-w-none dark:prose-invert ${className}`}>
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[

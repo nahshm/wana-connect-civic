@@ -1005,19 +1005,19 @@ export const PostCard = ({
                 {renderSpecialBadges()}
               </div> : <div>
                 <Link to={getPostLink()} className="block group">
-                  <h2 className="mb-2 group-hover:text-primary transition-colors font-semibold text-[15px] leading-tight">
+                  <h2 className="mb-1.5 group-hover:text-primary transition-colors font-semibold text-[15px] leading-[1.15]">
                     {post.title}
                   </h2>
                 </Link>
 
-                {post.content && <div className="mb-3">
-                    <div className={cn("text-[13.5px] text-muted-foreground/90 leading-normal", !isContentExpanded ? 'line-clamp-3' : '')}>
+                {post.content && <div className="mb-2.5">
+                    <div className={cn("text-[13.5px] text-muted-foreground/90 leading-[1.35]", !isContentExpanded ? 'line-clamp-3' : '')}>
                       <SafeContentRenderer content={post.content} />
                     </div>
                     {post.content.length > 180 && (
                       <button 
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsContentExpanded(!isContentExpanded); }}
-                        className="text-[12px] font-bold text-blue-600 dark:text-blue-400 mt-1 hover:underline underline-offset-2"
+                        className="text-[12px] font-bold text-blue-600 dark:text-blue-400 mt-0.5 hover:underline underline-offset-2"
                       >
                         {isContentExpanded ? 'Show less..' : 'Read more..'}
                       </button>
@@ -1031,7 +1031,7 @@ export const PostCard = ({
           </div>
 
           {/* Action Bar - Reddit Style Unified Buttons */}
-          <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto pb-1 scrollbar-none">
             {/* Upvotes/Downvotes Pill */}
             <div className="flex items-center transition-colors rounded-full h-7 border border-border/5 bg-gray-100 dark:bg-white/10">
               <button 
