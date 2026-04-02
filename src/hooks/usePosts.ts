@@ -43,9 +43,10 @@ export interface RawPostData {
     } | null;
     post_media: Array<{
         id: string;
-        url: string;
-        type: string;
-        caption: string | null;
+        file_path: string;
+        file_type: string;
+        filename: string;
+        file_size: number;
     }>;
 }
 
