@@ -1,70 +1,44 @@
 
 
-# Fix Remaining Build Errors
+# Fix: Infinite Scroll Blocked for Real Users
 
-The previous fixes resolved 7 errors but exposed deeper issues. There are **4 root causes** producing all remaining errors.
+## Root Cause
 
----
+`isLikelyBot()` in `src/lib/botDetection.ts` (line 52) returns `true` when `navigator.plugins.length === 0`. This is true for:
 
-## Root Cause 1: `post_follows` and `post_reports` tables don't exist in Supabase types
+- **PWA / standalone mode** — no plugins exposed
+- **Mobile browsers** (iOS Safari, Android Chrome) — plugins array is empty
+- **Modern desktop Chrome** — `navigator.plugins` is deprecated and may return empty
+- **Lovable preview iframe** — same issue
 
-These tables are referenced in code but **not present in `src/integrations/supabase/types.ts`**, meaning either:
-- The tables were never created in the database, OR
-- Types need regeneration
+Since `SecureFeed` calls `isLikelyBot()` on every intersection event (line 33), **real users are silently blocked from loading more posts**. The first page loads (10 items), but scrolling to the bottom never triggers `fetchNextPage`.
 
-**Fix**: Cast all `post_follows` and `post_reports` queries through `(supabase as any)` to bypass type checking, since we cannot edit `types.ts` directly.
+## Fix
 
-**Files affected**:
-- `src/components/posts/PostCard.tsx` (lines 212, 214) — follow insert/delete
-- `src/hooks/usePosts.ts` (line 149) — follow select in feed
-- `src/hooks/useUnifiedFeed.ts` (line 66) — follow select in unified feed
-- `src/hooks/useUserInteractions.ts` (lines 42, 81) — follow select in saved/followed hooks
-- `src/components/posts/ReportPostDialog.tsx` (line 44) — report insert
-- `src/features/admin/pages/components/ContentSection.tsx` (lines 1247-1248, 1270-1271) — report queries in admin
+Update `isLikelyBot()` to remove the `navigator.plugins` check. Only keep signals that reliably indicate automation:
 
-## Root Cause 2: `RawPostData.post_media` type mismatch
-
-`RawPostData` in `usePosts.ts` defines `post_media` as `{id, url, type, caption}[]` but the actual DB schema has `{id, file_path, file_type, file_size, filename}[]`. The `transformPost` function then tries to map `m.url` and `m.caption` which don't exist on the real data.
-
-Also, `PostMedia` is used as a type assertion on line 108 but never imported.
-
-**Fix**: Update `RawPostData.post_media` to match the DB schema (`file_path`, `file_type`, `filename`, `file_size`). Update `transformPost` to map `file_path` → `url` and `file_type` → `type`. Import `PostMedia` from `@/types`.
-
-**File**: `src/hooks/usePosts.ts`
-
-## Root Cause 3: `communityData` typed as `string | Community`
-
-Line 500 of PostCard: `const communityData = post.community || (post as unknown as { community_id?: string }).community_id;`
-
-The fallback to `community_id` (a string) makes the type `Community | string`, so accessing `.name`, `.avatarUrl` etc. fails.
-
-**Fix**: Only use the Community object, not the string fallback. Change to:
 ```typescript
-const communityData = post.community || undefined;
+export function isLikelyBot(): boolean {
+  return navigator.webdriver === true ||
+    /HeadlessChrome|PhantomJS/.test(navigator.userAgent);
+}
 ```
 
-**File**: `src/components/posts/PostCard.tsx` (line 500)
+Also update `detectBot()` to downgrade the plugins signal — don't count it toward the `signals.length >= 2` bot threshold on mobile/PWA. Replace the plugins check (line 22) with a conditional that only flags it on desktop Chrome where the chrome object exists:
 
-## Root Cause 4: `pageParam` type in `useUnifiedFeed`
+```typescript
+// Only flag missing plugins on desktop Chrome where they're expected
+const isDesktopChrome = /Chrome/.test(navigator.userAgent) 
+  && !/Mobile/.test(navigator.userAgent)
+  && typeof (window as any).chrome !== 'undefined';
+if (isDesktopChrome && navigator.plugins.length === 0) signals.push('no-plugins');
+```
 
-Line 31: `pageParam * limit` — `pageParam` defaults to `0` but TypeScript infers it as `unknown` from the infinite query generic.
+## Files Changed
 
-**Fix**: Type the parameter: `pageParam = 0 as number` or cast: `const offset = (pageParam as number) * limit;`
+| File | Change |
+|------|--------|
+| `src/lib/botDetection.ts` | Remove `navigator.plugins.length === 0` from `isLikelyBot()`; scope plugins check in `detectBot()` to desktop Chrome only |
 
-**File**: `src/hooks/useUnifiedFeed.ts` (line 31)
-
----
-
-## Summary
-
-| File | Fix |
-|------|-----|
-| `src/hooks/usePosts.ts` | Fix `RawPostData.post_media` to match DB schema; import `PostMedia`; cast `post_follows` query |
-| `src/hooks/useUnifiedFeed.ts` | Cast `post_follows` query; type `pageParam` |
-| `src/hooks/useUserInteractions.ts` | Cast `post_follows` queries; fix `RawPostData` cast |
-| `src/components/posts/PostCard.tsx` | Fix `communityData` type; cast `post_follows` queries |
-| `src/components/posts/ReportPostDialog.tsx` | Cast `post_reports` query |
-| `src/features/admin/pages/components/ContentSection.tsx` | Cast `post_reports` queries |
-
-All fixes are `any` casts on queries to tables missing from generated types, plus type corrections on `RawPostData` and `communityData`. No logic changes.
+One file, two function edits. No logic changes elsewhere — `SecureFeed` and all consumers remain unchanged.
 
