@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-52f2a342'], (function (workbox) { 'use strict';
+define(['./workbox-260958d9'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -82,7 +82,7 @@ define(['./workbox-52f2a342'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.1u8n35cnrtg"
+    "revision": "0.b1n7h0su9fg"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -90,18 +90,19 @@ define(['./workbox-52f2a342'], (function (workbox) { 'use strict';
     denylist: [/^\/~oauth/, /^\/api/]
   }));
   workbox.registerRoute(/^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/rest\/v1\/.*/i, new workbox.NetworkFirst({
-    "cacheName": "supabase-api",
+    "cacheName": "supabase-api-v2",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 50,
       maxAgeSeconds: 300
     })]
   }), 'GET');
-  workbox.registerRoute(/^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/storage\/.*/i, new workbox.CacheFirst({
-    "cacheName": "supabase-storage",
+  workbox.registerRoute(/^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/storage\/v1\/object\/public\/.*\.(png|jpg|jpeg|gif|svg|webp|avif|ico)$/i, new workbox.CacheFirst({
+    "cacheName": "supabase-storage-images-v2",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 100,
       maxAgeSeconds: 604800
     })]
   }), 'GET');
+  workbox.registerRoute(/^https:\/\/zcnjpczplkbdmmovlrtv\.supabase\.co\/storage\/v1\/object\/public\/.*\.(mp4|webm|ogg|mov|m4v)$/i, new workbox.NetworkOnly(), 'GET');
 
 }));
