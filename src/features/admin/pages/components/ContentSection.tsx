@@ -1244,7 +1244,7 @@ function UserReportsSubTab() {
   const { data: reports, isLoading, refetch } = useQuery({
     queryKey: ['admin-post-reports', filter],
     queryFn: async () => {
-      let q = supabase
+      let q = (supabase as any)
         .from('post_reports')
         .select(`
           *,
@@ -1267,7 +1267,7 @@ function UserReportsSubTab() {
     const report = reports?.find(r => r.id === reportId);
     if (!report) return;
 
-    const { error: reportError } = await supabase
+    const { error: reportError } = await (supabase as any)
       .from('post_reports')
       .update({ status: action } as any)
       .eq('id', reportId);

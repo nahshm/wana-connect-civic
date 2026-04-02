@@ -39,7 +39,7 @@ export function useSavedPosts() {
             // Fetch interaction states for these specific posts
             const [votesResult, followsResult] = await Promise.all([
                 supabase.from('votes').select('post_id, vote_type').eq('user_id', user.id).in('post_id', postIds),
-                supabase.from('post_follows').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+                (supabase as any).from('post_follows').select('post_id').eq('user_id', user.id).in('post_id', postIds)
             ]);
 
             const userVotes: { [key: string]: 'up' | 'down' } = {};
@@ -55,7 +55,7 @@ export function useSavedPosts() {
                 .map(item => postMap.get(item.item_id))
                 .filter(Boolean)
                 .map(post => transformPost(
-                    post as RawPostData, 
+                    post as unknown as RawPostData, 
                     userVotes[post!.id], 
                     true, // isSaved is true by definition
                     !!userFollows[post!.id]
@@ -77,7 +77,7 @@ export function useFollowedPosts() {
             if (!user) return [];
 
             // Fetch followed post IDs
-            const { data: followsData, error: followsError } = await supabase
+            const { data: followsData, error: followsError } = await (supabase as any)
                 .from('post_follows')
                 .select('post_id, created_at')
                 .eq('user_id', user.id)
@@ -115,7 +115,7 @@ export function useFollowedPosts() {
                 .map(f => postMap.get(f.post_id))
                 .filter(Boolean)
                 .map(post => transformPost(
-                    post as RawPostData, 
+                    post as unknown as RawPostData, 
                     userVotes[post!.id], 
                     !!userSaves[post!.id],
                     true // isFollowed is true by definition

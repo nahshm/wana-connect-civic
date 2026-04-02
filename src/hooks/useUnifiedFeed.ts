@@ -27,8 +27,8 @@ export interface UnifiedFeedPage {
 export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot', verifiedOnly = false }: UseUnifiedFeedOptions = {}) => {
   return useInfiniteQuery<UnifiedFeedPage>({
     queryKey: ['unified-feed', { userId, communityId, sortBy, verifiedOnly }],
-    queryFn: async ({ pageParam = 0 }) => {
-      const offset = pageParam * limit;
+    queryFn: async ({ pageParam }) => {
+      const offset = (pageParam as number) * limit;
 
       const rpcParams: Record<string, unknown> = {
         p_user_id: userId || null,
@@ -63,7 +63,7 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
           const [votesResult, savesResult, followsResult, hiddenResult] = await Promise.all([
             supabase.from('votes').select('post_id, vote_type').eq('user_id', userId).in('post_id', postIds),
             supabase.from('saved_items').select('item_id').eq('user_id', userId).eq('item_type', 'post').in('item_id', postIds),
-            supabase.from('post_follows').select('post_id').eq('user_id', userId).in('post_id', postIds),
+            (supabase as any).from('post_follows').select('post_id').eq('user_id', userId).in('post_id', postIds),
             supabase.from('hidden_items').select('item_id').eq('user_id', userId).eq('item_type', 'post').in('item_id', postIds)
           ]);
 

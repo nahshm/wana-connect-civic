@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FEED_CONFIG, FEED_QUERY_KEYS } from '@/constants/feed';
-import type { Post } from '@/types';
+import type { Post, PostMedia } from '@/types';
 
 export interface RawPostData {
     id: string;
@@ -43,9 +43,10 @@ export interface RawPostData {
     } | null;
     post_media: Array<{
         id: string;
-        url: string;
-        type: string;
-        caption: string | null;
+        file_path: string;
+        file_type: string;
+        filename: string;
+        file_size: number;
     }>;
 }
 
@@ -102,9 +103,11 @@ export function transformPost(
         link_image: post.link_image || null,
         media: (post.post_media || []).map(m => ({
             id: m.id,
-            url: m.url,
-            type: m.type as 'image' | 'video' | 'document',
-            caption: m.caption || undefined,
+            post_id: post.id,
+            file_path: m.file_path,
+            file_type: m.file_type,
+            filename: m.filename,
+            file_size: m.file_size,
         })) as PostMedia[],
         isSaved,
         isFollowed,
@@ -146,7 +149,7 @@ export function usePosts(sortBy: string = 'new', filterBy: string = 'all') {
                 const [votesResult, savesResult, followsResult, hiddenResult] = await Promise.all([
                     supabase.from('votes').select('post_id, vote_type').eq('user_id', user.id).in('post_id', postIds),
                     supabase.from('saved_items').select('item_id').eq('user_id', user.id).eq('item_type', 'post').in('item_id', postIds),
-                    supabase.from('post_follows').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+                    (supabase as any).from('post_follows').select('post_id').eq('user_id', user.id).in('post_id', postIds),
                     supabase.from('hidden_items').select('item_id').eq('user_id', user.id).eq('item_type', 'post').in('item_id', postIds)
                 ]);
 

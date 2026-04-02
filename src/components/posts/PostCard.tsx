@@ -209,9 +209,9 @@ export const PostCard = ({
     
     try {
       if (newFollowed) {
-        await supabase.from('post_follows').insert({ user_id: user.id, post_id: post.id });
+        await (supabase as any).from('post_follows').insert({ user_id: user.id, post_id: post.id });
       } else {
-        await supabase.from('post_follows').delete().eq('user_id', user.id).eq('post_id', post.id);
+        await (supabase as any).from('post_follows').delete().eq('user_id', user.id).eq('post_id', post.id);
       }
     } catch (error) {
       setIsFollowed(!newFollowed);
@@ -497,7 +497,7 @@ export const PostCard = ({
   };
 
   // Handle community data that might be under 'community' or 'community_id' alias
-  const communityData = post.community || (post as unknown as { community_id?: string }).community_id;
+  const communityData = post.community || undefined;
   const getVoteScore = () => localScore;
 
   const formatNumber = (num?: number | string | null) => {
@@ -928,7 +928,7 @@ export const PostCard = ({
           <div className="flex items-start gap-2 mb-2">
             {/* Left: Avatar - smaller like Reddit */}
             <Avatar className="h-7 w-7 flex-shrink-0 shadow-sm border border-border/50">
-              <AvatarImage src={communityData?.avatarUrl || communityData?.avatar_url || communityData?.icon || post.author?.avatar || (post.author as unknown as { avatar_url?: string })?.avatar_url} />
+              <AvatarImage src={communityData?.avatarUrl || post.author?.avatar || (post.author as unknown as { avatar_url?: string })?.avatar_url} />
               <AvatarFallback className="text-xs bg-muted text-muted-foreground font-semibold">
                 {(communityData?.name || post.author.displayName || 'U')[0]?.toUpperCase()}
               </AvatarFallback>
