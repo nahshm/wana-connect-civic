@@ -150,12 +150,12 @@ const PostDetail = () => {
         content,
         parentId: parentId || null,
         postId: resolvedId || '',
-        authorId: user?.id || '',
         createdAt: new Date(),
         upvotes: 0,
         downvotes: 0,
-        depth: 0, // Simplified for optimism
+        depth: 0,
         isCollapsed: false,
+        moderationStatus: 'approved',
         author: {
           id: user?.id || '',
           displayName: user?.user_metadata?.display_name || user?.user_metadata?.username || 'You',
