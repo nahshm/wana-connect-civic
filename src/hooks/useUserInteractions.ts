@@ -77,7 +77,7 @@ export function useFollowedPosts() {
             if (!user) return [];
 
             // Fetch followed post IDs
-            const { data: followsData, error: followsError } = await supabase
+            const { data: followsData, error: followsError } = await (supabase as any)
                 .from('post_follows')
                 .select('post_id, created_at')
                 .eq('user_id', user.id)
