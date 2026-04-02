@@ -5906,6 +5906,49 @@ export type Database = {
           },
         ]
       }
+      post_follows: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_follows_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_follows_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_follows_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_media: {
         Row: {
           file_path: string
@@ -5947,6 +5990,58 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reports: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          id: string
+          post_id: string
+          reason: string
+          reporter_id: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          post_id: string
+          reason: string
+          reporter_id: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          post_id?: string
+          reason?: string
+          reporter_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -7460,6 +7555,41 @@ export type Database = {
           },
         ]
       }
+      user_feed_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          preference_weight: number
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          preference_weight: number
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          preference_weight?: number
+          target_id?: string
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_feed_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_follows: {
         Row: {
           created_at: string | null
@@ -8470,24 +8600,44 @@ export type Database = {
           window_start: string
         }[]
       }
-      get_unified_feed: {
-        Args: {
-          p_community_id?: string
-          p_limit_count?: number
-          p_offset_count?: number
-          p_sort_by?: string
-          p_user_id?: string
-        }
-        Returns: {
-          avatar_url: string
-          created_at: string
-          data: Json
-          id: string
-          type: string
-          user_id: string
-          username: string
-        }[]
-      }
+      get_unified_feed:
+        | {
+            Args: {
+              p_community_id?: string
+              p_limit_count?: number
+              p_offset_count?: number
+              p_sort_by?: string
+              p_user_id?: string
+            }
+            Returns: {
+              avatar_url: string
+              created_at: string
+              data: Json
+              id: string
+              type: string
+              user_id: string
+              username: string
+            }[]
+          }
+        | {
+            Args: {
+              p_community_id?: string
+              p_limit_count?: number
+              p_offset_count?: number
+              p_sort_by?: string
+              p_user_id?: string
+              p_verified_only?: boolean
+            }
+            Returns: {
+              avatar_url: string
+              created_at: string
+              data: Json
+              id: string
+              type: string
+              user_id: string
+              username: string
+            }[]
+          }
       get_user_warning_count: { Args: { p_user_id: string }; Returns: number }
       get_weekly_contributions: {
         Args: { community_uuid: string }
