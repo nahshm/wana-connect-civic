@@ -95,7 +95,7 @@ async function fetchChannelProjects(
         ...project,
         comments_count: (project.project_comments as unknown as { count: number }[])?.[0]?.count || 0,
         verifications_count: (project.project_verifications as unknown as { count: number }[])?.[0]?.count || 0,
-        views_count: project.views_count || 0
+        views_count: (project as any).views_count ?? 0
     })) as unknown as GovernmentProject[];
 }
 

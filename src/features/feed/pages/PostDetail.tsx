@@ -151,7 +151,7 @@ const PostDetail = () => {
         parentId: parentId || null,
         postId: resolvedId || '',
         authorId: user?.id || '',
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         upvotes: 0,
         downvotes: 0,
         depth: 0, // Simplified for optimism
@@ -160,7 +160,7 @@ const PostDetail = () => {
           id: user?.id || '',
           displayName: user?.user_metadata?.display_name || user?.user_metadata?.username || 'You',
           username: user?.user_metadata?.username || 'you',
-          avatarUrl: user?.user_metadata?.avatar_url || '',
+          avatar: user?.user_metadata?.avatar_url || '',
           isVerified: false,
           role: 'citizen'
         },
