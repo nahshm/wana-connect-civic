@@ -51,6 +51,5 @@ export function detectBot(): BotDetectionResult {
 // Lightweight version for use in scroll guards (called frequently)
 export function isLikelyBot(): boolean {
   return navigator.webdriver === true ||
-    /HeadlessChrome/.test(navigator.userAgent) ||
-    navigator.plugins.length === 0;
+    /HeadlessChrome|PhantomJS/.test(navigator.userAgent);
 }
