@@ -953,7 +953,7 @@ export const PostCard = ({
             <div className="flex-1 min-w-0 pt-0.5">
               {/* Community Post Layout - Double line preserved as requested */}
               {communityData ? <div className="flex flex-col gap-0.5">
-                  <Link to={getPostLink()} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
+                  <Link to={`/c/${communityData.name}`} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
                     c/{communityData.name}
                   </Link>
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap leading-none">

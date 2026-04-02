@@ -42,7 +42,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col w-full bg-background overflow-hidden text-foreground">
+    <div className="h-[100dvh] flex flex-col w-full bg-background overflow-hidden text-foreground">
       {!isClipsPage && <Header />}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <AppSidebar />

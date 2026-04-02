@@ -635,7 +635,7 @@ export function ChannelChatWindow({
     // ─── Render ───
     return (
         <TooltipProvider>
-            <div className="flex flex-col h-full bg-background">
+            <div className="flex-1 flex flex-col min-h-0 w-full bg-background">
                 {/* Hidden file inputs */}
                 <input
                     ref={fileInputRef}
@@ -718,7 +718,7 @@ export function ChannelChatWindow({
                 )}
 
                 {/* Messages Area */}
-                <ScrollArea className="flex-1 px-4">
+                <ScrollArea className="flex-1 min-h-0 px-4">
                     {isLoading ? (
                         <div className="text-center text-muted-foreground py-10">Loading messages...</div>
                     ) : messages.length === 0 ? (
