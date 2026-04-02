@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FEED_CONFIG, FEED_QUERY_KEYS } from '@/constants/feed';
-import type { Post } from '@/types';
+import type { Post, PostMedia } from '@/types';
 
 export interface RawPostData {
     id: string;
