@@ -107,7 +107,7 @@ export default function Index() {
 
   return (
     <div className="w-full min-h-screen bg-transparent px-0 sm:px-4">
-      <div className="max-w-[1080px] mx-auto grid grid-cols-1 xl:grid-cols-[680px_350px] gap-6 relative overflow-visible">
+      <div className="max-w-[1080px] mx-auto grid grid-cols-1 xl:grid-cols-[680px_350px] gap-8 relative overflow-visible">
         {/* Feed Column */}
         <div className="min-w-0 pt-1 pb-4">
           <div className="w-full">
