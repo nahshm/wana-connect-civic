@@ -107,7 +107,7 @@ export default function Index() {
 
   return (
     <div className="w-full min-h-screen bg-transparent px-0 sm:px-4">
-      <div className="max-w-[1080px] mx-auto grid grid-cols-1 xl:grid-cols-[680px_350px] gap-8 relative overflow-visible">
+      <div className="max-w-[1080px] mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_300px] lg:grid-cols-[minmax(0,1fr)_330px] xl:grid-cols-[680px_350px] gap-6 lg:gap-8 relative overflow-visible">
         {/* Feed Column */}
         <div className="min-w-0 pt-1 pb-4">
           <div className="w-full">
@@ -166,7 +166,7 @@ export default function Index() {
         </div>
 
         {/* Right Sidebar — Phase 9: Flush Alignment */}
-        <aside className="hidden xl:block w-[350px] h-fit sticky top-0 z-20 py-4">
+        <aside className="hidden md:block w-full md:w-[300px] lg:w-[330px] xl:w-[350px] h-fit sticky top-0 z-20 py-4">
           <ScrollArea className="h-[calc(100vh-64px)] w-full rounded-xl border border-border bg-[#F6F8F9] dark:bg-card shadow-sm">
             <div className="p-4 space-y-6">
               <HomeSidebar userId={user?.id} />

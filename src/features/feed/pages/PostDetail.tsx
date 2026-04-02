@@ -385,8 +385,8 @@ const PostDetail = () => {
           </div>
         </div>
 
-        {/* Right sidebar - desktop only */}
-        <aside className="hidden xl:block w-80 flex-shrink-0 border-l border-border">
+        {/* Right sidebar - desktop & tablet */}
+        <aside className="hidden md:block w-72 lg:w-80 flex-shrink-0 border-l border-border">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               {/* Compact post stats */}

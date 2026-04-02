@@ -385,8 +385,8 @@ const Community = () => {
         </div>
 
         {/* Right Sidebar - Fixed + Responsive */}
-        <aside data-tour="tour-sidebar" className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
-          <div className="fixed top-16 right-0 xl:w-80 2xl:w-96 h-[calc(100vh-4rem)] border-l border-sidebar-border bg-sidebar-background">
+        <aside data-tour="tour-sidebar" className="hidden md:block w-72 lg:w-80 2xl:w-96 flex-shrink-0">
+          <div className="fixed top-16 right-0 w-72 lg:w-80 2xl:w-96 h-[calc(100vh-4rem)] border-l border-sidebar-border bg-sidebar-background">
             <ScrollArea className="h-full">
               <div className="p-4 space-y-4 sm:space-y-6">
               <SectionErrorBoundary section="Community Sidebar">

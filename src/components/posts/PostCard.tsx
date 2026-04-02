@@ -24,7 +24,7 @@ import { GlassLightbox } from '@/components/ui/GlassLightbox';
 import { ReportPostDialog } from './ReportPostDialog';
 import { SecureImage } from '@/components/security/SecureImage';
 import { SecureVideo } from '@/components/security/SecureVideo';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient, useMutation, InfiniteData, Query } from '@tanstack/react-query';
 import { FEED_QUERY_KEYS } from '@/constants/feed';
 
 interface PostCardProps {
@@ -45,6 +45,8 @@ export const PostCard = ({
   // Default true for backwards compatibility
   onJoinCommunity
 }: PostCardProps) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const {
     user
   } = useAuth();
@@ -64,7 +66,6 @@ export const PostCard = ({
   const [isSecondPlaying, setIsSecondPlaying] = useState(false);
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [isFollowed, setIsFollowed] = useState(post.isFollowed || false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSavedTooltip, setShowSavedTooltip] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -75,7 +76,11 @@ export const PostCard = ({
     if (!isMenuOpen) return;
     const handleGlobalCollapse = () => setIsMenuOpen(false);
     window.addEventListener('wanaiq:menu:collapse', handleGlobalCollapse);
-    return () => window.removeEventListener('wanaiq:menu:collapse', handleGlobalCollapse);
+    window.addEventListener('scroll', handleGlobalCollapse, { passive: true });
+    return () => {
+      window.removeEventListener('wanaiq:menu:collapse', handleGlobalCollapse);
+      window.removeEventListener('scroll', handleGlobalCollapse);
+    };
   }, [isMenuOpen]);
 
   // Sync state if post props update
@@ -219,9 +224,9 @@ export const PostCard = ({
     
     try {
       if (newFollowed) {
-        await (supabase as any).from('post_follows').insert({ user_id: user.id, post_id: post.id });
+        await supabase.from('post_follows').insert({ user_id: user.id, post_id: post.id });
       } else {
-        await (supabase as any).from('post_follows').delete().eq('user_id', user.id).eq('post_id', post.id);
+        await supabase.from('post_follows').delete().eq('user_id', user.id).eq('post_id', post.id);
       }
     } catch (error) {
       setIsFollowed(!newFollowed);
@@ -237,7 +242,7 @@ export const PostCard = ({
     
     // Optimistic cache update: remove from all feed queries
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    queryClient.setQueriesData({ predicate: (query: any) => query.queryKey[0] === 'posts' || query.queryKey[0] === 'unified-feed' }, (oldData: any) => {
+    queryClient.setQueriesData({ predicate: (query) => query.queryKey[0] === 'posts' || query.queryKey[0] === 'unified-feed' }, (oldData: any) => {
       if (!oldData) return oldData;
       if (oldData.pages) {
         // Handle both usePosts structure (pages.posts) and useUnifiedFeed structure (pages as arrays)
@@ -385,20 +390,20 @@ export const PostCard = ({
       const previousFeeds = queryClient.getQueryData(['unified-feed']);
 
       // Optimistically update to the new value
-      queryClient.setQueriesData({ queryKey: ['unified-feed'] }, (old: any) => {
+      queryClient.setQueriesData({ queryKey: ['unified-feed'] }, (old: InfiniteData<{ posts: Post[] }> | undefined) => {
         if (!old) return old;
         return {
           ...old,
-          pages: old.pages.map((page: any) => ({
+          pages: old.pages.map(page => ({
             ...page,
-            items: page.items.filter((item: any) => item.id !== post.id)
+            posts: page.posts.filter(p => p.id !== post.id)
           }))
         };
       });
 
       return { previousFeeds };
     },
-    onError: (err, variables, context: any) => {
+    onError: (err, _variables, context) => {
       // Rollback if failed
       if (context?.previousFeeds) {
         queryClient.setQueriesData({ queryKey: ['unified-feed'] }, context.previousFeeds);
@@ -894,9 +899,9 @@ export const PostCard = ({
             </button>
             
             {/* More Options Pill */}
-            <DropdownMenu modal={false}>
+            <DropdownMenu modal={false} open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center justify-center w-8 h-8 rounded-full bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors ml-auto sm:ml-0" onClick={(e) => e.stopPropagation()}>
+                <button className="flex items-center justify-center w-8 h-8 rounded-full bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors ml-auto sm:ml-0" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                   <MoreHorizontal className="w-4 h-4 stroke-[1.5]" />
                 </button>
               </DropdownMenuTrigger>

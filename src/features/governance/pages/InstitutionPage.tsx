@@ -340,10 +340,10 @@ export default function InstitutionPage() {
             </div>
 
             {/* ========= 3-COLUMN DASHBOARD ========= */}
-            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] min-[1100px]:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
                 
                 {/* ─────── LEFT SIDEBAR: Institution Identity ─────── */}
-                <aside data-tour="tour-institution-profile" className="lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
+                <aside data-tour="tour-institution-profile" className="md:sticky md:top-16 md:self-start space-y-4 order-2 md:order-1">
                     <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-sm">
                         {/* Top banner — custom → community fallback → solid gradient */}
                         <div className="h-24 relative overflow-hidden">
@@ -464,7 +464,7 @@ export default function InstitutionPage() {
                 </aside>
 
                 {/* ─────── CENTER: Main Content Area ─────── */}
-                <main className="min-w-0 order-2 lg:order-2">
+                <main className="min-w-0 order-1 md:order-2">
 
 
                     {/* Handler claim form */}
@@ -721,7 +721,7 @@ export default function InstitutionPage() {
                 </main>
 
                 {/* ─────── RIGHT SIDEBAR: Widgets ─────── */}
-                <aside className="space-y-4 order-3 hidden xl:block self-start lg:sticky lg:top-16">
+                <aside className="space-y-4 order-3 hidden min-[1100px]:block self-start lg:sticky lg:top-16">
                     {/* Current Handlers Widget */}
                     <div className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-sm">
                         <div className="px-4 py-3 border-b border-border/60 flex items-center gap-2">

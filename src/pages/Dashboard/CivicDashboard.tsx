@@ -40,10 +40,10 @@ const CivicDashboard = () => {
     <div className="container mx-auto px-2 sm:px-4 pb-6">
       <PageTour tourKey={DASHBOARD_TOUR_KEY} steps={DASHBOARD_TOUR_STEPS} userId={user?.id} />
       {/* ========= 3-COLUMN CIVIC CONTROL ROOM ========= */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] min-[1100px]:grid-cols-[280px_1fr_280px] gap-4 lg:gap-5">
 
         {/* ─────── LEFT SIDEBAR: Citizen Identity ─────── */}
-        <aside data-tour="tour-citizen-identity" className="hidden lg:block lg:sticky lg:top-16 lg:self-start space-y-4 order-2 lg:order-1">
+        <aside data-tour="tour-citizen-identity" className="hidden md:block md:sticky md:top-16 md:self-start space-y-4 order-2 md:order-1">
           <CitizenIdentityPanel />
 
           {/* Civic Resources (compact) */}
@@ -153,7 +153,7 @@ const CivicDashboard = () => {
 
 
         {/* ─────── RIGHT SIDEBAR: Gamification & Social ─────── */}
-        <aside data-tour="tour-quest-widget" className="space-y-4 order-3 hidden xl:block self-start lg:sticky lg:top-16">
+        <aside data-tour="tour-quest-widget" className="space-y-4 order-3 hidden min-[1100px]:block self-start lg:sticky lg:top-16">
           <DashboardQuestWidget />
           <DashboardLeaderboardWidget />
         </aside>
