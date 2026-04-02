@@ -64,9 +64,19 @@ export const PostCard = ({
   const [isSecondPlaying, setIsSecondPlaying] = useState(false);
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [isFollowed, setIsFollowed] = useState(post.isFollowed || false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSavedTooltip, setShowSavedTooltip] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  // High-performance "Collapse on Scroll" listener (1M+ DAU Scalability)
+  // Listens for a global scroll event dispatched by AppLayout to close open menus
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleGlobalCollapse = () => setIsMenuOpen(false);
+    window.addEventListener('wanaiq:menu:collapse', handleGlobalCollapse);
+    return () => window.removeEventListener('wanaiq:menu:collapse', handleGlobalCollapse);
+  }, [isMenuOpen]);
 
   // Sync state if post props update
   useEffect(() => {
@@ -938,46 +948,39 @@ export const PostCard = ({
             <div className="flex-1 min-w-0 pt-0.5">
               {/* Community Post Layout - Double line preserved as requested */}
               {communityData ? <div className="flex flex-col gap-0.5">
-                  {/* Line 1: c/name - Reddit Meta style */}
-                  <Link to={`/c/${communityData.name}`} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
+                  <Link to={getPostLink()} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
                     c/{communityData.name}
                   </Link>
-                  
-                  {/* Line 2: Prefix/username • time */}
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap leading-none">
                     <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="hover:underline font-medium text-muted-foreground/80">
                       {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
                     </Link>
-
                     <span>•</span>
                     <span>{formatPostDate(post.createdAt)}</span>
-                    
-                    {/* Verified badges */}
                     {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
                     {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90" />}
                     {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90" />}
-                    
-                    {/* Popular suggestion */}
                     <span className="hidden sm:inline opacity-80">• Suggested</span>
                   </div>
-                </div> : (/* User Post Layout */
-            <div className="flex flex-col gap-0.5 pt-0.5">
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
-                      {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
-                    </Link>
-                    {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
-                    {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90" />}
-                    {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90" />}
+                </div> : (
+                  <div className="flex flex-col gap-0.5 pt-0.5">
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <Link to={`/${post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/${post.author.username || 'anonymous'}`} className="font-reddit-meta text-[11.5px] hover:underline text-foreground leading-none tracking-tight">
+                        {post.author.officialPosition ? 'g' : post.author.isVerified ? 'w' : 'u'}/{post.author.displayName || post.author.username || 'Anonymous'}
+                      </Link>
+                      {post.author.isVerified && post.author.officialPosition && <VerifiedBadge size="xs" positionTitle={post.author.officialPosition} className="scale-90" />}
+                      {post.author.isVerified && !post.author.officialPosition && (post.author.role === 'expert' || post.author.role === 'journalist') && <TrustedUserBadge size="xs" className="scale-90" />}
+                      {post.author.isVerified && !post.author.officialPosition && post.author.role === 'citizen' && <VerifiedBadge size="xs" className="scale-90" />}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground leading-none">
+                      <span>{formatPostDate(post.createdAt)} ago</span>
+                      <span className="hidden sm:inline">• Popular</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground leading-none">
-                    <span>{formatPostDate(post.createdAt)} ago</span>
-                    <span className="hidden sm:inline">• Popular</span>
-                  </div>
-                </div>)}
+                )}
             </div>
 
-            {/* Right: Join Button + Menu */}
+            {/* Right: Join Button + Unified Menu */}
             <div className="flex items-center gap-1 flex-shrink-0">
               {communityData && !isMember && onJoinCommunity && (
                 <Button 
@@ -993,6 +996,37 @@ export const PostCard = ({
                   Join
                 </Button>
               )}
+
+              {/* Repositioned More Options Menu (Far Top Right) */}
+              <DropdownMenu modal={false} open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground hover:bg-muted/60 transition-colors"
+                  >
+                    <MoreHorizontal className="w-4 h-4 stroke-[1.5]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-lg font-medium text-sm z-50">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleFollow(); }}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    {isFollowed ? 'Unfollow post' : 'Follow post'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSave(); }}>
+                    <Bookmark className="mr-2 h-4 w-4" />
+                    {isSaved ? 'Unsave' : 'Save'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleHide(); }}>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Hide post
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); /* handleReport */ }}>
+                    <Flag className="mr-2 h-4 w-4" />
+                    Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -1001,7 +1035,8 @@ export const PostCard = ({
             {isDetailView ? <div>
                 <h1 className="font-reddit-title text-xl mb-3 leading-tight heading-tight">{post.title}</h1>
                 {renderLinkPreview()}
-                <SafeContentRenderer content={post.content || ''} className="text-foreground/90 text-[14.5px] leading-relaxed mb-4" />
+                <SafeContentRenderer content={post.content || ''} className="text-foreground/90 text-[14.5px] leading-snug mb-4" />
+                {renderMedia()}
                 {renderSpecialBadges()}
               </div> : <div>
                 <Link to={getPostLink()} className="block group">
@@ -1078,56 +1113,12 @@ export const PostCard = ({
 
             {/* Save Pill */}
             <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 h-8 transition-all border border-border/5 bg-gray-100 dark:bg-white/10",
+              "flex items-center gap-1.5 rounded-full px-3 h-7 transition-all border border-border/5 bg-gray-100 dark:bg-white/10",
               isSaved ? "bg-civic-green/10 text-civic-green border-civic-green/20" : "text-muted-foreground"
             )}>
               <Bookmark className={cn("w-4 h-4", isSaved ? "fill-current stroke-[1.8]" : "stroke-[1.8]")} />
               <span className="text-[11px] font-bold hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
             </button>
-
-            {/* More Options Menu - Moved to Reaction Bar */}
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <button 
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center w-8 h-8 rounded-full text-muted-foreground transition-all border border-border/5 bg-gray-100 dark:bg-white/10"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 border-border/50 shadow-xl bg-card">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleFollow(); }}>
-                  <Bell className="mr-2 h-4 w-4 text-muted-foreground" />
-                  {isFollowed ? 'Unfollow post' : 'Follow post'}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSave(); }}>
-                  <Bookmark className="mr-2 h-4 w-4 text-muted-foreground" />
-                  {isSaved ? 'Unsave' : 'Save'}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleHide(); }}>
-                  <EyeOff className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Hide post
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex sm:hidden" onClick={(e) => { e.stopPropagation(); handleShare(); }}>
-                  <Share className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Share link
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleReport(); }}>
-                  <Flag className="mr-2 h-4 w-4" />
-                  Report
-                </DropdownMenuItem>
-                {isAuthor && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete post
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </div>

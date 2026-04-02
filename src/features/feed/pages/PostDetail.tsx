@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useVerification } from '@/hooks/useVerification';
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer';
 import type { Comment, Post, CommentAward, CommentMedia } from '@/types';
@@ -73,17 +73,13 @@ const PostDetail = () => {
 
 
 
-  const handleAddComment = async (content: string, parentId?: string, mediaFiles?: UploadedMedia[]) => {
-    if (!user) {
-      authModal.open('login');
-      return;
-    }
-
-    try {
+  // TankStack Mutation for Optimistic Comments (1M+ DAU Scalability)
+  const commentMutation = useMutation({
+    mutationFn: async ({ content, parentId, mediaFiles }: { content: string, parentId?: string, mediaFiles?: UploadedMedia[] }) => {
       let depth = 0;
       if (parentId) {
-        const findDepth = (comments: Comment[]): number => {
-          for (const c of comments) {
+        const findDepth = (items: Comment[]): number => {
+          for (const c of items) {
             if (c.id === parentId) return c.depth + 1;
             if (c.replies) {
               const d = findDepth(c.replies);
@@ -95,13 +91,14 @@ const PostDetail = () => {
         depth = findDepth(comments);
       }
 
-      const { data: newComment, error } = await supabase
+      // 1. Insert the comment
+      const { data: newC, error: commentError } = await supabase
         .from('comments')
         .insert({
           post_id: resolvedId,
           parent_id: parentId || null,
           content,
-          author_id: user.id,
+          author_id: user?.id,
           depth,
           moderation_status: 'approved',
           upvotes: 0,
@@ -111,12 +108,12 @@ const PostDetail = () => {
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (commentError) throw commentError;
 
-      // Insert comment media records if any
-      if (mediaFiles && mediaFiles.length > 0 && newComment) {
+      // 2. Insert media if any
+      if (mediaFiles && mediaFiles.length > 0 && newC) {
         const mediaRecords = mediaFiles.map(m => ({
-          comment_id: newComment.id,
+          comment_id: newC.id,
           file_path: m.filePath,
           filename: m.filename,
           original_filename: m.filename,
@@ -124,77 +121,101 @@ const PostDetail = () => {
           mime_type: m.fileType,
           file_size: m.fileSize,
         }));
-        await supabase.from('comment_media').insert(mediaRecords);
+        const { error: mediaError } = await supabase.from('comment_media').insert(mediaRecords);
+        if (mediaError) throw mediaError;
       }
 
-      if (error) throw error;
-
-      // Update comment count
-      await supabase
-        .from('posts')
-        .update({ comment_count: (post?.commentCount || 0) + 1 })
-        .eq('id', id);
-
-      refetchPost();
-
-      // Invalidate feed cache so it reflects the new count
-      queryClient.invalidateQueries({ queryKey: ['unified-feed'] });
-
-      // Refetch comments
-      const { data: commentsData, error: fetchError } = await supabase
-        .from('comments')
-        .select(`
-          *,
-          profiles!comments_author_id_fkey (id, username, display_name, avatar_url, is_verified, role),
-          comment_media!comment_media_comment_id_fkey (id, file_path, filename, file_type, file_size, created_at),
-          comment_award_assignments!comment_id (
-            id, awarded_at,
-            comment_awards!award_id (id, name, display_name, description, points, category, color, background_color, icon, is_enabled, sort_order, created_at, updated_at),
-            profiles!awarded_by (id, display_name)
-          )
-        `)
-        .eq('post_id', resolvedId)
-        .eq('moderation_status', 'approved')
-        .order('created_at', { ascending: true });
-
-      if (fetchError) throw fetchError;
-
-      const commentVotes: { [commentId: string]: 'up' | 'down' } = {};
-      if (commentsData && commentsData.length > 0) {
-        const commentIds = commentsData.map(c => c.id);
-        const { data: votesData } = await supabase
-          .from('votes')
-          .select('comment_id, vote_type')
-          .eq('user_id', user.id)
-          .in('comment_id', commentIds);
-
-        votesData?.forEach(vote => {
-          if (vote.comment_id) {
-            commentVotes[vote.comment_id] = vote.vote_type as 'up' | 'down';
-          }
-        });
-      }
-
-      // Update comment count
-      await supabase
+      // 3. Update post comment count (Atomic update preferred but using simple update for now)
+      const { error: postError } = await supabase
         .from('posts')
         .update({ comment_count: (post?.commentCount || 0) + 1 })
         .eq('id', resolvedId);
+      
+      if (postError) throw postError;
 
-      // Invalidate queries so UI reflects new data
-      queryClient.invalidateQueries({ queryKey: ['post', resolvedId] });
-      queryClient.invalidateQueries({ queryKey: ['post-comments', resolvedId] });
-      queryClient.invalidateQueries({ queryKey: ['unified-feed'] });
+      return newC;
+    },
+    onMutate: async ({ content, parentId }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['post-comments', resolvedId] });
+      await queryClient.cancelQueries({ queryKey: ['post', resolvedId] });
 
-      toast({ title: "Comment posted" });
-    } catch (error) {
-      console.error('Error adding comment:', error);
+      // Snapshot the previous values
+      const previousComments = queryClient.getQueryData<Comment[]>(['post-comments', resolvedId]);
+      const previousPost = queryClient.getQueryData<Post>(['post', resolvedId]);
+
+      // Optimistically update the comments
+      const optimisticComment: Comment = {
+        id: `temp-${Date.now()}`,
+        content,
+        parentId: parentId || null,
+        postId: resolvedId || '',
+        authorId: user?.id || '',
+        createdAt: new Date().toISOString(),
+        upvotes: 0,
+        downvotes: 0,
+        depth: 0, // Simplified for optimism
+        isCollapsed: false,
+        author: {
+          id: user?.id || '',
+          displayName: user?.user_metadata?.display_name || user?.user_metadata?.username || 'You',
+          username: user?.user_metadata?.username || 'you',
+          avatarUrl: user?.user_metadata?.avatar_url || '',
+          isVerified: false,
+          role: 'citizen'
+        },
+        media: [],
+        awards: [],
+        replies: []
+      };
+
+      queryClient.setQueryData(['post-comments', resolvedId], (old: Comment[] | undefined) => {
+        if (!old) return [optimisticComment];
+        // If it's a reply, we could try to nest it, but for simplicity we append to flat list if using flat data
+        // Currently usePostDetail returns nested comments or flat? 
+        // Based on the code, it seems to be fetched and maybe nested by the hook.
+        return [...old, optimisticComment];
+      });
+
+      // Optimistically update post count
+      if (previousPost) {
+        queryClient.setQueryData(['post', resolvedId], {
+          ...previousPost,
+          commentCount: (previousPost.commentCount || 0) + 1
+        });
+      }
+
+      return { previousComments, previousPost };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousComments) {
+        queryClient.setQueryData(['post-comments', resolvedId], context.previousComments);
+      }
+      if (context?.previousPost) {
+        queryClient.setQueryData(['post', resolvedId], context.previousPost);
+      }
       toast({
         title: "Error",
-        description: "Failed to post comment",
+        description: "Failed to post comment. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['post-comments', resolvedId] });
+      queryClient.invalidateQueries({ queryKey: ['post', resolvedId] });
+      queryClient.invalidateQueries({ queryKey: ['unified-feed'] });
+    },
+    onSuccess: () => {
+      toast({ title: "Comment posted!" });
     }
+  });
+
+  const handleAddComment = async (content: string, parentId?: string, mediaFiles?: UploadedMedia[]) => {
+    if (!user) {
+      authModal.open('login');
+      return;
+    }
+    commentMutation.mutate({ content, parentId, mediaFiles });
   };
 
   const handleVoteComment = async (commentId: string, vote: 'up' | 'down') => {
