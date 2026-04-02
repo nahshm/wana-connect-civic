@@ -63,7 +63,7 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
           const [votesResult, savesResult, followsResult, hiddenResult] = await Promise.all([
             supabase.from('votes').select('post_id, vote_type').eq('user_id', userId).in('post_id', postIds),
             supabase.from('saved_items').select('item_id').eq('user_id', userId).eq('item_type', 'post').in('item_id', postIds),
-            supabase.from('post_follows').select('post_id').eq('user_id', userId).in('post_id', postIds),
+            (supabase as any).from('post_follows').select('post_id').eq('user_id', userId).in('post_id', postIds),
             supabase.from('hidden_items').select('item_id').eq('user_id', userId).eq('item_type', 'post').in('item_id', postIds)
           ]);
 

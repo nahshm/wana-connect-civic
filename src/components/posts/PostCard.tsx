@@ -497,7 +497,7 @@ export const PostCard = ({
   };
 
   // Handle community data that might be under 'community' or 'community_id' alias
-  const communityData = post.community || (post as unknown as { community_id?: string }).community_id;
+  const communityData = post.community || undefined;
   const getVoteScore = () => localScore;
 
   const formatNumber = (num?: number | string | null) => {

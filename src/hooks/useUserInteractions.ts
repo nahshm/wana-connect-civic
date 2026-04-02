@@ -115,7 +115,7 @@ export function useFollowedPosts() {
                 .map(f => postMap.get(f.post_id))
                 .filter(Boolean)
                 .map(post => transformPost(
-                    post as RawPostData, 
+                    post as unknown as RawPostData, 
                     userVotes[post!.id], 
                     !!userSaves[post!.id],
                     true // isFollowed is true by definition

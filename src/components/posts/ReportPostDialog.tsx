@@ -41,7 +41,7 @@ export const ReportPostDialog: React.FC<ReportPostDialogProps> = ({
         
         setIsSubmitting(true);
         try {
-            const { error } = await supabase.from('post_reports').insert({
+            const { error } = await (supabase as any).from('post_reports').insert({
                 reporter_id: user.id,
                 post_id: postId,
                 reason: reason,
