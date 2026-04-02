@@ -27,8 +27,8 @@ export interface UnifiedFeedPage {
 export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot', verifiedOnly = false }: UseUnifiedFeedOptions = {}) => {
   return useInfiniteQuery<UnifiedFeedPage>({
     queryKey: ['unified-feed', { userId, communityId, sortBy, verifiedOnly }],
-    queryFn: async ({ pageParam = 0 }) => {
-      const offset = pageParam * limit;
+    queryFn: async ({ pageParam }) => {
+      const offset = (pageParam as number) * limit;
 
       const rpcParams: Record<string, unknown> = {
         p_user_id: userId || null,
