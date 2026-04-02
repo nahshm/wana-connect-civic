@@ -1244,7 +1244,7 @@ function UserReportsSubTab() {
   const { data: reports, isLoading, refetch } = useQuery({
     queryKey: ['admin-post-reports', filter],
     queryFn: async () => {
-      let q = supabase
+      let q = (supabase as any)
         .from('post_reports')
         .select(`
           *,
