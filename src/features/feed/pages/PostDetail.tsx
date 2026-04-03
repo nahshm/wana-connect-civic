@@ -125,11 +125,9 @@ const PostDetail = () => {
         if (mediaError) throw mediaError;
       }
 
-      // 3. Update post comment count (Atomic update preferred but using simple update for now)
+      // 3. Atomic comment count increment via RPC (prevents race conditions)
       const { error: postError } = await supabase
-        .from('posts')
-        .update({ comment_count: (post?.commentCount || 0) + 1 })
-        .eq('id', resolvedId);
+        .rpc('increment_comment_count', { p_post_id: resolvedId });
       
       if (postError) throw postError;
 

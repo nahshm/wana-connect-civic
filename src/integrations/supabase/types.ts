@@ -8655,6 +8655,10 @@ export type Database = {
         Args: { p_channel_id: string; p_metric: string }
         Returns: undefined
       }
+      increment_comment_count: {
+        Args: { p_post_id: string }
+        Returns: undefined
+      }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
