@@ -135,7 +135,7 @@ const App = () => (
                             <Route path="/officials" element={<Officials />} />
                             <Route path="/officials/:officialId" element={<OfficialDetail />} />
                             <Route path="/projects" element={<Projects />} />
-                            <Route path="/projects/submit" element={<SubmitProject />} />
+                            <Route path="/projects/submit" element={<ProtectedRoute><SubmitProject /></ProtectedRoute>} />
                             <Route path="/claim-position" element={<ClaimPositionPage />} />
                             <Route path="/governance/build" element={<BuildGovernancePage />} />
                              <Route path="/projects/:projectId" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
