@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useSearch } from '@/hooks/useSearch';
 import { SearchQuickResults } from './SearchQuickResults';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -18,10 +19,11 @@ export const SearchBar = ({ placeholder = "Search discussions, communities...", 
   const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
   const searchRef = useRef<HTMLDivElement>(null);
+  const debouncedQuery = useDebounce(query, 300);
 
-  // Use the new search hook for quick results
+  // Use the new search hook for quick results with debounced query
   const { data: quickResults, isLoading } = useSearch({
-    query,
+    query: debouncedQuery,
     type: 'all',
     limit: 5
   });

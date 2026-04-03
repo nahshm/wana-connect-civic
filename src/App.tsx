@@ -129,13 +129,13 @@ const App = () => (
                             <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
                             <Route path="/submit" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
                             <Route path="/post/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
-                            <Route path="/edit-post/:id" element={<EditPost />} />
+                            <Route path="/edit-post/:id" element={<ProtectedRoute><EditPost /></ProtectedRoute>} />
                             <Route path="/communities" element={<Communities />} />
                             <Route path="/my-communities" element={<MyCommunitiesPage />} />
                             <Route path="/officials" element={<Officials />} />
                             <Route path="/officials/:officialId" element={<OfficialDetail />} />
                             <Route path="/projects" element={<Projects />} />
-                            <Route path="/projects/submit" element={<SubmitProject />} />
+                            <Route path="/projects/submit" element={<ProtectedRoute><SubmitProject /></ProtectedRoute>} />
                             <Route path="/claim-position" element={<ClaimPositionPage />} />
                             <Route path="/governance/build" element={<BuildGovernancePage />} />
                              <Route path="/projects/:projectId" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
@@ -155,11 +155,11 @@ const App = () => (
  
                              {/* Admin Routes */}
                              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                             <Route path="/admin/dashboard" element={<SuperAdminDashboard />} />
-                             <Route path="/admin/intelligence" element={<SuperAdminDashboard initialSection="intelligence" />} />
-                             <Route path="/admin/verification" element={<PositionVerification />} />
-                             <Route path="/admin/geographic-data" element={<GeographicDataAdmin />} />
-                             <Route path="/admin/feature-flags" element={<FeatureFlagsManager />} />
+                             <Route path="/admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+                             <Route path="/admin/intelligence" element={<ProtectedRoute><SuperAdminDashboard initialSection="intelligence" /></ProtectedRoute>} />
+                             <Route path="/admin/verification" element={<ProtectedRoute><PositionVerification /></ProtectedRoute>} />
+                             <Route path="/admin/geographic-data" element={<ProtectedRoute><GeographicDataAdmin /></ProtectedRoute>} />
+                             <Route path="/admin/feature-flags" element={<ProtectedRoute><FeatureFlagsManager /></ProtectedRoute>} />
  
                              {/* Feature flags - keep existing structure */}
                              <Route path="/quests" element={<Quests />} />

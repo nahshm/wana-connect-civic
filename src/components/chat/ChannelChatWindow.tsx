@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { copyToClipboard } from '@/lib/clipboard-utils';
@@ -593,26 +593,30 @@ export function ChannelChatWindow({
         return colors[role || ''] || 'text-foreground';
     };
 
-    // ─── Grouping ───
-    const parentMessages = messages.filter(m => !m.reply_to_id);
-    const repliesMap: { [parentId: string]: Message[] } = {};
-    messages.forEach(msg => {
-        if (msg.reply_to_id) {
-            if (!repliesMap[msg.reply_to_id]) repliesMap[msg.reply_to_id] = [];
-            repliesMap[msg.reply_to_id].push(msg);
-        }
-    });
+    // ─── Grouping (memoized to avoid O(N) on every render) ───
+    const { parentMessages, repliesMap, groupedMessages } = useMemo(() => {
+        const parents = messages.filter(m => !m.reply_to_id);
+        const replies: { [parentId: string]: Message[] } = {};
+        messages.forEach(msg => {
+            if (msg.reply_to_id) {
+                if (!replies[msg.reply_to_id]) replies[msg.reply_to_id] = [];
+                replies[msg.reply_to_id].push(msg);
+            }
+        });
 
-    const groupedMessages: { date: Date; messages: Message[] }[] = [];
-    parentMessages.forEach((msg) => {
-        const msgDate = new Date(msg.created_at);
-        const lastGroup = groupedMessages[groupedMessages.length - 1];
-        if (!lastGroup || !isSameDay(lastGroup.date, msgDate)) {
-            groupedMessages.push({ date: msgDate, messages: [msg] });
-        } else {
-            lastGroup.messages.push(msg);
-        }
-    });
+        const grouped: { date: Date; messages: Message[] }[] = [];
+        parents.forEach((msg) => {
+            const msgDate = new Date(msg.created_at);
+            const lastGroup = grouped[grouped.length - 1];
+            if (!lastGroup || !isSameDay(lastGroup.date, msgDate)) {
+                grouped.push({ date: msgDate, messages: [msg] });
+            } else {
+                lastGroup.messages.push(msg);
+            }
+        });
+
+        return { parentMessages: parents, repliesMap: replies, groupedMessages: grouped };
+    }, [messages]);
 
     const toggleThread = (messageId: string) => {
         setExpandedThreads(prev => {
