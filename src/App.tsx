@@ -129,7 +129,7 @@ const App = () => (
                             <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
                             <Route path="/submit" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
                             <Route path="/post/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
-                            <Route path="/edit-post/:id" element={<EditPost />} />
+                            <Route path="/edit-post/:id" element={<ProtectedRoute><EditPost /></ProtectedRoute>} />
                             <Route path="/communities" element={<Communities />} />
                             <Route path="/my-communities" element={<MyCommunitiesPage />} />
                             <Route path="/officials" element={<Officials />} />
