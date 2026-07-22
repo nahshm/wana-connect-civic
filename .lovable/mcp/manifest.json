@@ -1,0 +1,201 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://zcnjpczplkbdmmovlrtv.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "wanaiq-mcp",
+      "version": "0.1.0",
+      "title": "WanaIQ Civic"
+    },
+    "tools": [
+      {
+        "name": "whoami",
+        "title": "Who am I",
+        "description": "Return the signed-in WanaIQ user's profile (username, display name, county, constituency, ward, karma).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_posts",
+        "title": "Search posts",
+        "description": "Search WanaIQ posts by keyword across title and content. Returns up to 20 results the signed-in user can read.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Search keywords (matched against title and content)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "description": "Max results (1-20, default 10)."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_post",
+        "title": "Get post",
+        "description": "Fetch a WanaIQ post by id along with its top-level comments (most recent first).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "post_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Post UUID."
+            },
+            "comment_limit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 50,
+              "description": "Max top-level comments to include (0-50, default 20)."
+            }
+          },
+          "required": [
+            "post_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_communities",
+        "title": "List my communities",
+        "description": "List the WanaIQ communities the signed-in user has joined, most recently joined first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_representatives",
+        "title": "List representatives",
+        "description": "List verified office holders for a Kenyan county (defaults to the signed-in user's county). Returns active leaders with their office and profile info.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "county": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Kenyan county name. Defaults to the signed-in user's county."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_promises",
+        "title": "Search campaign promises",
+        "description": "Search WanaIQ campaign promises by keyword and/or status. Returns up to 20 tracked promises.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search keywords matched against promise title and description."
+            },
+            "status": {
+              "type": "string",
+              "description": "Optional status filter (e.g. 'pending', 'in_progress', 'fulfilled', 'broken')."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "description": "Max results (1-20, default 10)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_recent_posts",
+        "title": "List recent posts",
+        "description": "List the most recent WanaIQ posts. Optionally scope to a community by id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "community_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Optional community UUID to scope the feed."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "description": "Max results (1-25, default 10)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
