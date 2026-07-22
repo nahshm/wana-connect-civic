@@ -1,216 +1,66 @@
 
+# Add Agent Integrations (MCP) to WanaIQ
 
-# Complete Platform Audit Report — WanaConnect Civic
+Expose this app as an OAuth-protected MCP server so ChatGPT / Claude / Cursor / Codex can connect as real WanaIQ users, with all tool calls scoped by Supabase RLS.
 
-Based on live Supabase security scan (87 findings), database linter (75 issues), and codebase analysis.
+## Architecture
 
----
+- Author tools in `src/lib/mcp/tools/` using `defineTool` from `@lovable.dev/mcp-js`.
+- Register them in `src/lib/mcp/index.ts` via `defineMcp`, with `auth.oauth.issuer(...)` pointing at the direct `https://<project-ref>.supabase.co/auth/v1` issuer built from `import.meta.env.VITE_SUPABASE_PROJECT_ID`.
+- Add `mcpPlugin()` from `@lovable.dev/mcp-js/stacks/supabase/vite` to `vite.config.ts`. The plugin generates `supabase/functions/mcp/index.ts` at build time (do not hand-edit).
+- Add a `/.lovable/oauth/consent` React route wired to `supabase.auth.oauth.{getAuthorizationDetails, approveAuthorization, denyAuthorization}`, and ensure unauthenticated visitors are redirected to `/login?next=<full consent URL>` and returned back after sign-in (including social `redirect_uri` and signup `emailRedirectTo`).
+- Deploy the generated `mcp` edge function.
 
-## CRITICAL SECURITY VULNERABILITIES (from live scan)
+## Initial tool set (all RLS-scoped via `ctx.getToken()`)
 
-These are real, confirmed by Supabase's own scanner. The external reports **understated** the severity.
+Read-only, safe defaults that mirror the platform's core civic surface:
 
-### P0 — Exploitable Right Now
+1. `whoami` — return the signed-in user's profile (username, display name, county/constituency/ward).
+2. `search_posts` — full-text/ILIKE search over posts the user can read.
+3. `get_post` — fetch a single post + top-level comments by id or slug.
+4. `list_my_communities` — communities the user has joined.
+5. `list_representatives` — leaders for the user's geography (county/constituency/ward).
+6. `search_promises` — search accountability promises with status filter.
+7. `list_notifications` — user's recent notifications.
 
-| Finding | Impact | Detail |
-|---------|--------|--------|
-| **Any authenticated user can appoint themselves moderator of any community** | Privilege escalation | `community_moderators` INSERT policy is `WITH CHECK (true)` — no ownership check |
-| **Any unauthenticated visitor can alter fact-check verification records** | Data corruption | `verifications` UPDATE policy is `USING (true)` on `{public}` role |
-| **Any unauthenticated visitor can overwrite office proposals** | Data corruption | `office_proposals` UPDATE policy is `USING (true)` on `{public}` |
-| **All private chat messages are publicly readable** | Privacy breach | `chat_messages` has a blanket `USING (true)` on `{public}` that overrides the participant-scoped policy via OR logic |
-| **Any authenticated user can overwrite/delete another user's profile files** | Account takeover vector | Storage policies on `user-profiles` bucket lack ownership check (`storage.foldername(name)[1] = auth.uid()`) |
-| **Any authenticated user can read/modify/delete all agent proposals** | System integrity | `agent_proposals` has `ALL` with `USING (true)` for authenticated |
-| **Any authenticated user can tamper with agent state** | System integrity | `agent_state` has `ALL` with `USING (true)` for authenticated |
-| **Contractor emails and phone numbers publicly readable** | PII exposure | `contractors` SELECT `USING (true)` exposes contact info to anon |
+Mutating tools (create post, comment, vote, report issue) are deliberately **not** in the first cut — they need `needsApproval` UX and stricter validation. Add in a follow-up once the read-only surface is verified.
 
-### P1 — Privacy Leaks
+Every tool: clear `title`, one-sentence `description`, `annotations.readOnlyHint: true`, narrow Zod `inputSchema`, forwards `ctx.getToken()` to a per-request Supabase client so RLS runs as the caller. Never reads `SUPABASE_SERVICE_ROLE_KEY`.
 
-| Finding | Impact |
-|---------|--------|
-| Community browsing history publicly readable | `community_visits` exposes user_id + timestamps |
-| Project viewing history publicly readable | `project_views` exposes user_id |
-| Video watch history publicly readable | `civic_clip_views` exposes user_id + watch_duration + device |
-| Pending institution handler requests publicly readable | Exposes who is requesting handler access |
+## Files
 
-### P1 — Database Hygiene
-
-| Category | Count | Detail |
-|----------|-------|--------|
-| Security Definer Views | 5 errors | Views bypass RLS of the querying user |
-| Functions without `search_path` | 40 warnings | Vulnerable to search_path hijacking |
-| Extensions in `public` schema | 2 warnings | Should be in dedicated schema |
-| Materialized Views in API | 3 warnings | Exposed over Data APIs |
-| RLS "Always True" policies | 25 warnings | `INSERT/UPDATE/DELETE` with `USING(true)` or `WITH CHECK(true)` |
-| Leaked password protection | Disabled | Should be enabled in Auth settings |
-
----
-
-## ROUTE PROTECTION GAPS (confirmed from App.tsx)
-
-| Route | Status | Risk |
-|-------|--------|------|
-| `/create`, `/create-post`, `/submit` | Protected | OK |
-| `/post/:id` | Protected | OK |
-| `/edit-post/:id` | **UNPROTECTED** | Anyone can access edit page |
-| `/projects/submit` | **UNPROTECTED** | Anyone can access submit form |
-| `/admin/dashboard` | **UNPROTECTED** | Admin panel exposed |
-| `/admin/intelligence` | **UNPROTECTED** | Admin panel exposed |
-| `/admin/verification` | **UNPROTECTED** | Admin panel exposed |
-| `/admin/geographic-data` | **UNPROTECTED** | Admin panel exposed |
-| `/admin/feature-flags` | **UNPROTECTED** | Admin panel exposed |
-
----
-
-## CONFIRMED CODE BUGS
-
-### 1. Non-Atomic Comment Count (Race Condition)
-**File**: `PostDetail.tsx` line 131
-```
-.update({ comment_count: (post?.commentCount || 0) + 1 })
-```
-Two concurrent comments will lose one count. Need a database RPC with `comment_count = comment_count + 1`.
-
-### 2. Search: No Debounce + Sequential Queries + 400 Errors
-- `SearchBar.tsx` fires `useSearch` on every keystroke — no `useDebounce`
-- `useSearch.ts` runs 7 queries **sequentially** (await one after another) instead of `Promise.all`
-- 6 of 7 queries use `.textSearch('search_vector', query)` which throws 400 on partial input like "Nai" — only posts use safe ILIKE
-
-### 3. Chat Message Filtering Not Memoized
-**File**: `ChannelChatWindow.tsx` line 597
-```
-const parentMessages = messages.filter(m => !m.reply_to_id);
-```
-Runs on every render, no `useMemo`. With growing message lists this will cause UI lag on low-end devices.
-
----
-
-## IMPLEMENTATION PLAN
-
-### Step 1: Fix Critical RLS Policies (Database Migration)
-
-```sql
--- 1. community_moderators: only existing admins can add moderators
-DROP POLICY IF EXISTS "allow_insert_moderators" ON community_moderators;
-CREATE POLICY "admins_insert_moderators" ON community_moderators
-  FOR INSERT TO authenticated
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM community_moderators cm
-      WHERE cm.community_id = community_id
-        AND cm.user_id = auth.uid()
-        AND cm.role = 'admin'
-    )
-  );
-
--- 2. verifications: restrict updates to authenticated only
-DROP POLICY IF EXISTS "Verifications can be updated by system" ON verifications;
-CREATE POLICY "verifications_update_authenticated" ON verifications
-  FOR UPDATE TO authenticated
-  USING (auth.uid() IS NOT NULL)
-  WITH CHECK (auth.uid() IS NOT NULL);
-
--- 3. office_proposals: restrict updates to authenticated, scope to upvotes
-DROP POLICY IF EXISTS "Anyone can upvote proposals" ON office_proposals;
-CREATE POLICY "auth_upvote_proposals" ON office_proposals
-  FOR UPDATE TO authenticated
-  USING (true)
-  WITH CHECK (true);
-
--- 4. chat_messages: remove blanket public read
-DROP POLICY IF EXISTS "Anyone can view chat messages" ON chat_messages;
-
--- 5. agent_proposals: restrict to admin
-DROP POLICY IF EXISTS "agent_proposals_authenticated_all" ON agent_proposals;
-CREATE POLICY "agent_proposals_admin_only" ON agent_proposals
-  FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
--- 6. agent_state: restrict to admin
-DROP POLICY IF EXISTS "agent_state_authenticated_all" ON agent_state;
-CREATE POLICY "agent_state_admin_only" ON agent_state
-  FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
--- 7. Storage: add ownership check for user-profiles bucket
--- (Must be done via Supabase dashboard or storage API)
-
--- 8. Privacy: scope user activity tables to owner
-DROP POLICY IF EXISTS "View community visits" ON community_visits;
-CREATE POLICY "own_community_visits" ON community_visits
-  FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
-
-DROP POLICY IF EXISTS "Anyone can view project views" ON project_views;
-CREATE POLICY "own_project_views" ON project_views
-  FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
-
-DROP POLICY IF EXISTS "Users can view all clip views" ON civic_clip_views;
-CREATE POLICY "own_clip_views" ON civic_clip_views
-  FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
+```text
+package.json                                   (+ @lovable.dev/mcp-js, zod already present)
+vite.config.ts                                 (+ mcpPlugin())
+src/lib/mcp/index.ts                           (new — defineMcp entry)
+src/lib/mcp/tools/whoami.ts                    (new)
+src/lib/mcp/tools/search-posts.ts              (new)
+src/lib/mcp/tools/get-post.ts                  (new)
+src/lib/mcp/tools/list-my-communities.ts       (new)
+src/lib/mcp/tools/list-representatives.ts      (new)
+src/lib/mcp/tools/search-promises.ts           (new)
+src/lib/mcp/tools/list-notifications.ts        (new)
+src/pages/OAuthConsent.tsx                     (new — /.lovable/oauth/consent)
+src/App.tsx                                    (+ consent route, public — no ProtectedRoute)
+src/pages/Auth.tsx (or login flow)             (consume `next` param on password, signup emailRedirectTo, and social redirect_uri)
 ```
 
-### Step 2: Add Atomic Comment Count RPC
+The MCP entry stays import-safe: no top-level env reads, no I/O, no throws — secrets are read inside handlers only.
 
-```sql
-CREATE OR REPLACE FUNCTION increment_comment_count(p_post_id UUID)
-RETURNS void
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  UPDATE posts SET comment_count = comment_count + 1 WHERE id = p_post_id;
-$$;
-```
+## Steps
 
-Update `PostDetail.tsx` to call `supabase.rpc('increment_comment_count', { p_post_id: resolvedId })`.
+1. Install `@lovable.dev/mcp-js`.
+2. Add `mcpPlugin()` to `vite.config.ts` plugin array (keep PWA, react-swc, lovable-tagger untouched).
+3. Write the seven tool files and `src/lib/mcp/index.ts`.
+4. Add `OAuthConsent.tsx` and route it at `/.lovable/oauth/consent`; update the login/signup/social paths to preserve and consume `next`.
+5. Validate the manifest (`app_mcp_server--extract_mcp_manifest`).
+6. Deploy the `mcp` edge function (`supabase--deploy_edge_functions`, `function_names: ["mcp"]`).
+7. Verify: connect from Claude/ChatGPT, sign in via consent screen, call `whoami` — confirm it returns the signed-in user's profile.
 
-### Step 3: Add Route Protection (App.tsx)
+## Notes / constraints
 
-Wrap these routes in `<ProtectedRoute>`:
-- `/edit-post/:id`
-- `/projects/submit`
-- All 5 `/admin/*` routes
-
-### Step 4: Fix Search (SearchBar.tsx + useSearch.ts)
-
-- Add `useDebounce(query, 300)` in `SearchBar.tsx`
-- Replace all `.textSearch()` calls with ILIKE in `useSearch.ts`
-- Wrap all 7 queries in `Promise.all` for parallel execution
-
-### Step 5: Memoize Chat Filtering (ChannelChatWindow.tsx)
-
-Wrap `parentMessages` and `repliesMap` computation in `useMemo` keyed on `messages`.
-
-### Step 6: Enable Leaked Password Protection
-
-Enable in Supabase Dashboard > Auth > Settings.
-
----
-
-## Summary
-
-| Priority | Count | Category |
-|----------|-------|----------|
-| P0 Critical | 8 | RLS privilege escalation + data exposure |
-| P1 High | 4 | Privacy leaks (user activity history) |
-| P1 High | 7 | Unprotected routes (admin panel open) |
-| P2 Medium | 3 | Code bugs (race condition, search, memoization) |
-| P2 Medium | 75 | DB linter warnings (search_path, extensions) |
-
-The external reports were **partially correct** but missed the most critical findings: the moderator self-appointment exploit, public chat message exposure, and storage ownership bypass. These must be fixed before launch.
-
-### Files to Change
-
-| File | Change |
-|------|--------|
-| DB migration | Fix 8 critical RLS policies + atomic counter RPC |
-| `src/App.tsx` | Add `ProtectedRoute` to 7 unguarded routes |
-| `src/features/feed/pages/PostDetail.tsx` | Use RPC for comment count |
-| `src/components/layout/SearchBar.tsx` | Add `useDebounce` |
-| `src/hooks/useSearch.ts` | `Promise.all` + ILIKE for all tables |
-| `src/components/chat/ChannelChatWindow.tsx` | `useMemo` for message grouping |
-
+- Issuer is `https://${VITE_SUPABASE_PROJECT_ID}.supabase.co/auth/v1` — not the `SUPABASE_URL` (would break discovery if a proxy host is ever used).
+- Add the consent path to the project's Supabase redirect allow-list.
+- Favicon already exists (`public/favicon.png`) — connector icon covered.
+- Existing PWA denylist already excludes `/api` and `/~oauth`; the MCP function lives at `https://<ref>.supabase.co/functions/v1/mcp`, so no PWA fallback conflict.
+- No changes to existing tools, RLS, or UI beyond the consent route and its auth-return plumbing.

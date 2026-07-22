@@ -68,6 +68,7 @@ const CivicResumePage = lazy(() => import("@/features/profile/pages/CivicResumeP
 const SettingsPage = lazy(() => import("./pages/Settings"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingFlow = lazy(() => import("./pages/Onboarding/OnboardingFlow"));
 const ProfileSetup = lazy(() => import("@/components/onboarding/ProfileSetup").then(m => ({ default: m.ProfileSetup })));
@@ -112,6 +113,7 @@ const App = () => (
                   <Routes>
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                     <Route path="/onboarding" element={<OnboardingFlow />} />
                     <Route path="/*" element={
                       <AppLayout>
