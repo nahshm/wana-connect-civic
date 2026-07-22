@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -24,13 +24,18 @@ export default function Auth() {
   const [rateLimitSeconds, setRateLimitSeconds] = useState<number | null>(null);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Validate `next`: same-origin relative path only (defense against open redirects).
+  const rawNext = searchParams.get('next');
+  const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate(nextPath, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, nextPath]);
 
   // Countdown timer for rate limiting
   useEffect(() => {
@@ -56,7 +61,7 @@ export default function Auth() {
     const { error } = await signIn(data.email, data.password);
 
     if (!error) {
-      navigate('/');
+      navigate(nextPath, { replace: true });
     } else {
       // Check for rate limiting
       const errorMsg = error.message?.toLowerCase() || '';
