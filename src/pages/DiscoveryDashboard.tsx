@@ -556,6 +556,7 @@ const DiscoveryDashboard = () => {
                 </TabsContent>
             </Tabs>
         </div>
+        </>
     );
 };
 

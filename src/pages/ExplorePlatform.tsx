@@ -96,5 +96,6 @@ export default function ExplorePlatform() {
         ))}
       </div>
     </div>
+    </>
   );
 }
