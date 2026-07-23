@@ -1,0 +1,24 @@
+# WanaIQ (ama)
+
+> Civic accountability and action platform empowering citizens through community discussions, government transparency, and issue reporting.
+
+WanaIQ is an AI-powered civic engagement platform. Citizens follow representatives, track campaign promises, discuss local issues, and hold institutions accountable. The platform is independent and non-governmental.
+
+## Pages
+
+- [Home](/): Personalized civic feed of posts, projects, and promises.
+- [Communities](/communities): Directory of geographic and interest-based civic communities.
+- [Officials](/officials): Government officials, offices, and verified representatives.
+- [Projects](/projects): Public infrastructure and civic accountability projects.
+- [Discover](/discover): Trending civic content and communities.
+- [Explore](/explore): Overview of platform features and civic tools.
+- [Civic Clips](/civic-clips): Short-form video content from citizens and officials.
+- [Civic Assistant](/civic-assistant): AI assistant for civic questions.
+- [Quests](/quests): Civic engagement challenges.
+- [Leaderboards](/leaderboards): Top contributors and communities.
+
+## Optional
+
+- [Install](/install): How to install the WanaIQ app.
+- [Privacy Policy](/privacy)
+- [Terms of Service](/terms)
