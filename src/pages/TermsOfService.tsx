@@ -194,6 +194,7 @@ export const TermsOfService = () => {
         &copy; {new RegExp(/\d{4}/).exec(new Date().toISOString())?.[0]} WanaIQ. All rights reserved.
       </div>
     </div>
+    </>
   );
 };
 
