@@ -20,6 +20,7 @@ import { useVerification } from '@/hooks/useVerification';
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer';
 import type { Comment, Post, CommentAward, CommentMedia } from '@/types';
 import type { UploadedMedia } from '@/components/posts/CommentInput';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 
 // PostDetail handles the detailed view of a single post and its discussion
@@ -332,6 +333,21 @@ const PostDetail = () => {
     : 0;
 
   return (
+    <>
+    <PageMeta
+      title={post.title}
+      description={(post.content || post.title).replace(/<[^>]+>/g, '').slice(0, 155)}
+      path={`/post/${post.id}`}
+      type="article"
+      jsonLd={{
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: post.title,
+        author: { '@type': 'Person', name: post.author?.username || 'Anonymous' },
+        datePublished: (post as any).createdAt instanceof Date ? (post as any).createdAt.toISOString() : (post as any).createdAt,
+        url: `https://amacivic.com/post/${post.id}`,
+      }}
+    />
     <div className="h-full bg-background">
       <div className="flex h-full">
         {/* Main content - scrollable */}
@@ -424,6 +440,7 @@ const PostDetail = () => {
         </aside>
       </div>
     </div>
+    </>
   );
 };
 

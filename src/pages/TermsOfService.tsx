@@ -2,12 +2,19 @@ import React from 'react';
 import { Gavel, Scale, AlertTriangle, ShieldCheck, HelpCircle, FileCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 export const TermsOfService = () => {
   const effectiveDate = "March 13, 2026";
   const contactEmail = "support@wanaiq.com";
 
   return (
+    <>
+    <PageMeta
+      title="Terms of Service"
+      description="The terms governing use of WanaIQ, our AI-powered civic engagement platform."
+      path="/terms"
+    />
     <div className="container max-w-4xl py-12 px-4 mx-auto">
       <div className="space-y-4 mb-10 text-center">
         <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 text-primary mb-2">
@@ -187,6 +194,7 @@ export const TermsOfService = () => {
         &copy; {new RegExp(/\d{4}/).exec(new Date().toISOString())?.[0]} WanaIQ. All rights reserved.
       </div>
     </div>
+    </>
   );
 };
 

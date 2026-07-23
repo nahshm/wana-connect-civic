@@ -11,6 +11,7 @@ import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 import { supabase } from '@/integrations/supabase/client';
 import { HomeSidebar } from '@/components/feed/HomeSidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 export default function Index() {
   const { user } = useAuth();
@@ -106,6 +107,12 @@ export default function Index() {
   }, [user, authModal, toast]);
 
   return (
+    <>
+    <PageMeta
+      title="ama — Civic Accountability & Action"
+      description="Follow representatives, track promises, discuss local issues, and hold institutions accountable. Your civic engagement hub for Kenya."
+      path="/"
+    />
     <div className="w-full min-h-screen bg-transparent px-0 sm:px-4">
       <div className="max-w-[1080px] mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_300px] lg:grid-cols-[minmax(0,1fr)_330px] xl:grid-cols-[680px_350px] gap-6 lg:gap-8 relative overflow-visible">
         {/* Feed Column */}
@@ -175,5 +182,6 @@ export default function Index() {
         </aside>
       </div>
     </div>
+    </>
   );
 }

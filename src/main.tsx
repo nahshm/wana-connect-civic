@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client'
+import { HelmetProvider } from 'react-helmet-async'
 import App from './App.tsx'
 import './index.css'
 import { initWebVitals } from './lib/vitals'
@@ -18,7 +19,9 @@ if (_botResult.isBot && import.meta.env.PROD) {
 initWebVitals();
 initGlobalErrorHandling();
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <HelmetProvider><App /></HelmetProvider>
+);
 
 
 // Load Google Fonts after page load (non-blocking)

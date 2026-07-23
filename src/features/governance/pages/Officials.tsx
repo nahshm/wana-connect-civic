@@ -18,6 +18,7 @@ import {
   Search, Eye, Share2, MapPin, ShieldCheck, UserPlus,
   Globe, Loader2, ChevronRight, Building2, Landmark, Users
 } from 'lucide-react';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const PAGE_SIZE = 24;
 
@@ -269,6 +270,12 @@ const Officials = () => {
   };
 
   return (
+    <>
+      <PageMeta
+        title="Government Officials"
+        description="Find and connect with elected representatives across Kenya. Track officials, verify positions, and hold leaders accountable."
+        path="/officials"
+      />
     <div className="container mx-auto px-4 py-8">
       <div className="space-y-6">
         {/* Header */}
@@ -536,6 +543,7 @@ const Officials = () => {
         communityId={undefined} // No community context from Officials page
       />
     </div>
+    </>
   );
 };
 

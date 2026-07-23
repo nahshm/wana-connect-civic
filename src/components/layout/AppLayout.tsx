@@ -54,11 +54,11 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           )}
         >
           {isCivicAssistant ? (
-            <div className="relative h-full min-h-0 w-full overflow-hidden">
+            <main className="relative h-full min-h-0 w-full overflow-hidden">
               {children}
-            </div>
+            </main>
           ) : (
-            children
+            <main className="h-full w-full">{children}</main>
           )}
         </SidebarInset>
       </div>

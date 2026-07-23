@@ -13,6 +13,7 @@ import {
     MapPin, Target, FolderKanban, Users, TrendingUp,
     XCircle, DollarSign
 } from 'lucide-react';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 interface OfficialWithStats {
     id: string;
@@ -221,6 +222,12 @@ const DiscoveryDashboard = () => {
     }
 
     return (
+        <>
+        <PageMeta
+          title="Discover Civic Accountability"
+          description="Find broken promises, delayed projects, and hold leaders accountable. Explore trending civic issues across Kenya."
+          path="/discover"
+        />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
             {/* Header */}
             <div className="mb-8">
@@ -549,6 +556,7 @@ const DiscoveryDashboard = () => {
                 </TabsContent>
             </Tabs>
         </div>
+        </>
     );
 };
 
