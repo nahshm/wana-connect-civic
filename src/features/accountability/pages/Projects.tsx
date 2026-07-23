@@ -223,6 +223,7 @@ const Projects = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
