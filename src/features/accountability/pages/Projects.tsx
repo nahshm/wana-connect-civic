@@ -10,6 +10,7 @@ import { Search, Plus, Filter, AlertTriangle, Loader2 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { ProjectCardWithErrorBoundary } from '@/components/projects/ProjectCard';
 import { PROJECT_CATEGORIES_2026 } from '@/constants/projectConstants';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -71,6 +72,12 @@ const Projects = () => {
   ).sort();
 
   return (
+    <>
+      <PageMeta
+        title="Government Projects Monitor"
+        description="Track government projects, budgets, and accountability across Kenya. Monitor progress, report delays, and hold officials accountable."
+        path="/projects"
+      />
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
