@@ -440,6 +440,7 @@ const PostDetail = () => {
         </aside>
       </div>
     </div>
+    </>
   );
 };
 
