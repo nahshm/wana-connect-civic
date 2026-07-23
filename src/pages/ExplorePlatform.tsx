@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Globe, Building2, TrendingUp, Users, Target, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { PageMeta } from "@/components/seo/PageMeta";
 
 export default function ExplorePlatform() {
   const navigate = useNavigate();
@@ -50,6 +51,12 @@ export default function ExplorePlatform() {
   ];
 
   return (
+    <>
+    <PageMeta
+      title="Explore the Platform"
+      description="Your centralized hub for civic engagement, government accountability, and community empowerment. Discover how to make the most of WanaIQ."
+      path="/explore"
+    />
     <div className="container mx-auto px-4 py-8 max-w-6xl animate-fade-in">
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-foreground">

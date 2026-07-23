@@ -543,6 +543,7 @@ const Officials = () => {
         communityId={undefined} // No community context from Officials page
       />
     </div>
+    </>
   );
 };
 
