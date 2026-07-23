@@ -2,12 +2,19 @@ import React from 'react';
 import { Shield, Lock, Eye, FileText, Database, Share2, UserCheck, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 export const PrivacyPolicy = () => {
   const effectiveDate = "March 13, 2026";
   const contactEmail = "privacy@wanaiq.com";
 
   return (
+    <>
+    <PageMeta
+      title="Privacy Policy"
+      description="How WanaIQ collects, uses, and protects your personal data under GDPR and the Kenya Data Protection Act."
+      path="/privacy"
+    />
     <div className="container max-w-4xl py-12 px-4 mx-auto">
       <div className="space-y-4 mb-10 text-center">
         <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 text-primary mb-2">
