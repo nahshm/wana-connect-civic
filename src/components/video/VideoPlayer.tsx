@@ -155,6 +155,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
         const handleTimeUpdate = () => {
             setCurrentTime(video.currentTime)
+            onProgress?.(video.currentTime, video.duration || 0)
             if (video.duration && video.currentTime > 0) {
                 if (!hasStarted && video.currentTime > 1) {
                     setHasStarted(true)
@@ -164,8 +165,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
         const handleLoadedMetadata = () => {
             setDuration(video.duration)
+            onProgress?.(video.currentTime, video.duration || 0)
             if (video.videoWidth && video.videoHeight) {
-                setAspectRatio(video.videoWidth / video.videoHeight)
+                const ratio = video.videoWidth / video.videoHeight
+                setAspectRatio(ratio)
+                onAspectRatio?.(ratio)
             }
         }
 
