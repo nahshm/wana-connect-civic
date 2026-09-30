@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "WanaIQ",
+    "slug": "wanaiq",
+    "scheme": "wanaiq",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "backgroundColor": "#0E1113",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0E1113"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.lovable.d1dc742590f7422595349529daf13320",
+      "infoPlist": {
+        "NSCameraUsageDescription": "WanaIQ uses the camera so you can record Civic Clips and capture evidence.",
+        "NSMicrophoneUsageDescription": "WanaIQ uses the microphone for Civic Clips and Baraza live spaces.",
+        "NSPhotoLibraryUsageDescription": "WanaIQ needs photo access so you can attach media to posts and reports.",
+        "NSLocationWhenInUseUsageDescription": "WanaIQ uses your location to connect you with your county, constituency and ward communities."
+      }
+    },
+    "android": {
+      "package": "app.lovable.d1dc742590f7422595349529daf13320",
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#0E1113"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-video",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "WanaIQ uses the camera so you can record Civic Clips and capture evidence.",
+          "microphonePermission": "WanaIQ uses the microphone for Civic Clips and Baraza live spaces."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "WanaIQ uses your location to connect you with your county, constituency and ward communities."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8555e6ff-a0ac-4d43-9084-b98501017f88"
+      }
+    }
+  }
+}
