@@ -208,10 +208,10 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
     }
 
     return (
-        <div className="relative h-full w-full snap-start snap-always bg-black select-none overflow-hidden md:flex md:flex-col md:items-center md:justify-start md:py-8 md:px-4">
+        <div className="relative h-full w-full snap-start snap-always bg-black select-none overflow-hidden">
             
             {/* 1. Desktop Author Header (md+ only) - Thinner and more elegant */}
-            <div className="hidden md:flex w-full max-w-[500px] lg:max-w-[600px] mb-3 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="hidden md:flex absolute top-5 left-6 right-6 z-40 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="flex items-center gap-3">
                     <Link to={buildProfileLink({ username: author?.username ?? '', is_verified: author?.is_verified, official_position: author?.official_position })}>
                         <Avatar className="h-11 w-11 ring-2 ring-white/5 hover:ring-primary/40 transition-all">
@@ -238,10 +238,10 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
             </div>
 
             {/* 2. Main Content Group (Video + Buttons) */}
-            <div className="relative w-full h-full md:h-auto md:flex md:flex-row md:items-end md:justify-center md:gap-5">
+            <div className="relative w-full h-full">
                 
                 {/* Video Container - Optimized for Full Height on Desktop */}
-                <div className="relative h-full w-full md:h-[calc(100vh-160px)] md:max-h-[850px] md:w-auto md:aspect-[9/16] md:rounded-2xl md:overflow-hidden md:shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] md:border md:border-white/10 group/card">
+                <div className="relative h-full w-full overflow-hidden group/card">
                     
                     {/* Video Layer */}
                     <div className="absolute inset-0 z-0 bg-zinc-900">
@@ -260,6 +260,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                             playbackRate={rate}
                             captionsUrl={clip.captions_url}
                             captionsEnabled={captions}
+                            fit="contain"
                             className="h-full w-full"
                         />
                     </div>
@@ -314,9 +315,9 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                         />
                     </div>
 
-                    {/* Mobile-Only Info (Overlaid) */}
-                    <div className="md:hidden absolute inset-x-0 bottom-0 p-4 pb-16 flex flex-col gap-3 z-30 pointer-events-none">
-                        <div className="flex items-center gap-3 pointer-events-auto">
+                    {/* Clip context overlaid above the action ribbon */}
+                    <div className="absolute left-0 right-16 md:right-auto md:max-w-2xl bottom-20 md:bottom-24 p-4 md:px-6 flex flex-col gap-3 z-30 pointer-events-none">
+                        <div className="flex items-center gap-3 pointer-events-auto md:hidden">
                             <Avatar className="h-9 w-9 ring-1 ring-white/20">
                                 <AvatarImage src={author?.avatar_url} />
                                 <AvatarFallback className="bg-white/10 text-white text-xs">{author?.display_name?.[0]}</AvatarFallback>
@@ -329,7 +330,7 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                     </div>
 
                     {/* Bottom Seek Bar */}
-                    <div className="absolute bottom-0 left-0 right-0 pointer-events-auto z-50 bg-gradient-to-t from-black/60 to-transparent">
+                    <div className="absolute bottom-14 md:bottom-16 left-0 right-0 pointer-events-auto z-50 bg-gradient-to-t from-black/60 to-transparent">
                         <VideoSeekBar
                             currentTime={currentTime}
                             duration={duration}
@@ -341,54 +342,54 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                 </div>
 
 
-                {/* Interaction Stack (Vertical Beside Video on Desktop) */}
-                <div className="absolute right-4 bottom-24 flex flex-col items-center gap-5 z-40 md:static md:flex md:w-12 md:mb-1 pointer-events-none">
+                {/* Civic action ribbon */}
+                <div className="absolute inset-x-0 bottom-0 h-14 md:h-16 px-4 md:px-6 flex items-center justify-end gap-4 md:gap-7 z-40 bg-black/75 backdrop-blur-xl border-t border-white/10 pointer-events-none">
                     {/* Upvote */}
-                    <div className="flex flex-col items-center gap-1.5 pointer-events-auto">
+                    <div className="flex items-center gap-1.5 pointer-events-auto">
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleVote('upvote'); }}
                             className={cn(
-                                "h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center transition-all bg-zinc-900/80 md:bg-zinc-800/40 backdrop-blur-xl border border-white/10 shadow-xl",
+                            "h-9 w-9 rounded-full flex items-center justify-center transition-all bg-transparent",
                                 voteType === 'upvote' ? "bg-primary text-white border-primary" : "hover:bg-white/10 text-white/80"
                             )}
                         >
-                            <ArrowBigUp className={cn("h-6 w-6 md:h-7 md:w-7 transition-all", voteType === 'upvote' ? "fill-white" : "fill-none")} strokeWidth={2.5} />
+                            <ArrowBigUp className={cn("h-5 w-5 transition-all", voteType === 'upvote' ? "fill-white" : "fill-none")} strokeWidth={2.5} />
                         </button>
                         <span className="text-white/90 text-[11px] font-bold">{votes.toLocaleString()}</span>
                     </div>
 
                     {/* Comment */}
-                    <div className="flex flex-col items-center gap-1.5 pointer-events-auto">
+                    <div className="flex items-center gap-1.5 pointer-events-auto">
                         <Link 
                             to={`/post/${post?.id}`} 
-                            className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-zinc-900/80 md:bg-zinc-800/40 backdrop-blur-xl flex items-center justify-center hover:bg-white/10 transition-all border border-white/10 shadow-xl text-white/80"
+                            className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-all text-white/80"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <MessageCircle className="h-6 w-6 md:h-7 md:w-7" strokeWidth={2.5} />
+                            <MessageCircle className="h-5 w-5" strokeWidth={2.5} />
                         </Link>
                         <span className="text-white/90 text-[11px] font-bold">{post?.comment_count || '0'}</span>
                     </div>
 
                     {/* Save */}
-                    <div className="flex flex-col items-center gap-1.5 pointer-events-auto">
+                    <div className="flex items-center pointer-events-auto">
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleSave(); }} 
                             className={cn(
-                                "h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center transition-all bg-zinc-900/80 md:bg-zinc-800/40 backdrop-blur-xl border border-white/10 shadow-xl",
+                                "h-9 w-9 rounded-full flex items-center justify-center transition-all bg-transparent",
                                 saved ? "bg-amber-500 text-white border-amber-500" : "hover:bg-white/10 text-white/80"
                             )}
                         >
-                            <Bookmark className={cn("h-6 w-6 md:h-7 md:w-7 transition-all", saved ? "fill-white" : "fill-none")} strokeWidth={2.5} />
+                            <Bookmark className={cn("h-5 w-5 transition-all", saved ? "fill-white" : "fill-none")} strokeWidth={2.5} />
                         </button>
                     </div>
 
                     {/* Share */}
-                    <div className="flex flex-col items-center gap-1.5 pointer-events-auto">
+                    <div className="flex items-center pointer-events-auto">
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleShare(); }} 
-                            className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-zinc-900/80 md:bg-zinc-800/40 backdrop-blur-xl flex items-center justify-center hover:bg-white/10 transition-all border border-white/10 shadow-xl text-white/80"
+                            className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-all text-white/80"
                         >
-                            <Share2 className="h-6 w-6 md:h-7 md:w-7" strokeWidth={2.5} />
+                            <Share2 className="h-5 w-5" strokeWidth={2.5} />
                         </button>
                     </div>
 
@@ -399,21 +400,6 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                 </div>
             </div>
 
-            {/* 3. Desktop Bottom Information (md+ only) */}
-            <div className="hidden md:flex w-full max-w-[500px] lg:max-w-[600px] mt-5 flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500 pointer-events-auto">
-                <h2 className="text-white text-[17px] font-bold leading-tight line-clamp-2">{post?.title}</h2>
-                {post?.content && (
-                    <div className="text-white/60 text-[14px] leading-relaxed line-clamp-3">
-                        <SafeContentRenderer content={post.content} />
-                    </div>
-                )}
-                {community && (
-                    <Link to={`/r/${community.name}`} className="inline-flex items-center gap-1.5 text-primary/80 hover:text-primary transition-colors text-sm font-bold w-fit">
-                        <Users className="h-3.5 w-3.5" />
-                        <span>r/{community.name}</span>
-                    </Link>
-                )}
-            </div>
         </div>
     )
 }
