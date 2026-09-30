@@ -1,66 +1,98 @@
+# Full shadcn Preset Upgrade
 
-# Add Agent Integrations (MCP) to WanaIQ
+Upgrade the WanaIQ frontend to Tailwind CSS v4 and apply the complete shadcn preset `b77BNryJOK`, including its components, OKLCH theme, radius, and fonts. Preserve app-specific behavior, then repair and verify the migration end-to-end.
 
-Expose this app as an OAuth-protected MCP server so ChatGPT / Claude / Cursor / Codex can connect as real WanaIQ users, with all tool calls scoped by Supabase RLS.
+## Confirmed decisions
 
-## Architecture
+- Use Tailwind CSS v4 with native OKLCH tokens.
+- Run `npx shadcn@latest apply --preset b77BNryJOK` rather than manually approximating the preset.
+- Replace upstream shadcn components with the preset versions, then restore required WanaIQ extensions.
+- Make red the sitewide primary color.
+- Centralize future visual changes in one theme stylesheet and one font configuration module.
+- Delete `_preset-backup/` only after the upgraded app passes verification.
 
-- Author tools in `src/lib/mcp/tools/` using `defineTool` from `@lovable.dev/mcp-js`.
-- Register them in `src/lib/mcp/index.ts` via `defineMcp`, with `auth.oauth.issuer(...)` pointing at the direct `https://<project-ref>.supabase.co/auth/v1` issuer built from `import.meta.env.VITE_SUPABASE_PROJECT_ID`.
-- Add `mcpPlugin()` from `@lovable.dev/mcp-js/stacks/supabase/vite` to `vite.config.ts`. The plugin generates `supabase/functions/mcp/index.ts` at build time (do not hand-edit).
-- Add a `/.lovable/oauth/consent` React route wired to `supabase.auth.oauth.{getAuthorizationDetails, approveAuthorization, denyAuthorization}`, and ensure unauthenticated visitors are redirected to `/login?next=<full consent URL>` and returned back after sign-in (including social `redirect_uri` and signup `emailRedirectTo`).
-- Deploy the generated `mcp` edge function.
+## Current state confirmed from the project
 
-## Initial tool set (all RLS-scoped via `ctx.getToken()`)
+- The project currently uses Tailwind CSS 3.4 with the Tailwind PostCSS plugin and an HSL-based `tailwind.config.ts` theme.
+- The preset tokens supplied use Tailwind v4-compatible OKLCH values.
+- The current button has custom `blue` and `join` variants that must survive the overwrite.
+- The current sidebar contains app-specific behavior, including safe fallback context, mobile handling, collapse state, keyboard control, and layout sizing; these behaviors must be reconciled rather than blindly discarded.
+- Vite also runs PWA, Lovable MCP, React SWC, and component-tagger plugins; the migration must preserve them.
 
-Read-only, safe defaults that mirror the platform's core civic surface:
+## Implementation plan
 
-1. `whoami` — return the signed-in user's profile (username, display name, county/constituency/ward).
-2. `search_posts` — full-text/ILIKE search over posts the user can read.
-3. `get_post` — fetch a single post + top-level comments by id or slug.
-4. `list_my_communities` — communities the user has joined.
-5. `list_representatives` — leaders for the user's geography (county/constituency/ward).
-6. `search_promises` — search accountability promises with status filter.
-7. `list_notifications` — user's recent notifications.
+### 1. Baseline and preset inspection
 
-Mutating tools (create post, comment, vote, report issue) are deliberately **not** in the first cut — they need `needsApproval` UX and stricter validation. Add in a follow-up once the read-only surface is verified.
+- Capture the current dependency/config state and screenshots of representative public and authenticated pages.
+- Run the preset command in a temporary isolated Vite project first to inspect the exact generated component sources, dependencies, font choices, `components.json`, and CSS output.
+- Diff every generated upstream component against `src/components/ui/` and classify each file as upstream, customized upstream, or WanaIQ-only.
+- Inventory Tailwind v3-only syntax across TSX and CSS, including config-based colors, plugins, `theme(...)`, legacy arbitrary-variable syntax, deprecated utilities, and custom `@apply` usage.
 
-Every tool: clear `title`, one-sentence `description`, `annotations.readOnlyHint: true`, narrow Zod `inputSchema`, forwards `ctx.getToken()` to a per-request Supabase client so RLS runs as the caller. Never reads `SUPABASE_SERVICE_ROLE_KEY`.
+### 2. Upgrade the styling toolchain
 
-## Files
+- Upgrade Tailwind and its PostCSS/Vite integration to v4-compatible packages using Bun so `package.json` and `bun.lock` remain synchronized.
+- Update PostCSS and Vite without disturbing the existing React, PWA, MCP, or Lovable plugins.
+- Use the official Tailwind upgrade tool where safe, then review every generated change instead of accepting it blindly.
+- Convert configuration-defined tokens, fonts, radii, keyframes, typography support, and semantic colors to Tailwind v4 CSS-first configuration.
 
-```text
-package.json                                   (+ @lovable.dev/mcp-js, zod already present)
-vite.config.ts                                 (+ mcpPlugin())
-src/lib/mcp/index.ts                           (new — defineMcp entry)
-src/lib/mcp/tools/whoami.ts                    (new)
-src/lib/mcp/tools/search-posts.ts              (new)
-src/lib/mcp/tools/get-post.ts                  (new)
-src/lib/mcp/tools/list-my-communities.ts       (new)
-src/lib/mcp/tools/list-representatives.ts      (new)
-src/lib/mcp/tools/search-promises.ts           (new)
-src/lib/mcp/tools/list-notifications.ts        (new)
-src/pages/OAuthConsent.tsx                     (new — /.lovable/oauth/consent)
-src/App.tsx                                    (+ consent route, public — no ProtectedRoute)
-src/pages/Auth.tsx (or login flow)             (consume `next` param on password, signup emailRedirectTo, and social redirect_uri)
-```
+### 3. Apply the full preset
 
-The MCP entry stays import-safe: no top-level env reads, no I/O, no throws — secrets are read inside handlers only.
+- Run `npx shadcn@latest apply --preset b77BNryJOK` against the migrated project.
+- Accept the preset’s component style, dependencies, fonts, radius, chart palette, sidebar palette, and the supplied light/dark OKLCH variables.
+- Keep the preset output as the authoritative upstream baseline; do not convert the supplied OKLCH values back to HSL.
+- Resolve CLI/config failures as migration work rather than falling back silently to a partial theme port.
 
-## Steps
+### 4. Create simple theme swap points
 
-1. Install `@lovable.dev/mcp-js`.
-2. Add `mcpPlugin()` to `vite.config.ts` plugin array (keep PWA, react-swc, lovable-tagger untouched).
-3. Write the seven tool files and `src/lib/mcp/index.ts`.
-4. Add `OAuthConsent.tsx` and route it at `/.lovable/oauth/consent`; update the login/signup/social paths to preserve and consume `next`.
-5. Validate the manifest (`app_mcp_server--extract_mcp_manifest`).
-6. Deploy the `mcp` edge function (`supabase--deploy_edge_functions`, `function_names: ["mcp"]`).
-7. Verify: connect from Claude/ChatGPT, sign in via consent screen, call `whoami` — confirm it returns the signed-in user's profile.
+- Move the preset’s semantic light/dark variables into `src/styles/theme.css`.
+- Add `src/styles/fonts.ts` as the single source of font-family names and loading metadata, while keeping CSS variables as the runtime styling contract.
+- Keep `src/index.css` focused on Tailwind imports, semantic token mapping, base rules, and shared utilities.
+- Preserve WanaIQ civic accent tokens and custom animations in a clearly separated compatibility section.
+- Document the three common changes: primary color, font family, and button appearance.
 
-## Notes / constraints
+### 5. Reconcile overwritten components
 
-- Issuer is `https://${VITE_SUPABASE_PROJECT_ID}.supabase.co/auth/v1` — not the `SUPABASE_URL` (would break discovery if a proxy host is ever used).
-- Add the consent path to the project's Supabase redirect allow-list.
-- Favicon already exists (`public/favicon.png`) — connector icon covered.
-- Existing PWA denylist already excludes `/api` and `/~oauth`; the MCP function lives at `https://<ref>.supabase.co/functions/v1/mcp`, so no PWA fallback conflict.
-- No changes to existing tools, RLS, or UI beyond the consent route and its auth-return plumbing.
+- Use preset defaults for all true shadcn components.
+- Restore the `blue` and `join` button variants, but express their colors through semantic tokens rather than fixed color classes so future theme changes remain easy.
+- Reapply required sidebar behavior to the new preset sidebar API: mobile drawer, mini-collapse, external trigger, cookie state, keyboard shortcut, and the existing safe usage contract.
+- Preserve WanaIQ-only UI files such as verified badges, receipts, lightboxes, and error boundaries; migrate only their incompatible Tailwind syntax.
+- Update component consumers where the latest preset changed props, exports, or markup contracts.
+
+### 6. Repair Tailwind v4 migration fallout
+
+- Fix invalid utilities, removed opacity helpers, changed ring/shadow behavior, arbitrary CSS-variable syntax, and any incompatible `@apply` rules.
+- Update editor and feature CSS to use semantic tokens and maintain light/dark contrast.
+- Keep the existing theme toggle and update the PWA browser color to match the preset’s active light/dark surfaces.
+- Do not change product logic, database behavior, MCP tools, routes, or security policies.
+
+### 7. Iterative validation until clean
+
+Repeat diagnosis and repair until all relevant checks pass; do not impose an arbitrary three-attempt cutoff.
+
+1. Run the project’s build and TypeScript checks.
+2. Run targeted tests for changed shared UI behavior.
+3. Inspect browser console and failed network requests.
+4. Verify Home/feed, post details, communities, projects, officials, search, onboarding, authentication, settings, dashboard, chat, dialogs, dropdowns, forms, and the OAuth consent screen.
+5. Test desktop and mobile layouts, sidebar expanded/collapsed states, light/dark modes, keyboard focus, loading skeletons, and long text.
+6. Compare against baseline screenshots and repair visual or interaction regressions.
+7. Re-run the checks after every repair batch until the build, type checks, tests, console, and visual smoke tests are clean.
+
+Authenticated browser verification will use the available Supabase session when supported. If this external Supabase project cannot provide an automated session, authenticated pages will be source/test verified and the limitation will be reported precisely.
+
+### 8. Cleanup and handoff
+
+- Remove obsolete Tailwind v3 packages/configuration and unused preset dependencies only after verification.
+- Delete `_preset-backup/` only after the final clean build and visual checks.
+- Add concise theming documentation explaining where to change fonts, button variants, primary color, radius, and light/dark values.
+- Record the new visual system in project memory so later work does not restore the previous blue-undertone theme accidentally.
+
+## Acceptance criteria
+
+- The project runs on Tailwind CSS v4.
+- Preset `b77BNryJOK` is applied through the shadcn CLI, not approximated.
+- The supplied OKLCH light/dark tokens and red primary are active.
+- Preset fonts and component styling are active.
+- Existing WanaIQ flows and custom component behavior still work.
+- Theme color, fonts, and button variants can each be changed from a clear central location.
+- Build, type checks, targeted tests, console checks, and responsive visual smoke tests pass.
+- No PWA, MCP, authentication, routing, or Supabase behavior is intentionally altered.
