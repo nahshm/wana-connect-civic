@@ -11,7 +11,9 @@ import { useToast } from '@/hooks/use-toast'
 import { formatDistanceToNow } from 'date-fns'
 import { copyToClipboard } from '@/lib/clipboard-utils'
 import { CivicClipAccountabilityBadge } from './CivicClipAccountabilityBadge'
-import { CivicClipProgressIndicator } from './CivicClipProgressIndicator'
+import { VideoSeekBar } from './VideoSeekBar'
+import { VideoSettingsMenu } from './VideoSettingsMenu'
+import { usePlaybackPrefs } from '@/hooks/usePlaybackPrefs'
 import { SafeContentRenderer } from '@/components/posts/SafeContentRenderer'
 import { buildProfileLink } from '@/lib/profile-links'
 import { useMediaUrl } from '@/lib/secureMedia'
@@ -45,6 +47,7 @@ interface Clip {
     id: string
     video_url: string
     thumbnail_url?: string
+    captions_url?: string | null
     category?: string
     views_count?: number
     duration?: number
@@ -67,6 +70,10 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
     const [saved, setSaved] = useState(false)
     const [votes, setVotes] = useState((clip.post?.upvotes || 0) - (clip.post?.downvotes || 0))
     const [progress, setProgress] = useState(0)
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(clip.duration || 0)
+    const [isScrubbing, setIsScrubbing] = useState(false)
+    const { rate, captions, setRate, toggleCaptions } = usePlaybackPrefs()
     const [isFollowed, setIsFollowed] = useState(false)
     const [showVotePop, setShowVotePop] = useState(false)
     const [tapCount, setTapCount] = useState(0)
@@ -121,8 +128,10 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
     }
 
     const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+        if (isScrubbing) return
         const newTapCount = tapCount + 1
         setTapCount(newTapCount)
+
 
         if (newTapCount === 1) {
             tapTimerRef.current = setTimeout(() => {
@@ -177,17 +186,18 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
         }
     }
 
-    const handleView = (duration: number, percentage: number) => {
+    const handleView = (watched: number, percentage: number) => {
         setProgress(percentage)
     }
 
-    const handleSeek = (percentage: number) => {
-        if (videoPlayerRef.current) {
-            const duration = videoPlayerRef.current.getDuration()
-            if (duration) {
-                videoPlayerRef.current.seekTo((percentage / 100) * duration)
-            }
-        }
+    const handleProgress = (time: number, total: number) => {
+        if (!isScrubbing) setCurrentTime(time)
+        if (total && total !== duration) setDuration(total)
+    }
+
+    const handleSeek = (seconds: number) => {
+        videoPlayerRef.current?.seekTo(seconds)
+        setCurrentTime(seconds)
     }
 
     const toggleMute = () => onMuteToggle(!isMuted)
@@ -244,8 +254,12 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                             muted={isMuted}
                             loop={true}
                             onView={handleView}
+                            onProgress={handleProgress}
                             onMuteChange={onMuteToggle}
                             showControls={false}
+                            playbackRate={rate}
+                            captionsUrl={clip.captions_url}
+                            captionsEnabled={captions}
                             className="h-full w-full"
                         />
                     </div>
@@ -283,8 +297,25 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                         </button>
                     </div>
 
+                    {/* Top Right Group: Views + Playback settings */}
+                    <div className="absolute top-4 right-4 flex items-center gap-2 z-30">
+                        {typeof clip.views_count === 'number' && (
+                            <Badge className="bg-black/40 backdrop-blur-md border-white/10 text-white font-bold text-[10px] px-2 py-0.5 flex items-center gap-1 whitespace-nowrap">
+                                <Eye className="h-3 w-3" />
+                                {clip.views_count.toLocaleString()}
+                            </Badge>
+                        )}
+                        <VideoSettingsMenu
+                            rate={rate}
+                            onRateChange={setRate}
+                            captionsAvailable={!!clip.captions_url}
+                            captionsEnabled={captions}
+                            onCaptionsToggle={toggleCaptions}
+                        />
+                    </div>
+
                     {/* Mobile-Only Info (Overlaid) */}
-                    <div className="md:hidden absolute inset-x-0 bottom-0 p-4 pb-12 flex flex-col gap-3 z-30 pointer-events-none">
+                    <div className="md:hidden absolute inset-x-0 bottom-0 p-4 pb-16 flex flex-col gap-3 z-30 pointer-events-none">
                         <div className="flex items-center gap-3 pointer-events-auto">
                             <Avatar className="h-9 w-9 ring-1 ring-white/20">
                                 <AvatarImage src={author?.avatar_url} />
@@ -297,15 +328,18 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                         </h3>
                     </div>
 
-                    {/* Bottom Progress Line */}
-                    <div className="absolute bottom-0 left-0 right-0 pointer-events-auto z-50">
-                        <CivicClipProgressIndicator 
-                            progress={progress} 
+                    {/* Bottom Seek Bar */}
+                    <div className="absolute bottom-0 left-0 right-0 pointer-events-auto z-50 bg-gradient-to-t from-black/60 to-transparent">
+                        <VideoSeekBar
+                            currentTime={currentTime}
+                            duration={duration}
                             onSeek={handleSeek}
-                            className="p-0"
+                            onScrubChange={setIsScrubbing}
+                            alwaysVisible
                         />
                     </div>
                 </div>
+
 
                 {/* Interaction Stack (Vertical Beside Video on Desktop) */}
                 <div className="absolute right-4 bottom-24 flex flex-col items-center gap-5 z-40 md:static md:flex md:w-12 md:mb-1 pointer-events-none">

@@ -30,6 +30,18 @@ interface VideoPlayerProps {
     preloadMargin?: string
     /** Whether to show internal controls */
     showControls?: boolean
+    /** Playback speed (0.25 - 2) */
+    playbackRate?: number
+    /** WebVTT captions track URL */
+    captionsUrl?: string | null
+    /** Whether the captions track should be showing */
+    captionsEnabled?: boolean
+    /** Fired on every timeupdate with position and length in seconds */
+    onProgress?: (currentTime: number, duration: number) => void
+    /** Fired once the intrinsic aspect ratio (width / height) is known */
+    onAspectRatio?: (ratio: number) => void
+    /** How the video fills its container; defaults to automatic (contain for landscape) */
+    fit?: 'cover' | 'contain'
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
@@ -45,7 +57,13 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     onMuteChange,
     lazyLoad = true,
     preloadMargin = '200px',
-    showControls: showInternalControls = true
+    showControls: showInternalControls = true,
+    playbackRate = 1,
+    captionsUrl,
+    captionsEnabled = false,
+    onProgress,
+    onAspectRatio,
+    fit
 }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -137,6 +155,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
         const handleTimeUpdate = () => {
             setCurrentTime(video.currentTime)
+            onProgress?.(video.currentTime, video.duration || 0)
             if (video.duration && video.currentTime > 0) {
                 if (!hasStarted && video.currentTime > 1) {
                     setHasStarted(true)
@@ -146,8 +165,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
         const handleLoadedMetadata = () => {
             setDuration(video.duration)
+            onProgress?.(video.currentTime, video.duration || 0)
             if (video.videoWidth && video.videoHeight) {
-                setAspectRatio(video.videoWidth / video.videoHeight)
+                const ratio = video.videoWidth / video.videoHeight
+                setAspectRatio(ratio)
+                onAspectRatio?.(ratio)
             }
         }
 
@@ -290,7 +312,23 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         }
     }, [isLoaded])
 
+    // Apply playback speed
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video) return
+        video.playbackRate = playbackRate
+    }, [playbackRate, isLoaded, videoUrl])
+
+    // Apply captions visibility
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video || !captionsUrl) return
+        const track = video.textTracks?.[0]
+        if (track) track.mode = captionsEnabled ? 'showing' : 'hidden'
+    }, [captionsEnabled, captionsUrl, isLoaded, videoUrl])
+
     const isLandscape = aspectRatio && aspectRatio > 1
+    const objectFitClass = fit ? (fit === 'cover' ? 'object-cover' : 'object-contain') : (isLandscape ? 'object-contain' : 'object-cover')
 
     return (
         <div
@@ -352,16 +390,26 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
                 poster={thumbnailUrl}
                 className={cn(
                     "relative w-full h-full cursor-pointer z-10 transition-all duration-700",
-                    isLandscape ? "object-contain" : "object-cover"
+                    objectFitClass
                 )}
                 autoPlay={isLoaded && autoPlay}
                 muted={muted}
                 loop={loop}
                 playsInline
                 preload={isLoaded ? getPreloadStrategy() : 'none'}
-                controls={true}
+                controls={showInternalControls}
                 crossOrigin="anonymous"
-            />
+            >
+                {captionsUrl && (
+                    <track
+                        kind="captions"
+                        src={captionsUrl}
+                        srcLang="en"
+                        label="Captions"
+                        default={captionsEnabled}
+                    />
+                )}
+            </video>
         </div>
     )
 })
