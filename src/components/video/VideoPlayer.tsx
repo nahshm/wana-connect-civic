@@ -390,16 +390,26 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
                 poster={thumbnailUrl}
                 className={cn(
                     "relative w-full h-full cursor-pointer z-10 transition-all duration-700",
-                    isLandscape ? "object-contain" : "object-cover"
+                    objectFitClass
                 )}
                 autoPlay={isLoaded && autoPlay}
                 muted={muted}
                 loop={loop}
                 playsInline
                 preload={isLoaded ? getPreloadStrategy() : 'none'}
-                controls={true}
+                controls={showInternalControls}
                 crossOrigin="anonymous"
-            />
+            >
+                {captionsUrl && (
+                    <track
+                        kind="captions"
+                        src={captionsUrl}
+                        srcLang="en"
+                        label="Captions"
+                        default={captionsEnabled}
+                    />
+                )}
+            </video>
         </div>
     )
 })
