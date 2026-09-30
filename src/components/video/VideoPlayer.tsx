@@ -30,6 +30,18 @@ interface VideoPlayerProps {
     preloadMargin?: string
     /** Whether to show internal controls */
     showControls?: boolean
+    /** Playback speed (0.25 - 2) */
+    playbackRate?: number
+    /** WebVTT captions track URL */
+    captionsUrl?: string | null
+    /** Whether the captions track should be showing */
+    captionsEnabled?: boolean
+    /** Fired on every timeupdate with position and length in seconds */
+    onProgress?: (currentTime: number, duration: number) => void
+    /** Fired once the intrinsic aspect ratio (width / height) is known */
+    onAspectRatio?: (ratio: number) => void
+    /** How the video fills its container; defaults to automatic (contain for landscape) */
+    fit?: 'cover' | 'contain'
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
@@ -45,7 +57,13 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     onMuteChange,
     lazyLoad = true,
     preloadMargin = '200px',
-    showControls: showInternalControls = true
+    showControls: showInternalControls = true,
+    playbackRate = 1,
+    captionsUrl,
+    captionsEnabled = false,
+    onProgress,
+    onAspectRatio,
+    fit
 }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
