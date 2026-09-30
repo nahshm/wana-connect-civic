@@ -6,13 +6,16 @@
  * AchievementCard: Quest completion and achievement cards
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Play, Eye, Clock, Trophy, Star, Award } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useInView } from 'react-intersection-observer';
 import { buildProfileLink } from '@/lib/profile-links';
 import { formatDistanceToNow } from 'date-fns';
+import { VideoPlayer } from '@/components/video/VideoPlayer';
+import { useMediaUrl } from '@/lib/secureMedia';
 
 // ============================================================================
 // CLIP PREVIEW CARD
@@ -23,8 +26,11 @@ interface CivicClip {
   title: string;
   description?: string;
   thumbnail_url?: string;
+  video_url?: string;
+  aspect_ratio?: string | number | null;
   duration?: number;
   views?: number;
+  views_count?: number;
   created_at: string;
   author_id?: string;
   author_name?: string;
@@ -42,7 +48,101 @@ function formatDuration(seconds?: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+/** Parse "16:9" / "0.5625" style values into a numeric width/height ratio */
+function parseAspectRatio(value?: string | number | null): number | null {
+  if (typeof value === 'number' && isFinite(value) && value > 0) return value;
+  if (typeof value === 'string') {
+    if (value.includes(':')) {
+      const [w, h] = value.split(':').map(Number);
+      if (w > 0 && h > 0) return w / h;
+    }
+    const num = Number(value);
+    if (isFinite(num) && num > 0) return num;
+  }
+  return null;
+}
+
 export function ClipPreviewCard({ clip, onClick }: ClipPreviewCardProps) {
+  const navigate = useNavigate();
+  const resolvedVideoUrl = useMediaUrl('media', clip.video_url);
+  const [ratio, setRatio] = useState<number | null>(parseAspectRatio(clip.aspect_ratio));
+  const { ref: inViewRef, inView } = useInView({ threshold: 0.6 });
+
+  const views = clip.views ?? clip.views_count;
+  const canPlayInline = !!resolvedVideoUrl;
+
+  const openImmersive = () => {
+    if (onClick) onClick();
+    else navigate(`/civic-clips/${clip.id}`);
+  };
+
+  if (canPlayInline) {
+    return (
+      <article
+        ref={inViewRef}
+        className="overflow-hidden hover:bg-muted/[0.04] transition-all relative border-b border-neutral-300 dark:border-neutral-700 cursor-pointer group"
+        onClick={openImmersive}
+      >
+        <div
+          className="relative w-full bg-black max-h-[75vh] overflow-hidden"
+          style={{ aspectRatio: ratio ?? 16 / 9 }}
+        >
+          <VideoPlayer
+            videoUrl={resolvedVideoUrl}
+            thumbnailUrl={clip.thumbnail_url}
+            autoPlay
+            isActive={inView}
+            muted
+            loop
+            showControls={false}
+            onAspectRatio={(r) => setRatio(r)}
+            fit="contain"
+            className="h-full w-full"
+          />
+
+          {/* Duration badge */}
+          {clip.duration && (
+            <div className="absolute bottom-2 right-2 bg-black/80 text-primary-foreground text-xs px-2 py-1 rounded z-30 pointer-events-none">
+              {formatDuration(clip.duration)}
+            </div>
+          )}
+
+          <Badge className="absolute top-2 left-2 z-30 pointer-events-none">🎥 Civic Clip</Badge>
+
+          {views !== undefined && (
+            <div className="absolute bottom-2 left-2 z-30 pointer-events-none flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-xs text-white">
+              <Eye className="h-3 w-3" />
+              {views.toLocaleString()}
+            </div>
+          )}
+        </div>
+
+        <div className="p-4">
+          <h3 className="font-semibold mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+            <Link to={`/civic-clips/${clip.id}`} onClick={(e) => e.stopPropagation()}>
+              {clip.title}
+            </Link>
+          </h3>
+
+          {clip.description && (
+            <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{clip.description}</p>
+          )}
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatDistanceToNow(new Date(clip.created_at), { addSuffix: true })}
+            </span>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  return <ClipThumbnailCard clip={clip} onClick={onClick} />;
+}
+
+function ClipThumbnailCard({ clip, onClick }: ClipPreviewCardProps) {
   return (
     <article 
       className="overflow-hidden hover:bg-muted/[0.04] transition-all relative border-b border-neutral-300 dark:border-neutral-700 cursor-pointer group"
