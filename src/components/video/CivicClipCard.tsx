@@ -128,8 +128,10 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
     }
 
     const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+        if (isScrubbing) return
         const newTapCount = tapCount + 1
         setTapCount(newTapCount)
+
 
         if (newTapCount === 1) {
             tapTimerRef.current = setTimeout(() => {
