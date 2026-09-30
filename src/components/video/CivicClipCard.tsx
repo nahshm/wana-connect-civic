@@ -254,8 +254,12 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
                             muted={isMuted}
                             loop={true}
                             onView={handleView}
+                            onProgress={handleProgress}
                             onMuteChange={onMuteToggle}
                             showControls={false}
+                            playbackRate={rate}
+                            captionsUrl={clip.captions_url}
+                            captionsEnabled={captions}
                             className="h-full w-full"
                         />
                     </div>
