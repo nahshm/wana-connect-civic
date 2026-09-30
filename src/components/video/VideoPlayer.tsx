@@ -312,7 +312,23 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         }
     }, [isLoaded])
 
+    // Apply playback speed
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video) return
+        video.playbackRate = playbackRate
+    }, [playbackRate, isLoaded, videoUrl])
+
+    // Apply captions visibility
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video || !captionsUrl) return
+        const track = video.textTracks?.[0]
+        if (track) track.mode = captionsEnabled ? 'showing' : 'hidden'
+    }, [captionsEnabled, captionsUrl, isLoaded, videoUrl])
+
     const isLandscape = aspectRatio && aspectRatio > 1
+    const objectFitClass = fit ? (fit === 'cover' ? 'object-cover' : 'object-contain') : (isLandscape ? 'object-contain' : 'object-cover')
 
     return (
         <div
