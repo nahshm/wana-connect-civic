@@ -184,17 +184,18 @@ export const CivicClipCard = ({ clip, isActive, isMuted, onMuteToggle, showAccou
         }
     }
 
-    const handleView = (duration: number, percentage: number) => {
+    const handleView = (watched: number, percentage: number) => {
         setProgress(percentage)
     }
 
-    const handleSeek = (percentage: number) => {
-        if (videoPlayerRef.current) {
-            const duration = videoPlayerRef.current.getDuration()
-            if (duration) {
-                videoPlayerRef.current.seekTo((percentage / 100) * duration)
-            }
-        }
+    const handleProgress = (time: number, total: number) => {
+        if (!isScrubbing) setCurrentTime(time)
+        if (total && total !== duration) setDuration(total)
+    }
+
+    const handleSeek = (seconds: number) => {
+        videoPlayerRef.current?.seekTo(seconds)
+        setCurrentTime(seconds)
     }
 
     const toggleMute = () => onMuteToggle(!isMuted)
