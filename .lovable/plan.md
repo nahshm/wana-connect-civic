@@ -1,98 +1,45 @@
-# Full shadcn Preset Upgrade
+# X-style video player for Civic Clips
 
-Upgrade the WanaIQ frontend to Tailwind CSS v4 and apply the complete shadcn preset `b77BNryJOK`, including its components, OKLCH theme, radius, and fonts. Preserve app-specific behavior, then repair and verify the migration end-to-end.
+## Assessment: does it fit, and is it better?
 
-## Confirmed decisions
+The X player is a good match for WanaIQ, better than TikTok-style copying, because civic video lives next to text. Our feed already behaves this way: clips appear as still thumbnail cards in the feed, and the full-screen swipe feed is a separate page. X's "hybrid" model is exactly that idea, done better.
 
-- Use Tailwind CSS v4 with native OKLCH tokens.
-- Run `npx shadcn@latest apply --preset b77BNryJOK` rather than manually approximating the preset.
-- Replace upstream shadcn components with the preset versions, then restore required WanaIQ extensions.
-- Make red the sitewide primary color.
-- Centralize future visual changes in one theme stylesheet and one font configuration module.
-- Delete `_preset-backup/` only after the upgraded app passes verification.
+What genuinely beats what we have today:
 
-## Current state confirmed from the project
+- **Inline autoplay on mute in the feed.** Today a clip in the feed is a static image with a play button; you must leave the feed to watch. X plays it quietly in place. This is the single biggest improvement.
+- **Native aspect ratio in the feed.** Ours forces every clip into a 16:9 box, so portrait phone footage (most citizen evidence) gets cropped. X keeps the shape the recorder used.
+- **A real scrub bar with timestamps.** Ours shows a thin progress line you cannot drag in the immersive feed, so you cannot re-watch the moment that matters. For accountability footage, being able to scrub back is essential, not cosmetic.
+- **Captions toggle and playback speed.** Speed and captions matter for long statements in Kiswahili/English and for viewers without sound.
+- **Prominent view count on the player.** We already collect views; X surfaces them as a signal of reach.
 
-- The project currently uses Tailwind CSS 3.4 with the Tailwind PostCSS plugin and an HSL-based `tailwind.config.ts` theme.
-- The preset tokens supplied use Tailwind v4-compatible OKLCH values.
-- The current button has custom `blue` and `join` variants that must survive the overwrite.
-- The current sidebar contains app-specific behavior, including safe fallback context, mobile handling, collapse state, keyboard control, and layout sizing; these behaviors must be reconciled rather than blindly discarded.
-- Vite also runs PWA, Lovable MCP, React SWC, and component-tagger plugins; the migration must preserve them.
+What does not fit and should be dropped:
 
-## Implementation plan
+- **Picture-in-picture and cast to TV.** Heavy to build, little civic value, and PiP fights our bottom navigation.
+- **Manual quality selector.** Our video is served through the media proxy as a single stream; adding a resolution switcher would mean re-encoding every clip at several sizes, which costs real money.
+- **Zoom / fill toggle.** Marginal once we respect native aspect ratio.
 
-### 1. Baseline and preset inspection
+Verdict: adopt the inline-to-immersive behaviour, the scrub bar, captions and speed. Skip PiP, casting and quality switching. Keep our own civic layer — upvote/downvote, accountability badge, community tag — rather than copying X's like/repost ribbon.
 
-- Capture the current dependency/config state and screenshots of representative public and authenticated pages.
-- Run the preset command in a temporary isolated Vite project first to inspect the exact generated component sources, dependencies, font choices, `components.json`, and CSS output.
-- Diff every generated upstream component against `src/components/ui/` and classify each file as upstream, customized upstream, or WanaIQ-only.
-- Inventory Tailwind v3-only syntax across TSX and CSS, including config-based colors, plugins, `theme(...)`, legacy arbitrary-variable syntax, deprecated utilities, and custom `@apply` usage.
+## What we would build
 
-### 2. Upgrade the styling toolchain
+1. **Feed clips play in place.** Replace the static thumbnail card with a muted, looping, auto-playing player that starts when the card scrolls into view and pauses when it leaves. Tap opens the full-screen feed at that clip.
+2. **Keep the original shape.** Portrait, square and landscape clips each keep their own proportions in the feed, with a sensible maximum height so one tall video cannot fill the whole screen.
+3. **Draggable scrub bar.** In full screen, replace the non-interactive progress line with a seek bar showing elapsed and total time, draggable by touch, that reveals itself on tap and fades away during playback.
+4. **Playback controls menu.** A small settings control in full screen offering speed (0.25x to 2x) and a captions on/off switch, remembered between clips.
+5. **View count on the player.** Show the clip's view total on the player surface itself.
+6. **Keep our engagement panel.** The existing right-hand civic actions stay; only their spacing changes so they never sit under the new seek bar.
 
-- Upgrade Tailwind and its PostCSS/Vite integration to v4-compatible packages using Bun so `package.json` and `bun.lock` remain synchronized.
-- Update PostCSS and Vite without disturbing the existing React, PWA, MCP, or Lovable plugins.
-- Use the official Tailwind upgrade tool where safe, then review every generated change instead of accepting it blindly.
-- Convert configuration-defined tokens, fonts, radii, keyframes, typography support, and semantic colors to Tailwind v4 CSS-first configuration.
+Phasing: items 1-2 first (biggest gain, lowest risk), then 3-5, then polish.
 
-### 3. Apply the full preset
+## Technical notes
 
-- Run `npx shadcn@latest apply --preset b77BNryJOK` against the migrated project.
-- Accept the preset’s component style, dependencies, fonts, radius, chart palette, sidebar palette, and the supplied light/dark OKLCH variables.
-- Keep the preset output as the authoritative upstream baseline; do not convert the supplied OKLCH values back to HSL.
-- Resolve CLI/config failures as migration work rather than falling back silently to a partial theme port.
+- `src/components/feed/ClipPreviewCard.tsx` becomes a thin wrapper over `VideoPlayer` with `autoPlay`, `muted`, `loop`, `lazyLoad`, and `showControls={false}`; intersection observer already exists in `VideoPlayer`, so pause-on-exit needs an `isActive` prop driven by a non-`triggerOnce` observer.
+- `VideoPlayer` already tracks `aspectRatio` from `loadedmetadata`; use it for the container instead of the fixed `aspect-video`.
+- Replace `CivicClipProgressIndicator` usage in `CivicClipCard` with a Radix `Slider`-based seek bar bound to `VideoPlayerRef.seekTo`; suppress the card's tap-to-vote handler while dragging.
+- Speed via `video.playbackRate`; captions via a `<track>` element toggled with `textTracks[0].mode`. Requires a caption/VTT column on clips — if none exists the toggle stays hidden until captions are generated.
+- Only ever one unmuted video: lift a single "active clip id" into the feed so autoplaying feed clips stay muted.
+- Skipped by design: PiP (`requestPictureInPicture`), Remote Playback / cast, HLS multi-bitrate.
 
-### 4. Create simple theme swap points
+## Note on the current preview error
 
-- Move the preset’s semantic light/dark variables into `src/styles/theme.css`.
-- Add `src/styles/fonts.ts` as the single source of font-family names and loading metadata, while keeping CSS variables as the runtime styling contract.
-- Keep `src/index.css` focused on Tailwind imports, semantic token mapping, base rules, and shared utilities.
-- Preserve WanaIQ civic accent tokens and custom animations in a clearly separated compatibility section.
-- Document the three common changes: primary color, font family, and button appearance.
-
-### 5. Reconcile overwritten components
-
-- Use preset defaults for all true shadcn components.
-- Restore the `blue` and `join` button variants, but express their colors through semantic tokens rather than fixed color classes so future theme changes remain easy.
-- Reapply required sidebar behavior to the new preset sidebar API: mobile drawer, mini-collapse, external trigger, cookie state, keyboard shortcut, and the existing safe usage contract.
-- Preserve WanaIQ-only UI files such as verified badges, receipts, lightboxes, and error boundaries; migrate only their incompatible Tailwind syntax.
-- Update component consumers where the latest preset changed props, exports, or markup contracts.
-
-### 6. Repair Tailwind v4 migration fallout
-
-- Fix invalid utilities, removed opacity helpers, changed ring/shadow behavior, arbitrary CSS-variable syntax, and any incompatible `@apply` rules.
-- Update editor and feature CSS to use semantic tokens and maintain light/dark contrast.
-- Keep the existing theme toggle and update the PWA browser color to match the preset’s active light/dark surfaces.
-- Do not change product logic, database behavior, MCP tools, routes, or security policies.
-
-### 7. Iterative validation until clean
-
-Repeat diagnosis and repair until all relevant checks pass; do not impose an arbitrary three-attempt cutoff.
-
-1. Run the project’s build and TypeScript checks.
-2. Run targeted tests for changed shared UI behavior.
-3. Inspect browser console and failed network requests.
-4. Verify Home/feed, post details, communities, projects, officials, search, onboarding, authentication, settings, dashboard, chat, dialogs, dropdowns, forms, and the OAuth consent screen.
-5. Test desktop and mobile layouts, sidebar expanded/collapsed states, light/dark modes, keyboard focus, loading skeletons, and long text.
-6. Compare against baseline screenshots and repair visual or interaction regressions.
-7. Re-run the checks after every repair batch until the build, type checks, tests, console, and visual smoke tests are clean.
-
-Authenticated browser verification will use the available Supabase session when supported. If this external Supabase project cannot provide an automated session, authenticated pages will be source/test verified and the limitation will be reported precisely.
-
-### 8. Cleanup and handoff
-
-- Remove obsolete Tailwind v3 packages/configuration and unused preset dependencies only after verification.
-- Delete `_preset-backup/` only after the final clean build and visual checks.
-- Add concise theming documentation explaining where to change fonts, button variants, primary color, radius, and light/dark values.
-- Record the new visual system in project memory so later work does not restore the previous blue-undertone theme accidentally.
-
-## Acceptance criteria
-
-- The project runs on Tailwind CSS v4.
-- Preset `b77BNryJOK` is applied through the shadcn CLI, not approximated.
-- The supplied OKLCH light/dark tokens and red primary are active.
-- Preset fonts and component styling are active.
-- Existing WanaIQ flows and custom component behavior still work.
-- Theme color, fonts, and button variants can each be changed from a clear central location.
-- Build, type checks, targeted tests, console checks, and responsive visual smoke tests pass.
-- No PWA, MCP, authentication, routing, or Supabase behavior is intentionally altered.
+The preview is reporting a failed dynamic import of `AppLayout.tsx`, which is a stale module-loading failure rather than a code fault; it clears on reload. Verifying and, if it persists, hardening the lazy-route loading would be the first step once we start building.
