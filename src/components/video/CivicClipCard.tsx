@@ -47,6 +47,7 @@ interface Clip {
     id: string
     video_url: string
     thumbnail_url?: string
+    captions_url?: string | null
     category?: string
     views_count?: number
     duration?: number
