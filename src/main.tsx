@@ -15,6 +15,26 @@ if (_botResult.isBot && import.meta.env.PROD) {
   }
 }
 
+// Recover from stale chunks after a redeploy: reload once to fetch fresh assets
+const RELOAD_KEY = 'wanaiq:chunk-reload';
+const recoverFromStaleChunk = () => {
+  const last = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
+  if (Date.now() - last > 10_000) {
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+    window.location.reload();
+  }
+};
+window.addEventListener('vite:preloadError', (e) => {
+  e.preventDefault();
+  recoverFromStaleChunk();
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String((e.reason as Error)?.message || e.reason || '');
+  if (/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(msg)) {
+    recoverFromStaleChunk();
+  }
+});
+
 // Initialize performance monitoring
 initWebVitals();
 initGlobalErrorHandling();
