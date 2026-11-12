@@ -502,72 +502,6 @@ export type Database = {
         }
         Relationships: []
       }
-      anonymous_reports: {
-        Row: {
-          assigned_to: string | null
-          category: string
-          constituency_id: string | null
-          county_id: string | null
-          created_at: string | null
-          encrypted_content: string
-          escalated_at: string | null
-          escalated_to: string[] | null
-          evidence_count: number | null
-          id: string
-          is_identity_protected: boolean | null
-          location_text: string | null
-          report_id: string
-          risk_score: number | null
-          severity: string
-          status: string
-          title: string | null
-          updated_at: string | null
-          ward_id: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          category: string
-          constituency_id?: string | null
-          county_id?: string | null
-          created_at?: string | null
-          encrypted_content: string
-          escalated_at?: string | null
-          escalated_to?: string[] | null
-          evidence_count?: number | null
-          id?: string
-          is_identity_protected?: boolean | null
-          location_text?: string | null
-          report_id: string
-          risk_score?: number | null
-          severity?: string
-          status?: string
-          title?: string | null
-          updated_at?: string | null
-          ward_id?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          category?: string
-          constituency_id?: string | null
-          county_id?: string | null
-          created_at?: string | null
-          encrypted_content?: string
-          escalated_at?: string | null
-          escalated_to?: string[] | null
-          evidence_count?: number | null
-          id?: string
-          is_identity_protected?: boolean | null
-          location_text?: string | null
-          report_id?: string
-          risk_score?: number | null
-          severity?: string
-          status?: string
-          title?: string | null
-          updated_at?: string | null
-          ward_id?: string | null
-        }
-        Relationships: []
-      }
       api_metrics: {
         Row: {
           created_at: string | null
@@ -2950,7 +2884,6 @@ export type Database = {
       }
       crisis_reports: {
         Row: {
-          anonymous_report_id: string | null
           broadcast_by: string | null
           created_at: string | null
           crisis_type: string
@@ -2977,7 +2910,6 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          anonymous_report_id?: string | null
           broadcast_by?: string | null
           created_at?: string | null
           crisis_type: string
@@ -3004,7 +2936,6 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          anonymous_report_id?: string | null
           broadcast_by?: string | null
           created_at?: string | null
           crisis_type?: string
@@ -3031,13 +2962,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "crisis_reports_anonymous_report_id_fkey"
-            columns: ["anonymous_report_id"]
-            isOneToOne: false
-            referencedRelation: "anonymous_reports"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "crisis_reports_broadcast_by_fkey"
             columns: ["broadcast_by"]
@@ -3103,69 +3027,6 @@ export type Database = {
           url?: string
         }
         Relationships: []
-      }
-      education_content: {
-        Row: {
-          assigned_to: string | null
-          assignment_notes: string | null
-          author_id: string | null
-          category: string
-          content: string
-          created_at: string | null
-          description: string | null
-          difficulty: string | null
-          id: string
-          is_featured: boolean | null
-          status: string
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          assignment_notes?: string | null
-          author_id?: string | null
-          category?: string
-          content?: string
-          created_at?: string | null
-          description?: string | null
-          difficulty?: string | null
-          id?: string
-          is_featured?: boolean | null
-          status?: string
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          assignment_notes?: string | null
-          author_id?: string | null
-          category?: string
-          content?: string
-          created_at?: string | null
-          description?: string | null
-          difficulty?: string | null
-          id?: string
-          is_featured?: boolean | null
-          status?: string
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "education_content_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "education_content_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       election_cycles: {
         Row: {
@@ -3392,206 +3253,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_replies: {
-        Row: {
-          author_id: string
-          content: string
-          created_at: string | null
-          id: string
-          parent_reply_id: string | null
-          thread_id: string
-          updated_at: string | null
-          upvotes: number | null
-        }
-        Insert: {
-          author_id: string
-          content: string
-          created_at?: string | null
-          id?: string
-          parent_reply_id?: string | null
-          thread_id: string
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Update: {
-          author_id?: string
-          content?: string
-          created_at?: string | null
-          id?: string
-          parent_reply_id?: string | null
-          thread_id?: string
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_replies_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_replies_parent_reply_id_fkey"
-            columns: ["parent_reply_id"]
-            isOneToOne: false
-            referencedRelation: "forum_replies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_replies_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "forum_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_reply_reactions: {
-        Row: {
-          created_at: string | null
-          emoji: string
-          id: string
-          reply_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          emoji: string
-          id?: string
-          reply_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          emoji?: string
-          id?: string
-          reply_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_reply_reactions_reply_id_fkey"
-            columns: ["reply_id"]
-            isOneToOne: false
-            referencedRelation: "forum_replies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_thread_reactions: {
-        Row: {
-          created_at: string | null
-          emoji: string
-          id: string
-          thread_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          emoji: string
-          id?: string
-          thread_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          emoji?: string
-          id?: string
-          thread_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_thread_reactions_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "forum_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_threads: {
-        Row: {
-          author_id: string
-          channel_id: string
-          community_id: string
-          content: string | null
-          created_at: string | null
-          id: string
-          last_reply_at: string | null
-          locked: boolean | null
-          pinned: boolean | null
-          reply_count: number | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          author_id: string
-          channel_id: string
-          community_id: string
-          content?: string | null
-          created_at?: string | null
-          id?: string
-          last_reply_at?: string | null
-          locked?: boolean | null
-          pinned?: boolean | null
-          reply_count?: number | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          author_id?: string
-          channel_id?: string
-          community_id?: string
-          content?: string | null
-          created_at?: string | null
-          id?: string
-          last_reply_at?: string | null
-          locked?: boolean | null
-          pinned?: boolean | null
-          reply_count?: number | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_threads_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_threads_channel_id_fkey"
-            columns: ["channel_id"]
-            isOneToOne: false
-            referencedRelation: "channels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_threads_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_threads_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities_with_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_threads_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "popular_communities"
             referencedColumns: ["id"]
           },
         ]
@@ -6900,71 +6561,6 @@ export type Database = {
           },
         ]
       }
-      skill_endorsements: {
-        Row: {
-          endorsed_at: string | null
-          endorsed_by: string
-          endorsement_note: string | null
-          id: string
-          user_skill_id: string
-          weight: number | null
-        }
-        Insert: {
-          endorsed_at?: string | null
-          endorsed_by: string
-          endorsement_note?: string | null
-          id?: string
-          user_skill_id: string
-          weight?: number | null
-        }
-        Update: {
-          endorsed_at?: string | null
-          endorsed_by?: string
-          endorsement_note?: string | null
-          id?: string
-          user_skill_id?: string
-          weight?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "skill_endorsements_user_skill_id_fkey"
-            columns: ["user_skill_id"]
-            isOneToOne: false
-            referencedRelation: "user_skills"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      skills: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          description: string | null
-          icon: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-        }
-        Relationships: []
-      }
       system_audit_log: {
         Row: {
           action: string
@@ -7436,41 +7032,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      user_skills: {
-        Row: {
-          claimed_at: string | null
-          credibility_score: number | null
-          endorsement_count: number | null
-          id: string
-          skill_id: string
-          user_id: string
-        }
-        Insert: {
-          claimed_at?: string | null
-          credibility_score?: number | null
-          endorsement_count?: number | null
-          id?: string
-          skill_id: string
-          user_id: string
-        }
-        Update: {
-          claimed_at?: string | null
-          credibility_score?: number | null
-          endorsement_count?: number | null
-          id?: string
-          skill_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_skills_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "skills"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       user_warnings: {
         Row: {
