@@ -9,6 +9,7 @@ interface UseUnifiedFeedOptions {
   limit?: number;
   sortBy?: 'hot' | 'new' | 'top' | 'rising';
   verifiedOnly?: boolean;
+  mode?: 'all' | 'issues' | 'discussions' | 'clips';
 }
 
 // Map UI sort values to DB parameter values
@@ -24,9 +25,9 @@ export interface UnifiedFeedPage {
   hasMore: boolean;
 }
 
-export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot', verifiedOnly = false }: UseUnifiedFeedOptions = {}) => {
+export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot', verifiedOnly = false, mode = 'all' }: UseUnifiedFeedOptions = {}) => {
   return useInfiniteQuery<UnifiedFeedPage>({
-    queryKey: ['unified-feed', { userId, communityId, sortBy, verifiedOnly }],
+    queryKey: ['unified-feed', { userId, communityId, sortBy, verifiedOnly, mode }],
     queryFn: async ({ pageParam }) => {
       const offset = (pageParam as number) * limit;
 
@@ -37,6 +38,7 @@ export const useUnifiedFeed = ({ userId, communityId, limit = 10, sortBy = 'hot'
         p_offset_count: offset,
         p_sort_by: SORT_MAP[sortBy] || 'newest',
         p_verified_only: verifiedOnly,
+        p_mode: mode,
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

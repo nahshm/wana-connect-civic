@@ -6034,6 +6034,55 @@ export type Database = {
           },
         ]
       }
+      post_poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_index: number
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_index: number
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_index?: number
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_poll_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_poll_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "trending_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_poll_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_reports: {
         Row: {
           created_at: string | null
@@ -6109,10 +6158,12 @@ export type Database = {
           link_image: string | null
           link_title: string | null
           link_url: string | null
+          mode_data: Json
           moderation_reason: string | null
           moderation_status: string | null
           moderation_timestamp: string | null
           official_id: string | null
+          post_mode: string
           published_by_agent: string | null
           search_vector: unknown
           sentiment_id: string | null
@@ -6147,10 +6198,12 @@ export type Database = {
           link_image?: string | null
           link_title?: string | null
           link_url?: string | null
+          mode_data?: Json
           moderation_reason?: string | null
           moderation_status?: string | null
           moderation_timestamp?: string | null
           official_id?: string | null
+          post_mode?: string
           published_by_agent?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
@@ -6185,10 +6238,12 @@ export type Database = {
           link_image?: string | null
           link_title?: string | null
           link_url?: string | null
+          mode_data?: Json
           moderation_reason?: string | null
           moderation_status?: string | null
           moderation_timestamp?: string | null
           official_id?: string | null
+          post_mode?: string
           published_by_agent?: string | null
           search_vector?: unknown
           sentiment_id?: string | null
@@ -8663,6 +8718,7 @@ export type Database = {
             Args: {
               p_community_id?: string
               p_limit_count?: number
+              p_mode?: string
               p_offset_count?: number
               p_sort_by?: string
               p_user_id?: string

@@ -7,6 +7,7 @@ import { ArrowUp, ArrowDown, MessageCircle, Share, MoreHorizontal, Bookmark, Edi
 import { VerifiedBadge, OfficialPositionBadge, TrustedUserBadge } from '@/components/ui/verified-badge';
 import { CIVIC_FLAIRS } from '@/config/flairs';
 import { SafeContentRenderer } from './SafeContentRenderer';
+import { PostModeBlock } from './PostModeBlock';
 import { Post } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
@@ -872,6 +873,7 @@ export const PostCard = ({
           </div>
 
           {renderSpecialBadges()}
+                <PostModeBlock postId={post.id} mode={(post as any).post_mode} modeData={(post as any).mode_data} />
 
           <Link to={getPostLink()} className="block group">
             <h3 className="font-medium text-sidebar-foreground group-hover:text-primary line-clamp-2 mb-1">
@@ -1043,6 +1045,7 @@ export const PostCard = ({
                 <SafeContentRenderer content={post.content || ''} className="text-foreground/90 text-[14.5px] leading-snug mb-4" />
                 {renderMedia()}
                 {renderSpecialBadges()}
+                <PostModeBlock postId={post.id} mode={(post as any).post_mode} modeData={(post as any).mode_data} />
               </div> : <div>
                 <Link to={getPostLink()} className="block group">
                   <h2 className="mb-1.5 group-hover:text-primary transition-colors font-semibold text-[15px] leading-[1.15]">

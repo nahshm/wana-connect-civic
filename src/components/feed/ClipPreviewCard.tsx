@@ -41,6 +41,11 @@ interface ClipPreviewCardProps {
   onClick?: () => void;
 }
 
+/** Clip captions can come from rich-text posts; show them as plain text. */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function formatDuration(seconds?: number): string {
   if (!seconds) return '0:00';
   const mins = Math.floor(seconds / 60);
@@ -125,7 +130,7 @@ export function ClipPreviewCard({ clip, onClick }: ClipPreviewCardProps) {
           </h3>
 
           {clip.description && (
-            <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{clip.description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{stripHtml(clip.description)}</p>
           )}
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -195,7 +200,7 @@ function ClipThumbnailCard({ clip, onClick }: ClipPreviewCardProps) {
 
           {clip.description && (
             <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
-              {clip.description}
+              {stripHtml(clip.description)}
             </p>
           )}
 

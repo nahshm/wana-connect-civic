@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { POST_MODES, PostMode, buildModeData } from '@/lib/feed/postModes'
+import { useCanPublishGuide } from '@/hooks/useCanPublishGuide'
 import { FileText, Image, Link2, AlertCircle, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,6 +48,8 @@ export interface PostFormData {
   flairIds?: string[]
   governance_verdict?: string
   governance_confidence?: number
+  postMode?: PostMode
+  modeData?: Record<string, unknown>
 }
 
 const POST_TYPES = [
@@ -84,6 +88,11 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
   const [linkUrl, setLinkUrl] = useState('')
   const [linkPreview, setLinkPreview] = useState<LinkPreviewData | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [postMode, setPostMode] = useState<PostMode>(initialValues?.postMode || 'discussion')
+  const [pollOptions, setPollOptions] = useState<string[]>(['', ''])
+  const [eventStart, setEventStart] = useState('')
+  const [eventLocation, setEventLocation] = useState('')
+  const canGuide = useCanPublishGuide()
   
   // AI State
   const [governanceResult, setGovernanceResult] = useState<ModerationResult | null>(null);
@@ -233,7 +242,13 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
         }
       }
 
+      let modeData: Record<string, unknown> = {}
+      try { modeData = buildModeData(postMode, { pollOptions, eventStart, eventLocation }) }
+      catch (err: any) { toast({ title: 'Missing information', description: err.message, variant: 'destructive' }); setIsSubmitting(false); return }
+
       const formData: PostFormData = {
+        postMode,
+        modeData,
         title: title.trim(),
         content: content.trim(),
         communityId,
@@ -278,6 +293,34 @@ export const CreatePostForm = ({ communities, onSubmit, disabled, initialValues,
       />
 
       {/* Post Type Tabs */}
+      {!isEditing && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Post type">
+            {POST_MODES.filter(m => m.id !== 'guide' || canGuide).map(m => (
+              <Button key={m.id} type="button" size="sm" role="radio" aria-checked={postMode === m.id}
+                variant={postMode === m.id ? 'default' : 'outline'} onClick={() => setPostMode(m.id)} title={m.hint}>
+                {m.label}
+              </Button>
+            ))}
+          </div>
+          {postMode === 'poll' && (
+            <div className="space-y-2">
+              {pollOptions.map((o, i) => (
+                <Input key={i} value={o} maxLength={120} placeholder={`Option ${i + 1}`}
+                  onChange={e => setPollOptions(pollOptions.map((x, j) => j === i ? e.target.value : x))} />
+              ))}
+              {pollOptions.length < 6 && <Button type="button" variant="ghost" size="sm" onClick={() => setPollOptions([...pollOptions, ''])}>Add option</Button>}
+            </div>
+          )}
+          {postMode === 'event' && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input type="datetime-local" aria-label="Event start" value={eventStart} onChange={e => setEventStart(e.target.value)} />
+              <Input placeholder="Where (place or link)" maxLength={200} value={eventLocation} onChange={e => setEventLocation(e.target.value)} />
+            </div>
+          )}
+        </div>
+      )}
+
       <Tabs value={postType} onValueChange={(v) => setPostType(v as typeof postType)}>
         <TabsList className="flex w-full justify-start h-auto p-0 bg-transparent mb-4 border-b">
           {POST_TYPES.map(type => {

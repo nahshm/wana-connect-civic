@@ -43,13 +43,15 @@ export function useCreatePost() {
         link_title: postData.linkTitle || null,
         link_description: postData.linkDescription || null,
         link_image: postData.linkImage || null,
+        post_mode: postData.postMode || 'discussion',
+        mode_data: postData.modeData || {},
         moderation_status: postData.governance_verdict === 'UNMODERATED' ? 'pending' : (postData.governance_verdict?.toLowerCase() === 'approved' ? 'approved' : 'pending'),
       };
 
       // 1. Insert the Post record
       const { data: postRecord, error: postError } = await supabase
         .from('posts')
-        .insert([postPayload])
+        .insert([postPayload as any])
         .select()
         .single();
 

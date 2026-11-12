@@ -8,6 +8,8 @@ import { FeedErrorBoundary } from '@/components/feed/FeedErrorBoundary';
 import { UnifiedFeedItem, UnifiedFeedItemSkeleton } from '@/components/feed/UnifiedFeedItem';
 import { EmptyFeedState } from '@/components/feed/EmptyFeedState';
 import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
+import { FEED_TABS, FeedTab } from '@/lib/feed/postModes';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { HomeSidebar } from '@/components/feed/HomeSidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +24,7 @@ export default function Index() {
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card');
   const [filterBy, setFilterBy] = useState<FeedFilter>('all');
   const [isVerifiedOnly, setIsVerifiedOnly] = useState(false);
+  const [feedTab, setFeedTab] = useState<FeedTab>('all');
   const [memberCommunityIds, setMemberCommunityIds] = useState<Set<string>>(new Set());
 
   const {
@@ -36,7 +39,8 @@ export default function Index() {
     userId: user?.id ?? undefined,
     limit: 10,
     sortBy,
-    verifiedOnly: isVerifiedOnly
+    verifiedOnly: isVerifiedOnly,
+    mode: feedTab
   });
 
   const feedItems = useMemo(() => {
@@ -128,6 +132,15 @@ export default function Index() {
               isVerifiedOnly={isVerifiedOnly}
               onVerifiedOnlyChange={setIsVerifiedOnly}
             />
+            <div role="tablist" aria-label="Feed type" className="flex gap-1 overflow-x-auto border-b border-border mb-3 scrollbar-none">
+              {FEED_TABS.map(t => (
+                <button key={t.id} role="tab" aria-selected={feedTab === t.id} onClick={() => setFeedTab(t.id)}
+                  className={cn('px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors',
+                    feedTab === t.id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
             <div className="h-px w-full bg-border/50 mt-0 mb-3" />
 
