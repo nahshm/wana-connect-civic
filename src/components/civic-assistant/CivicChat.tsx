@@ -1,3 +1,5 @@
+import { useAiFeatureEnabled } from '@/hooks/useAiFeatureEnabled';
+import { AmaRestingCard } from './AmaRestingCard';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { aiClient, Source, ChatMessage } from '@/services/aiClient';
@@ -90,6 +92,13 @@ function LanguageToggle({ language, setLanguage }: { language: 'en' | 'sw'; setL
 }
 
 export function CivicChat() {
+  const { enabled: aiEnabled, isLoading: aiLoading } = useAiFeatureEnabled('ai_civic_assistant');
+  if (aiLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  if (!aiEnabled) return <AmaRestingCard />;
+  return <CivicChatInner />;
+}
+
+function CivicChatInner() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);

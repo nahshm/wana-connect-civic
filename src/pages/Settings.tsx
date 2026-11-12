@@ -19,7 +19,6 @@ import {
   BadgeCheck, Brush, Lock, Building2, ExternalLink, Trash2, AlertTriangle,
   Award, ArrowLeft
 } from 'lucide-react';
-import { SkillsEndorsementPanel } from '@/features/profile/components/resume/SkillsEndorsementPanel';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 
 const KENYA_COUNTIES = [
@@ -249,8 +248,6 @@ const Settings = () => {
               </CardContent>
             </Card>
 
-            {/* Embed Skills Panel */}
-            <SkillsEndorsementPanel userId={user.id} isOwnProfile={true} />
           </TabsContent>
 
           {/* ── VERIFICATION TAB ── */}

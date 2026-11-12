@@ -47,14 +47,12 @@ export default function EngagementSection() {
       <TabsList className="flex-wrap">
         <TabsTrigger value="quests" className="gap-2"><Target className="w-4 h-4" />Quests</TabsTrigger>
         <TabsTrigger value="badges" className="gap-2"><Award className="w-4 h-4" />Badges</TabsTrigger>
-        <TabsTrigger value="education" className="gap-2"><BookOpen className="w-4 h-4" />Education Content</TabsTrigger>
         <TabsTrigger value="clips" className="gap-2"><Video className="w-4 h-4" />CivicClips</TabsTrigger>
         <TabsTrigger value="ngos" className="gap-2"><Building className="w-4 h-4" />NGO Partners</TabsTrigger>
       </TabsList>
 
       <TabsContent value="quests"><QuestsSubTab /></TabsContent>
       <TabsContent value="badges"><BadgesSubTab /></TabsContent>
-      <TabsContent value="education"><EducationContentSubTab /></TabsContent>
       <TabsContent value="clips"><CivicClipsSubTab /></TabsContent>
       <TabsContent value="ngos"><NGOPartnersSubTab /></TabsContent>
     </Tabs>

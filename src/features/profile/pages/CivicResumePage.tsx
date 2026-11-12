@@ -14,7 +14,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 // Resume components (kept + reused from existing CivicResumePage)
 import { ImpactSummaryCard } from '../components/resume/ImpactSummaryCard';
 import { CivicExperienceList } from '../components/resume/CivicExperienceList';
-import { SkillsEndorsementPanel } from '../components/resume/SkillsEndorsementPanel';
 import { AchievementGallery } from '../components/resume/AchievementGallery';
 import { LeaderboardRankCard } from '../components/resume/LeaderboardRankCard';
 import { ActiveQuestsPanel } from '../components/resume/ActiveQuestsPanel';
@@ -433,11 +432,6 @@ const CivicResumePage: React.FC<CivicResumePageProps> = ({ context }) => {
                         {/* Leaderboard rank */}
                         <LeaderboardRankCard userId={profile.id} />
 
-                        {/* Skills endorsements (editable if own profile) */}
-                        <SkillsEndorsementPanel
-                            userId={profile.id}
-                            isOwnProfile={isOwnProfile}
-                        />
 
                         {/* Active quests */}
                         <ActiveQuestsPanel userId={profile.id} />

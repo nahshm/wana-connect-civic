@@ -636,11 +636,15 @@ export type Database = {
       }
       baraza_spaces: {
         Row: {
+          channel_id: string | null
+          community_id: string | null
           created_at: string | null
           description: string | null
+          external_url: string | null
           host_user_id: string
           is_live: boolean | null
           participant_count: number | null
+          provider: string | null
           scheduled_end: string | null
           scheduled_start: string | null
           space_id: string
@@ -648,11 +652,15 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          channel_id?: string | null
+          community_id?: string | null
           created_at?: string | null
           description?: string | null
+          external_url?: string | null
           host_user_id: string
           is_live?: boolean | null
           participant_count?: number | null
+          provider?: string | null
           scheduled_end?: string | null
           scheduled_start?: string | null
           space_id?: string
@@ -660,11 +668,15 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          channel_id?: string | null
+          community_id?: string | null
           created_at?: string | null
           description?: string | null
+          external_url?: string | null
           host_user_id?: string
           is_live?: boolean | null
           participant_count?: number | null
+          provider?: string | null
           scheduled_end?: string | null
           scheduled_start?: string | null
           space_id?: string
@@ -672,6 +684,34 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "baraza_spaces_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "baraza_spaces_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "baraza_spaces_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "baraza_spaces_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "popular_communities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "baraza_spaces_host_user_id_fkey"
             columns: ["host_user_id"]

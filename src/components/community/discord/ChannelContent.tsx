@@ -1,3 +1,4 @@
+import { BarazaRoomLauncher } from '@/components/community/baraza/BarazaRoomLauncher';
 import React, { useState } from 'react';
 import { Post } from '@/types';
 import { PostCard } from '@/components/posts/PostCard';
@@ -6,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import LeadersGrid from './LeadersGrid';
 import ProjectsGrid from './ProjectsGrid';
 import PromisesGrid from './PromisesGrid';
-import ForumChannel from './ForumChannel';
 import { GovernmentProject } from '@/types';
 import { ChannelChatWindow } from '@/components/chat/ChannelChatWindow';
 import { SectionErrorBoundary } from '@/components/community/CommunityErrorBoundary';
@@ -16,7 +16,6 @@ import { EmptyFeedState } from '@/components/feed/EmptyFeedState';
 import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInView } from 'react-intersection-observer';
-import { Video, Mic } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ChannelContentProps {
@@ -108,23 +107,6 @@ const CommunityUnifiedFeed: React.FC<{ communityId: string; communityName?: stri
 };
 
 /** Baraza Coming Soon placeholder */
-const BarazaPlaceholder: React.FC<{ channelName: string }> = ({ channelName }) => (
-    <div className="flex flex-col items-center justify-center p-12 h-full min-h-[400px]">
-        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <Video className="w-10 h-10 text-primary" />
-        </div>
-        <h2 className="text-xl font-bold mb-2">Baraza — Coming Soon</h2>
-        <p className="text-muted-foreground text-center max-w-md mb-4">
-            Live audio & video community gatherings are being built. 
-            Soon you'll be able to host and join real-time civic discussions here.
-        </p>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Mic className="w-4 h-4" />
-            <span>Voice & Video Rooms</span>
-        </div>
-    </div>
-);
-
 const ChannelContent: React.FC<ChannelContentProps> = ({
     channelId,
     levelType,
@@ -184,20 +166,14 @@ const ChannelContent: React.FC<ChannelContentProps> = ({
         }
     }
 
-    // 2. FORUM CHANNELS (Thread-based discussions)
-    if (channel?.type === 'forum') {
-        return (
-            <ForumChannel
-                channelId={channel.id}
-                channelName={channel.name}
-                communityId={communityId || ''}
-            />
-        );
+    // 2. FORUM CHANNELS — forums retired; discussions live as community posts
+    if (channel?.type === 'forum' && communityId) {
+        return <ScrollArea className="flex-1"><CommunityUnifiedFeed communityId={communityId} communityName={channel?.name} /></ScrollArea>;
     }
 
-    // 3. VIDEO CHANNELS (Baraza — Coming Soon)
+    // 3. VIDEO CHANNELS (Baraza — external room links until own WebRTC)
     if (channel?.type === 'video') {
-        return <ScrollArea className="flex-1"><BarazaPlaceholder channelName={channel.name} /></ScrollArea>;
+        return <ScrollArea className="flex-1"><BarazaRoomLauncher channelId={channel.id} communityId={communityId} channelName={channel.name} /></ScrollArea>;
     }
 
     // 4. CHAT CHANNELS (Text/Voice/Announcement)
