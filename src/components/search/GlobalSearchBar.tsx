@@ -131,7 +131,7 @@ export const GlobalSearchBar = ({ className, onClose }: GlobalSearchBarProps) =>
 
                 // Search promises
                 const { data: promises } = await supabase
-                    .from('development_promises')
+                    .from('office_promises')
                     .select('id, title, status')
                     .ilike('title', `%${query}%`)
                     .limit(2);

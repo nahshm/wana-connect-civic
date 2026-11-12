@@ -60,16 +60,32 @@ const PromiseDetail = () => {
     try {
       setLoading(true);
 
-      const { data: promiseData, error: promiseError } = await supabase
-        .from('development_promises')
+      const { data: rawPromise, error: promiseError } = await supabase
+        .from('office_promises')
         .select(`
           *,
-          official:officials(id, name, position, photo_url)
+          office_holder:office_holders(id, position:government_positions(title, jurisdiction_name), profile:profiles!office_holders_user_id_fkey(display_name, username, avatar_url))
         `)
         .eq('id', promiseId)
         .single();
 
       if (promiseError) throw promiseError;
+      // Map the single promises list onto the fields this page shows
+      const raw: any = rawPromise;
+      const statusMap: Record<string, string> = { pending: 'not_started', in_progress: 'ongoing', completed: 'completed', failed: 'cancelled' };
+      const holder = raw.office_holder;
+      const promiseData = {
+        ...raw,
+        status: statusMap[raw.status] || raw.status,
+        progress_percentage: raw.progress ?? 0,
+        location: holder?.position?.jurisdiction_name ?? null,
+        official: holder ? {
+          id: holder.id,
+          name: holder.profile?.display_name || holder.profile?.username || 'Office holder',
+          position: holder.position?.title || '',
+          photo_url: holder.profile?.avatar_url || null,
+        } : null,
+      };
 
       // Fetch verifications (if table exists)
       try {

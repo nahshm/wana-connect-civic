@@ -11,3 +11,4 @@
 - Citizen reporting has one entry route `/report?type=issue|incident` (`ReportProblem.tsx`) that hosts the issue and incident forms; old report URLs redirect there so links never break.
 - Office pages: `/office/:country/:level/:jurisdiction/:role` (OfficeHubPage) is the single office hub; `/g/:holderId` redirects there via `OfficeHolderRedirect`, so office features are built once.
 - Office/institution banners upload via `src/lib/governance/uploadBanner.ts` and save through `set_office_banner` / `set_institution_banner` RPCs, which check holder/handler rights server-side.
+- Promises live only in `office_promises` (statuses pending/in_progress/completed/failed, normalised by trigger); receipts (`promise_verifications`, `promise_updates`) reference it, so new promise features never touch `development_promises`/`campaign_promises`.

@@ -110,8 +110,8 @@ export const useSearch = (params: SearchParams) => {
         // Promises
         (type === 'all' || type === 'promises') ? (async () => {
           const { data } = await supabase
-            .from('development_promises')
-            .select('id, title, description, status, progress_percentage, official_id')
+            .from('office_promises')
+            .select('id, title, description, status, progress_percentage:progress, official_id:office_holder_id')
             .or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`)
             .range(offset, offset + limit - 1)
           return data || []

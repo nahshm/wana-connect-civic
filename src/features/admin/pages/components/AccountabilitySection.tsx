@@ -279,7 +279,7 @@ function ProjectsSubTab() {
 }
 
 // ────────────────────── Promises CRUD ──────────────────────
-const PROMISE_STATUSES = ['pending', 'in_progress', 'fulfilled', 'partially_fulfilled', 'broken', 'abandoned'];
+const PROMISE_STATUSES = ['pending', 'in_progress', 'completed', 'failed'];
 
 const emptyPromise = {
   title: '', description: '', category: 'governance', status: 'pending',
@@ -367,7 +367,7 @@ function PromisesSubTab() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Official Promises</h3>
         <div className="flex gap-2">
-          {['all', 'pending', 'in_progress', 'fulfilled', 'broken'].map(f => (
+          {['all', 'pending', 'in_progress', 'completed', 'failed'].map(f => (
             <Button key={f} size="sm" variant={filter === f ? 'default' : 'outline'} onClick={() => setFilter(f)} className="capitalize">{f.replace('_', ' ')}</Button>
           ))}
           <Button size="sm" onClick={openCreate} className="gap-1"><Plus className="w-4 h-4" />Add Promise</Button>
@@ -390,8 +390,8 @@ function PromisesSubTab() {
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium text-sm">{promise.title}</h4>
                       <Badge variant={
-                        promise.status === 'fulfilled' ? 'default' :
-                        promise.status === 'broken' ? 'destructive' :
+                        promise.status === 'completed' ? 'default' :
+                        promise.status === 'failed' ? 'destructive' :
                         promise.status === 'in_progress' ? 'secondary' : 'outline'
                       } className="text-xs capitalize">{promise.status?.replace('_', ' ')}</Badge>
                     </div>

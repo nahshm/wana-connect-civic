@@ -56,22 +56,21 @@ export const AccountabilityTrackerWidget = () => {
           .select(`
             id,
             promise_id,
-            status,
-            completion_percentage,
-            updated_at,
-            development_promises!inner(
+            completion_percentage:progress_percentage,
+            updated_at:created_at,
+            office_promises!inner(
               id,
               title
             )
           `)
-          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(5);
 
         if (error) throw error;
 
         const transformedPromises = (data || []).map((item: any) => ({
           id: item.promise_id || item.id,
-          title: item.development_promises?.title || 'Untitled Promise',
+          title: item.office_promises?.title || 'Untitled Promise',
           status: item.status || 'in_progress',
           completion_percentage: item.completion_percentage || 0,
           updated_at: item.updated_at,

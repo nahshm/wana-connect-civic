@@ -6837,7 +6837,7 @@ export type Database = {
             foreignKeyName: "promise_updates_promise_id_fkey"
             columns: ["promise_id"]
             isOneToOne: false
-            referencedRelation: "development_promises"
+            referencedRelation: "office_promises"
             referencedColumns: ["id"]
           },
         ]
@@ -6920,7 +6920,7 @@ export type Database = {
             foreignKeyName: "promise_verifications_promise_id_fkey"
             columns: ["promise_id"]
             isOneToOne: false
-            referencedRelation: "development_promises"
+            referencedRelation: "office_promises"
             referencedColumns: ["id"]
           },
         ]
