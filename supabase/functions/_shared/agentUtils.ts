@@ -68,6 +68,16 @@ export async function logAgentRun(
   agentName: string,
   stats: AgentRunStats
 ): Promise<void> {
+  // Skip idle successful runs (nothing scanned, actioned or failed): they carry no
+  // information and were ~92% of all rows written to agent_runs.
+  const idle =
+    stats.status === "success" &&
+    !stats.error_summary &&
+    (stats.items_scanned ?? 0) === 0 &&
+    (stats.items_actioned ?? 0) === 0 &&
+    (stats.items_failed ?? 0) === 0;
+  if (idle) return;
+
   const { error } = await serviceClient.from("agent_runs").insert({
     agent_name: agentName,
     trigger_type: stats.trigger_type,
