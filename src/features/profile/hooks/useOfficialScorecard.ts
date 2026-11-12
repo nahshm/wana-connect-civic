@@ -138,9 +138,9 @@ async function calculateScorecardFromData(userId: string): Promise<OfficialScore
     try {
         // Get promises data
         const { data: promises } = await supabase
-            .from('development_promises')
-            .select('status')
-            .eq('official_id', userId);
+            .from('office_promises')
+            .select('status, office_holders!inner(user_id)')
+            .eq('office_holders.user_id', userId);
 
         // Get projects data
         const { data: projects } = await supabase
@@ -151,8 +151,8 @@ async function calculateScorecardFromData(userId: string): Promise<OfficialScore
         const promiseStats = {
             total: promises?.length || 0,
             kept: promises?.filter(p => p.status === 'completed').length || 0,
-            broken: promises?.filter(p => p.status === 'cancelled').length || 0,
-            inProgress: promises?.filter(p => p.status === 'ongoing').length || 0,
+            broken: promises?.filter(p => p.status === 'failed').length || 0,
+            inProgress: promises?.filter(p => p.status === 'in_progress').length || 0,
         };
 
         const projectStats = {

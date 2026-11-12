@@ -131,40 +131,26 @@ const PromisesGrid: React.FC<PromisesGridProps> = ({ levelType, locationValue })
         try {
             setLoading(true);
 
+            // Promises come from the single office promises list, matched to this place's offices
             let query = supabase
-                .from('development_promises')
+                .from('office_promises')
                 .select(`
-                    *,
-                    official:officials!official_id(id, name, position, photo_url)
+                    id, title, description, status, category, progress, created_at,
+                    office_holder:office_holders!inner(id, position:government_positions!inner(title, jurisdiction_name), profile:profiles!office_holders_user_id_fkey(display_name, username, avatar_url))
                 `)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(100);
+            if (locationValue) query = query.ilike('office_holder.position.jurisdiction_name', `%${locationValue}%`);
 
-            if (locationValue) {
-                query = query.ilike('location', `%${locationValue}%`);
-            }
-
-            const { data, error } = await query;
-
-            if (error) {
-                console.warn("Error fetching promises with filter:", error);
-
-                const { data: allData, error: backupError } = await supabase
-                    .from('development_promises')
-                    .select(`
-                        *,
-                        official:officials!official_id(id, name, position, photo_url)
-                    `)
-                    .order('created_at', { ascending: false });
-
-                if (backupError) throw backupError;
-
-                const filtered = (allData || []).filter(p =>
-                    !locationValue || (p.location && p.location.toLowerCase().includes(locationValue.toLowerCase()))
-                );
-                setPromises(filtered);
-                return;
-            }
-
+            const { data: rows, error } = await query;
+            if (error) throw error;
+            const statusLabel: Record<string, string> = { pending: 'not_started', in_progress: 'ongoing', completed: 'completed', failed: 'broken' };
+            const data: PromiseItem[] = ((rows as any[]) || []).map(r => ({
+                id: r.id, title: r.title, description: r.description || '', status: statusLabel[r.status] || r.status,
+                category: r.category || '', location: r.office_holder?.position?.jurisdiction_name || '',
+                progress_percentage: r.progress ?? 0, created_at: r.created_at,
+                official: r.office_holder ? { id: r.office_holder.id, name: r.office_holder.profile?.display_name || r.office_holder.profile?.username || 'Office holder', position: r.office_holder.position?.title || '', photo_url: r.office_holder.profile?.avatar_url || undefined } : undefined,
+            }));
             setPromises(data || []);
         } catch (error) {
             console.error('Error fetching promises:', error);

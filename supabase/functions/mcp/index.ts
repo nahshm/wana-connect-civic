@@ -191,7 +191,7 @@ var search_promises_default = defineTool6({
   description: "Search WanaIQ campaign promises by keyword and/or status. Returns up to 20 tracked promises.",
   inputSchema: {
     query: z4.string().trim().optional().describe("Search keywords matched against promise title and description."),
-    status: z4.string().trim().optional().describe("Optional status filter (e.g. 'pending', 'in_progress', 'fulfilled', 'broken')."),
+    status: z4.string().trim().optional().describe("Optional status filter ('pending', 'in_progress', 'completed', 'failed')."),
     limit: z4.number().int().min(1).max(20).optional().describe("Max results (1-20, default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -199,9 +199,7 @@ var search_promises_default = defineTool6({
     const gate = requireAuth(ctx);
     if (gate) return gate;
     const sb = supabaseForUser(ctx);
-    let q = sb.from("campaign_promises").select(
-      "id, title, description, status, politician_id, politician_name, due_date, created_at, updated_at"
-    ).order("updated_at", { ascending: false }).limit(limit ?? 10);
+    let q = sb.from("office_promises").select("id, title, description, category, status, progress, deadline, office_holder_id, created_at, updated_at").order("updated_at", { ascending: false }).limit(limit ?? 10);
     if (status) q = q.eq("status", status);
     if (query && query.length > 0) {
       const term = `%${query.replace(/[%_]/g, "")}%`;

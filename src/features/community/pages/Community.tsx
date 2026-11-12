@@ -18,8 +18,7 @@ import LevelSelector from '@/components/community/discord/LevelSelector';
 import ChannelList from '@/components/community/discord/ChannelList';
 import ChannelContent from '@/components/community/discord/ChannelContent';
 import { CreateChannelDialog } from '@/components/community/discord/CreateChannelDialog';
-import { CommunityEventsWidget } from '@/components/community/events/CommunityEventsWidget';
-import { CommunityPollsWidget } from '@/components/community/polls/CommunityPollsWidget';
+import { CommunityModePosts } from '@/components/community/CommunityModePosts';
 import { CommunitySetupReminder } from '@/components/community/CommunitySetupReminder';
 import { PlatformTour } from '@/components/community/PlatformTour';
 import { CommunitySettingsDialog } from '@/components/community/CommunitySettingsDialog';
@@ -355,7 +354,7 @@ const Community = () => {
                   <h2 className="text-2xl font-bold mb-2">📅 Upcoming Events</h2>
                   <p className="text-muted-foreground">Join or schedule civic events in your community.</p>
                 </div>
-                <CommunityEventsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
+                <CommunityModePosts communityId={community.id} mode="event" />
               </div>
             </ScrollArea>
           ) : activeChannelId === 'virtual-polls' ? (
@@ -365,7 +364,7 @@ const Community = () => {
                   <h2 className="text-2xl font-bold mb-2">📊 Active Polls</h2>
                   <p className="text-muted-foreground">Have your voice heard on important civic matters.</p>
                 </div>
-                <CommunityPollsWidget communityId={community.id} community={community} isAdmin={isAdmin} />
+                <CommunityModePosts communityId={community.id} mode="poll" />
               </div>
             </ScrollArea>
           ) : (

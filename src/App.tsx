@@ -21,7 +21,6 @@ const PostDetail = lazy(() => import("@/features/feed/pages/PostDetail"));
 
 // LAZY LOADED: Governance pages
 const Officials = lazy(() => import("@/features/governance/pages/Officials"));
-const OfficialDetail = lazy(() => import("@/features/governance/pages/OfficialDetail"));
 const ClaimPositionPage = lazy(() => import("@/features/governance/pages/ClaimPosition"));
 const BuildGovernancePage = lazy(() => import("@/features/governance/pages/BuildGovernance"));
 // NEW: Position-first Office civic hub (unclaimed + claimed)
@@ -137,7 +136,7 @@ const App = () => (
                             <Route path="/communities" element={<Communities />} />
                             <Route path="/my-communities" element={<MyCommunitiesPage />} />
                             <Route path="/officials" element={<Officials />} />
-                            <Route path="/officials/:officialId" element={<OfficialDetail />} />
+                            <Route path="/officials/:officialId" element={<Navigate to="/officials" replace />} />
                             <Route path="/projects" element={<Projects />} />
                             <Route path="/projects/submit" element={<ProtectedRoute><SubmitProject /></ProtectedRoute>} />
                             <Route path="/claim-position" element={<ClaimPositionPage />} />

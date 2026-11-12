@@ -245,7 +245,7 @@ const PromiseDetail = () => {
       {/* Back Button */}
       <Button
         variant="ghost"
-        onClick={() => promise.official ? navigate(`/officials/${promise.official.id}`) : navigate('/officials')}
+        onClick={() => promise.official ? navigate(`/g/${promise.official.id}`) : navigate('/officials')}
         className="mb-6"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -266,7 +266,7 @@ const PromiseDetail = () => {
                 <div>
                   <div className="text-sm text-muted-foreground">Promise by</div>
                   <Link
-                    to={`/officials/${promise.official.id}`}
+                    to={`/g/${promise.official.id}`}
                     className="font-semibold text-primary hover:underline"
                   >
                     {promise.official.name} - {promise.official.position}

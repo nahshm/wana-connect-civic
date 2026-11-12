@@ -110,21 +110,6 @@ export function useLeaderPositions({ levelType, locationValue, enabled = true }:
             let promiseCountMap: Record<string, number> = {};
             let projectCountMap: Record<string, number> = {};
 
-            if (holderUserIds.length > 0) {
-                // Promises linked to officials (politician_id references officials table, but we check by name match)
-                // For now, count promises where politician_id matches any official record linked to the user
-                const { data: promisesData } = await supabase
-                    .from('campaign_promises')
-                    .select('politician_id')
-                    .in('submitted_by', holderUserIds);
-
-                if (promisesData) {
-                    promisesData.forEach(p => {
-                        promiseCountMap[p.politician_id] = (promiseCountMap[p.politician_id] || 0) + 1;
-                    });
-                }
-            }
-
             // Step 5: Join the data together
             // Group holders by position: verified takes priority, pending is fallback
             const verifiedHoldersMap: Record<string, PositionHolder> = {};

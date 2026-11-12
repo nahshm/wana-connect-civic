@@ -3,7 +3,6 @@
 
 // Pages
 export { default as Officials } from './pages/Officials';
-export { default as OfficialDetail } from './pages/OfficialDetail';
 export { default as ClaimPosition } from './pages/ClaimPosition';
 export { default as BuildGovernance } from './pages/BuildGovernance';
 

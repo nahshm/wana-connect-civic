@@ -17,7 +17,7 @@ export default defineTool({
       .string()
       .trim()
       .optional()
-      .describe("Optional status filter (e.g. 'pending', 'in_progress', 'fulfilled', 'broken')."),
+      .describe("Optional status filter ('pending', 'in_progress', 'completed', 'failed')."),
     limit: z.number().int().min(1).max(20).optional().describe("Max results (1-20, default 10)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -27,10 +27,8 @@ export default defineTool({
 
     const sb = supabaseForUser(ctx);
     let q = sb
-      .from("campaign_promises")
-      .select(
-        "id, title, description, status, politician_id, politician_name, due_date, created_at, updated_at",
-      )
+      .from("office_promises")
+      .select("id, title, description, category, status, progress, deadline, office_holder_id, created_at, updated_at")
       .order("updated_at", { ascending: false })
       .limit(limit ?? 10);
 
