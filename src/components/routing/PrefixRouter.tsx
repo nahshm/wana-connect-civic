@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 // Feature-based imports
 import Community from '@/features/community/pages/Community';
 import PostDetail from '@/features/feed/pages/PostDetail';
-import OfficePage from '@/features/governance/pages/OfficePage';
+import OfficeHolderRedirect from '@/features/governance/pages/OfficeHolderRedirect';
 import ProjectDetail from '@/features/accountability/pages/ProjectDetail';
 import PromiseDetail from '@/features/accountability/pages/PromiseDetail';
 import CivicResumePage from '@/features/profile/pages/CivicResumePage';
@@ -19,7 +19,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
  * PrefixRouter - Renders the appropriate component based on the URL prefix
  * 
  * Route mapping:
- * - /g/:id (UUID) → OfficePage (verified office holder's accountability hub)
+ * - /g/:id (UUID) → redirects to the unified Office Hub (/office/...)
  * - /g/:username → CivicResumePage (government official's civic resume, context='g')
  * - /u/:username → CivicResumePage (regular citizen, context='u')
  * - /w/:username → CivicResumePage (verified/trusted platform user, context='w')
@@ -35,7 +35,7 @@ const PrefixRouter: React.FC = () => {
   if (pathname.startsWith('/g/')) {
     const param = pathname.split('/')[2];
     if (param && UUID_REGEX.test(param)) {
-      return <OfficePage />;
+      return <OfficeHolderRedirect />;
     }
     return <CivicResumePage context="g" />;
   }

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { buildProfileLink } from '@/lib/profile-links';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadBanner } from '@/lib/governance/uploadBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
@@ -1419,7 +1420,7 @@ export default function OfficeHubPage() {
                                     className="absolute top-2 right-2 cursor-pointer bg-black/40 hover:bg-black/60 text-white rounded-lg px-2 py-1 text-[10px] flex items-center gap-1 transition-colors"
                                 >
                                     <Upload className="w-3 h-3" /> Edit Banner
-                                    <input type="file" accept="image/*" className="sr-only" onChange={() => toast({ title: 'Coming soon', description: 'Banner upload will be available soon.' })} />
+                                    <input type="file" accept="image/*" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; try { await uploadBanner('office', position.id, f); toast({ title: 'Banner updated' }); queryClient.invalidateQueries({ queryKey: ['position', positionCode] }); } catch (err: any) { toast({ title: 'Could not update banner', description: err?.message, variant: 'destructive' }); } }} />
                                 </label>
                             )}
                         </div>

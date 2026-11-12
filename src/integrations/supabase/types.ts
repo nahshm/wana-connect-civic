@@ -8768,6 +8768,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_institution_banner: {
+        Args: { p_institution_id: string; p_url: string }
+        Returns: undefined
+      }
+      set_office_banner: {
+        Args: { p_position_id: string; p_url: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_all_karma: { Args: never; Returns: undefined }

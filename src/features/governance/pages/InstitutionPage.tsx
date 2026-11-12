@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useToast } from '@/hooks/use-toast';
+import { uploadBanner } from '@/lib/governance/uploadBanner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -364,7 +365,7 @@ export default function InstitutionPage() {
                                 >
                                     <ExternalLink className="w-3 h-3" />
                                     Edit Banner
-                                    <input type="file" accept="image/*" className="sr-only" onChange={() => toast({ title: 'Coming soon', description: 'Banner upload will be available in a future update.' })} />
+                                    <input type="file" accept="image/*" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; try { await uploadBanner('institution', institution.id, f); toast({ title: 'Banner updated' }); queryClient.invalidateQueries({ queryKey: ['institution', slug] }); } catch (err: any) { toast({ title: 'Could not update banner', description: err?.message, variant: 'destructive' }); } }} />
                                 </label>
                             )}
                         </div>

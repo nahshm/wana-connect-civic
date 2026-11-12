@@ -9,3 +9,5 @@
 - Baraza live rooms are external meeting links stored on `baraza_spaces` (channel_id, external_url, provider) and rendered by `src/components/community/baraza/BarazaRoomLauncher.tsx`; no in-house WebRTC until user density justifies it.
 - Client UI checks AI switches with `useAiFeatureEnabled(key)` (same semantics as `aiFeatureGate`: missing flag = on, error = off), so gated AI screens show a resting state instead of erroring.
 - Citizen reporting has one entry route `/report?type=issue|incident` (`ReportProblem.tsx`) that hosts the issue and incident forms; old report URLs redirect there so links never break.
+- Office pages: `/office/:country/:level/:jurisdiction/:role` (OfficeHubPage) is the single office hub; `/g/:holderId` redirects there via `OfficeHolderRedirect`, so office features are built once.
+- Office/institution banners upload via `src/lib/governance/uploadBanner.ts` and save through `set_office_banner` / `set_institution_banner` RPCs, which check holder/handler rights server-side.
