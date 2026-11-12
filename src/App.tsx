@@ -125,6 +125,8 @@ const App = () => (
                             <Route path="/report" element={<ProtectedRoute><ReportProblem /></ProtectedRoute>} />
                             <Route path="/dashboard/report" element={<Navigate to="/report?type=issue" replace />} />
                             <Route path="/report-an-issue" element={<Navigate to="/report?type=issue" replace />} />
+                            <Route path="/report-issue" element={<Navigate to="/report?type=issue" replace />} />
+                            <Route path="/clips" element={<Navigate to="/civic-clips" replace />} />
                             <Route path="/report-incident" element={<Navigate to="/report?type=incident" replace />} />
                             <Route path="/dashboard/actions/:id" element={<ActionDetail />} />
                             <Route path="/dashboard/analytics" element={<Analytics />} />

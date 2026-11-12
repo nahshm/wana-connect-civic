@@ -198,7 +198,9 @@ const Officials = () => {
   } | null>(null);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const countryCode = geoLocation.countryCode || 'KE';
+  const countryCode = SUPPORTED_COUNTRIES.some(c => c.code === geoLocation.countryCode)
+    ? geoLocation.countryCode
+    : 'KE';
 
   // Infinite Query for paginated positions
   const {
