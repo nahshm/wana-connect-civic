@@ -8744,6 +8744,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      upvote_office_proposal: {
+        Args: { p_proposal_id: string }
+        Returns: undefined
+      }
       user_is_room_participant: {
         Args: { room_uuid: string; user_uuid: string }
         Returns: boolean

@@ -605,9 +605,7 @@ export default function OfficeHubPage() {
     const upvoteProposal = useMutation({
         mutationFn: async (proposalId: string) => {
             if (!user) throw new Error('Login required');
-            const { error } = await supabase.from('office_proposals')
-                .update({ upvotes: (supabase.rpc as any)('increment', { x: 1 }) as unknown as number })
-                .eq('id', proposalId);
+            const { error } = await (supabase.rpc as any)('upvote_office_proposal', { p_proposal_id: proposalId });
             if (error) throw error;
         },
         onSuccess: () => { refetchProposals(); },
