@@ -7021,43 +7021,58 @@ export type Database = {
       }
       quests: {
         Row: {
+          banner_url: string | null
           category: string
           created_at: string | null
           description: string
           difficulty: string | null
+          ends_at: string | null
           icon: string | null
           id: string
           is_active: boolean | null
+          is_special: boolean
           points: number
           requirements: Json | null
+          reward_description: string | null
+          starts_at: string | null
           title: string
           updated_at: string | null
           verification_type: string
         }
         Insert: {
+          banner_url?: string | null
           category: string
           created_at?: string | null
           description: string
           difficulty?: string | null
+          ends_at?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_special?: boolean
           points?: number
           requirements?: Json | null
+          reward_description?: string | null
+          starts_at?: string | null
           title: string
           updated_at?: string | null
           verification_type: string
         }
         Update: {
+          banner_url?: string | null
           category?: string
           created_at?: string | null
           description?: string
           difficulty?: string | null
+          ends_at?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_special?: boolean
           points?: number
           requirements?: Json | null
+          reward_description?: string | null
+          starts_at?: string | null
           title?: string
           updated_at?: string | null
           verification_type?: string
@@ -8524,6 +8539,10 @@ export type Database = {
       }
       agent_hide_post: {
         Args: { p_agent: string; p_post_id: string; p_reason: string }
+        Returns: undefined
+      }
+      award_milestone_badges: {
+        Args: { p_category: string; p_count: number; p_user_id: string }
         Returns: undefined
       }
       calculate_comment_karma: { Args: { user_uuid: string }; Returns: number }

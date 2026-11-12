@@ -9,5 +9,5 @@
 - [x] Phase 4: one promises list (office promises) with receipts; old lists empty
 - [ ] Phase 7 note: old Officials pages + community promise grid still read the empty old list; retire with the old tables
 - [x] Phase 5: post types (discussion/issue/poll/event/guide), feed tabs, clips in feed; old polls/events copied
-- [ ] Phase 6: challenges → quests, badges on milestones only
+- [x] Phase 6: special (time-limited) quests replace challenges; 6 milestone badges, old 20 switched off
 - [ ] Phase 7: drop retired tables (needs user sign-off)

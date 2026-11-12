@@ -68,6 +68,7 @@ const emptyQuest = {
   title: '', description: '', category: 'civic', points: 10,
   difficulty: 'easy', verification_type: 'auto', icon: '🎯',
   is_active: true,
+  is_special: false, starts_at: '', ends_at: '', reward_description: '',
 };
 
 function QuestsSubTab() {
@@ -116,6 +117,10 @@ function QuestsSubTab() {
         verification_type: form.verification_type,
         icon: form.icon,
         is_active: form.is_active,
+        is_special: form.is_special,
+        starts_at: form.is_special && form.starts_at ? new Date(form.starts_at).toISOString() : null,
+        ends_at: form.is_special && form.ends_at ? new Date(form.ends_at).toISOString() : null,
+        reward_description: form.is_special ? (form.reward_description.trim() || null) : null,
         updated_at: new Date().toISOString(),
       };
       if (editingQuest) {
@@ -160,6 +165,10 @@ function QuestsSubTab() {
       points: quest.points || 10, difficulty: quest.difficulty || 'easy',
       verification_type: quest.verification_type || 'auto', icon: quest.icon || '🎯',
       is_active: quest.is_active ?? true,
+      is_special: !!quest.is_special,
+      starts_at: quest.starts_at ? String(quest.starts_at).slice(0, 16) : '',
+      ends_at: quest.ends_at ? String(quest.ends_at).slice(0, 16) : '',
+      reward_description: quest.reward_description || '',
     });
     setShowForm(true);
   };
@@ -258,6 +267,19 @@ function QuestsSubTab() {
                   <SelectContent>{QUEST_DIFFICULTIES.map(d => <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input type="checkbox" checked={form.is_special} onChange={e => setForm({ ...form, is_special: e.target.checked })} />
+                Special quest (time-limited, replaces challenges)
+              </label>
+              {form.is_special && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Starts</Label><Input type="datetime-local" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} /></div>
+                  <div><Label>Ends</Label><Input type="datetime-local" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} /></div>
+                  <div className="col-span-2"><Label>Reward</Label><Input maxLength={200} placeholder="e.g. Featured on the home page" value={form.reward_description} onChange={e => setForm({ ...form, reward_description: e.target.value })} /></div>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>

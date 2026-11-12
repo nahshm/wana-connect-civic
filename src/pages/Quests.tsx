@@ -11,6 +11,7 @@ import { Quest, UserQuest } from '@/types/gamification';
 import { Target, TrendingUp, Users, BookOpen, FileText, CheckCircle, Clock, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { QuestEvidenceDialog } from '@/components/quests/QuestEvidenceDialog';
+import { isQuestOpen } from '@/lib/gamification/specialQuests';
 
 const categoryIcons = {
     reporting: <FileText className="w-5 h-5" />,
@@ -52,7 +53,7 @@ const Quests = () => {
                 .order('difficulty', { ascending: true });
 
             if (error) throw error;
-            setQuests((data as any[]) || []);
+            setQuests(((data as any[]) || []).filter(q => isQuestOpen(q)).sort((a, b) => Number(!!b.is_special) - Number(!!a.is_special)));
         } catch (error) {
             console.error('Error fetching quests:', error);
         } finally {
@@ -240,12 +241,14 @@ const Quests = () => {
                                                 {quest.difficulty || 'Easy'}
                                             </Badge>
                                             <Badge variant="secondary">{quest.points} pts</Badge>
+                                            {(quest as any).is_special && <Badge className="bg-primary text-primary-foreground">Special{(quest as any).ends_at ? ` · ends ${new Date((quest as any).ends_at).toLocaleDateString()}` : ''}</Badge>}
                                             {getStatusBadge(userQuest)}
                                         </div>
                                     </CardHeader>
 
                                     <CardContent>
                                         <p className="text-sm text-muted-foreground mb-4">{quest.description}</p>
+                                        {(quest as any).reward_description && <p className="text-xs font-medium text-primary mb-4">Reward: {(quest as any).reward_description}</p>}
 
                                         {userQuest && userQuest.status === 'active' && (
                                             <div className="mb-4">
