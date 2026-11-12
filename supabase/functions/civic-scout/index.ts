@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 /**
  * civic-scout — Intelligence Collection Agent (scrape + classify only)
  *
@@ -401,6 +402,7 @@ async function factCheck(
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_agent_scout"); if (__off) return __off; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: agentCorsHeaders });
   }

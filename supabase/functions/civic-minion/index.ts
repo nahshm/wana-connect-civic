@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 /**
  * civic-minion/index.ts
  *
@@ -69,6 +70,7 @@ interface Proposal {
 // ─── Entry Point ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_agent_minion"); if (__off) return __off; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: agentCorsHeaders });
   }

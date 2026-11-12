@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 /**
  * civic-publisher — Self-Contained Version (Gateway-Free)
  * 
@@ -236,6 +237,7 @@ async function rewriteFinding(finding: Finding, template: PublisherTemplate, con
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_agent_publisher"); if (__off) return __off; }
   if (req.method === "OPTIONS") return new Response(null, { headers: agentCorsHeaders });
 
   const start = Date.now();

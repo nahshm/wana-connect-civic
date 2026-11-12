@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserContext } from "../_shared/userContext.ts";
 import { buildPersonalizedPrompt } from "../_shared/promptBuilder.ts";
@@ -16,6 +17,7 @@ interface RAGRequest {
 }
 
 Deno.serve(async (req) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_civic_assistant"); if (__off) return __off; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

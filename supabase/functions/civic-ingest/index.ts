@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { embedText } from "../_shared/embeddings.ts";
 
@@ -69,6 +70,7 @@ async function fetchUrlContent(url: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_knowledge_ingest"); if (__off) return __off; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

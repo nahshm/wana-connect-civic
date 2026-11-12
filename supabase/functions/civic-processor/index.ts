@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 /**
  * civic-processor — Idempotent post-processing pipeline
  *
@@ -185,6 +186,7 @@ async function clusterPipeline(
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_agent_processor"); if (__off) return __off; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: agentCorsHeaders });
   }

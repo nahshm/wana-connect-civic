@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -102,6 +103,7 @@ Reference: ${refNum} | Generated via WanaIQ Civic Platform`;
 }
 
 Deno.serve(async (req) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_civic_router"); if (__off) return __off; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

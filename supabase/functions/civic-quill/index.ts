@@ -1,3 +1,4 @@
+import { aiFeatureGate } from "../_shared/aiGate.ts";
 /**
  * civic-quill — Issue Summarisation Agent
  *
@@ -38,6 +39,7 @@ Respond ONLY with valid JSON:
 }`;
 
 Deno.serve(async (req: Request) => {
+  if (req.method !== "OPTIONS") { const __off = await aiFeatureGate("ai_agent_quill"); if (__off) return __off; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: agentCorsHeaders });
   }
