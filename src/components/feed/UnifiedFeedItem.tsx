@@ -7,7 +7,6 @@ import React from 'react';
 import { PostCard } from '@/components/posts/PostCard';
 import { ProjectFeedCard } from '@/components/feed/ProjectFeedCard';
 import { PromiseFeedCard } from '@/components/feed/PromiseFeedCard';
-import { ClipPreviewCard } from '@/components/feed/ClipPreviewCard';
 import { ActivityNoticeCard } from '@/components/feed/ActivityNoticeCard';
 import { getFlairById } from '@/config/flairs';
 import { CommunityFlair } from '@/types';
@@ -61,7 +60,7 @@ export function UnifiedFeedItem({ item, onInteraction, isMember, onJoinCommunity
   if (HIDDEN_TYPES.has(item.type)) return null;
 
   // Standard post content
-  if (item.type === 'post') {
+  if (item.type === 'post' || item.type === 'clip' || item.type === 'clip_uploaded') {
     const postData = {
       ...item.data,
       author: {
@@ -106,7 +105,15 @@ export function UnifiedFeedItem({ item, onInteraction, isMember, onJoinCommunity
       link_title: item.data.link_title || null,
       link_description: item.data.link_description || null,
       link_image: item.data.link_image || null,
-      auto_generated: item.data.auto_generated || false
+      auto_generated: item.data.auto_generated || false,
+      clip: item.data.video_url ? {
+        id: item.data.clip_id || item.data.id,
+        video_url: item.data.video_url,
+        thumbnail_url: item.data.thumbnail_url,
+        aspect_ratio: item.data.aspect_ratio,
+        duration: item.data.duration,
+        views_count: item.data.views_count ?? item.data.views
+      } : null
     };
 
     return (
@@ -134,16 +141,6 @@ export function UnifiedFeedItem({ item, onInteraction, isMember, onJoinCommunity
     return (
       <PromiseFeedCard
         promise={item.data}
-        onClick={onInteraction}
-      />
-    );
-  }
-
-  // Civic Clip video content
-  if (item.type === 'clip' || item.type === 'clip_uploaded') {
-    return (
-      <ClipPreviewCard
-        clip={item.data}
         onClick={onInteraction}
       />
     );

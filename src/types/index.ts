@@ -93,6 +93,18 @@ export interface Post {
   isSaved?: boolean;
   isFollowed?: boolean;
   isHidden?: boolean;
+
+  /** Present when this post is a civic clip; video renders in the media slot. */
+  clip?: PostClip | null;
+}
+
+export interface PostClip {
+  id: string;
+  video_url: string;
+  thumbnail_url?: string | null;
+  aspect_ratio?: string | number | null;
+  duration?: number | null;
+  views_count?: number | null;
 }
 
 export interface PostMedia {

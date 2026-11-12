@@ -285,7 +285,7 @@ export async function logPromiseTracked(
 
 /**
  * Log civic clip upload activity
- * Feed visibility: ❌ Hidden (redundant - clips appear as ClipPreviewCards)
+ * Feed visibility: ❌ Hidden (redundant - clips appear as post cards)
  */
 export async function logClipUploaded(
   userId: string,

@@ -1,3 +1,4 @@
+import { FeedClipMedia } from '@/components/posts/FeedClipMedia';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -611,6 +612,7 @@ export const PostCard = ({
 
   // Helper to render media (used in both views)
   const renderMedia = () => {
+    if (post.clip?.video_url) return <FeedClipMedia clip={post.clip} />;
     if (!post.media || post.media.length === 0) return null;
 
     return (
