@@ -251,15 +251,6 @@ const ReportIssue = () => {
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">AI-powered civic routing</p>
         </div>
-        {/* Report Incident CTA */}
-        <Button
-          size="sm"
-          variant="outline"
-          className="hidden sm:flex gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
-          onClick={() => navigate('/report-incident')}
-        >
-          <AlertTriangle className="w-3.5 h-3.5" />Report Incident
-        </Button>
       </div>
 
       {/* Main Card */}

@@ -216,7 +216,7 @@ export const CommunityIssuesFeed = () => {
                         </Badge>
                     </CardTitle>
                     <Button variant="outline" size="sm" asChild>
-                        <Link to="/dashboard/report">
+                        <Link to="/report?type=issue">
                             + Report Issue
                         </Link>
                     </Button>
@@ -279,7 +279,7 @@ export const CommunityIssuesFeed = () => {
                             Be the first to report a civic issue in your area.
                         </p>
                         <Button asChild size="sm">
-                            <Link to="/dashboard/report">Report an Issue</Link>
+                            <Link to="/report?type=issue">Report an Issue</Link>
                         </Button>
                     </div>
                 ) : (

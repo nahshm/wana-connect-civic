@@ -36,6 +36,7 @@ const SubmitProject = lazy(() => import("@/features/accountability/pages/SubmitP
 const PromiseDetail = lazy(() => import("@/features/accountability/pages/PromiseDetail"));
 const ReportIssue = lazy(() => import("@/features/accountability/pages/ReportIssue"));
 const ReportIncident = lazy(() => import("@/features/accountability/pages/ReportIncident"));
+const ReportProblem = lazy(() => import("@/features/accountability/pages/ReportProblem"));
 const ActionDetail = lazy(() => import("@/features/accountability/pages/ActionDetail"));
 
 // LAZY LOADED: Community pages
@@ -122,9 +123,10 @@ const App = () => (
                             <Route path="/civic-clips" element={<CivicClipsPage />} />
                             <Route path="/" element={<Index />} />
                             <Route path="/dashboard" element={<ProtectedRoute><CivicDashboard /></ProtectedRoute>} />
-                            <Route path="/dashboard/report" element={<ProtectedRoute><ReportIssue /></ProtectedRoute>} />
-                            <Route path="/report-an-issue" element={<ProtectedRoute><ReportIssue /></ProtectedRoute>} />
-                            <Route path="/report-incident" element={<ProtectedRoute><ReportIncident /></ProtectedRoute>} />
+                            <Route path="/report" element={<ProtectedRoute><ReportProblem /></ProtectedRoute>} />
+                            <Route path="/dashboard/report" element={<Navigate to="/report?type=issue" replace />} />
+                            <Route path="/report-an-issue" element={<Navigate to="/report?type=issue" replace />} />
+                            <Route path="/report-incident" element={<Navigate to="/report?type=incident" replace />} />
                             <Route path="/dashboard/actions/:id" element={<ActionDetail />} />
                             <Route path="/dashboard/analytics" element={<Analytics />} />
                             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />

@@ -306,7 +306,7 @@ const ReportIncident = () => {
             <p className="text-sm font-bold text-rose-900 dark:text-rose-300 mb-0.5">Incident Reports are different from Issue Reports</p>
             <p className="text-xs text-rose-800/70 dark:text-rose-400/70 leading-relaxed">
               Use this form for serious civic incidents: corruption, rights violations, public safety threats, or service failures — not for everyday infrastructure complaints.
-              For potholes, water pipes, or garbage, <button onClick={() => navigate('/report-an-issue')} className="underline font-semibold hover:text-rose-900">Report an Issue instead</button>.
+              For potholes, water pipes, or garbage, <button onClick={() => navigate('/report?type=issue', { replace: true })} className="underline font-semibold hover:text-rose-900">Report an Issue instead</button>.
             </p>
           </div>
         </div>

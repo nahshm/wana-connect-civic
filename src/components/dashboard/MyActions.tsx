@@ -205,7 +205,7 @@ export const MyActions = () => {
                                 Report your first issue to start making a difference in your community
                             </p>
                             <Button asChild>
-                                <Link to="/dashboard/report">
+                                <Link to="/report?type=issue">
                                     <AlertCircle className="w-4 h-4 mr-2" />
                                     Report Your First Issue
                                 </Link>

@@ -8,3 +8,4 @@
 - Non-moderation AI edge functions call `aiFeatureGate(key)` from `supabase/functions/_shared/aiGate.ts` first, so admins can switch each AI feature on/off via `feature_flags` (category `ai`) without redeploying; moderation (civic-steward, content-moderation, civic-guardian) is never gated.
 - Baraza live rooms are external meeting links stored on `baraza_spaces` (channel_id, external_url, provider) and rendered by `src/components/community/baraza/BarazaRoomLauncher.tsx`; no in-house WebRTC until user density justifies it.
 - Client UI checks AI switches with `useAiFeatureEnabled(key)` (same semantics as `aiFeatureGate`: missing flag = on, error = off), so gated AI screens show a resting state instead of erroring.
+- Citizen reporting has one entry route `/report?type=issue|incident` (`ReportProblem.tsx`) that hosts the issue and incident forms; old report URLs redirect there so links never break.

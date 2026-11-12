@@ -14,7 +14,7 @@ export function AmaRestingCard() {
           The civic assistant is switched off for now. You can still report a problem, ask your leaders a question, or browse your community.
         </p>
         <div className="flex gap-2 justify-center">
-          <Button asChild size="sm"><Link to="/report-an-issue">Report a problem</Link></Button>
+          <Button asChild size="sm"><Link to="/report">Report a problem</Link></Button>
           <Button asChild size="sm" variant="outline"><Link to="/">Back to feed</Link></Button>
         </div>
       </div>

@@ -13,10 +13,10 @@ import {
 } from 'lucide-react';
 
 const actions = [
-  { label: 'Report Issue', icon: AlertTriangle, to: '/report-an-issue', color: 'text-red-400', bg: 'hover:bg-red-500/10' },
+  { label: 'Report Issue', icon: AlertTriangle, to: '/report?type=issue', color: 'text-red-400', bg: 'hover:bg-red-500/10' },
   { label: 'Discussion', icon: MessageSquare, to: '/communities', color: 'text-blue-400', bg: 'hover:bg-blue-500/10' },
   { label: 'Track Project', icon: ClipboardList, to: '/projects', color: 'text-green-400', bg: 'hover:bg-green-500/10' },
-  { label: 'Incident', icon: Bell, to: '/report-incident', color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+  { label: 'Incident', icon: Bell, to: '/report?type=incident', color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
 ];
 
 export const QuickActionBar = () => {
