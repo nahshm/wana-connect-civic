@@ -13,7 +13,7 @@ export default function OverviewSection() {
     queryFn: async () => {
       const [usersRes, reportsRes, modsRes, officialsRes, flagsRes, agentRunsRes, proposalsRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('anonymous_reports').select('id', { count: 'exact', head: true }),
+        supabase.from('incidents').select('id', { count: 'exact', head: true }).eq('is_anonymous', true),
         supabase.from('community_moderators').select('id', { count: 'exact', head: true }),
         supabase.from('officials').select('id', { count: 'exact', head: true }),
         supabase.from('content_flags').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -39,12 +39,12 @@ export default function OverviewSection() {
       const [runsRes, alertsRes, reportsRes] = await Promise.all([
         supabase.from('agent_runs').select('id, agent_name, status, created_at').order('created_at', { ascending: false }).limit(5),
         supabase.from('accountability_alerts').select('id, alert_type, subject_name, severity, created_at').order('created_at', { ascending: false }).limit(5),
-        supabase.from('anonymous_reports').select('id, report_id, category, severity, created_at').order('created_at', { ascending: false }).limit(5),
+        supabase.from('incidents').select('id, case_number, incident_type, severity, created_at').eq('is_anonymous', true).order('created_at', { ascending: false }).limit(5),
       ]);
       const items = [
         ...(runsRes.data || []).map(r => ({ type: 'agent_run' as const, id: r.id, label: `${r.agent_name} — ${r.status}`, time: r.created_at })),
         ...(alertsRes.data || []).map(a => ({ type: 'alert' as const, id: a.id, label: `${a.alert_type}: ${a.subject_name}`, time: a.created_at, severity: a.severity })),
-        ...(reportsRes.data || []).map(r => ({ type: 'report' as const, id: r.id, label: `${r.report_id} — ${r.category}`, time: r.created_at })),
+        ...(reportsRes.data || []).map(r => ({ type: 'report' as const, id: r.id, label: `${r.case_number ?? 'Anonymous'} — ${r.incident_type}`, time: r.created_at })),
       ];
       items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
       return items.slice(0, 10);

@@ -31,7 +31,7 @@ function OverviewSubTab() {
       const [usersRes, rolesRes, reportsRes, flagsRes, apiRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('user_roles').select('id', { count: 'exact', head: true }),
-        supabase.from('anonymous_reports').select('id', { count: 'exact', head: true }),
+        supabase.from('incidents').select('id', { count: 'exact', head: true }).eq('is_anonymous', true),
         supabase.from('content_flags').select('id', { count: 'exact', head: true }),
         supabase.from('api_metrics').select('id', { count: 'exact', head: true }),
       ]);

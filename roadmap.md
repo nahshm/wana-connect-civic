@@ -11,3 +11,5 @@
 - [x] Phase 5: post types (discussion/issue/poll/event/guide), feed tabs, clips in feed; old polls/events copied
 - [x] Phase 6: special (time-limited) quests replace challenges; 6 milestone badges, old 20 switched off
 - [x] Phase 7: retired tables dropped (approved)
+- [ ] Review: finish Phase 7 leftovers (education, skills, forums, crisis/anonymous reports) — move code off them, then drop
+- [ ] Review: switch off education quests; check feed clip black box

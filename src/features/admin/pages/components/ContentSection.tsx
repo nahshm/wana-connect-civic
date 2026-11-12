@@ -29,7 +29,6 @@ export default function ContentSection() {
         <TabsTrigger value="social-reports" className="gap-2"><MessageSquare className="w-4 h-4" />User Reports</TabsTrigger>
         <TabsTrigger value="manage-posts" className="gap-2"><Search className="w-4 h-4" />Manage Posts</TabsTrigger>
         <TabsTrigger value="incidents" className="gap-2"><Flame className="w-4 h-4" />Incidents</TabsTrigger>
-        <TabsTrigger value="reports" className="gap-2"><ShieldAlert className="w-4 h-4" />Anonymous Reports</TabsTrigger>
         <TabsTrigger value="crisis" className="gap-2"><AlertTriangle className="w-4 h-4" />Crisis</TabsTrigger>
       </TabsList>
 
@@ -37,7 +36,6 @@ export default function ContentSection() {
       <TabsContent value="social-reports"><UserReportsSubTab /></TabsContent>
       <TabsContent value="manage-posts"><ManagePostsSubTab /></TabsContent>
       <TabsContent value="incidents"><IncidentsSubTab /></TabsContent>
-      <TabsContent value="reports"><AnonymousReportsSubTab /></TabsContent>
       <TabsContent value="crisis"><CrisisSubTab /></TabsContent>
     </Tabs>
   );
@@ -568,107 +566,6 @@ function ModerationQueueSubTab() {
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Anonymous Reports ─────────────────────────────────────────────────────────
-function AnonymousReportsSubTab() {
-  const queryClient = useQueryClient();
-  const { data: reports, isLoading, refetch } = useQuery({
-    queryKey: ['admin-anonymous-reports'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('anonymous_reports')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const escalateToCrisis = async (report: any) => {
-    const reportId = `CR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const { error } = await supabase
-      .from('crisis_reports')
-      .insert({
-        report_id: reportId,
-        title: report.title || `Anonymous Report: ${report.category}`,
-        description: report.encrypted_content?.substring(0, 500) || null,
-        crisis_type: 'escalated_anonymous',
-        severity: report.severity === 'critical' ? 'critical' : 'high',
-        status: 'active',
-        anonymous_report_id: report.id,
-        location_text: report.location_text,
-      } as any);
-    if (error) toast.error('Failed to escalate');
-    else {
-      toast.success('Escalated to Crisis Command Center');
-      queryClient.invalidateQueries({ queryKey: ['admin-crisis'] });
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-destructive">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{reports?.filter(r => r.severity === 'critical').length || 0}</div>
-            <div className="text-xs text-muted-foreground">Critical</div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-orange-500">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{reports?.length || 0}</div>
-            <div className="text-xs text-muted-foreground">Total Reports</div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <Lock className="text-green-500 mb-1 w-5 h-5" />
-            <div className="text-2xl font-bold">{reports?.reduce((acc, r) => acc + (r.evidence_count || 0), 0) || 0}</div>
-            <div className="text-xs text-muted-foreground">Evidence Secured</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Reports</CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => refetch()}><RefreshCw className="w-4 h-4" /></Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-          ) : !reports?.length ? (
-            <p className="text-center py-8 text-muted-foreground">No reports yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {reports.map(r => (
-                <div key={r.id} className="p-3 border rounded-lg flex justify-between items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm">{r.report_id}</div>
-                    <div className="text-xs text-muted-foreground">{r.category}</div>
-                    {r.title && <div className="text-xs text-muted-foreground mt-0.5">{r.title}</div>}
-                    {r.location_text && <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{r.location_text}</div>}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {['critical', 'high'].includes(r.severity) && (
-                      <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => escalateToCrisis(r)}>
-                        <AlertTriangle className="w-3 h-3 mr-1" />Escalate
-                      </Button>
-                    )}
-                    <Badge variant={r.severity === 'critical' ? 'destructive' : 'secondary'} className="text-xs">{r.severity}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
